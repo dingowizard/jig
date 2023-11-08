@@ -55,13 +55,15 @@ public class TokenStream {
 
     Token.Identifier Identifier() {
         int start = Port.Position;
+        int line = Port.Line;
+        int col = Port.Column;
         StringBuilder sb = new StringBuilder();
         char init = (char)Port.Read();
         sb.Append(init);
         while (CharIsSubsequent((char)Port.Peek())) {
             sb.Append((char)Port.Read());
         }
-        return new Token.Identifier(sb.ToString(), start, Port.Position);
+        return new Token.Identifier(sb.ToString(), Port.Source, line, col, start, Port.Position - start);
     }
 
     bool CharIsSubsequent(char c) {
@@ -78,21 +80,21 @@ public class TokenStream {
     }
 
     Token.OpenParen OpenParen() {
-        int start = Port.Position;
+        var result = new Token.OpenParen(Port.Source, Port.Line, Port.Column, Port.Position, 1);
         Match('(');
-        return new Token.OpenParen(start, Port.Position);
+        return result;
     }
 
     Token.Dot Dot() {
-        int start = Port.Position;
+        var result = new Token.Dot(Port.Source, Port.Line, Port.Column, Port.Position, 1);
         Match('.');
-        return new Token.Dot(start, Port.Position);
+        return result;
     }
 
     Token.CloseParen CloseParen() {
-        int start = Port.Position;
+        var result = new Token.CloseParen(Port.Source, Port.Line, Port.Column, Port.Position, 1);
         Match(')');
-        return new Token.CloseParen(start, Port.Position);
+        return result;
     }
 
     void Match(char c) {
@@ -104,15 +106,21 @@ public class TokenStream {
     }
 
     Token.Comment Comment() {
+        int line = Port.Line;
+        int column = Port.Column;
+        int start = Port.Position;
         Match(';');
+        var sb = new StringBuilder();
+        sb.Append(';');
         while ((char)Port.Peek() != '\n' && Port.Peek() != -1) {
             // TODO: store comment text in token
-            Consume();
+            sb.Append((char)Port.Read());
         }
-        return new Token.Comment();
+        return new Token.Comment(sb.ToString(), Port.Source, line, column, start, Port.Position - start);
 
     }
 
     Token _currentToken;
 
 }
+
