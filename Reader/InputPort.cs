@@ -44,6 +44,7 @@ public class InputPort : IDisposable {
             Position ++;
         } else {
             Column ++;
+            Position ++;
         }
         return read;
     }

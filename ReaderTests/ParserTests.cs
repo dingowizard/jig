@@ -13,10 +13,60 @@ public class ParserTests {
     }
 
     [TestMethod]
+    public void ParseSytaxOpenCloseParensReturnsNull() {
+        var tokenStream = new TokenStream(InputPort.FromString("()"));
+        SyntaxObject actual = (SyntaxObject)Parser.ParseExpr(tokenStream, syntax: true);
+        Assert.AreEqual(List.Empty, actual.Datum);
+        Assert.AreEqual(1, actual.SrcLoc.Line);
+        Assert.AreEqual(1, actual.SrcLoc.Position);
+        Assert.AreEqual(0, actual.SrcLoc.Column);
+        Assert.AreEqual(2, actual.SrcLoc.Span);
+    }
+
+    [TestMethod]
     public void ParseOneItemList() {
         var tokenStream = new TokenStream(InputPort.FromString("(abc)"));
         var actual = Parser.ParseExpr(tokenStream);
         Assert.AreEqual(List.NewList(new Expr.Symbol("abc")), actual);
+    }
+
+    [TestMethod]
+    public void ParseSyntaxOneItemList() {
+        var tokenStream = new TokenStream(InputPort.FromString("(abc)"));
+        SyntaxObject stx = Parser.ParseSyntax(tokenStream);
+        Assert.IsInstanceOfType(stx, typeof(SyntaxObject.Pair));
+        Expr x = SyntaxObject.SyntaxE(stx);
+        Assert.IsInstanceOfType(x, typeof(IPair));
+        Expr car = ((IPair)x).Car;
+        Assert.IsInstanceOfType(car, typeof(SyntaxObject));
+        SyntaxObject so = car as SyntaxObject;
+        Assert.AreEqual(new Expr.Symbol("abc"), so.Datum);
+    }
+
+    [TestMethod]
+    public void ParseSyntaxOneItemListCdrIsNull() {
+        var tokenStream = new TokenStream(InputPort.FromString("(abc)"));
+        SyntaxObject stx = Parser.ParseSyntax(tokenStream);
+        Expr x = SyntaxObject.SyntaxE(stx);
+        Expr cdr = ((IPair) x).Cdr;
+        Assert.AreEqual(List.Empty, cdr);
+    }
+
+
+    [TestMethod]
+    public void ParseSyntaxListHasCorrectSrcLoc() {
+        var tokenStream = new TokenStream(InputPort.FromString("(abc def)"));
+        var actual = (SyntaxObject)Parser.ParseExpr(tokenStream, syntax: true);
+        Assert.AreEqual(9, actual.SrcLoc.Span);
+
+    }
+
+    [TestMethod]
+    public void ParseSyntaxPairHasCorrectSrcLoc() {
+        var tokenStream = new TokenStream(InputPort.FromString("(abc . def)"));
+        var actual = (SyntaxObject)Parser.ParseExpr(tokenStream, syntax: true);
+        Assert.AreEqual(11, actual.SrcLoc.Span);
+
     }
 
     [TestMethod]
@@ -25,6 +75,19 @@ public class ParserTests {
         var actual = Parser.ParseExpr(tokenStream);
         Assert.AreEqual(List.NewList(new Expr.Symbol("abc"), new Expr.Symbol("def")), actual);
     }
+
+    // [TestMethod]
+    // public void ParseSyntaxTwoItemList() {
+    //     var tokenStream = new TokenStream(InputPort.FromString("(abc def)"));
+    //     SyntaxObject stx = (SyntaxObject)Parser.ParseExpr(tokenStream, syntax: true);
+    //     Assert.IsInstanceOfType(stx, typeof(SyntaxObject.Pair));
+    //     Expr cdr = ((SyntaxObject.Pair) stx).Cdr;
+    //     Assert.IsInstanceOfType(cdr, typeof(SyntaxObject.Pair));
+    //     SyntaxObject carOfCdr = ((SyntaxObject.Pair) cdr).Car;
+    //     Expr cdrOfCdr = ((SyntaxObject.Pair) cdr).Cdr;
+    //     Assert.AreEqual(new Expr.Symbol("def"), carOfCdr.Datum);
+    //     Assert.AreEqual(List.Empty, cdrOfCdr);
+    // }
 
     [TestMethod]
     public void ParseFourItemList() {
@@ -79,4 +142,31 @@ public class ParserTests {
         Assert.AreEqual(Expr.Pair.Cons(new Expr.Symbol("abc"), (Expr.Pair) Expr.Pair.Cons(new Expr.Symbol("def"), new Expr.Symbol("ghi"))), actual);
     }
 
+    [TestMethod]
+    public void ParseHashFToFalse() {
+        var lexer = new TokenStream(InputPort.FromString("#f"));
+        var actual = Parser.ParseExpr(lexer);
+        Assert.AreEqual(new Expr.Boolean(false), actual);
+    }
+
+    [TestMethod]
+    public void ParseHashTToFalse() {
+        var lexer = new TokenStream(InputPort.FromString("#t"));
+        var actual = Parser.ParseExpr(lexer);
+        Assert.AreEqual(new Expr.Boolean(true), actual);
+    }
+
+    [TestMethod]
+    public void ParseDigitsToInt() {
+        var lexer = new TokenStream(InputPort.FromString("1234"));
+        var actual = Parser.ParseExpr(lexer);
+        Assert.AreEqual(new Expr.Integer(1234), actual);
+    }
+
+    [TestMethod]
+    public void ParseDigitsDotMoreDigitsToDouble() {
+        var lexer = new TokenStream(InputPort.FromString("1234.5678"));
+        var actual = Parser.ParseExpr(lexer);
+        Assert.AreEqual(new Expr.Double(1234.5678), actual);
+    }
 }

@@ -8,8 +8,16 @@ public abstract class Expr {
 
     public static bool IsNull(Expr x) => x is NullType;
 
-    public class Boolean : LiteralExpr {
+    public class Boolean : LiteralExpr<bool> {
         public Boolean(bool b) : base(b) {}
+    }
+
+    public class Integer : LiteralExpr<int> {
+        public Integer(int i) : base(i) {}
+    }
+
+    public class Double : LiteralExpr<double> {
+        public Double(double d) : base(d) {}
     }
 
     public class Symbol : Expr {
@@ -39,12 +47,20 @@ public abstract class Expr {
 
     public class Pair : Expr, IPair {
 
-        public static IPair Cons(Expr car, List cdr) {
-            return new List.NonEmptyList(car, cdr);
-        }
+        // public static IPair Cons(Expr car, List cdr) {
+        //     return new List.NonEmptyList(car, cdr);
+        // }
+
+        // public static IPair Cons(Expr car, Expr cdr) {
+        //     return new Pair(car, cdr);
+        // }
 
         public static IPair Cons(Expr car, Expr cdr) {
-            return new Pair(car, cdr);
+            if (cdr is List list) {
+                return  new List.NonEmptyList(car, list);
+            } else {
+                return  new Pair(car, cdr);
+            }
         }
 
         protected Pair(Expr car, Expr cdr) {
@@ -67,11 +83,22 @@ public abstract class Expr {
 
 }
 
-public class LiteralExpr : Expr {
-    public LiteralExpr(object val) {
+public class LiteralExpr<T> : Expr {
+    public LiteralExpr(T val) {
         Value = val;
     }
-    public object Value {get;}
+    public T Value {get;}
+    public override bool Equals(object? obj) {
+        if (obj is null) return false;
+        if (obj is LiteralExpr<T> lit) {
+            return this.Value.Equals(lit.Value);
+        }
+        return false;
+
+    }
+    public override int GetHashCode() {
+        return Value.GetHashCode();
+    }
 }
 
 public interface IPair {
