@@ -7,44 +7,31 @@ public class TokenStream {
 
     public TokenStream(InputPort ip) {
         Port = ip;
-        _currentToken = GetNextToken();
     }
 
     public Token Read() {
-        Token retVal = _currentToken;
-        _currentToken = GetNextToken();
-        return retVal;
+        if (_peeked is null) {
+            return GetNextToken();
+        } else {
+            Token tmp = _peeked;
+            _peeked = null;
+            return tmp;
+
+        }
     }
 
     public Token Peek() {
-        return _currentToken;
+        if (_peeked is null) {
+            _peeked = GetNextToken();
+            return _peeked;
+        }
+        return _peeked;
     }
 
     public InputPort Port { get; }
 
     Token GetNextToken() {
         return Start(new StringBuilder());
-    }
-
-    private Token Number() {
-        // TODO: + and especially - signs in front of the number
-        // TODO: other number formats
-        // TODO: other number types (rationals and complex)
-        int start = Port.Position;
-        int line = Port.Line;
-        int col = Port.Column;
-        var sb = new StringBuilder();
-        while (Char.IsDigit((char)Port.Peek())) {
-            sb.Append((char)Port.Read());
-        }
-        if ((char)Port.Peek() == '.') {
-            sb.Append((char)Port.Read()); // consume '.'
-            while (Char.IsDigit((char)Port.Peek())) {
-                sb.Append((char)Port.Read());
-            }
-            return new Token.Number(sb.ToString(), Port.Source, line, col, start, Port.Position - start);
-        }
-        return new  Token.Number(sb.ToString(), Port.Source, line, col, start, Port.Position - start);
     }
 
     void Consume() {
@@ -420,6 +407,6 @@ public class TokenStream {
         }
     }
 
-    Token _currentToken;
+    Token? _peeked;
 
 }

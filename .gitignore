@@ -4,3 +4,9 @@ Reader/bin/
 Reader/obj/
 Types/bin/
 Types/obj/
+obj/
+.cache/
+Jig/bin/
+Jig/obj/
+JigTests/obj/
+JigTests/bin/

@@ -27,7 +27,7 @@ public class Parser {
                 if (tokenStream.Peek() is Token.CloseParen close) {
                     tokenStream.Read();
                     if (syntax) {
-                        return new SyntaxObject.Pair((IPair)pair, SrcLoc.Combine(openToken.SrcLoc, close.SrcLoc));
+                        return SyntaxObject.FromDatum(pair, SrcLoc.Combine(openToken.SrcLoc, close.SrcLoc));
                     } else {
 
                         return pair;
@@ -38,7 +38,7 @@ public class Parser {
             case Token.Identifier id:
                 return ParseSymbol(id, tokenStream, syntax);
             case Token.Number num:
-                return ParseNumber(num, syntax);
+                return ParseNumber(num, tokenStream, syntax);
             case Token.Bool b:
                 return ParseBool(b, tokenStream, syntax);
             case Token.EOFTokenType _:
@@ -48,8 +48,9 @@ public class Parser {
         }
     }
 
-    private static Expr ParseNumber(Token.Number num, bool syntax)
+    private static Expr ParseNumber(Token.Number num, TokenStream tokenStream, bool syntax)
     {
+        tokenStream.Read();
         if (Int32.TryParse(num.Text, out int i)) {
             if (syntax) {
                 return new SyntaxObject.Literal(new Expr.Integer(i), num.SrcLoc);
@@ -68,9 +69,10 @@ public class Parser {
     }
 
     private static Expr ParseBool(Token tok, TokenStream tokenStream, bool syntax = false) {
+        tokenStream.Read();
         switch (tok) {
             case Token.Bool b:
-                tokenStream.Read();
+                // tokenStream.Read();
                 if (b.Text == "#t" || b.Text == "#true") {
                     if (syntax) {
                         return new SyntaxObject.Literal(new Expr.Boolean(true), b.SrcLoc);
@@ -87,7 +89,7 @@ public class Parser {
                     throw new Exception($"ParseLiteral: couldn't match boolean token {b}");
                 }
             default:
-                throw new Exception($"ParseLiteral: unhandled case {tok}");
+                throw new Exception($"ParseBool: unhandled case {tok}");
         }
 
     }
