@@ -88,6 +88,156 @@ internal static class Builtins {
         }
     }
 
+    public static void sum(Continuation k, List args) {
+        Expr.Integer intResult = new Expr.Integer(0);
+        bool resultIsInt = true;
+        Expr.Double doubleResult = new Expr.Double(0.0);
+        foreach (var arg in args) {
+            if (resultIsInt) {
+                if (arg is Expr.Integer i) {
+                    intResult += i;
+                    continue;
+                } else if (arg is Expr.Double d) {
+                    resultIsInt = false;
+                    doubleResult = intResult + d;
+                    continue;
+                } else {
+                    throw new Exception($"+: all args must be numbers. {arg} is not a number.");
+                }
+            } else {
+                if (arg is Expr.Integer i) {
+                    doubleResult += i;
+                    continue;
+                } else if (arg is Expr.Double d) {
+                    doubleResult += d;
+                    continue;
+                } else {
+                    throw new Exception($"+: all args must be numbers. {arg} is not a number.");
+                }
+
+            }
+        }
+        k(resultIsInt ? intResult : doubleResult);
+
+    }
+
+    public static void diff(Continuation k, Expr first, List args) {
+        bool resultIsInt = true;
+        Expr.Integer intResult = new Expr.Integer(0);
+        Expr.Double doubleResult = new Expr.Double(0.0);
+        if (first is Expr.Integer i) {
+            intResult = i;
+        } else if (first is Expr.Double d) {
+            doubleResult = d;
+            resultIsInt = false;
+        } else {
+            throw new Exception($"-: all args must be numbers. {first} is not a number.");
+        }
+        foreach (var arg in args) {
+            if (resultIsInt) {
+                if (arg is Expr.Integer x) {
+                    intResult -= x;
+                    continue;
+                } else if (arg is Expr.Double d) {
+                    resultIsInt = false;
+                    doubleResult = intResult - d;
+                    continue;
+                } else {
+                    throw new Exception($"-: all args must be numbers. {arg} is not a number.");
+                }
+            } else {
+                if (arg is Expr.Integer x) {
+                    doubleResult -= x;
+                    continue;
+                } else if (arg is Expr.Double d) {
+                    doubleResult -= d;
+                    continue;
+                } else {
+                    throw new Exception($"-: all args must be numbers. {arg} is not a number.");
+                }
+            }
+        }
+        k(resultIsInt ? intResult : doubleResult);
+    }
+
+    public static void numEq(Continuation k, Expr first, List args) {
+        // TODO: should 1 = 1.0? it does in chez. if so best way to implement
+        if (first is Expr.Integer i) {
+            Expr.Integer current = i;
+            foreach(var arg in args) {
+                if (arg is Expr.Integer nextInt) {
+                    if (current.Equals(nextInt)) {
+                        continue;
+                    } else {
+                        k(new Expr.Boolean(false));
+                        return;
+                    }
+                } else if (arg is Expr.Double) {
+                    k(new Expr.Boolean(false));
+                    return;
+                } else {
+                    throw new Exception($"=: expected numeric arguments, but got {arg}");
+                }
+            }
+            k(new Expr.Boolean(true));
+            return;
+        } else if (first is Expr.Double d) {
+            Expr.Double current = d;
+            foreach(var arg in args) {
+                if (arg is Expr.Double nextD) {
+                    if (current.Equals(nextD)) {
+                        continue;
+                    } else {
+                        k(new Expr.Boolean(false));
+                        return;
+                    }
+                } else if (arg is Expr.Integer) {
+                    k(new Expr.Boolean(false));
+                    return;
+                } else {
+                    throw new Exception($"=: expected numeric arguments, but got {arg}");
+                }
+            }
+            k(new Expr.Boolean(true));
+            return;
+
+        } else {
+            throw new Exception($"=: expects only numeric arguments. Got {first}");
+        }
+    }
+
+    public static void product(Continuation k, List args) {
+        Expr.Integer intResult = new Expr.Integer(1);
+        bool resultIsInt = true;
+        Expr.Double doubleResult = new Expr.Double(1.0);
+        foreach (var arg in args) {
+            if (resultIsInt) {
+                if (arg is Expr.Integer i) {
+                    intResult *= i;
+                    continue;
+                } else if (arg is Expr.Double d) {
+                    resultIsInt = false;
+                    doubleResult = intResult * d;
+                    continue;
+                } else {
+                    throw new Exception($"*: all args must be numbers. {arg} is not a number.");
+                }
+            } else {
+                if (arg is Expr.Integer i) {
+                    doubleResult *= i;
+                    continue;
+                } else if (arg is Expr.Double d) {
+                    doubleResult *= d;
+                    continue;
+                } else {
+                    throw new Exception($"*: all args must be numbers. {arg} is not a number.");
+                }
+
+            }
+        }
+        k(resultIsInt ? intResult : doubleResult);
+    }
+
     public static void cons (Continuation k, List args) {
         if (args is List.NonEmptyList properList) {
             if (properList.Count() != 2) {
@@ -113,7 +263,6 @@ internal static class Builtins {
                 listFn(k, args);
                 return;
             case PairFunction pairFn:
-                Console.WriteLine("pairFn");
                 pairFn(k, args.ElementAt(0), List.NewList(args.Skip(1).ToArray()));
                 return;
             case ImproperListFunction2 improper2:

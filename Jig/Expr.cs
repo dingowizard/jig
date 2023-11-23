@@ -24,10 +24,43 @@ public abstract class Expr {
 
     public class Integer : LiteralExpr<int> {
         public Integer(int i) : base(i) {}
+
+        public static Double operator +(Integer i, Double d) => new Double(i.Value + d.Value);
+
+        public static Integer operator +(Integer i1, Integer i2) => new Integer(i1.Value + i2.Value);
+
+        public static Double operator -(Integer i, Double d) => new Double(i.Value - d.Value);
+
+        public static Integer operator -(Integer i1, Integer i2) => new Integer(i1.Value - i2.Value);
+
+        public static Double operator *(Integer i, Double d) => new Double(i.Value * d.Value);
+
+        public static Integer operator *(Integer i1, Integer i2) => new Integer(i1.Value * i2.Value);
+
+        public static Double operator /(Integer i, Double d) => new Double(i.Value / d.Value);
+
+        public static Integer operator /(Integer i1, Integer i2) => new Integer(i1.Value / i2.Value);
     }
 
     public class Double : LiteralExpr<double> {
         public Double(double d) : base(d) {}
+
+        public static Double operator+(Double d1, Double d2) => new Double(d1.Value + d2.Value);
+
+        public static Double operator+(Double d, Expr.Integer i) => new Double(d.Value + i.Value);
+
+        public static Double operator-(Double d1, Double d2) => new Double(d1.Value - d2.Value);
+
+        public static Double operator-(Double d, Expr.Integer i) => new Double(d.Value - i.Value);
+
+        public static Double operator*(Double d1, Double d2) => new Double(d1.Value * d2.Value);
+
+        public static Double operator*(Double d, Expr.Integer i) => new Double(d.Value * i.Value);
+
+        public static Double operator/(Double d1, Double d2) => new Double(d1.Value / d2.Value);
+
+        public static Double operator/(Double d, Expr.Integer i) => new Double(d.Value / i.Value);
+
     }
 
     public class Symbol : Expr {
@@ -109,6 +142,46 @@ public abstract class Expr {
     }
 
     public abstract string Print();
+
+    internal static bool IsLiteral(Expr ast)
+    {
+        Expr x = ast is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : ast;
+        switch (x) {
+            case Expr.Boolean: return true;
+            case Expr.Integer: return true;
+            case Expr.Double: return true;
+            default: return false;
+        }
+
+    }
+
+    internal static bool IsSymbol(Expr ast)
+    {
+        if (ast is Expr.Symbol) return true;
+        if (ast is SyntaxObject.Identifier) return true;
+        return false;
+    }
+
+    internal static bool IsNonEmptyList(Expr ast)
+    {
+        if (ast is SyntaxObject stx) {
+            return SyntaxObject.E(stx) is List.NonEmptyList;
+        }
+        return ast is List.NonEmptyList;
+    }
+
+    internal static bool IsKeyword(string name, Expr ast) {
+        if (ast is SyntaxObject stx) {
+            if (SyntaxObject.E(stx) is List.NonEmptyList list) {
+                if (list.Car is SyntaxObject.Identifier id) {
+                    return id.Symbol.Name == name;
+                } return false;
+            } return false;
+        }
+        if (ast is List.NonEmptyList l) {
+            return l.Car is Expr.Symbol sym && sym.Name == name;
+        } return false;
+    }
 
 }
 

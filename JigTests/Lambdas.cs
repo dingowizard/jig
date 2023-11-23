@@ -33,12 +33,48 @@ public class Lambdas
     [DataRow("((lambda (x y . rest) (cons y (cons x rest))) 1 2 3 4)", "(2 1 3 4)")]
     public void ApplyLambdaExpr(string input, string expected)
     {
+        string actual = Utilities.Interpret(input);
+        Assert.AreEqual(expected, actual);
+
+    }
+
+    [TestMethod]
+    [DataRow("((lambda (x) x) 1)", "1")]
+    [DataRow("((lambda (p) (car p)) (cons 1 2))", "1")]
+    [DataRow("((lambda (p) (car (cdr p))) (cons 1 (quote (2 3))))", "2")]
+    [DataRow("((lambda (a b) b) (cons 3 4) (cons 1 (quote (2))))", "(1 2)")]
+    [DataRow("((lambda (x) (cons 1 2) (cdr (cons 1 2)) #f 12 x) (cons 1 (quote (2))))", "(1 2)")]
+    [DataRow("((lambda (a b c d e f g) g) 1 2 3 4 5 6 7)", "7")]
+    [DataRow("((lambda x x) 1 2 3 4)", "(1 2 3 4)")]
+    [DataRow("((lambda (x . rest) rest) 1 2 3 4)", "(2 3 4)")]
+    [DataRow("((lambda (x y . rest) rest) 1 2 3 4)", "(3 4)")]
+    [DataRow("((lambda (x y z . rest) rest) 1 2 3 4)", "(4)")]
+    [DataRow("((lambda (x y z a . rest) rest) 1 2 3 4)", "()")]
+    [DataRow("((lambda (x y . rest) (cons y (cons x rest))) 1 2 3 4)", "(2 1 3 4)")]
+    public void ApplyLambdaExprSyntax(string input, string expected)
+    {
+        var actual = Utilities.InterpretUsingReadSyntax(input);
+        Assert.AreEqual(expected, actual);
+
+    }
+}
+
+public static class Utilities {
+    public static string Interpret(string input) {
         string result = "";
         Continuation setResult = (x) => result = x.Print();
         Expr? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
         Assert.IsNotNull(x);
         Program.Eval(setResult, x, new Jig.Environment());
-        Assert.AreEqual(expected, result);
+        return result;
+    }
 
+    public static string InterpretUsingReadSyntax(string input) {
+        string result = "";
+        Continuation setResult = (x) => result = x.Print();
+        Expr? x = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
+        Assert.IsNotNull(x);
+        Program.Eval(setResult, x, new Jig.Environment());
+        return result;
     }
 }

@@ -26,38 +26,33 @@ internal abstract class ET : Expression {
     }
 
     public static ET Analyze(LexicalContext scope, Expr ast) {
-        switch (ast) {
-            case Expr.Integer: case Expr.Double:
-            case Expr.Boolean:
-                return new LiteralET(ast);
-            case Expr.Symbol symbol:
-                return new SymbolET(scope, symbol);
-            case List.NonEmptyList list:
-                if (list.Car.Equals(  new Expr.Symbol("lambda"))) {
-                    return new MakeProcET(scope, (List.NonEmptyList)list.Cdr);
-                }
-                if (list.Car.Equals(new Expr.Symbol("quote"))) {
-                    return new LiteralET(((List.NonEmptyList)list.Cdr).Car);
-                }
+        if (Expr.IsLiteral(ast)) {
+            return new LiteralET(ast);
+        } else if (Expr.IsSymbol(ast)) {
+            return new SymbolET(scope, ast);
+        } else if (Expr.IsNonEmptyList(ast)) {
+            List.NonEmptyList list = ast is SyntaxObject stx ? (List.NonEmptyList)SyntaxObject.E(stx) : (List.NonEmptyList)ast;
+            // TODO: rewrite below ET constructors to take full ast (as list probably)
+            if (Expr.IsKeyword("quote", ast)) {
+                // TODO: QuoteET
+                return new LiteralET(((List.NonEmptyList)list.Cdr).Car);
+            } else if (Expr.IsKeyword("lambda", ast)) {
+                return new LambdaExprET(scope, (List.NonEmptyList)list.Cdr);
+            } else if (Expr.IsKeyword("if", ast)) {
+                return new IfET(scope, list);
+            } else if (Expr.IsKeyword("define", ast)) {
+                return new DefineET(scope, list);
+            } else if (Expr.IsKeyword("begin", ast)){
+                return new BlockET(scope, (List.NonEmptyList)list.Cdr);
+
+            } else if (Expr.IsKeyword("set!", ast)){
+                return new SetBangET(scope, list);
+            } else {
                 return new ProcAppET(scope, list);
-            default:
-                throw new Exception($"Analyze: doesnn't know what to do with {ast}");
+            }
+        } else {
+            throw new Exception($"Analyze: doesnn't know what to do with {ast}");
         }
-    }
-
-    internal static ET Analyze(LexicalContext lexVars, SyntaxObject stx) {
-        if (stx is SyntaxObject.Literal lit) {
-            return new LiteralET(lit);
-        }
-        if (stx is SyntaxObject.Identifier id) {
-                return new SymbolET(lexVars, id);
-        }
-        Expr x = SyntaxObject.E(stx);
-        if (x is IPair pair) {
-            return MakeETForSyntaxPair(lexVars, pair);
-        }
-
-        throw new Exception($"Analyze: doesn't know what to do with {stx}");
     }
 
     public override bool CanReduce {get;} = true;
@@ -70,8 +65,6 @@ internal abstract class ET : Expression {
 
     public override Type Type {get;} = typeof(CompiledCode);
 
-    // public static Expression Block(LexicalScope scope, ProperList properList) => new BlockET(scope, properList);
-
     public ParameterExpression kParam;
     public ParameterExpression envParam;
     public abstract Expression Body {get;}
@@ -81,12 +74,7 @@ internal abstract class ET : Expression {
     private class LiteralET : ET {
 
         public LiteralET(Expr x) : base() {
-            Body = ConvertToObject(DynInv(kParam, Expression.Constant(x)));
-            // Body = DynInv(kParam, Expression.Constant(x));
-        }
-
-        public LiteralET(SyntaxObject stx) : base () {
-            Expr x = SyntaxObject.ToDatum(stx);
+            x = x is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : x;
             Body = ConvertToObject(DynInv(kParam, Expression.Constant(x)));
         }
 
@@ -97,25 +85,13 @@ internal abstract class ET : Expression {
     private class SymbolET : ET {
 
         private static MethodInfo LookUp {get;} = typeof(IEnvironment).GetMethod("LookUp") ?? throw new Exception("in SymbolET: IEnvironment really should have a 'LookUp' method");
-        private static MethodInfo LookUpSyntax {get;} = typeof(IEnvironment).GetMethod("LookUpSyntax") ?? throw new Exception("in SymbolET: IEnvironment really should have a 'LookUpSyntax' method");
 
-        public SymbolET (LexicalContext scope, Expr.Symbol symbol) : base() {
-            ParameterExpression? pe = scope.LookUp(symbol);
+        public SymbolET (LexicalContext scope, Expr x) {
+            ParameterExpression? pe = scope.LookUp(x);
             if (pe is null) {
                 Body = Expression.Call(envParam,
                                        LookUp,
-                                       new Expression [] {kParam, Expression.Constant(symbol)});
-            } else {
-                Body = Expression.Invoke(kParam, new Expression[] {pe});
-            }
-        }
-
-        public SymbolET(LexicalContext lexVars, SyntaxObject.Identifier id) {
-            ParameterExpression? pe = lexVars.LookUp(id.Symbol);
-            if (pe is null) {
-                Body = Expression.Call(envParam,
-                                       LookUpSyntax,
-                                       new Expression [] {kParam, Expression.Constant(id)});
+                                       new Expression [] {kParam, Expression.Constant(x)});
             } else {
                 Body = Expression.Invoke(kParam, new Expression[] {pe});
             }
@@ -134,17 +110,9 @@ internal abstract class ET : Expression {
 
     private class ProcAppET : ET {
 
-// (define (analyze-call x)
-//   (let ((analyzed (map analyze/cps x)))
-//     (lambda (k env)
-//       (map/cps (lambda (v) (apply/cps k (car v) (cdr v))) (lambda (cont proc) (proc cont env)) analyzed))))
-//
-
         public ProcAppET(LexicalContext scope, List.NonEmptyList list) : base () {
             // TODO: probably there is a more certain way of checking to see that we have syntax pair?
             IEnumerable<Expression<CompiledCode>> analyzed =
-                list.Car is SyntaxObject ?
-                list.Select(x => (Expression<CompiledCode>)Analyze(scope, (SyntaxObject)x).Reduce()) :
                 list.Select(x => (Expression<CompiledCode>)Analyze(scope, x).Reduce());
             var vParam = Expression.Parameter(typeof(Expr));
             var contParam = Expression.Parameter(typeof(Continuation));
@@ -153,7 +121,7 @@ internal abstract class ET : Expression {
             Body = ConvertToObject(
                 DynInv(Expression.Constant((MapInternalDelegate) Builtins.map_internal),
                        Expression.Lambda<Continuation>(
-                           body: DynInv(Expression.Constant((ApplyDelegate)Builtins.apply),
+                           body: DynInv(Expression.Constant((ApplyDelegate)Builtins.apply), // TODO: should we actually just do DynInv on the proc?
                                         kParam,
                                         Expression.Property(Expression.Convert(vParam, typeof(IPair)), carPropertyInfo),
                                         // DynInv(Expression.Constant(car), vParam),
@@ -169,6 +137,109 @@ internal abstract class ET : Expression {
         public override Expression Body {get;}
     }
 
+    private class IfET : ET {
+
+        public IfET(LexicalContext lexVars, List.NonEmptyList list) : base() {
+
+            List.NonEmptyList listCdr = list.Cdr as List.NonEmptyList ?? throw new Exception($"malformed if: {list}"); // TODO: should the parser be doing all this checking for malformed whatevers?
+            Expr cond = listCdr.Car;
+            Expression<CompiledCode> condCC = (Expression<CompiledCode>)Analyze(lexVars, cond).Reduce();
+            List.NonEmptyList listCdrCdr = listCdr.Cdr as List.NonEmptyList ?? throw new Exception($"malformed if: {list}"); // TODO: should the parser be doing all this checking for malformed whatevers?
+            Expr consq = listCdrCdr.Car;
+            Expression<CompiledCode> consqCC = (Expression<CompiledCode>)Analyze(lexVars, consq).Reduce();
+            List.NonEmptyList listCdrCdrCdr = listCdrCdr.Cdr as List.NonEmptyList ?? throw new Exception($"malformed if: {list}"); // TODO: should the parser be doing all this checking for malformed whatevers?
+            Expr alt = listCdrCdrCdr.Car;
+            Expression<CompiledCode> altCC = (Expression<CompiledCode>)Analyze(lexVars, alt).Reduce();
+            ParameterExpression boolResult = Expression.Parameter(typeof(Expr), "boolResult");
+            var k0 = Expression.Lambda<Continuation>(
+                body: Expression.IfThenElse(
+                    test: Expression.Property(Expression.Convert(boolResult, typeof(Expr.Boolean)), "Value"),
+                    ifTrue: Expression.Invoke(consqCC, new Expression[] {kParam, envParam}),
+                    ifFalse: Expression.Invoke(altCC, new Expression[] {kParam, envParam})),
+                parameters: new ParameterExpression[] {boolResult});
+            Body = Expression.Invoke(condCC, new Expression[] {k0, envParam});
+
+        }
+
+        public override Expression Body {get;}
+    }
+
+    private class SetBangET : ET {
+
+        public SetBangET(LexicalContext lexVars, List.NonEmptyList list) : base() {
+            Expr sym = list.ElementAt(1);
+            Expr valExpr = list.ElementAt(2);
+            Expression<CompiledCode> valCC = (Expression<CompiledCode>)Analyze(lexVars, valExpr).Reduce();
+            ParameterExpression val = Expression.Parameter(typeof(Expr), "val");
+            Expression contBody;
+            ParameterExpression? pe = lexVars.LookUp(sym);
+            if (pe is null) {
+                contBody = Expression.Call(envParam,
+                                       typeof(IEnvironment).GetMethod("Set"), // TODO: guarantee this is not nul and cache it
+                                       new Expression [] {kParam, Expression.Constant(sym), val});
+            } else {
+                contBody = Expression.Invoke(kParam, new Expression [] {Expression.Assign(pe, val)});
+            }
+            var k = Expression.Lambda<Continuation>(contBody, new ParameterExpression [] {val});
+
+            Body = Expression.Invoke(valCC, new Expression[] {k, envParam});
+        }
+
+        public override Expression Body {get;}
+    }
+
+    private class DefineET : ET {
+
+        public DefineET(LexicalContext lexVars, List.NonEmptyList list) : base() {
+            Expr sym = list.ElementAt(1);
+            Expr valExpr = list.ElementAt(2);
+            Expression<CompiledCode> valCC = (Expression<CompiledCode>)Analyze(lexVars, valExpr).Reduce();
+            ParameterExpression val = Expression.Parameter(typeof(Expr), "val");
+            Expression contBody;
+            if (lexVars.AtTopLevel()) {
+                    // we're defining a variable at global scope
+                    contBody = Expression.Call(envParam,
+                                               typeof(IEnvironment).GetMethod("Define"),  // TODO: guarantee this is not nul and cache it
+                                               new Expression[] {kParam, Expression.Constant(sym), val});
+
+            } else {
+                ParameterExpression pe = lexVars.ParameterForDefine(sym);
+                contBody = Expression.Invoke(kParam, new Expression [] {Expression.Assign(pe, val)});
+            }
+
+
+            var k = Expression.Lambda<Continuation>(contBody, new ParameterExpression [] {val});
+
+            Body = Expression.Invoke(valCC, new Expression[] {k, envParam});
+
+        }
+
+
+        // private static Expression AnalyzeDefineExpr(LexicalScope analysisScope, IEnumerable<object> list) {
+
+        //     Symbol sym = list.ElementAt(1) as Symbol ?? throw new Exception("define: expected symbol as first argument.");
+        //     object secondArg = list.ElementAt(2) ?? throw new Exception("define: expected two arguments.");
+        //     Expression val = Analyze(analysisScope, secondArg);
+        //     // TODO: it should be possible to define variable binding in local scope
+        //     if (analysisScope.Parent == null) {
+        //         // we're making a definition at the toplevel/global scope
+        //         return Expression.Dynamic(binder: new MyInvokeMemberBinder("Define", false, new CallInfo(2)),
+        //                               returnType: typeof(object),
+        //                               arguments: new Expression[] {
+        //                                   analysisScope.GlobalsParameterExpression,
+        //                                   Expression.Constant(sym),
+        //                                   Expression.Convert(val, typeof(object))
+        //                               });
+        //     } else {
+        //         // defining a lexical variable
+        //         ParameterExpression pe = Expression.Parameter(typeof(object), sym.Name);
+        //         analysisScope.Define(pe);
+        //         return Expression.Assign(pe, Expression.Convert(val, typeof(object)));
+        //     }
+        // }
+        public override Expression Body {get;}
+    }
+
     private Expression<CompiledCode> LE(Expression body, ParameterExpression[] ps) => Expression.Lambda<CompiledCode> (body, ps);
     private Expression<Continuation> K(Expression body, ParameterExpression[] ps) => Expression.Lambda<Continuation> (body, ps);
     private Expression DynInv(params Expression[] xs) {
@@ -178,41 +249,18 @@ internal abstract class ET : Expression {
             arguments: xs);
     }
 
-    internal static ET MakeETForSyntaxPair(LexicalContext lexVars, IPair stxPair) {
-        SyntaxObject car = stxPair.Car as SyntaxObject ?? throw new Exception($"in MakeETForSyntaxPair: expected car to be a syntax object but got {stxPair.Car}" );
-        List args = stxPair.Cdr as List ?? throw new Exception($"in MakeETForSyntaxPair: expected cdr to be a list, but got {stxPair.Cdr}");
-        if (car is SyntaxObject.Identifier id) {
-            switch (id.Symbol.Name) {
-                case "quote":
-                    SyntaxObject quotedStx = args.ElementAt(0) as SyntaxObject ?? throw new Exception($"expected syntax object");
-                    return new LiteralET(quotedStx);
-                case "lambda":
-                    List.NonEmptyList nonEmptyArgs = args as List.NonEmptyList ?? throw new Exception($"malformed lambda expression {stxPair}");
-                    return new MakeProcET(lexVars, nonEmptyArgs);
+    private class LambdaExprET : ET {
 
-                default:
-                    if (stxPair is List.NonEmptyList list) {
-                        return new ProcAppET(lexVars, list);
-                    } else {
-                        throw new Exception($"in MakeETForSyntaxPair: unhandled {stxPair}");
-                           }
-            }
-        }
-        throw new NotImplementedException();
-    }
-
-    private class MakeProcET : ET {
-
-        public MakeProcET(LexicalContext scope, List.NonEmptyList args) {
-
-            Expr lambdaParameters = args.Car;
+        public LambdaExprET(LexicalContext scope, List.NonEmptyList args) {
+            // args will be something like ((a b) body..) but may or may not be syntax objects
+            Expr lambdaParameters = args.Car is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : args.Car; // TODO: do we want to throw this info out already?
             List.NonEmptyList lambdaBody = args.Cdr as List.NonEmptyList ?? throw new Exception($"malformed lambda: no body");
 
             var k = Expression.Parameter(typeof(Continuation), "k in MakeProcET"); // this is the continuation paramter for the proc we are making
             LexicalContext lambdaScope;
             ConstructorInfo constructor = typeof(LiteralExpr<Delegate>).GetConstructor(new Type[] {typeof(Delegate)}) ?? throw new Exception("could not find constructor for LiteralExpr<Delegate>");
             switch (lambdaParameters) {
-                case List.NonEmptyList properList:
+                case List properList:
                     IEnumerable<Expr.Symbol> properListSymbols = properList.Cast<Expr.Symbol>();
                     if (properListSymbols is null) throw new Exception($"malformed lambda: expected parameters to be symbols but got {properList}");
                     lambdaScope = scope.Extend(properListSymbols);
@@ -223,7 +271,6 @@ internal abstract class ET : Expression {
                                                                                   parameters: new ParameterExpression[] {k}.Concat(lambdaScope.Parameters))
                                                             }));
                     return;
-                // case SyntaxObject.Identifier id:
                 case Expr.Symbol onlyRestSymbol: // cases like (lambda x x)
                     lambdaScope = scope.Extend(new Expr.Symbol[]{onlyRestSymbol});
 
@@ -349,24 +396,20 @@ internal class BlockET : ET {
 
     public BlockET(LexicalContext scope, List.NonEmptyList exprs)
     {
-
-
         MakeListDelegate listProc = List.NewListFromObjects;
-        IEnumerable<Expression<CompiledCode>> analyzed = exprs.Select(x => (Expression<CompiledCode>)Analyze(scope, x).Reduce());
+        LexicalContext blockScope = scope.Extend();
+        IEnumerable<Expression<CompiledCode>> analyzed = exprs.Select(x => (Expression<CompiledCode>)Analyze(blockScope, x).Reduce());
         var listExpr = Expression.Convert(Expression.Invoke(Expression.Constant(listProc), Expression.NewArrayInit(typeof(CompiledCode), analyzed)), typeof(List.NonEmptyList));
 
-                       // Expression.Invoke(Expression.Constant(listProc), Expression.NewArrayInit(typeof(CompiledCode), analyzed))));
-        Body = Expression.Invoke(
+        Body = Expression.Block(blockScope.Parameters,
+            new Expression[] {Expression.Invoke(
             Expression.Constant((Action<Continuation, IEnvironment, List.NonEmptyList>) doSequence),
             new Expression[] {
                 kParam,
                 envParam,
                 listExpr
             }
-        );
-
-        // Body = Expression.Block(exprs.Select(x => Compiler.Analyze(scope, x)));
-
+                )});
     }
 
     private void doSequence(Continuation k, IEnvironment env, List list) {
@@ -463,6 +506,7 @@ public class MyInvokeMemberBinder : InvokeMemberBinder {
     }
 
 }
+
 public class MyInvokeBinder : InvokeBinder {
 
     public MyInvokeBinder(CallInfo callInfo) : base(callInfo) {}

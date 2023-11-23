@@ -42,10 +42,10 @@ public static class Program {
         compiled(k,env);
     }
 
-    public static void Eval(Continuation k, SyntaxObject stx, IEnvironment env) {
-        var compiled = Compiler.Compile(stx);
-        compiled(k,env);
-    }
+    // public static void Eval(Continuation k, SyntaxObject stx, IEnvironment env) {
+    //     var compiled = Compiler.Compile(stx);
+    //     compiled(k,env);
+    // }
 
 
 }
@@ -53,6 +53,7 @@ public static class Program {
 public class Environment : IEnvironment {
 
     public Environment() {
+        // TODO: why are we using strings rather than symbols?
         _dict.Add("myVar", new Expr.Integer(12));
         _dict.Add("a", new Expr.Integer(1));
         _dict.Add("b", new Expr.Integer(2));
@@ -62,11 +63,36 @@ public class Environment : IEnvironment {
         _dict.Add("cons", new LiteralExpr<Delegate>((Builtin) Builtins.cons));
         _dict.Add("null?", new LiteralExpr<Delegate>((Builtin) Builtins.nullP));
         _dict.Add("succ", new LiteralExpr<Delegate>((Builtin) Builtins.succ));
+        _dict.Add("+", new LiteralExpr<Delegate>((Builtin) Builtins.sum));
+        _dict.Add("*", new LiteralExpr<Delegate>((Builtin) Builtins.product));
+        _dict.Add("-", new LiteralExpr<Delegate>((PairFunction) Builtins.diff));
+        _dict.Add("=", new LiteralExpr<Delegate>((PairFunction) Builtins.numEq));
         // _dict.Add("procedure?", (Builtin) Builtins.procedureP);
 
     }
 
-    public void LookUp (Continuation k, Expr.Symbol symbol) {
+    public void Set(Continuation k, Expr sym, Expr v) {
+        string name = sym is SyntaxObject.Identifier id ? id.Symbol.Name : ((Expr.Symbol) sym).Name;
+        Expr.Symbol s = sym is SyntaxObject.Identifier i ? i.Symbol : ((Expr.Symbol) sym);
+        if (!_dict.ContainsKey(name)) {
+            throw new Exception($"set!: unbound variable {s}");
+        }
+        _dict[name] = v;
+        k(s);
+        return;
+
+    }
+
+    public void Define (Continuation k, Expr sym, Expr v) {
+        string name = sym is SyntaxObject.Identifier id ? id.Symbol.Name : ((Expr.Symbol) sym).Name;
+        Expr.Symbol s = sym is SyntaxObject.Identifier i ? i.Symbol : ((Expr.Symbol) sym);
+        _dict.Add(name, v);
+        k(s);
+        return;
+    }
+
+    public void LookUp (Continuation k, Expr expr) {
+        Expr.Symbol symbol = expr is SyntaxObject.Identifier id ? id.Symbol : (Expr.Symbol) expr;
         if (_dict.TryGetValue(symbol.Name, out Expr? result)) {
             k(result);
         } else {
@@ -74,13 +100,13 @@ public class Environment : IEnvironment {
         }
     }
 
-    public void LookUpSyntax (Continuation k, SyntaxObject.Identifier id) {
-        if (_dict.TryGetValue(id.Symbol.Name, out Expr? result)) {
-            k(result);
-        } else {
-            throw new Exception($"unbound variable: {id.Symbol.Name} at {id.SrcLoc}");
-        }
-    }
+    // public void LookUpSyntax (Continuation k, SyntaxObject.Identifier id) {
+    //     if (_dict.TryGetValue(id.Symbol.Name, out Expr? result)) {
+    //         k(result);
+    //     } else {
+    //         throw new Exception($"unbound variable: {id.Symbol.Name} at {id.SrcLoc}");
+    //     }
+    // }
 
     Dictionary<string, Expr> _dict = new Dictionary<string,Expr>();
 

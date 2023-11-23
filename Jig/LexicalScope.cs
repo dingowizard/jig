@@ -8,6 +8,10 @@ internal class LexicalContext {
         EnclosingScope = null;
     }
 
+    public bool AtTopLevel() {
+        return EnclosingScope is null;
+    }
+
     public LexicalContext Extend(IEnumerable<Expr.Symbol> symbols) {
         return new LexicalContext(this, symbols);
     }
@@ -23,10 +27,25 @@ internal class LexicalContext {
         }
     }
 
+    public ParameterExpression ParameterForDefine(Expr x) {
+        Expr.Symbol sym = x is SyntaxObject.Identifier id ? id.Symbol : (Expr.Symbol)x;
+        ParameterExpression? pe = Symbols.Find(tup => tup.Item1.Equals(sym))?.Item2;
+        if (pe is null) {
+            pe = Expression.Parameter(typeof(Expr), sym.Name);
+            Symbols.Add(new Tuple<Expr.Symbol, ParameterExpression>(sym, pe));
+            return pe;
+        } else {
+            return pe;
+        }
+    }
 
-    public ParameterExpression? LookUp(Expr.Symbol symbol) {
 
-        Console.WriteLine($"We're in the lexical context looking for {symbol} in {string.Join(',', Parameters.ToList())}");
+    public ParameterExpression? LookUp(Expr x) {
+
+        Expr.Symbol symbol =
+            x is SyntaxObject stx ?
+            (Expr.Symbol)SyntaxObject.ToDatum(stx) :
+            (Expr.Symbol) x;
         ParameterExpression? pe = Symbols.Find(tup => tup.Item1.Equals(symbol))?.Item2;
         if (pe is null) {
             if (EnclosingScope is null) {
@@ -39,6 +58,7 @@ internal class LexicalContext {
             return pe;
         }
     }
+
 
     public ParameterExpression[] Parameters => Symbols.Select(tup => tup.Item2).ToArray();
 
