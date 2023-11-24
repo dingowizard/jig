@@ -60,6 +60,9 @@ public class TokenStream {
         SrcLoc startLoc = new SrcLoc(Port.Source, Port.Line, Port.Column, Port.Position, 0);
         char peeked = (char)Port.Peek();
         switch (peeked) {
+            case '\'':
+                Port.Read();
+                return new Token.Quote(startLoc.Source,startLoc.Line, startLoc.Column, startLoc.Position, 1);
             //letter
             case char l when ((l >= 'a' && l <= 'z') || (l >= 'A' && l <= 'Z')):
             // special initial

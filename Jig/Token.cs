@@ -20,6 +20,12 @@ public class Token {
 
     }
 
+    public class Quote : TokenBase {
+
+        public Quote(string src, int line, int column, int start, int span) : base("'", src, line, column, start, span) {}
+
+    }
+
     public class CloseParen : TokenBase {
 
         public CloseParen(string src, int line, int column, int start, int span) : base(")", src, line, column, start, span) {}

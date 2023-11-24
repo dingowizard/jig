@@ -11,6 +11,16 @@ public class Parser {
     public static Expr ParseExpr(TokenStream tokenStream, bool syntax = false) {
         var peeked = tokenStream.Peek();
         switch (peeked) {
+            case Token.Quote quoteToken:
+                tokenStream.Read();
+                Expr arg = ParseExpr(tokenStream, syntax);
+                if (syntax) {
+                   return new SyntaxObject(
+                       List.NewList(new SyntaxObject.Identifier(new Expr.Symbol("quote"), quoteToken.SrcLoc), arg),
+                       ((SyntaxObject)arg).SrcLoc);
+                } else {
+                    return List.NewList(new Expr.Symbol("quote"), arg);
+                }
             case Token.OpenParen openToken:
                 tokenStream.Read();
                 // Expr is either a pair or an empty list
