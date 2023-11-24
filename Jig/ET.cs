@@ -44,7 +44,8 @@ internal abstract class ET : Expression {
                 return new DefineET(scope, list);
             } else if (Expr.IsKeyword("begin", ast)){
                 return new BlockET(scope, (List.NonEmptyList)list.Cdr);
-
+            } else if (Expr.IsKeyword("call/cc", ast)){
+                return new CallCCET(scope, list);
             } else if (Expr.IsKeyword("set!", ast)){
                 return new SetBangET(scope, list);
             } else {
@@ -110,6 +111,10 @@ internal abstract class ET : Expression {
 
     private class ProcAppET : ET {
 
+        public static void Write(string text) {
+           Console.WriteLine(text);
+        }
+
         public ProcAppET(LexicalContext scope, List.NonEmptyList list) : base () {
             // TODO: probably there is a more certain way of checking to see that we have syntax pair?
             IEnumerable<Expression<CompiledCode>> analyzed =
@@ -118,16 +123,33 @@ internal abstract class ET : Expression {
             var contParam = Expression.Parameter(typeof(Continuation));
             var procParam = Expression.Parameter(typeof(LiteralExpr<CompiledCode>));
             MakeListDelegate listProc = List.NewListFromObjects;
+            ParameterExpression callable = Expression.Parameter(typeof(Expr), "callable");
+            var k = Expression.Lambda<Continuation>(
+                           body: Expression.Block(new ParameterExpression[] {callable}, // TODO: couldn't we just have apply do this work for us by having a "Continuation" case?
+                                                  Expression.Assign(callable, Expression.Property(Expression.Convert(vParam, typeof(IPair)), carPropertyInfo)),
+                                                  Expression.IfThenElse(
+                                                      test: Expression.TypeIs(callable, typeof(LiteralExpr<Continuation>)),
+                                                      ifTrue: DynInv(Expression.Convert(
+                                                                         Expression.Property(
+                                                                             Expression.Convert(callable,
+                                                                                                typeof(LiteralExpr<Continuation>)),
+                                                                             "Value"),
+                                                                         typeof(Continuation)),
+                                                                     Expression.Property(
+                                                                         Expression.Convert(
+                                                                             Expression.Property(
+                                                                                 Expression.Convert(vParam, typeof(IPair)),
+                                                                                 cdrPropertyInfo),
+                                                                             typeof(IPair)),
+                                                                         carPropertyInfo)),
+                                                      ifFalse: DynInv(Expression.Constant((ApplyDelegate)Builtins.apply), // TODO: on the other hand, couldn't we just avoid the call to apply?
+                                                                      kParam,
+                                                                      Expression.Property(Expression.Convert(vParam, typeof(IPair)), carPropertyInfo),
+                                                                      Expression.Property(Expression.Convert(vParam, typeof(IPair)), cdrPropertyInfo)))),
+                           parameters: new ParameterExpression[] {vParam});
             Body = ConvertToObject(
-                DynInv(Expression.Constant((MapInternalDelegate) Builtins.map_internal),
-                       Expression.Lambda<Continuation>(
-                           body: DynInv(Expression.Constant((ApplyDelegate)Builtins.apply), // TODO: should we actually just do DynInv on the proc?
-                                        kParam,
-                                        Expression.Property(Expression.Convert(vParam, typeof(IPair)), carPropertyInfo),
-                                        // DynInv(Expression.Constant(car), vParam),
-                                        Expression.Property(Expression.Convert(vParam, typeof(IPair)), cdrPropertyInfo)),
-                                        // DynInv(Expression.Constant(cdr), vParam)),
-                           parameters: new ParameterExpression[] {vParam}),
+                       DynInv(Expression.Constant((MapInternalDelegate) Builtins.map_internal),
+                       k,
                        Expression.Lambda<Action<Continuation, LiteralExpr<CompiledCode>>>(
                            body: Expression.Invoke(Expression.Property(procParam, "Value"),  new Expression[] {contParam, envParam}),
                            parameters: new ParameterExpression[] {contParam, procParam}),
@@ -158,6 +180,25 @@ internal abstract class ET : Expression {
                     ifFalse: Expression.Invoke(altCC, new Expression[] {kParam, envParam})),
                 parameters: new ParameterExpression[] {boolResult});
             Body = Expression.Invoke(condCC, new Expression[] {k0, envParam});
+
+        }
+
+        public override Expression Body {get;}
+    }
+
+    private class CallCCET : ET {
+
+        public CallCCET(LexicalContext scope, List.NonEmptyList args) {
+            Expr arg = args.ElementAt(1);
+            Expression<CompiledCode> lambdaExprCC = (Expression<CompiledCode>)Analyze(scope, arg).Reduce();
+            ParameterExpression le = Expression.Parameter(typeof(Expr), "lambdaExpr");
+            ConstructorInfo constructor = typeof(LiteralExpr<Continuation>).GetConstructor(new Type[] {typeof(Continuation)}) ?? throw new Exception("could not find constructor for LiteralExpr<Delegate>");
+            Expression contBody = DynInv(Expression.Property(Expression.Convert(le, typeof(LiteralExpr<Delegate>)), "Value"),
+                                         kParam,
+                                         Expression.New(constructor, kParam));
+            var k = Expression.Lambda<Continuation>(contBody, new ParameterExpression[] {le});
+
+            Body = Expression.Invoke(lambdaExprCC, new Expression[] {k, envParam});
 
         }
 
@@ -248,6 +289,7 @@ internal abstract class ET : Expression {
             returnType: typeof(object),
             arguments: xs);
     }
+
 
     private class LambdaExprET : ET {
 
@@ -390,6 +432,7 @@ internal abstract class ET : Expression {
             }
         }
     }
+
 }
 
 internal class BlockET : ET {
