@@ -207,6 +207,8 @@ internal abstract class ET : Expression {
 
     private class SetBangET : ET {
 
+        private static MethodInfo _setMethod {get;} = typeof(IEnvironment).GetMethod("Set") ?? throw new Exception("while initializeing SetBangET, could not find 'Set' method on IEnvironment");
+
         public SetBangET(LexicalContext lexVars, List.NonEmptyList list) : base() {
             Expr sym = list.ElementAt(1);
             Expr valExpr = list.ElementAt(2);
@@ -216,7 +218,7 @@ internal abstract class ET : Expression {
             ParameterExpression? pe = lexVars.LookUp(sym);
             if (pe is null) {
                 contBody = Expression.Call(envParam,
-                                       typeof(IEnvironment).GetMethod("Set"), // TODO: guarantee this is not nul and cache it
+                                       _setMethod,
                                        new Expression [] {kParam, Expression.Constant(sym), val});
             } else {
                 contBody = Expression.Invoke(kParam, new Expression [] {Expression.Assign(pe, val)});
@@ -231,6 +233,8 @@ internal abstract class ET : Expression {
 
     private class DefineET : ET {
 
+        private static MethodInfo _defineMethod {get;} = typeof(IEnvironment).GetMethod("Define") ?? throw new Exception("while initializeing DefineET, could not find 'Define' method on IEnvironment");
+
         public DefineET(LexicalContext lexVars, List.NonEmptyList list) : base() {
             Expr sym = list.ElementAt(1);
             Expr valExpr = list.ElementAt(2);
@@ -240,7 +244,7 @@ internal abstract class ET : Expression {
             if (lexVars.AtTopLevel()) {
                     // we're defining a variable at global scope
                     contBody = Expression.Call(envParam,
-                                               typeof(IEnvironment).GetMethod("Define"),  // TODO: guarantee this is not nul and cache it
+                                               _defineMethod,
                                                new Expression[] {kParam, Expression.Constant(sym), val});
 
             } else {

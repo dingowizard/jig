@@ -185,7 +185,7 @@ public abstract class Expr {
 
 }
 
-public class LiteralExpr<T> : Expr {
+public class LiteralExpr<T> : Expr where T : notnull {
     public LiteralExpr(T val) {
         Value = val;
     }
@@ -201,8 +201,8 @@ public class LiteralExpr<T> : Expr {
     public override int GetHashCode() {
         return Value.GetHashCode();
     }
-    public override string ToString() => Value.ToString();
-    public override string Print() => Value.ToString();
+    public override string ToString() => Value.ToString() ?? "null";
+    public override string Print() => Value.ToString() ?? "null";
 }
 
 public interface IPair {

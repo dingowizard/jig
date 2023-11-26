@@ -1,11 +1,14 @@
+using Jig;
+using Jig.IO;
+
 namespace JigTests;
 
 [TestClass]
-public class Defines {
+public class Sets {
 
     [TestMethod]
-    [DataRow(new string[]{"(define q 12)", "q"}, "12")]
-    public void DefineTopLevelVar(string[] exprs, string expected) {
+    [DataRow(new string[]{"(define q 11)", "(set! q 12)", "q"}, "12")]
+    public void SetTopLevelVar(string[] exprs, string expected) {
         IInterpreter interp = new Interpreter();
         string actual = "";
         foreach(string input in exprs) {
@@ -15,17 +18,16 @@ public class Defines {
     }
 
     [TestMethod]
-    [DataRow("(begin (define z 26) z)", "26")]
-    [DataRow("(begin (define z (car (cons 12 13))) z)", "12")]
-    [DataRow("((lambda () (define z 26) z))", "26")]
-    public void DefineLexicalVar(string input, string expected) {
+    [DataRow("(begin (define z 25) (set! z 26) z)", "26")]
+    [DataRow("(begin (define z 26) (set! z (car (cons 12 13))) z)", "12")]
+    public void SetLexicalVar(string input, string expected) {
         var actual = Utilities.Interpret(input);
         Assert.AreEqual(expected, actual);
     }
 
     [TestMethod]
-    [DataRow(new string[]{"(define q 12)", "q"}, "12")]
-    public void DefineTopLevelVarSyntax(string[] exprs, string expected) {
+    [DataRow(new string[]{"(define q 11)", "(set! q 12)", "q"}, "12")]
+    public void SetTopLevelVarSyntax(string[] exprs, string expected) {
         IInterpreter interp = new Interpreter();
         string actual = "";
         foreach(string input in exprs) {
@@ -35,9 +37,9 @@ public class Defines {
     }
 
     [TestMethod]
-    [DataRow("(begin (define z 26) z)", "26")]
-    [DataRow("(begin (define z (car (cons 12 13))) z)", "12")]
-    public void DefineLexicalVarSyntax(string input, string expected) {
+    [DataRow("(begin (define z 25) (set! z 26) z)", "26")]
+    [DataRow("(begin (define z 26) (set! z (car (cons 12 13))) z)", "12")]
+    public void SetLexicalVarSyntax(string input, string expected) {
         var actual = Utilities.InterpretUsingReadSyntax(input);
         Assert.AreEqual(expected, actual);
     }

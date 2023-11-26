@@ -7,93 +7,58 @@ namespace JigTests;
 public class Literals
 {
     [TestMethod]
-    public void EvalIntReturnsInt()
-    {
-        Expr result = List.Empty;
-        Continuation setResult = (x) => result = x;
-        Program.Eval(setResult, Jig.Reader.Reader.ReadSyntax(InputPort.FromString("1")), new Jig.Environment());
-        Assert.AreEqual(new Expr.Integer(1), result);
-
-    }
-
-    [TestMethod]
+    [DataRow("1", "1")]
     [DataRow("-12", "-12")]
     [DataRow("+12", "12")]
     [DataRow("+1e2", "100")] // TODO: actualy this shouldn't pass. should make a double (need #e+1e2 for 100)
-    public void EvalPrintVariousIntegers(string input, string expected) {
-        string actual = "";
-        Continuation setResult = (x) => actual = x.Print();
-        Program.Eval(setResult, Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input)), new Jig.Environment());
+    public void EvalIntReturnsInt(string input, string expected)
+    {
+        var actual = Utilities.Interpret(input);
         Assert.AreEqual(expected, actual);
     }
 
     [TestMethod]
-    public void EvalDoubleReturnsDouble()
+    [DataRow("1.2", "1.2")]
+    public void EvalDoubleReturnsDouble(string input, string expected)
     {
-        Expr result = List.Empty;
-        Continuation setResult = (x) => result = x;
-        Program.Eval(setResult, Jig.Reader.Reader.ReadSyntax(InputPort.FromString("1.2")), new Jig.Environment());
-        Assert.AreEqual(new Expr.Double(1.2), result);
+        var actual = Utilities.Interpret(input);
+        Assert.AreEqual(expected, actual);
 
     }
 
     [TestMethod]
-    public void EvalTrueReturnsTrue()
+    [DataRow("#f", "#f")]
+    [DataRow("#t", "#t")]
+    public void EvalBools(string input, string expected)
     {
-        Expr result = List.Empty;
-        Continuation setResult = (x) => result = x;
-        Program.Eval(setResult, Jig.Reader.Reader.ReadSyntax(InputPort.FromString("#t")), new Jig.Environment());
-        Assert.AreEqual(new Expr.Boolean(true), result);
+        var actual = Utilities.InterpretUsingReadSyntax(input);
+        Assert.AreEqual(expected, actual);
 
     }
 
     [TestMethod]
-    public void EvalFalseReturnsFalse()
-    {
-        Expr result = List.Empty;
-        Continuation setResult = (x) => result = x;
-        Program.Eval(setResult, Jig.Reader.Reader.ReadSyntax(InputPort.FromString("#f")), new Jig.Environment());
-        Assert.AreEqual(new Expr.Boolean(false), result);
-
+    [DataRow(new string[]{"(define a 1)", "a"}, "1")]
+    [DataRow(new string[]{"(define a #t)", "a"}, "#t")]
+    public void EvalVars(string[] exprs, string expected) {
+        IInterpreter interp = new Interpreter();
+        string actual = "";
+        foreach(string input in exprs) {
+            actual = interp.Interpret(input);
+        }
+        Assert.AreEqual(expected, actual);
     }
+
 
     [TestMethod]
-    public void EvalPrintFalseReturnsHashF()
-    {
-        string result = "";
-        Continuation setResult = (x) => result = x.Print();
-        Program.Eval(setResult, Jig.Reader.Reader.ReadSyntax(InputPort.FromString("#f")), new Jig.Environment());
-        Assert.AreEqual("#f", result);
-
+    [DataRow("(quote b)", "b")]
+    [DataRow("'b", "b")]
+    [DataRow("(quote (1 2 3))", "(1 2 3)")]
+    [DataRow("(quote (a b c))", "(a b c)")]
+    [DataRow("(quote (a b (c d)  e))", "(a b (c d) e)")]
+    [DataRow("'(1 2 3)", "(1 2 3)")]
+    public void QuotedListsSyntax(string input, string expected) {
+        var actual = Utilities.InterpretUsingReadSyntax(input);
+        Assert.AreEqual(expected, actual);
     }
 
-    [TestMethod]
-    public void EvalPrintIntVar()
-    {
-        string result = "";
-        Continuation setResult = (x) => result = x.Print();
-        Program.Eval(setResult, Jig.Reader.Reader.ReadSyntax(InputPort.FromString("myVar")), new Jig.Environment());
-        Assert.AreEqual("12", result);
-
-    }
-
-    [TestMethod]
-    public void EvalIntVar()
-    {
-        Expr result = List.Empty;
-        Continuation setResult = (x) => result = x;
-        Program.Eval(setResult, Jig.Reader.Reader.ReadSyntax(InputPort.FromString("myVar")), new Jig.Environment());
-        Assert.AreEqual(new Expr.Integer(12), result);
-
-    }
-
-    [TestMethod]
-    public void EvalQuotedSymbol()
-    {
-        Expr result = List.Empty;
-        Continuation setResult = (x) => result = x;
-        Program.Eval(setResult, Jig.Reader.Reader.ReadSyntax(InputPort.FromString("(quote b)")), new Jig.Environment());
-        Assert.AreEqual(new Expr.Symbol("b"), result);
-
-    }
 }

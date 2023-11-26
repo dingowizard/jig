@@ -58,23 +58,3 @@ public class Lambdas
 
     }
 }
-
-public static class Utilities {
-    public static string Interpret(string input) {
-        string result = "";
-        Continuation setResult = (x) => result = x.Print();
-        Expr? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
-        Assert.IsNotNull(x);
-        Program.Eval(setResult, x, new Jig.Environment());
-        return result;
-    }
-
-    public static string InterpretUsingReadSyntax(string input) {
-        string result = "";
-        Continuation setResult = (x) => result = x.Print();
-        Expr? x = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
-        Assert.IsNotNull(x);
-        Program.Eval(setResult, x, new Jig.Environment());
-        return result;
-    }
-}
