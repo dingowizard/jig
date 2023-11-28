@@ -15,7 +15,7 @@ public class Continuations
         Assert.AreEqual(expected, actual);
     }
 
-    // [TestMethod]
+    [TestMethod]
     public void ApplyingContinuation() {
         IEnvironment env = new Jig.Environment();
         string result1 = "";
@@ -36,5 +36,17 @@ public class Continuations
         Program.Eval(setResult3, x, env); // NOTE: setResult2 is the continuation that sets the result!!
         Assert.AreEqual("7", result2);
     }
+
+    [TestMethod]
+    public void ApplyingContinuationInIf() {
+        string actual = new Interpreter().InterpretSequenceReadSyntax(new string[] {
+                "(define cont #f)",
+                "(if (call/cc (lambda (k) (set! cont k) #f)) 1 0)",
+                "(cont (= 1 1))"
+            });
+        Assert.AreEqual("1", actual);
+    }
+
+
 
 }

@@ -19,6 +19,29 @@ public class Interpreter : IInterpreter {
         Env = new Jig.Environment();
     }
 
+    public string InterpretSequence(string[] inputs) {
+        string result = "";
+        Continuation setResult = (x) => result = x.Print();
+        foreach (string input in inputs) {
+            Expr? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
+            Assert.IsNotNull(x);
+            Program.Eval(setResult, x, Env);
+        }
+        return result;
+
+    }
+
+    public string InterpretSequenceReadSyntax(string[] inputs) {
+        string result = "";
+        Continuation setResult = (x) => result = x.Print();
+        foreach (string input in inputs) {
+            Expr? x = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
+            Assert.IsNotNull(x);
+            Program.Eval(setResult, x, Env);
+        }
+        return result;
+    }
+
     public string Interpret(string input) {
         string result = "";
         Continuation setResult = (x) => result = x.Print();
@@ -41,4 +64,6 @@ public class Interpreter : IInterpreter {
 public interface IInterpreter {
     string Interpret(string input);
     string InterpretUsingReadSyntax(string input);
+    string InterpretSequence(string[] inputs);
+    string InterpretSequenceReadSyntax(string[] inputs);
 }

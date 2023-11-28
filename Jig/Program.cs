@@ -51,6 +51,7 @@ public class Environment : IEnvironment {
         _dict.Add("*", new LiteralExpr<Delegate>((Builtin) Builtins.product));
         _dict.Add("-", new LiteralExpr<Delegate>((PairFunction) Builtins.diff));
         _dict.Add("=", new LiteralExpr<Delegate>((PairFunction) Builtins.numEq));
+        _dict.Add("apply", new LiteralExpr<Delegate>( Builtins.apply));
 
     }
 
