@@ -4,18 +4,6 @@ public delegate void Builtin(Continuation k, List args);
 
 internal static class Builtins {
 
-//     public static void map (Continuation k, params object[] args) {
-
-//         if (args.Length < 2) throw new Exception("map: expected at least two arguments -- a procedure and a list");
-//         Delegate? proc = args[0] as Delegate;
-//         if (proc is null) throw new Exception("map: expected first argument to be a procedure");
-//         IEnumerable<object>? list = args[1] as IEnumerable<object>;
-//         if (list is null) throw new Exception("map: expected second argument to be a list");
-//         map_internal(k, proc, list);
-
-//     }
-//
-
     internal static void map_internal(Continuation k, Action<Continuation,LiteralExpr<CompiledCode>> proc, List list) {
 // // (define (map/cps k fn xs)
 // //   (if (null? xs)
@@ -248,7 +236,7 @@ internal static class Builtins {
             k((Expr)Expr.Pair.Cons(car, cdr));
             return;
         } else {
-            throw new Exception("car: expected one argument but got none");
+            throw new Exception("cons: expected two arguments but got none");
         }
 
 
