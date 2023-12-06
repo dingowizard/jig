@@ -166,10 +166,10 @@ internal abstract class ET : Expression {
             List.NonEmptyList listCdr = list.Cdr as List.NonEmptyList ?? throw new Exception($"malformed if: {list}"); // TODO: should the parser be doing all this checking for malformed whatevers?
             Expr cond = listCdr.Car;
             Expression<CompiledCode> condCC = (Expression<CompiledCode>)Analyze(lexVars, cond).Reduce();
-            List.NonEmptyList listCdrCdr = listCdr.Cdr as List.NonEmptyList ?? throw new Exception($"malformed if: {list}"); // TODO: should the parser be doing all this checking for malformed whatevers?
+            List.NonEmptyList listCdrCdr = listCdr.Cdr as List.NonEmptyList ?? throw new Exception($"malformed if: {list}");
             Expr consq = listCdrCdr.Car;
             Expression<CompiledCode> consqCC = (Expression<CompiledCode>)Analyze(lexVars, consq).Reduce();
-            List.NonEmptyList listCdrCdrCdr = listCdrCdr.Cdr as List.NonEmptyList ?? throw new Exception($"malformed if: {list}"); // TODO: should the parser be doing all this checking for malformed whatevers?
+            List.NonEmptyList listCdrCdrCdr = listCdrCdr.Cdr as List.NonEmptyList ?? throw new Exception($"malformed if: {list}");
             Expr alt = listCdrCdrCdr.Car;
             Expression<CompiledCode> altCC = (Expression<CompiledCode>)Analyze(lexVars, alt).Reduce();
             ParameterExpression boolResult = Expression.Parameter(typeof(Expr), "boolResult");
@@ -260,28 +260,6 @@ internal abstract class ET : Expression {
         }
 
 
-        // private static Expression AnalyzeDefineExpr(LexicalScope analysisScope, IEnumerable<object> list) {
-
-        //     Symbol sym = list.ElementAt(1) as Symbol ?? throw new Exception("define: expected symbol as first argument.");
-        //     object secondArg = list.ElementAt(2) ?? throw new Exception("define: expected two arguments.");
-        //     Expression val = Analyze(analysisScope, secondArg);
-        //     // TODO: it should be possible to define variable binding in local scope
-        //     if (analysisScope.Parent == null) {
-        //         // we're making a definition at the toplevel/global scope
-        //         return Expression.Dynamic(binder: new MyInvokeMemberBinder("Define", false, new CallInfo(2)),
-        //                               returnType: typeof(object),
-        //                               arguments: new Expression[] {
-        //                                   analysisScope.GlobalsParameterExpression,
-        //                                   Expression.Constant(sym),
-        //                                   Expression.Convert(val, typeof(object))
-        //                               });
-        //     } else {
-        //         // defining a lexical variable
-        //         ParameterExpression pe = Expression.Parameter(typeof(object), sym.Name);
-        //         analysisScope.Define(pe);
-        //         return Expression.Assign(pe, Expression.Convert(val, typeof(object)));
-        //     }
-        // }
         public override Expression Body {get;}
     }
 
