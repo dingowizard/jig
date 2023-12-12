@@ -242,8 +242,17 @@ internal static class Builtins {
 
     }
 
-    public static void apply (Continuation k, LiteralExpr<Delegate> del, List args) {
+    public static void apply (Continuation k, Expr proc, List args) {
+        // // TODO: this is all ugly. LiteralExpr<Continuation> is not a type of LiteralExpr<Delegate>, so continuations have to be handled separately from other procedures
+        // if (proc is LiteralExpr<Continuation> contExpr) {
+        //     contExpr.Value(args.ElementAt(0));
+        //     return;
+        // }
+        LiteralExpr<Delegate> del = proc as LiteralExpr<Delegate> ?? throw new Exception($"apply: expected procedure as first argument, but got {proc}");
         switch (del.Value) {
+            case Continuation cont:
+                cont(args.ElementAt(0));
+                return;
             case Builtin builtin:
                 builtin(k, args);
                 return;
