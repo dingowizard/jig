@@ -38,6 +38,17 @@ public class Continuations
     }
 
     [TestMethod]
+    public void UsingApplyOnSavedContinuation() {
+        string actual = new Interpreter().InterpretSequenceReadSyntax(new string[] {
+                "(define cont #f)",
+                "(+ 1 (call/cc (lambda (cc) (set! cont cc) 0)))",
+                "(apply cont '(1))"
+            });
+        Assert.AreEqual("2", actual);
+
+    }
+
+    [TestMethod]
     public void ApplyingContinuationInIf() {
         string actual = new Interpreter().InterpretSequenceReadSyntax(new string[] {
                 "(define cont #f)",
