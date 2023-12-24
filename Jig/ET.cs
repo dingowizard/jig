@@ -100,7 +100,7 @@ internal abstract class ET : Expression {
             ParameterExpression? pe = scope.LookUp(x);
             if (pe is null) {
                 var v = Expression.Parameter(typeof(Expr));
-                var k = Expression.Lambda<Continuation>(DynInv(kParam, v), new ParameterExpression[] {v});
+                var k = Expression.Lambda<Continuation.OneArgDelegate>(DynInv(kParam, v), new ParameterExpression[] {v});
                 Body = Expression.Call(envParam,
                                        LookUp,
                                        new Expression [] {k, Expression.Constant(x)});
@@ -114,7 +114,7 @@ internal abstract class ET : Expression {
 
     internal delegate List MakeListDelegate(params CompiledCode[] args);
 
-    delegate void MapInternalDelegate(Continuation continuation, Action<Continuation, LiteralExpr<CompiledCode>> proc, List list );
+    delegate void MapInternalDelegate(Continuation.OneArgDelegate continuation, Action<Continuation.OneArgDelegate, LiteralExpr<CompiledCode>> proc, List list );
 
     delegate void ApplyDelegate(Delegate k, LiteralExpr<Delegate> proc, List args);
     static PropertyInfo carPropertyInfo = typeof(IPair).GetProperty("Car") ?? throw new Exception("in ProcAppET: ProperLists should have one property named 'Car'");
@@ -128,10 +128,10 @@ internal abstract class ET : Expression {
                 list.Select(x => (Expression<CompiledCode>)Analyze(scope, x).Reduce());
             var vParam = Expression.Parameter(typeof(Expr));
             var v = Expression.Parameter(typeof(Expr));
-            var contParam = Expression.Parameter(typeof(Continuation));
+            var contParam = Expression.Parameter(typeof(Continuation.OneArgDelegate));
             var procParam = Expression.Parameter(typeof(LiteralExpr<CompiledCode>));
             MakeListDelegate listProc = List.NewListFromObjects;
-            var k = Expression.Lambda<Continuation>(
+            var k = Expression.Lambda<Continuation.OneArgDelegate>(
                             DynInv(Expression.Constant((ApplyDelegate)Builtins.apply),
                                    kParam,
                                    // Expression.Lambda<Continuation>(DynInv(kParam, v), new ParameterExpression[] {v}), // the continuation to apply
@@ -141,7 +141,7 @@ internal abstract class ET : Expression {
             Body =
                 DynInv(Expression.Constant((MapInternalDelegate) Builtins.map_internal),
                        k,
-                       Expression.Lambda<Action<Continuation, LiteralExpr<CompiledCode>>>( // (lambda (k code) (code k env))
+                       Expression.Lambda<Action<Continuation.OneArgDelegate, LiteralExpr<CompiledCode>>>( // (lambda (k code) (code k env))
                            body: DynInv(Expression.Property(procParam, "Value"), contParam, envParam),
                            parameters: new ParameterExpression[] {contParam, procParam}),
                        Expression.Invoke(Expression.Constant(listProc), Expression.NewArrayInit(typeof(CompiledCode), analyzed)));
@@ -161,7 +161,7 @@ internal abstract class ET : Expression {
             var procParam = Expression.Parameter(typeof(LiteralExpr<CompiledCode>));
             MakeListDelegate listProc = List.NewListFromObjects;
             ConstructorInfo constructor = typeof(LiteralExpr<Delegate>).GetConstructor(new Type[] {typeof(Delegate)}) ?? throw new Exception("could not find constructor for LiteralExpr<Delegate>");
-            var k = Expression.Lambda<Continuation>(
+            var k = Expression.Lambda<Continuation.OneArgDelegate>(
                             DynInv(Expression.Constant((ApplyDelegate) Builtins.apply),
                                    kParam,
                                    Expression.New(constructor, kParam),
@@ -193,7 +193,7 @@ internal abstract class ET : Expression {
             Expr alt = listCdrCdrCdr.Car;
             Expression<CompiledCode> altCC = (Expression<CompiledCode>)Analyze(lexVars, alt).Reduce();
             ParameterExpression boolResult = Expression.Parameter(typeof(Expr), "boolResult");
-            var k0 = Expression.Lambda<Continuation>(
+            var k0 = Expression.Lambda<Continuation.OneArgDelegate>(
                 body: Expression.IfThenElse(
                     test: Expression.Property(Expression.Convert(boolResult, typeof(Expr.Boolean)), "Value"),
                     ifTrue: Expression.Invoke(consqCC, new Expression[] {kParam, envParam}),
@@ -216,7 +216,7 @@ internal abstract class ET : Expression {
             Expression contBody = DynInv(Expression.Property(Expression.Convert(le, typeof(LiteralExpr<Delegate>)), "Value"),
                                          kParam,
                                          Expression.New(constructor, kParam));
-            var k = Expression.Lambda<Continuation>(contBody, new ParameterExpression[] {le});
+            var k = Expression.Lambda<Continuation.OneArgDelegate>(contBody, new ParameterExpression[] {le});
 
             Body = Expression.Invoke(lambdaExprCC, new Expression[] {k, envParam});
 
@@ -285,7 +285,7 @@ internal abstract class ET : Expression {
     }
 
     private Expression<CompiledCode> LE(Expression body, ParameterExpression[] ps) => Expression.Lambda<CompiledCode> (body, ps);
-    private Expression<Continuation> K(Expression body, ParameterExpression[] ps) => Expression.Lambda<Continuation> (body, ps);
+    private Expression<Continuation.OneArgDelegate> K(Expression body, ParameterExpression[] ps) => Expression.Lambda<Continuation.OneArgDelegate> (body, ps);
     internal static Expression DynInv(params Expression[] xs) {
         return Expression.Dynamic(
             binder: new MyInvokeBinder(new CallInfo(xs.Length -1)),
@@ -475,7 +475,7 @@ internal class BlockET : ET {
         if (exprs == null) throw new Exception("doSequence: should not be called with empty list");
         var code = exprs.Car as LiteralExpr<CompiledCode> ?? throw new Exception($"BlockET.doSequence: expected a CompiledCode but got {exprs.Car.GetType()}");
         List cdr = (List)exprs.Cdr;
-        Continuation k0 = (v) => doSequence(k,env,(List.NonEmptyList)cdr);
+        Continuation.OneArgDelegate k0 = (v) => doSequence(k,env,(List.NonEmptyList)cdr);
         Delegate cont = cdr is Expr.NullType ? k : k0;
         code.Value(cont, env);
     }

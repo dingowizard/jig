@@ -1,7 +1,5 @@
 namespace Jig;
 
-public delegate void Continuation(Expr arg);
-public delegate void ContinuationAny(params Expr[] args);
 public delegate void CompiledCode(Delegate k, IEnvironment env);
 
 internal static class Compiler {

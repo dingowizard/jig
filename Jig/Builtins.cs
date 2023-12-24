@@ -1,19 +1,16 @@
-using System.Linq.Expressions;
-using System.Reflection;
-
 namespace Jig;
 
 public delegate void Builtin(Delegate k, List args);
 
 internal static class Builtins {
 
-    internal static void map_internal(Continuation k, Action<Continuation, LiteralExpr<CompiledCode>> proc, List list) {
+    internal static void map_internal(Continuation.OneArgDelegate k, Action<Continuation.OneArgDelegate, LiteralExpr<CompiledCode>> proc, List list) {
 // // (define (map/cps k fn xs)
 // //   (if (null? xs)
 // //       (k xs)
 // //       (fn (lambda (v0) (map/cps (lambda (v1) (k (cons v0 v1))) fn (cdr xs))) (car xs))))
         if (list is List.NonEmptyList properList) {
-            Continuation k2 = (v0) => map_internal((Continuation)((v1) => k((Expr)Expr.Pair.Cons(v0, (List) v1))), proc, (List)properList.Cdr);
+            Continuation.OneArgDelegate k2 = (v0) => map_internal((Continuation.OneArgDelegate)((v1) => k((Expr)Expr.Pair.Cons(v0, (List) v1))), proc, (List)properList.Cdr);
             proc(k2, (LiteralExpr<CompiledCode>)properList.Car);
             return;
         } else {
@@ -248,7 +245,8 @@ internal static class Builtins {
     }
 
     internal static void ApplyContinuation(Delegate k, Expr arg) {
-            if (k is ContinuationAny cany) {
+        // TODO: make an applyinternalcontinuation method in continuationExpr
+            if (k is Continuation.ContinuationAny cany) {
                 cany(arg);
                 return;
             }
@@ -257,30 +255,24 @@ internal static class Builtins {
     }
 
     public static void values(Delegate k, List args) {
-        new ContinuationExpr(k).Apply(args);
+        new Continuation(k).Apply(args);
     }
 
     public static void callcc(Delegate k, List args) {
         if (args.Count() != 1) throw new Exception($"call/cc: expected one argument.");
         LiteralExpr<Delegate> proc = args.ElementAt(0) as LiteralExpr<Delegate> ?? throw new Exception("call/cc: expected procedure argument but got {args.ElementAt(0)}");
         Action<Delegate, Expr> del = proc.Value as Action<Delegate, Expr> ?? throw new Exception("call/cc: expected procedure with one parameter but got {proc}");
-        apply(k, proc, List.NewList(new ContinuationExpr(k)));
+        apply(k, proc, List.NewList(new Continuation(k)));
         return;
     }
 
     public static void apply (Delegate k, Expr proc, List args) {
-        if (proc is ContinuationExpr ce) {
+        if (proc is Continuation ce) {
             ce.Apply(args);
             return;
         }
         LiteralExpr<Delegate> del = proc as LiteralExpr<Delegate> ?? throw new Exception($"apply: expected procedure as first argument, but got {proc}");
         switch (del.Value) {
-            case Continuation cont: // TODO: couldn't other types of continuation be applied?
-                cont(args.ElementAt(0));
-                return;
-            case ContinuationAny cany:
-                cany(args.ToArray());
-                return;
             case Builtin builtin:
                 builtin(k, args);
                 return;

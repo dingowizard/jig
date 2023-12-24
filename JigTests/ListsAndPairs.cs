@@ -15,7 +15,7 @@ public class ListsAndPairs
     [DataRow("(cons (quote a) (quote (b c)))", "(a b c)")]
     public void Cons(string input, string expected) {
         string actual = "";
-        Continuation setResult = (x) => actual = x.Print();
+        Continuation.OneArgDelegate setResult = (x) => actual = x.Print();
         SyntaxObject? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
         Assert.IsNotNull(stx);
         Program.Eval(setResult, stx, new Jig.Environment());
@@ -27,7 +27,7 @@ public class ListsAndPairs
     [DataRow("(car (quote (a . b)))", "a")]
     public void Car(string input, string expected) {
         string actual = "";
-        Continuation setResult = (x) => actual = x.Print();
+        Continuation.OneArgDelegate setResult = (x) => actual = x.Print();
         SyntaxObject? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
         Assert.IsNotNull(stx);
         Program.Eval(setResult, stx, new Jig.Environment());
@@ -39,7 +39,7 @@ public class ListsAndPairs
     [DataRow("(cdr (quote (a . b)))", "b")]
     public void Cdr(string input, string expected) {
         string actual = "";
-        Continuation setResult = (x) => actual = x.Print();
+        Continuation.OneArgDelegate setResult = (x) => actual = x.Print();
         SyntaxObject? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
         Assert.IsNotNull(stx);
         Program.Eval(setResult, stx, new Jig.Environment());
@@ -51,7 +51,7 @@ public class ListsAndPairs
     [DataRow("(car (car (cons (cons 1 (cons 2 (quote ()))) (cons 3 (cons 4 (quote ()))))))", "1")]
     public void ConsCarCdr(string input, string expected) {
         string actual = "";
-        Continuation setResult = (x) => actual = x.Print();
+        Continuation.OneArgDelegate setResult = (x) => actual = x.Print();
         SyntaxObject? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
         Assert.IsNotNull(stx);
         Program.Eval(setResult, stx, new Jig.Environment());
@@ -66,7 +66,7 @@ public class ListsAndPairs
     [DataRow("(null? (quote b))", "#f")]
     public void NullP(string input, string expected) {
         string actual = "";
-        Continuation setResult = (x) => actual = x.Print();
+        Continuation.OneArgDelegate setResult = (x) => actual = x.Print();
         SyntaxObject? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
         Assert.IsNotNull(stx);
         Program.Eval(setResult, stx, new Jig.Environment());
