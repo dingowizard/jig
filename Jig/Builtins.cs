@@ -250,6 +250,10 @@ internal static class Builtins {
                 cany(arg);
                 return;
             }
+            if (k is Continuation.OneArgDelegate c1) {
+                c1(arg);
+                return;
+            }
             k.DynamicInvoke(arg);
             return;
     }
@@ -261,9 +265,14 @@ internal static class Builtins {
     public static void callcc(Delegate k, List args) {
         if (args.Count() != 1) throw new Exception($"call/cc: expected one argument.");
         LiteralExpr<Delegate> proc = args.ElementAt(0) as LiteralExpr<Delegate> ?? throw new Exception("call/cc: expected procedure argument but got {args.ElementAt(0)}");
-        Action<Delegate, Expr> del = proc.Value as Action<Delegate, Expr> ?? throw new Exception("call/cc: expected procedure with one parameter but got {proc}");
-        apply(k, proc, List.NewList(new Continuation(k)));
-        return;
+        if (proc.Value is Action<Delegate, Expr> del) {
+            del(k, new Continuation(k));
+            return;
+        } else {
+            throw new Exception("call/cc: expected procedure with one parameter but got {proc}");
+        }
+        // apply(k, proc, List.NewList(new Continuation(k)));
+        // return;
     }
 
     public static void apply (Delegate k, Expr proc, List args) {

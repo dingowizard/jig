@@ -37,7 +37,7 @@ public class Interpreter : IInterpreter {
 
     public string InterpretSequenceReadSyntax(string[] inputs) {
         string result = "";
-        Continuation.OneArgDelegate setResult = (x) => result = x.Print();
+        Continuation.ContinuationAny setResult = (xs) => result = xs.ElementAt(0).Print();
         foreach (string input in inputs) {
             Expr? x = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
             Assert.IsNotNull(x);

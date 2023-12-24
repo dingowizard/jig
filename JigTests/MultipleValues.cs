@@ -22,6 +22,15 @@ public class MultipleValues
     }
 
     [TestMethod]
+    [DataRow(new string[] {"(define cont #f)", "(call-with-values (lambda () (call/cc (lambda (cc) (set! cont cc) (values 1 2)))) (lambda (a b) (+ a b)))", "(cont 1 2)"}, "3")]
+    [DataRow(new string[] {"(define cont #f)", "(call-with-values (lambda () (call/cc (lambda (cc) (set! cont cc) (values 1 2 3 4)))) (lambda (a b c d) (+ a b c d)))", "(cont 2 3 4 5)"}, "14")]
+    [DataRow(new string[] {"(define cont #f)", "(call-with-values (lambda () (call/cc (lambda (cc) (set! cont cc) (values 1 2 3 4)))) (lambda (a b . rest ) (cons (cons a b) rest)))", "(cont #t #f #f #t)"}, "((#t . #f) #f #t)")]
+    public void StoreAndApplyMultiArgumentContinuation(string[] input, string expected) {
+        string actual = new Interpreter().InterpretSequenceReadSyntax(input);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
     public void UseValuesToProvideSingleArgumentsToProcCall() {
         var actual = Utilities.Interpret("(+ (values 1) (values 2) (values 3))");
         Assert.AreEqual("6", actual);
