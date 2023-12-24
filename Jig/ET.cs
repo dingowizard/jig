@@ -5,14 +5,14 @@ using Microsoft.Scripting.Actions;
 
 namespace Jig;
 
-internal delegate void ListFunction(Continuation k, List rest);
-internal delegate void PairFunction(Continuation k, Expr arg0, List rest);
-internal delegate void ImproperListFunction2(Continuation k, Expr arg0, Expr arg1, List rest);
-internal delegate void ImproperListFunction3(Continuation k, Expr arg0, Expr arg1, Expr arg2, List rest);
-internal delegate void ImproperListFunction4(Continuation k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, List rest);
-internal delegate void ImproperListFunction5(Continuation k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, List rest);
-internal delegate void ImproperListFunction6(Continuation k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, Expr arg5, List rest);
-internal delegate void ImproperListFunction7(Continuation k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, Expr arg5, Expr arg6, List rest);
+internal delegate void ListFunction(Delegate k, List rest);
+internal delegate void PairFunction(Delegate k, Expr arg0, List rest);
+internal delegate void ImproperListFunction2(Delegate k, Expr arg0, Expr arg1, List rest);
+internal delegate void ImproperListFunction3(Delegate k, Expr arg0, Expr arg1, Expr arg2, List rest);
+internal delegate void ImproperListFunction4(Delegate k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, List rest);
+internal delegate void ImproperListFunction5(Delegate k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, List rest);
+internal delegate void ImproperListFunction6(Delegate k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, Expr arg5, List rest);
+internal delegate void ImproperListFunction7(Delegate k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, Expr arg5, Expr arg6, List rest);
 
 internal abstract class ET : Expression {
 
@@ -21,7 +21,7 @@ internal abstract class ET : Expression {
     }
 
     protected ET() {
-        kParam = Expression.Parameter(typeof(Continuation));
+        kParam = Expression.Parameter(typeof(Delegate));
         envParam = Expression.Parameter(typeof(IEnvironment));
     }
 
@@ -44,11 +44,20 @@ internal abstract class ET : Expression {
                 return new DefineET(scope, list);
             } else if (Expr.IsKeyword("begin", ast)){
                 return new BlockET(scope, (List.NonEmptyList)list.Cdr);
-            } else if (Expr.IsKeyword("call/cc", ast)){
-                return new CallCCET(scope, list); // TODO: couldn't call/cc just be a builtin procedure?
-            } else if (Expr.IsKeyword("set!", ast)){
+            }
+            // else if (Expr.IsKeyword("call/cc", ast)){
+            //     return new CallCCET(scope, list); // TODO: couldn't call/cc just be a builtin procedure?
+            // }
+            else if (Expr.IsKeyword("set!", ast)){
                 return new SetBangET(scope, list);
-            } else {
+            }
+            // else if (Expr.IsKeyword("values", ast)) {
+            //     return new ValuesET(scope, list);
+            // }
+            // else if (Expr.IsKeyword("call-with-values", ast)) {
+            //     return new CallWValuesET(scope, list);
+            // }
+            else {
                 return new ProcAppET(scope, list);
             }
         } else {
@@ -90,11 +99,13 @@ internal abstract class ET : Expression {
         public SymbolET (LexicalContext scope, Expr x) {
             ParameterExpression? pe = scope.LookUp(x);
             if (pe is null) {
+                var v = Expression.Parameter(typeof(Expr));
+                var k = Expression.Lambda<Continuation>(DynInv(kParam, v), new ParameterExpression[] {v});
                 Body = Expression.Call(envParam,
                                        LookUp,
-                                       new Expression [] {kParam, Expression.Constant(x)});
+                                       new Expression [] {k, Expression.Constant(x)});
             } else {
-                Body = Expression.Invoke(kParam, new Expression[] {pe});
+                Body = DynInv(kParam, pe);
             }
         }
 
@@ -105,35 +116,62 @@ internal abstract class ET : Expression {
 
     delegate void MapInternalDelegate(Continuation continuation, Action<Continuation, LiteralExpr<CompiledCode>> proc, List list );
 
-    delegate void ApplyDelegate(Continuation k, LiteralExpr<Delegate> proc, List args);
+    delegate void ApplyDelegate(Delegate k, LiteralExpr<Delegate> proc, List args);
     static PropertyInfo carPropertyInfo = typeof(IPair).GetProperty("Car") ?? throw new Exception("in ProcAppET: ProperLists should have one property named 'Car'");
     static PropertyInfo cdrPropertyInfo = typeof(IPair).GetProperty("Cdr") ?? throw new Exception("in ProcAppET: ProperLists should have one property named 'Cdr'");
 
     private class ProcAppET : ET {
-
-        public static void Write(string text) {
-           Console.WriteLine(text);
-        }
 
         public ProcAppET(LexicalContext scope, List.NonEmptyList list) : base () {
             // TODO: probably there is a more certain way of checking to see that we have syntax pair?
             IEnumerable<Expression<CompiledCode>> analyzed =
                 list.Select(x => (Expression<CompiledCode>)Analyze(scope, x).Reduce());
             var vParam = Expression.Parameter(typeof(Expr));
+            var v = Expression.Parameter(typeof(Expr));
             var contParam = Expression.Parameter(typeof(Continuation));
             var procParam = Expression.Parameter(typeof(LiteralExpr<CompiledCode>));
             MakeListDelegate listProc = List.NewListFromObjects;
             var k = Expression.Lambda<Continuation>(
                             DynInv(Expression.Constant((ApplyDelegate)Builtins.apply),
-                                                kParam,
-                                                Expression.Property(Expression.Convert(vParam, typeof(IPair)), carPropertyInfo),
-                                                Expression.Property(Expression.Convert(vParam, typeof(IPair)), cdrPropertyInfo)),
+                                   kParam,
+                                   // Expression.Lambda<Continuation>(DynInv(kParam, v), new ParameterExpression[] {v}), // the continuation to apply
+                                   Expression.Property(Expression.Convert(vParam, typeof(IPair)), carPropertyInfo),
+                                   Expression.Property(Expression.Convert(vParam, typeof(IPair)), cdrPropertyInfo)),
+                           parameters: new ParameterExpression[] {vParam});
+            Body =
+                DynInv(Expression.Constant((MapInternalDelegate) Builtins.map_internal),
+                       k,
+                       Expression.Lambda<Action<Continuation, LiteralExpr<CompiledCode>>>( // (lambda (k code) (code k env))
+                           body: DynInv(Expression.Property(procParam, "Value"), contParam, envParam),
+                           parameters: new ParameterExpression[] {contParam, procParam}),
+                       Expression.Invoke(Expression.Constant(listProc), Expression.NewArrayInit(typeof(CompiledCode), analyzed)));
+        }
+
+        public override Expression Body {get;}
+    }
+
+    private class ValuesET : ET {
+
+        public ValuesET(LexicalContext scope, List.NonEmptyList list) : base () {
+            // TODO: probably there is a more certain way of checking to see that we have syntax pair?
+            IEnumerable<Expression<CompiledCode>> analyzed =
+                list.Skip(1).Select(x => (Expression<CompiledCode>)Analyze(scope, x).Reduce());
+            var vParam = Expression.Parameter(typeof(Expr));
+            var contParam = Expression.Parameter(typeof(Delegate));
+            var procParam = Expression.Parameter(typeof(LiteralExpr<CompiledCode>));
+            MakeListDelegate listProc = List.NewListFromObjects;
+            ConstructorInfo constructor = typeof(LiteralExpr<Delegate>).GetConstructor(new Type[] {typeof(Delegate)}) ?? throw new Exception("could not find constructor for LiteralExpr<Delegate>");
+            var k = Expression.Lambda<Continuation>(
+                            DynInv(Expression.Constant((ApplyDelegate) Builtins.apply),
+                                   kParam,
+                                   Expression.New(constructor, kParam),
+                                   vParam),
                            parameters: new ParameterExpression[] {vParam});
             Body = ConvertToObject(
                        DynInv(Expression.Constant((MapInternalDelegate) Builtins.map_internal),
                        k,
-                       Expression.Lambda<Action<Continuation, LiteralExpr<CompiledCode>>>(
-                           body: Expression.Invoke(Expression.Property(procParam, "Value"),  new Expression[] {contParam, envParam}),
+                       Expression.Lambda<Action<Delegate, LiteralExpr<CompiledCode>>>(
+                           body: Expression.Invoke(Expression.Property(procParam, "Value"),  new Expression[] {Expression.Convert(contParam, typeof(Delegate)), envParam}),
                            parameters: new ParameterExpression[] {contParam, procParam}),
                        Expression.Invoke(Expression.Constant(listProc), Expression.NewArrayInit(typeof(CompiledCode), analyzed))));
         }
@@ -187,6 +225,7 @@ internal abstract class ET : Expression {
         public override Expression Body {get;}
     }
 
+
     private class SetBangET : ET {
 
         private static MethodInfo _setMethod {get;} = typeof(IEnvironment).GetMethod("Set") ?? throw new Exception("while initializeing SetBangET, could not find 'Set' method on IEnvironment");
@@ -203,9 +242,9 @@ internal abstract class ET : Expression {
                                        _setMethod,
                                        new Expression [] {kParam, Expression.Constant(sym), val});
             } else {
-                contBody = Expression.Invoke(kParam, new Expression [] {Expression.Assign(pe, val)});
+                contBody = DynInv(kParam, Expression.Assign(pe, val));
             }
-            var k = Expression.Lambda<Continuation>(contBody, new ParameterExpression [] {val});
+            var k = Expression.Lambda(contBody, new ParameterExpression [] {val});
 
             Body = Expression.Invoke(valCC, new Expression[] {k, envParam});
         }
@@ -215,7 +254,7 @@ internal abstract class ET : Expression {
 
     private class DefineET : ET {
 
-        private static MethodInfo _defineMethod {get;} = typeof(IEnvironment).GetMethod("Define") ?? throw new Exception("while initializeing DefineET, could not find 'Define' method on IEnvironment");
+        private static MethodInfo _defineMethod {get;} = typeof(IEnvironment).GetMethod("Define") ?? throw new Exception("while initializing DefineET, could not find 'Define' method on IEnvironment");
 
         public DefineET(LexicalContext lexVars, List.NonEmptyList list) : base() {
             Expr sym = list.ElementAt(1);
@@ -231,11 +270,11 @@ internal abstract class ET : Expression {
 
             } else {
                 ParameterExpression pe = lexVars.ParameterForDefine(sym);
-                contBody = Expression.Invoke(kParam, new Expression [] {Expression.Assign(pe, val)});
+                contBody = DynInv(kParam, Expression.Assign(pe, val));
             }
 
 
-            var k = Expression.Lambda<Continuation>(contBody, new ParameterExpression [] {val});
+            var k = Expression.Lambda(contBody, new ParameterExpression [] {val});
 
             Body = Expression.Invoke(valCC, new Expression[] {k, envParam});
 
@@ -247,9 +286,10 @@ internal abstract class ET : Expression {
 
     private Expression<CompiledCode> LE(Expression body, ParameterExpression[] ps) => Expression.Lambda<CompiledCode> (body, ps);
     private Expression<Continuation> K(Expression body, ParameterExpression[] ps) => Expression.Lambda<Continuation> (body, ps);
-    private Expression DynInv(params Expression[] xs) {
+    internal static Expression DynInv(params Expression[] xs) {
         return Expression.Dynamic(
             binder: new MyInvokeBinder(new CallInfo(xs.Length -1)),
+            //TODO: will dynamic invoke always be an Action? should returnType by void?
             returnType: typeof(object),
             arguments: xs);
     }
@@ -262,7 +302,7 @@ internal abstract class ET : Expression {
             Expr lambdaParameters = args.Car is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : args.Car; // TODO: do we want to throw this info out already?
             List.NonEmptyList lambdaBody = args.Cdr as List.NonEmptyList ?? throw new Exception($"malformed lambda: no body");
 
-            var k = Expression.Parameter(typeof(Continuation), "k in MakeProcET"); // this is the continuation paramter for the proc we are making
+            var k = Expression.Parameter(typeof(Delegate), "k in MakeProcET"); // this is the continuation paramter for the proc we are making
             LexicalContext lambdaScope;
             ConstructorInfo constructor = typeof(LiteralExpr<Delegate>).GetConstructor(new Type[] {typeof(Delegate)}) ?? throw new Exception("could not find constructor for LiteralExpr<Delegate>");
             switch (lambdaParameters) {
@@ -270,33 +310,39 @@ internal abstract class ET : Expression {
                     IEnumerable<Expr.Symbol> properListSymbols = properList.Cast<Expr.Symbol>();
                     if (properListSymbols is null) throw new Exception($"malformed lambda: expected parameters to be symbols but got {properList}");
                     lambdaScope = scope.Extend(properListSymbols);
-                    Body = Expression.Invoke(kParam, // here kParam is the continuation when the lambda expression is being evaluated
+                    LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
+                    LambdaExpressionParams = new ParameterExpression[] {k}.Concat(lambdaScope.Parameters).ToArray();
+                    Body = DynInv(kParam, // here kParam is the continuation when the lambda expression is being evaluated
                                              Expression.New(constructor,
                                                             new Expression[] {
-                                                                Expression.Lambda(body: LambdaBody(k, lambdaScope, lambdaBody),
-                                                                                  parameters: new ParameterExpression[] {k}.Concat(lambdaScope.Parameters))
+                                                                Expression.Lambda(body: LambdaExpressionBody,
+                                                                                  parameters: LambdaExpressionParams)
                                                             }));
                     return;
                 case Expr.Symbol onlyRestSymbol: // cases like (lambda x x)
                     lambdaScope = scope.Extend(new Expr.Symbol[]{onlyRestSymbol});
+                    LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
+                    LambdaExpressionParams = new ParameterExpression[] {k}.Concat(lambdaScope.Parameters).ToArray();
 
-                    Body = Expression.Invoke(kParam, // here kParam is the continuation when the lambda expression is being evaluated
+                    Body = DynInv(kParam, // here kParam is the continuation when the lambda expression is being evaluated
                                              Expression.New(constructor,
                                                             new Expression[] {
                                                                 Expression.Lambda(delegateType: typeof(ListFunction),
-                                                               body: LambdaBody(k, lambdaScope, lambdaBody),
-                                                               parameters: new ParameterExpression[] {k}.Concat(lambdaScope.Parameters))
+                                                               body: LambdaExpressionBody,
+                                                               parameters: LambdaExpressionParams)
                                                             }));
                     return;
                 case IPair andRest: // cases like (lambda (proc l . ls))
                     IEnumerable<Expr.Symbol> symbols = ValidateAndConvertToSymbols(andRest);
                     lambdaScope = scope.Extend(symbols);
-                    Body = Expression.Invoke(kParam, // here kParam is the continuation when the lambda expression is being evaluated
+                    LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
+                    LambdaExpressionParams = new ParameterExpression[] {k}.Concat(lambdaScope.Parameters).ToArray();
+                    Body = DynInv(kParam, // here kParam is the continuation when the lambda expression is being evaluated
                                              Expression.New(constructor,
                                                             new Expression[] {
                                                                 Expression.Lambda(delegateType: FunctionTypeFromParameters(andRest),
-                                                               body: LambdaBody(k, lambdaScope, lambdaBody),
-                                                               parameters: new ParameterExpression[] {k}.Concat(lambdaScope.Parameters))
+                                                               body: LambdaExpressionBody,
+                                                               parameters: LambdaExpressionParams)
                                                             }));
                     return;
 
@@ -305,6 +351,10 @@ internal abstract class ET : Expression {
             }
 
         }
+
+        public Expression LambdaExpressionBody {get;}
+
+        public ParameterExpression[] LambdaExpressionParams {get;}
 
         public override Expression Body {get;}
 
@@ -359,11 +409,11 @@ internal abstract class ET : Expression {
         private Expression LambdaBody(ParameterExpression k, LexicalContext scope, List.NonEmptyList exprs) {
             // k is the paramter continuation for the procedure that is being made (the continuation when that proc is applied)
             var block = new BlockET(scope.Extend(), exprs);
-            var cont = Expression.Parameter(typeof(Continuation)); // this is the continuation parameter for the inner lambda
+            var cont = Expression.Parameter(typeof(Delegate)); // this is the continuation parameter for the inner lambda
 
             // this should represent what code to run when the procedure is called
             return Expression.Invoke(
-                Expression.Lambda<Action<Continuation>>(
+                Expression.Lambda<Action<Delegate>>(
                     // body: DynInv(new BlockET(scope.Extend(), exprs).LambdaExpression(), cont, envParam),
                     body: Expression.Invoke(
                         // Analyze(scope, exprs.ElementAt(0)),
@@ -410,7 +460,7 @@ internal class BlockET : ET {
 
         Body = Expression.Block(blockScope.Parameters,
             new Expression[] {Expression.Invoke(
-            Expression.Constant((Action<Continuation, IEnvironment, List.NonEmptyList>) doSequence),
+            Expression.Constant((Action<Delegate, IEnvironment, List.NonEmptyList>) doSequence),
             new Expression[] {
                 kParam,
                 envParam,
@@ -419,13 +469,14 @@ internal class BlockET : ET {
                 )});
     }
 
-    private void doSequence(Continuation k, IEnvironment env, List list) {
+    private void doSequence(Delegate k, IEnvironment env, List list) {
         // TODO: make caller guarantee properlist
         List.NonEmptyList? exprs = list as List.NonEmptyList;
         if (exprs == null) throw new Exception("doSequence: should not be called with empty list");
         var code = exprs.Car as LiteralExpr<CompiledCode> ?? throw new Exception($"BlockET.doSequence: expected a CompiledCode but got {exprs.Car.GetType()}");
         List cdr = (List)exprs.Cdr;
-        Continuation cont = cdr is Expr.NullType ? k : (v) => doSequence(k,env,(List.NonEmptyList)cdr);
+        Continuation k0 = (v) => doSequence(k,env,(List.NonEmptyList)cdr);
+        Delegate cont = cdr is Expr.NullType ? k : k0;
         code.Value(cont, env);
     }
 

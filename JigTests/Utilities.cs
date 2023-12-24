@@ -11,6 +11,10 @@ public static class Utilities {
     public static string InterpretUsingReadSyntax(string input) {
         return new Interpreter().InterpretUsingReadSyntax(input);
     }
+
+    public static string InterpretMultipleValues(string input) {
+        return new Interpreter().InterpretMultipleValues(input);
+    }
 }
 
 public class Interpreter : IInterpreter {
@@ -44,7 +48,18 @@ public class Interpreter : IInterpreter {
 
     public string Interpret(string input) {
         string result = "";
-        Continuation setResult = (x) => result = x.Print();
+        // Continuation setResult = (x) => result = x.Print();
+        ContinuationAny setResult = (xs) => result = xs.ElementAt(0).Print();
+        Expr? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
+        Assert.IsNotNull(x);
+        Program.Eval(setResult, x, Env);
+        return result;
+    }
+
+    public string InterpretMultipleValues(string input) {
+        string result = "";
+        // Continuation setResult = (x) => result = x.Print();
+        ContinuationAny setResult = (xs) => result = string.Join(", ", xs.Select(x => x.Print()));
         Expr? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
         Assert.IsNotNull(x);
         Program.Eval(setResult, x, Env);

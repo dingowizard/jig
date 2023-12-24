@@ -185,6 +185,16 @@ public abstract class Expr {
 
 }
 
+public class Procedure : LiteralExpr<Delegate> {
+
+    public Procedure(Delegate d) : base (d) {}
+
+}
+
+public class ContinuationExpr : Procedure {
+    public ContinuationExpr(Delegate d) : base (d) {}
+}
+
 public class LiteralExpr<T> : Expr where T : notnull {
     public LiteralExpr(T val) {
         Value = val;
