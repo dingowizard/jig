@@ -64,7 +64,7 @@ public class Environment : IEnvironment {
         _dict.Add(new Expr.Symbol("="), new LiteralExpr<Delegate>((PairFunction) Builtins.numEq));
         _dict.Add(new Expr.Symbol("apply"), new LiteralExpr<Delegate>( Builtins.apply));
         _dict.Add(new Expr.Symbol("call/cc"), new LiteralExpr<Delegate>( (Builtin)Builtins.callcc));
-        _dict.Add(new Expr.Symbol("call-with-values"), new LiteralExpr<Delegate>( Builtins.call_with_values));
+        _dict.Add(new Expr.Symbol("call-with-values"), new LiteralExpr<Delegate>( ContinuationExpr.call_with_values));
         _dict.Add(new Expr.Symbol("values"), new LiteralExpr<Delegate>( (Builtin)Builtins.values));
 
     }
