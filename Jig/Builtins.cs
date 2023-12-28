@@ -23,7 +23,7 @@ internal static class Builtins {
         if (args is List.NonEmpty properList) {
             switch (properList.Car) {
                 case IPair pair:
-                    ApplyContinuation(k, pair.Car);
+                    Continuation.ApplyDelegate(k, pair.Car);
                     return;
                 default:
                     throw new Exception($"car: expected pair but got {properList.Car}");
@@ -37,10 +37,10 @@ internal static class Builtins {
         if (args is List.NonEmpty properList) {
             Expr arg = properList.Car;
             if (arg is Expr.NullType) {
-                ApplyContinuation(k, new Expr.Boolean(true));
+                Continuation.ApplyDelegate(k, new Expr.Boolean(true));
                 return;
             }
-            ApplyContinuation(k, new Expr.Boolean(false));
+            Continuation.ApplyDelegate(k, new Expr.Boolean(false));
             return;
 
         } else {
@@ -52,7 +52,7 @@ internal static class Builtins {
         if (args is List.NonEmpty properList) {
             switch (properList.Car) {
                 case IPair pair:
-                    ApplyContinuation(k, pair.Cdr);
+                    Continuation.ApplyDelegate(k, pair.Cdr);
                     return;
                 default:
                     throw new Exception($"cdr: expected pair but got {properList.Cdr}");
@@ -66,7 +66,7 @@ internal static class Builtins {
         if (args is List.NonEmpty properList) {
             object arg = properList.Car;
             if (arg is Expr.Integer intExpr) {
-                ApplyContinuation(k, new Expr.Integer(intExpr.Value + 1));
+                Continuation.ApplyDelegate(k, new Expr.Integer(intExpr.Value + 1));
                 return;
             } else {
                 throw new Exception($"incr: expected single integer argument, but got {args}");
@@ -105,7 +105,7 @@ internal static class Builtins {
 
             }
         }
-        ApplyContinuation(k, resultIsInt ? intResult : doubleResult);
+        Continuation.ApplyDelegate(k, resultIsInt ? intResult : doubleResult);
         return;
 
     }
@@ -146,7 +146,7 @@ internal static class Builtins {
                 }
             }
         }
-        ApplyContinuation(k, resultIsInt ? intResult : doubleResult);
+        Continuation.ApplyDelegate(k, resultIsInt ? intResult : doubleResult);
         return;
     }
 
@@ -159,17 +159,17 @@ internal static class Builtins {
                     if (current.Equals(nextInt)) {
                         continue;
                     } else {
-                        ApplyContinuation(k, new Expr.Boolean(false));
+                        Continuation.ApplyDelegate(k, new Expr.Boolean(false));
                         return;
                     }
                 } else if (arg is Expr.Double) {
-                    ApplyContinuation(k, new Expr.Boolean(false));
+                    Continuation.ApplyDelegate(k, new Expr.Boolean(false));
                     return;
                 } else {
                     throw new Exception($"=: expected numeric arguments, but got {arg}");
                 }
             }
-            ApplyContinuation(k, new Expr.Boolean(true));
+            Continuation.ApplyDelegate(k, new Expr.Boolean(true));
             return;
         } else if (first is Expr.Double d) {
             Expr.Double current = d;
@@ -178,17 +178,17 @@ internal static class Builtins {
                     if (current.Equals(nextD)) {
                         continue;
                     } else {
-                        ApplyContinuation(k, new Expr.Boolean(false));
+                        Continuation.ApplyDelegate(k, new Expr.Boolean(false));
                         return;
                     }
                 } else if (arg is Expr.Integer) {
-                    ApplyContinuation(k, new Expr.Boolean(false));
+                    Continuation.ApplyDelegate(k, new Expr.Boolean(false));
                     return;
                 } else {
                     throw new Exception($"=: expected numeric arguments, but got {arg}");
                 }
             }
-            ApplyContinuation(k, new Expr.Boolean(true));
+            Continuation.ApplyDelegate(k, new Expr.Boolean(true));
             return;
 
         } else {
@@ -225,7 +225,7 @@ internal static class Builtins {
 
             }
         }
-        ApplyContinuation(k, resultIsInt ? intResult : doubleResult);
+        Continuation.ApplyDelegate(k, resultIsInt ? intResult : doubleResult);
         return;
     }
 
@@ -237,26 +237,13 @@ internal static class Builtins {
             Expr car = args.ElementAt(0);
             Expr cdr = args.ElementAt(1);
             Expr result = (Expr)Expr.Pair.Cons(car, cdr);
-            ApplyContinuation(k, result);
+            Continuation.ApplyDelegate(k, result);
             return;
         } else {
             throw new Exception("cons: expected two arguments but got none");
         }
     }
 
-    internal static void ApplyContinuation(Delegate k, Expr arg) {
-        // TODO: make an applyinternalcontinuation method in continuationExpr
-            if (k is Continuation.ContinuationAny cany) {
-                cany(arg);
-                return;
-            }
-            if (k is Continuation.OneArgDelegate c1) {
-                c1(arg);
-                return;
-            }
-            k.DynamicInvoke(arg);
-            return;
-    }
 
     public static void values(Delegate k, List args) {
         new Continuation(k).Apply(args);

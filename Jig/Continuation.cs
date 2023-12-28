@@ -42,6 +42,21 @@ public class Continuation : Procedure {
 
     }
 
+    internal static void ApplyDelegate(Delegate k, Expr arg) {
+        // TODO: should we handle more continuation types here?
+            if (k is Continuation.ContinuationAny cany) {
+                cany(arg);
+                return;
+            }
+            if (k is Continuation.OneArgDelegate c1) {
+                c1(arg);
+                return;
+            }
+            k.DynamicInvoke(arg);
+            return;
+    }
+
+
     public override string Print() => "#<continuation>";
 
     public static void call_with_values(Delegate k, Procedure producerExpr, Procedure consumerExpr) {

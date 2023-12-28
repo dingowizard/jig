@@ -74,7 +74,7 @@ public class Environment : IEnvironment {
             throw new Exception($"set!: unbound variable {s}");
         }
         _dict[s] = v;
-        Builtins.ApplyContinuation(k, s);
+        Continuation.ApplyDelegate(k, s);
         return;
 
     }
@@ -83,18 +83,18 @@ public class Environment : IEnvironment {
         Expr.Symbol s = sym is SyntaxObject.Identifier i ? i.Symbol : ((Expr.Symbol) sym);
         if (_dict.ContainsKey(s)) {
             _dict[s] = v;
-            Builtins.ApplyContinuation(k, s);
+            Continuation.ApplyDelegate(k, s);
             return;
         }
         _dict.Add(s, v);
-        Builtins.ApplyContinuation(k, s);
+        Continuation.ApplyDelegate(k, s);
         return;
     }
 
     public void LookUp (Delegate k, Expr expr) {
         Expr.Symbol symbol = expr is SyntaxObject.Identifier id ? id.Symbol : (Expr.Symbol) expr;
         if (_dict.TryGetValue(symbol, out Expr? result)) {
-            Builtins.ApplyContinuation(k, result);
+            Continuation.ApplyDelegate(k, result);
             return;
         } else {
             throw new Exception($"unbound variable: {symbol.Name}");
