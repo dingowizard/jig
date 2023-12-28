@@ -260,6 +260,8 @@ internal static class Builtins {
         }
     }
 
+    public static void dynamic_wind(Delegate k, List args) {}
+
     public static void apply (Delegate k, Expr x, List args) {
         if (x is Continuation cont) {
             cont.Apply(args);
