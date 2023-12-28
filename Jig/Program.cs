@@ -53,20 +53,19 @@ public static class Program {
 public class Environment : IEnvironment {
 
     public Environment() {
-        _dict.Add(new Expr.Symbol("car"), new LiteralExpr<Delegate>((Builtin) Builtins.car));
-        _dict.Add(new Expr.Symbol("cdr"), new LiteralExpr<Delegate>((Builtin) Builtins.cdr));
-        _dict.Add(new Expr.Symbol("cons"), new LiteralExpr<Delegate>((Builtin) Builtins.cons));
-        _dict.Add(new Expr.Symbol("null?"), new LiteralExpr<Delegate>((Builtin) Builtins.nullP));
-        _dict.Add(new Expr.Symbol("succ"), new LiteralExpr<Delegate>((Builtin) Builtins.succ));
-        _dict.Add(new Expr.Symbol("+"), new LiteralExpr<Delegate>((Builtin) Builtins.sum));
-        _dict.Add(new Expr.Symbol("*"), new LiteralExpr<Delegate>((Builtin) Builtins.product));
-        _dict.Add(new Expr.Symbol("-"), new LiteralExpr<Delegate>((PairFunction) Builtins.diff));
-        _dict.Add(new Expr.Symbol("="), new LiteralExpr<Delegate>((PairFunction) Builtins.numEq));
-        _dict.Add(new Expr.Symbol("apply"), new LiteralExpr<Delegate>( Builtins.apply));
-        _dict.Add(new Expr.Symbol("call/cc"), new LiteralExpr<Delegate>( (Builtin)Builtins.callcc));
-        _dict.Add(new Expr.Symbol("call-with-values"), new LiteralExpr<Delegate>( Continuation.call_with_values));
-        _dict.Add(new Expr.Symbol("values"), new LiteralExpr<Delegate>( (Builtin)Builtins.values));
-
+        _dict.Add(new Expr.Symbol("car"), new Procedure((Builtin) Builtins.car));
+        _dict.Add(new Expr.Symbol("cdr"), new Procedure((Builtin) Builtins.cdr));
+        _dict.Add(new Expr.Symbol("cons"), new Procedure((Builtin) Builtins.cons));
+        _dict.Add(new Expr.Symbol("null?"), new Procedure((Builtin) Builtins.nullP));
+        _dict.Add(new Expr.Symbol("succ"), new Procedure((Builtin) Builtins.succ));
+        _dict.Add(new Expr.Symbol("+"), new Procedure((Builtin) Builtins.sum));
+        _dict.Add(new Expr.Symbol("*"), new Procedure((Builtin) Builtins.product));
+        _dict.Add(new Expr.Symbol("-"), new Procedure((PairFunction) Builtins.diff));
+        _dict.Add(new Expr.Symbol("="), new Procedure((PairFunction) Builtins.numEq));
+        _dict.Add(new Expr.Symbol("apply"), new Procedure( Builtins.apply));
+        _dict.Add(new Expr.Symbol("call/cc"), new Procedure( (Builtin)Builtins.callcc));
+        _dict.Add(new Expr.Symbol("call-with-values"), new Procedure( Continuation.call_with_values));
+        _dict.Add(new Expr.Symbol("values"), new Procedure( (Builtin)Builtins.values));
     }
 
     public void Set(Delegate k, Expr sym, Expr v) {

@@ -82,7 +82,7 @@ public class ParserTests {
         SyntaxObject stx = Parser.ParseSyntax(tokenStream);
         IPair? stxPair = SyntaxObject.E(stx) as IPair;
         Assert.IsNotNull(stxPair);
-        List.NonEmptyList? rest = stxPair.Cdr as List.NonEmptyList;
+        List.NonEmpty? rest = stxPair.Cdr as List.NonEmpty;
         Assert.IsNotNull(rest);
         SyntaxObject.Identifier? id = rest.Car as SyntaxObject.Identifier;
         Assert.IsNotNull(id);
@@ -96,7 +96,7 @@ public class ParserTests {
         Assert.IsInstanceOfType(stx, typeof(SyntaxObject));
         IPair? stxPair = SyntaxObject.E(stx) as IPair;
         Assert.IsNotNull(stxPair);
-        List.NonEmptyList? rest = stxPair.Cdr as List.NonEmptyList;
+        List.NonEmpty? rest = stxPair.Cdr as List.NonEmpty;
         Assert.IsNotNull(rest);
         // rest should be ((abc def))
         SyntaxObject? carCdr = rest.Car as SyntaxObject; // should be (abc def)

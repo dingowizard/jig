@@ -14,7 +14,7 @@ public class Lambdas
         Expr? expr = Jig.Reader.Reader.Read(InputPort.FromString("(lambda (x) x)"));
         Assert.IsNotNull(expr);
         Program.Eval(setResult, expr, new Jig.Environment());
-        Assert.IsInstanceOfType(result, typeof(LiteralExpr<Delegate>));
+        Assert.IsInstanceOfType(result, typeof(Procedure));
 
     }
 

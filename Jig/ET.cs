@@ -31,19 +31,19 @@ internal abstract class ET : Expression {
         } else if (Expr.IsSymbol(ast)) {
             return new SymbolET(scope, ast);
         } else if (Expr.IsNonEmptyList(ast)) {
-            List.NonEmptyList list = ast is SyntaxObject stx ? (List.NonEmptyList)SyntaxObject.E(stx) : (List.NonEmptyList)ast;
+            List.NonEmpty list = ast is SyntaxObject stx ? (List.NonEmpty)SyntaxObject.E(stx) : (List.NonEmpty)ast;
             // TODO: rewrite below ET constructors to take full ast (as list probably)
             if (Expr.IsKeyword("quote", ast)) {
                 // TODO: QuoteET
-                return new LiteralET(((List.NonEmptyList)list.Cdr).Car);
+                return new LiteralET(((List.NonEmpty)list.Cdr).Car);
             } else if (Expr.IsKeyword("lambda", ast)) {
-                return new LambdaExprET(scope, (List.NonEmptyList)list.Cdr);
+                return new LambdaExprET(scope, (List.NonEmpty)list.Cdr);
             } else if (Expr.IsKeyword("if", ast)) {
                 return new IfET(scope, list);
             } else if (Expr.IsKeyword("define", ast)) {
                 return new DefineET(scope, list);
             } else if (Expr.IsKeyword("begin", ast)){
-                return new BlockET(scope, (List.NonEmptyList)list.Cdr);
+                return new BlockET(scope, (List.NonEmpty)list.Cdr);
             }
             // else if (Expr.IsKeyword("call/cc", ast)){
             //     return new CallCCET(scope, list); // TODO: couldn't call/cc just be a builtin procedure?
@@ -116,13 +116,13 @@ internal abstract class ET : Expression {
 
     delegate void MapInternalDelegate(Continuation.OneArgDelegate continuation, Action<Continuation.OneArgDelegate, LiteralExpr<CompiledCode>> proc, List list );
 
-    delegate void ApplyDelegate(Delegate k, LiteralExpr<Delegate> proc, List args);
+    delegate void ApplyDelegate(Delegate k, Procedure proc, List args);
     static PropertyInfo carPropertyInfo = typeof(IPair).GetProperty("Car") ?? throw new Exception("in ProcAppET: ProperLists should have one property named 'Car'");
     static PropertyInfo cdrPropertyInfo = typeof(IPair).GetProperty("Cdr") ?? throw new Exception("in ProcAppET: ProperLists should have one property named 'Cdr'");
 
     private class ProcAppET : ET {
 
-        public ProcAppET(LexicalContext scope, List.NonEmptyList list) : base () {
+        public ProcAppET(LexicalContext scope, List.NonEmpty list) : base () {
             // TODO: probably there is a more certain way of checking to see that we have syntax pair?
             IEnumerable<Expression<CompiledCode>> analyzed =
                 list.Select(x => (Expression<CompiledCode>)Analyze(scope, x).Reduce());
@@ -150,46 +150,17 @@ internal abstract class ET : Expression {
         public override Expression Body {get;}
     }
 
-    private class ValuesET : ET {
-
-        public ValuesET(LexicalContext scope, List.NonEmptyList list) : base () {
-            // TODO: probably there is a more certain way of checking to see that we have syntax pair?
-            IEnumerable<Expression<CompiledCode>> analyzed =
-                list.Skip(1).Select(x => (Expression<CompiledCode>)Analyze(scope, x).Reduce());
-            var vParam = Expression.Parameter(typeof(Expr));
-            var contParam = Expression.Parameter(typeof(Delegate));
-            var procParam = Expression.Parameter(typeof(LiteralExpr<CompiledCode>));
-            MakeListDelegate listProc = List.NewListFromObjects;
-            ConstructorInfo constructor = typeof(LiteralExpr<Delegate>).GetConstructor(new Type[] {typeof(Delegate)}) ?? throw new Exception("could not find constructor for LiteralExpr<Delegate>");
-            var k = Expression.Lambda<Continuation.OneArgDelegate>(
-                            DynInv(Expression.Constant((ApplyDelegate) Builtins.apply),
-                                   kParam,
-                                   Expression.New(constructor, kParam),
-                                   vParam),
-                           parameters: new ParameterExpression[] {vParam});
-            Body = ConvertToObject(
-                       DynInv(Expression.Constant((MapInternalDelegate) Builtins.map_internal),
-                       k,
-                       Expression.Lambda<Action<Delegate, LiteralExpr<CompiledCode>>>(
-                           body: Expression.Invoke(Expression.Property(procParam, "Value"),  new Expression[] {Expression.Convert(contParam, typeof(Delegate)), envParam}),
-                           parameters: new ParameterExpression[] {contParam, procParam}),
-                       Expression.Invoke(Expression.Constant(listProc), Expression.NewArrayInit(typeof(CompiledCode), analyzed))));
-        }
-
-        public override Expression Body {get;}
-    }
-
     private class IfET : ET {
 
-        public IfET(LexicalContext lexVars, List.NonEmptyList list) : base() {
+        public IfET(LexicalContext lexVars, List.NonEmpty list) : base() {
 
-            List.NonEmptyList listCdr = list.Cdr as List.NonEmptyList ?? throw new Exception($"malformed if: {list}"); // TODO: should the parser be doing all this checking for malformed whatevers?
+            List.NonEmpty listCdr = list.Cdr as List.NonEmpty ?? throw new Exception($"malformed if: {list}"); // TODO: should the parser be doing all this checking for malformed whatevers?
             Expr cond = listCdr.Car;
             Expression<CompiledCode> condCC = (Expression<CompiledCode>)Analyze(lexVars, cond).Reduce();
-            List.NonEmptyList listCdrCdr = listCdr.Cdr as List.NonEmptyList ?? throw new Exception($"malformed if: {list}");
+            List.NonEmpty listCdrCdr = listCdr.Cdr as List.NonEmpty ?? throw new Exception($"malformed if: {list}");
             Expr consq = listCdrCdr.Car;
             Expression<CompiledCode> consqCC = (Expression<CompiledCode>)Analyze(lexVars, consq).Reduce();
-            List.NonEmptyList listCdrCdrCdr = listCdrCdr.Cdr as List.NonEmptyList ?? throw new Exception($"malformed if: {list}");
+            List.NonEmpty listCdrCdrCdr = listCdrCdr.Cdr as List.NonEmpty ?? throw new Exception($"malformed if: {list}");
             Expr alt = listCdrCdrCdr.Car;
             Expression<CompiledCode> altCC = (Expression<CompiledCode>)Analyze(lexVars, alt).Reduce();
             ParameterExpression boolResult = Expression.Parameter(typeof(Expr), "boolResult");
@@ -206,31 +177,12 @@ internal abstract class ET : Expression {
         public override Expression Body {get;}
     }
 
-    private class CallCCET : ET {
-
-        public CallCCET(LexicalContext scope, List.NonEmptyList args) {
-            Expr arg = args.ElementAt(1);
-            Expression<CompiledCode> lambdaExprCC = (Expression<CompiledCode>)Analyze(scope, arg).Reduce();
-            ParameterExpression le = Expression.Parameter(typeof(Expr), "lambdaExpr");
-            ConstructorInfo constructor = typeof(LiteralExpr<Delegate>).GetConstructor(new Type[] {typeof(Delegate)}) ?? throw new Exception("could not find constructor for LiteralExpr<Delegate>");
-            Expression contBody = DynInv(Expression.Property(Expression.Convert(le, typeof(LiteralExpr<Delegate>)), "Value"),
-                                         kParam,
-                                         Expression.New(constructor, kParam));
-            var k = Expression.Lambda<Continuation.OneArgDelegate>(contBody, new ParameterExpression[] {le});
-
-            Body = Expression.Invoke(lambdaExprCC, new Expression[] {k, envParam});
-
-        }
-
-        public override Expression Body {get;}
-    }
-
 
     private class SetBangET : ET {
 
         private static MethodInfo _setMethod {get;} = typeof(IEnvironment).GetMethod("Set") ?? throw new Exception("while initializeing SetBangET, could not find 'Set' method on IEnvironment");
 
-        public SetBangET(LexicalContext lexVars, List.NonEmptyList list) : base() {
+        public SetBangET(LexicalContext lexVars, List.NonEmpty list) : base() {
             Expr sym = list.ElementAt(1);
             Expr valExpr = list.ElementAt(2);
             Expression<CompiledCode> valCC = (Expression<CompiledCode>)Analyze(lexVars, valExpr).Reduce();
@@ -256,7 +208,7 @@ internal abstract class ET : Expression {
 
         private static MethodInfo _defineMethod {get;} = typeof(IEnvironment).GetMethod("Define") ?? throw new Exception("while initializing DefineET, could not find 'Define' method on IEnvironment");
 
-        public DefineET(LexicalContext lexVars, List.NonEmptyList list) : base() {
+        public DefineET(LexicalContext lexVars, List.NonEmpty list) : base() {
             Expr sym = list.ElementAt(1);
             Expr valExpr = list.ElementAt(2);
             Expression<CompiledCode> valCC = (Expression<CompiledCode>)Analyze(lexVars, valExpr).Reduce();
@@ -297,14 +249,14 @@ internal abstract class ET : Expression {
 
     private class LambdaExprET : ET {
 
-        public LambdaExprET(LexicalContext scope, List.NonEmptyList args) {
+        public LambdaExprET(LexicalContext scope, List.NonEmpty args) {
             // args will be something like ((a b) body..) but may or may not be syntax objects
             Expr lambdaParameters = args.Car is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : args.Car; // TODO: do we want to throw this info out already?
-            List.NonEmptyList lambdaBody = args.Cdr as List.NonEmptyList ?? throw new Exception($"malformed lambda: no body");
+            List.NonEmpty lambdaBody = args.Cdr as List.NonEmpty ?? throw new Exception($"malformed lambda: no body");
 
             var k = Expression.Parameter(typeof(Delegate), "k in MakeProcET"); // this is the continuation paramter for the proc we are making
             LexicalContext lambdaScope;
-            ConstructorInfo constructor = typeof(LiteralExpr<Delegate>).GetConstructor(new Type[] {typeof(Delegate)}) ?? throw new Exception("could not find constructor for LiteralExpr<Delegate>");
+            ConstructorInfo constructor = typeof(Procedure).GetConstructor(new Type[] {typeof(Delegate)}) ?? throw new Exception("could not find constructor for Procedure");
             switch (lambdaParameters) {
                 case List properList:
                     IEnumerable<Expr.Symbol> properListSymbols = properList.Cast<Expr.Symbol>();
@@ -406,7 +358,7 @@ internal abstract class ET : Expression {
             }
         }
 
-        private Expression LambdaBody(ParameterExpression k, LexicalContext scope, List.NonEmptyList exprs) {
+        private Expression LambdaBody(ParameterExpression k, LexicalContext scope, List.NonEmpty exprs) {
             // k is the paramter continuation for the procedure that is being made (the continuation when that proc is applied)
             var block = new BlockET(scope.Extend(), exprs);
             var cont = Expression.Parameter(typeof(Delegate)); // this is the continuation parameter for the inner lambda
@@ -451,16 +403,16 @@ internal abstract class ET : Expression {
 
 internal class BlockET : ET {
 
-    public BlockET(LexicalContext scope, List.NonEmptyList exprs)
+    public BlockET(LexicalContext scope, List.NonEmpty exprs)
     {
         MakeListDelegate listProc = List.NewListFromObjects;
         LexicalContext blockScope = scope.Extend();
         IEnumerable<Expression<CompiledCode>> analyzed = exprs.Select(x => (Expression<CompiledCode>)Analyze(blockScope, x).Reduce());
-        var listExpr = Expression.Convert(Expression.Invoke(Expression.Constant(listProc), Expression.NewArrayInit(typeof(CompiledCode), analyzed)), typeof(List.NonEmptyList));
+        var listExpr = Expression.Convert(Expression.Invoke(Expression.Constant(listProc), Expression.NewArrayInit(typeof(CompiledCode), analyzed)), typeof(List.NonEmpty));
 
         Body = Expression.Block(blockScope.Parameters,
             new Expression[] {Expression.Invoke(
-            Expression.Constant((Action<Delegate, IEnvironment, List.NonEmptyList>) doSequence),
+            Expression.Constant((Action<Delegate, IEnvironment, List.NonEmpty>) doSequence),
             new Expression[] {
                 kParam,
                 envParam,
@@ -471,11 +423,11 @@ internal class BlockET : ET {
 
     private void doSequence(Delegate k, IEnvironment env, List list) {
         // TODO: make caller guarantee properlist
-        List.NonEmptyList? exprs = list as List.NonEmptyList;
+        List.NonEmpty? exprs = list as List.NonEmpty;
         if (exprs == null) throw new Exception("doSequence: should not be called with empty list");
         var code = exprs.Car as LiteralExpr<CompiledCode> ?? throw new Exception($"BlockET.doSequence: expected a CompiledCode but got {exprs.Car.GetType()}");
         List cdr = (List)exprs.Cdr;
-        Continuation.OneArgDelegate k0 = (v) => doSequence(k,env,(List.NonEmptyList)cdr);
+        Continuation.OneArgDelegate k0 = (v) => doSequence(k,env,(List.NonEmpty)cdr);
         Delegate cont = cdr is Expr.NullType ? k : k0;
         code.Value(cont, env);
     }

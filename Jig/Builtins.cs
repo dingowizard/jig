@@ -9,7 +9,7 @@ internal static class Builtins {
 // //   (if (null? xs)
 // //       (k xs)
 // //       (fn (lambda (v0) (map/cps (lambda (v1) (k (cons v0 v1))) fn (cdr xs))) (car xs))))
-        if (list is List.NonEmptyList properList) {
+        if (list is List.NonEmpty properList) {
             Continuation.OneArgDelegate k2 = (v0) => map_internal((Continuation.OneArgDelegate)((v1) => k((Expr)Expr.Pair.Cons(v0, (List) v1))), proc, (List)properList.Cdr);
             proc(k2, (LiteralExpr<CompiledCode>)properList.Car);
             return;
@@ -20,7 +20,7 @@ internal static class Builtins {
     }
 
     public static void car (Delegate k, List args) {
-        if (args is List.NonEmptyList properList) {
+        if (args is List.NonEmpty properList) {
             switch (properList.Car) {
                 case IPair pair:
                     ApplyContinuation(k, pair.Car);
@@ -34,7 +34,7 @@ internal static class Builtins {
     }
 
     public static void nullP (Delegate k, List args) {
-        if (args is List.NonEmptyList properList) {
+        if (args is List.NonEmpty properList) {
             Expr arg = properList.Car;
             if (arg is Expr.NullType) {
                 ApplyContinuation(k, new Expr.Boolean(true));
@@ -49,7 +49,7 @@ internal static class Builtins {
     }
 
     public static void cdr (Delegate k, List args) {
-        if (args is List.NonEmptyList properList) {
+        if (args is List.NonEmpty properList) {
             switch (properList.Car) {
                 case IPair pair:
                     ApplyContinuation(k, pair.Cdr);
@@ -63,7 +63,7 @@ internal static class Builtins {
     }
 
     public static void succ(Delegate k, List args) {
-        if (args is List.NonEmptyList properList) {
+        if (args is List.NonEmpty properList) {
             object arg = properList.Car;
             if (arg is Expr.Integer intExpr) {
                 ApplyContinuation(k, new Expr.Integer(intExpr.Value + 1));
@@ -230,7 +230,7 @@ internal static class Builtins {
     }
 
     public static void cons (Delegate k, List args) {
-        if (args is List.NonEmptyList properList) {
+        if (args is List.NonEmpty properList) {
             if (properList.Count() != 2) {
                 throw new Exception("cons: expected two arguments");
             }
@@ -264,54 +264,26 @@ internal static class Builtins {
 
     public static void callcc(Delegate k, List args) {
         if (args.Count() != 1) throw new Exception($"call/cc: expected one argument.");
-        LiteralExpr<Delegate> proc = args.ElementAt(0) as LiteralExpr<Delegate> ?? throw new Exception("call/cc: expected procedure argument but got {args.ElementAt(0)}");
+        Procedure proc = args.ElementAt(0) as Procedure ?? throw new Exception("call/cc: expected procedure argument but got {args.ElementAt(0)}");
         if (proc.Value is Action<Delegate, Expr> del) {
             del(k, new Continuation(k));
             return;
         } else {
             throw new Exception("call/cc: expected procedure with one parameter but got {proc}");
         }
-        // apply(k, proc, List.NewList(new Continuation(k)));
-        // return;
     }
 
-    public static void apply (Delegate k, Expr proc, List args) {
-        if (proc is Continuation ce) {
-            ce.Apply(args);
+    public static void apply (Delegate k, Expr x, List args) {
+        if (x is Continuation cont) {
+            cont.Apply(args);
             return;
+        } else if (x is Procedure proc) {
+            proc.Apply(k, args);
+            return;
+        } else {
+            throw new Exception($"apply: expected procedure as first argument, but got {x}");
         }
-        LiteralExpr<Delegate> del = proc as LiteralExpr<Delegate> ?? throw new Exception($"apply: expected procedure as first argument, but got {proc}");
-        switch (del.Value) {
-            case Builtin builtin:
-                builtin(k, args);
-                return;
-            case ListFunction listFn:
-                listFn(k, args);
-                return;
-            case PairFunction pairFn:
-                pairFn(k, args.ElementAt(0), List.NewList(args.Skip(1).ToArray()));
-                return;
-            case ImproperListFunction2 improper2:
-                improper2(k, args.ElementAt(0), args.ElementAt(1), List.NewList(args.Skip(2).ToArray()));
-                return;
-            case ImproperListFunction3 improper3:
-                improper3(k, args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), List.NewList(args.Skip(3).ToArray()));
-                return;
-            case ImproperListFunction4 improper4:
-                improper4(k, args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), List.NewList(args.Skip(4).ToArray()));
-                return;
-            case ImproperListFunction5 improper5:
-                improper5(k, args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), args.ElementAt(4), List.NewList(args.Skip(5).ToArray()));
-                return;
-            case ImproperListFunction6 improper6:
-                improper6(k, args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), args.ElementAt(4), args.ElementAt(5), List.NewList(args.Skip(6).ToArray()));
-                return;
-            case ImproperListFunction7 improper7:
-                improper7(k, args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), args.ElementAt(4), args.ElementAt(5), args.ElementAt(6), List.NewList(args.Skip(7).ToArray()));
-                return;
-            default:
-                del.Value.DynamicInvoke(new List<object>{k}.Concat(args).ToArray());
-                return;
-        }
+
     }
+
 }

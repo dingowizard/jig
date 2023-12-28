@@ -18,12 +18,6 @@ public abstract class Expr {
         public override string Print() => Value ? "#t" : "#f";
     }
 
-    public class BuiltinProc : LiteralExpr<Builtin> {
-        public BuiltinProc(Builtin proc) : base(proc) {}
-        public override string Print() => "#<Builint proc>";
-
-    }
-
     public class Integer : LiteralExpr<int> {
         public Integer(int i) : base(i) {}
 
@@ -96,7 +90,7 @@ public abstract class Expr {
 
         public static IPair Cons(Expr car, Expr cdr) {
             if (cdr is List list) {
-                return  new List.NonEmptyList(car, list);
+                return  new List.NonEmpty(car, list);
             } else {
                 return  new Pair(car, cdr);
             }
@@ -167,35 +161,30 @@ public abstract class Expr {
     internal static bool IsNonEmptyList(Expr ast)
     {
         if (ast is SyntaxObject stx) {
-            return SyntaxObject.E(stx) is List.NonEmptyList;
+            return SyntaxObject.E(stx) is List.NonEmpty;
         }
-        return ast is List.NonEmptyList;
+        return ast is List.NonEmpty;
     }
 
     internal static bool IsKeyword(string name, Expr ast) {
         if (ast is SyntaxObject stx) {
-            if (SyntaxObject.E(stx) is List.NonEmptyList list) {
+            if (SyntaxObject.E(stx) is List.NonEmpty list) {
                 if (list.Car is SyntaxObject.Identifier id) {
                     return id.Symbol.Name == name;
                 } return false;
             } return false;
         }
-        if (ast is List.NonEmptyList l) {
+        if (ast is List.NonEmpty l) {
             return l.Car is Expr.Symbol sym && sym.Name == name;
         } return false;
     }
 
 }
 
-public class Procedure : LiteralExpr<Delegate> {
-
-    public Procedure(Delegate d) : base (d) {}
-
-}
-
 
 
 public class LiteralExpr<T> : Expr where T : notnull {
+    // TODO: make abstract?
     public LiteralExpr(T val) {
         Value = val;
     }
@@ -208,11 +197,15 @@ public class LiteralExpr<T> : Expr where T : notnull {
         return false;
 
     }
+
     public override int GetHashCode() {
         return Value.GetHashCode();
     }
+
     public override string ToString() => Value.ToString() ?? "null";
+
     public override string Print() => Value.ToString() ?? "null";
+
 }
 
 public interface IPair {
@@ -227,7 +220,7 @@ public abstract class List : Expr, IEnumerable<Expr> {
     public static List ListFromEnumerable(IEnumerable<Expr> elements) {
         List result = Empty;
         for (int index = elements.Count() - 1; index >= 0; index--) {
-            result = new NonEmptyList(elements.ElementAt(index), result);
+            result = new NonEmpty(elements.ElementAt(index), result);
         }
         return result;
     }
@@ -235,7 +228,7 @@ public abstract class List : Expr, IEnumerable<Expr> {
     public static List NewList(params Expr[] args) {
         List result = Empty;
         for (int index = args.Length - 1; index >= 0; index--) {
-            result = new NonEmptyList(args[index], result);
+            result = new NonEmpty(args[index], result);
         }
         return result;
     }
@@ -243,7 +236,7 @@ public abstract class List : Expr, IEnumerable<Expr> {
     public static List NewListFromObjects(params CompiledCode[] args) {
         List result = Empty;
         for (int index = args.Length - 1; index >= 0; index--) {
-            result = new NonEmptyList(new LiteralExpr<CompiledCode>(args[index]), result);
+            result = new NonEmpty(new LiteralExpr<CompiledCode>(args[index]), result);
         }
         return result;
     }
@@ -253,16 +246,16 @@ public abstract class List : Expr, IEnumerable<Expr> {
         return $"({string.Join(' ', this)})";
     }
 
-    public class NonEmptyList : List, IPair {
+    public class NonEmpty : List, IPair {
 
-        public NonEmptyList(Expr car, List cdr) {
+        public NonEmpty(Expr car, List cdr) {
             Car = car;
             Cdr = cdr;
         }
 
         public override bool Equals(object? obj) {
             if (obj is null) return false;
-            if (obj is NonEmptyList list) {
+            if (obj is NonEmpty list) {
                 return this.Car.Equals(list.Car) && this.Cdr.Equals(list.Cdr);
             }
             return false;
@@ -295,7 +288,7 @@ public abstract class List : Expr, IEnumerable<Expr> {
 
     public IEnumerator<Expr> GetEnumerator() {
         List theList = this;
-        while (theList is NonEmptyList nonEmptyList) {
+        while (theList is NonEmpty nonEmptyList) {
             yield return nonEmptyList.Car;
             theList = nonEmptyList.CdrAsList;
         }

@@ -42,14 +42,16 @@ public class Continuation : Procedure {
 
     }
 
-    public static void call_with_values(Delegate k, LiteralExpr<Delegate> producerExpr, LiteralExpr<Delegate> consumerExpr) {
+    public override string Print() => "#<continuation>";
+
+    public static void call_with_values(Delegate k, Procedure producerExpr, Procedure consumerExpr) {
+        // TODO: make signature consistent with other builtins. do validation of args
         var producer = producerExpr.Value; // the producer is a thunk, but internally that is something like (lambda (k) ...)
         var consumer = consumerExpr.Value;
         Delegate cont = ContinuationFromProc(k, consumer);
         Action<Delegate> action = producer as Action<Delegate> ?? throw new Exception("call-with-values: expected first argument to be a thunk.");
         action(cont);
         return;
-        // apply(cont, producerExpr, List.Empty);
     }
 
     private static Delegate ContinuationFromProc(Delegate k, Delegate proc) {
