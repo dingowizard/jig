@@ -45,18 +45,9 @@ internal abstract class ET : Expression {
             } else if (Expr.IsKeyword("begin", ast)){
                 return new BlockET(scope, (List.NonEmpty)list.Cdr);
             }
-            // else if (Expr.IsKeyword("call/cc", ast)){
-            //     return new CallCCET(scope, list); // TODO: couldn't call/cc just be a builtin procedure?
-            // }
             else if (Expr.IsKeyword("set!", ast)){
                 return new SetBangET(scope, list);
             }
-            // else if (Expr.IsKeyword("values", ast)) {
-            //     return new ValuesET(scope, list);
-            // }
-            // else if (Expr.IsKeyword("call-with-values", ast)) {
-            //     return new CallWValuesET(scope, list);
-            // }
             else {
                 return new ProcAppET(scope, list);
             }

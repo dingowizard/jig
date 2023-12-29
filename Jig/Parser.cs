@@ -49,12 +49,24 @@ public class Parser {
                 return ParseSymbol(id, tokenStream, syntax);
             case Token.Number num:
                 return ParseNumber(num, tokenStream, syntax);
+            case Token.String str:
+                return ParseString(str, tokenStream, syntax);
             case Token.Bool b:
                 return ParseBool(b, tokenStream, syntax);
             case Token.EOFTokenType _:
                 throw new Exception("parse error: unexpected EOF.");
             default:
                 throw new Exception($"parse error: unhandled Token {peeked}");
+        }
+    }
+
+    private static Expr ParseString(Token.String str, TokenStream tokenStream, bool syntax) {
+        tokenStream.Read();
+        var x = new Expr.String(str.Text.Substring(1, str.Text.Length - 2));
+        if (syntax) {
+            return new SyntaxObject(x, str.SrcLoc);
+        } else {
+            return x;
         }
     }
 

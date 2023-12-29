@@ -18,6 +18,24 @@ public class Literals
     }
 
     [TestMethod]
+    [DataRow("\"hello\"", "\"hello\"")]
+    [DataRow("\"hello goodbye hello goodbye\"", "\"hello goodbye hello goodbye\"")]
+    public void EvalStringReturnsString(string input, string expected)
+    {
+        var actual = Utilities.Interpret(input);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
+    [DataRow("\"hello\"", "\"hello\"")]
+    [DataRow("\"hello goodbye hello goodbye\"", "\"hello goodbye hello goodbye\"")]
+    public void EvalStringReturnsStringUsingReadSyntax(string input, string expected)
+    {
+        var actual = Utilities.InterpretUsingReadSyntax(input);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
     [DataRow("1.2", "1.2")]
     public void EvalDoubleReturnsDouble(string input, string expected)
     {

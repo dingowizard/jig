@@ -89,6 +89,9 @@ public class TokenStream {
             case ';':
                 sb.Append((char)Port.Read());
                 return Comment(sb, startLoc);
+            case '"':
+                sb.Append((char)Port.Read());
+                return String(sb, startLoc);
             case >= '0' and <= '9':
                 sb.Append((char)Port.Read());
                 return Digit(sb, startLoc);
@@ -152,9 +155,18 @@ public class TokenStream {
         }
     }
 
+    private Token.String String(StringBuilder sb, SrcLoc startLoc) {
+        // TODO: handle escape characters
+        while((char)Port.Peek() != '"' && Port.Peek() != -1) {
+            sb.Append((char)Port.Read());
+        }
+        // read closing "
+        sb.Append((char)Port.Read());
+        return new Token.String(sb.ToString(), startLoc.Source, startLoc.Line, startLoc.Column, startLoc.Position, Port.Position - startLoc.Position);
+    }
+
     Token.Comment Comment(StringBuilder sb, SrcLoc startLoc) {
         while ((char)Port.Peek() != '\n' && Port.Peek() != -1) {
-            // TODO: store comment text in token
             sb.Append((char)Port.Read());
         }
         return new Token.Comment(sb.ToString(), startLoc.Source, startLoc.Line, startLoc.Column, startLoc.Position, Port.Position - startLoc.Position);

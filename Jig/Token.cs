@@ -9,6 +9,10 @@ public class Token {
         public Comment(string text, string src, int line, int column, int start, int span) : base(text, src, line, column, start, span) {}
     }
 
+    public class String : TokenBase {
+        public String(string text, string src, int line, int column, int start, int span) : base(text, src, line, column, start, span) {}
+    }
+
     public class Identifier : TokenBase {
 
         public Identifier(string text, string src, int line, int column, int start, int span) : base(text, src, line, column, start, span) {}

@@ -68,6 +68,16 @@ public class LexerTests
     }
 
     [TestMethod]
+    [DataRow("\"hello\"")]
+    [DataRow("\"hello goodbye\"")]
+    public void ScanStrings(string text) {
+        var lexer = new TokenStream(InputPort.FromString(text));
+        var actual = lexer.Read();
+        Assert.IsInstanceOfType(actual, typeof(Token.String));
+
+    }
+
+    [TestMethod]
     [DataRow("1")]
     [DataRow("1.")]
     [DataRow("12345")]

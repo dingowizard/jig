@@ -18,6 +18,15 @@ public abstract class Expr {
         public override string Print() => Value ? "#t" : "#f";
     }
 
+    public class String : LiteralExpr<string> {
+        public String(string s) : base(s) {}
+
+        public override string Print() {
+            // TODO: handle special chars like \n
+            return "\"" + Value + "\"";
+        }
+    }
+
     public class Integer : LiteralExpr<int> {
         public Integer(int i) : base(i) {}
 
@@ -146,6 +155,7 @@ public abstract class Expr {
             case Expr.Boolean: return true;
             case Expr.Integer: return true;
             case Expr.Double: return true;
+            case Expr.String: return true;
             default: return false;
         }
 

@@ -209,6 +209,13 @@ public class ParserTests {
     }
 
     [TestMethod]
+    public void ParseQuoteTextQuoteYieldsStringExpr() {
+        var lexer = new TokenStream(InputPort.FromString("\"hello goodbye\""));
+        var actual = Parser.ParseExpr(lexer);
+        Assert.AreEqual(new Expr.String("hello goodbye"), actual);
+    }
+
+    [TestMethod]
     public void ParseListWithSymbolAndBool() {
         var lexer = new TokenStream(InputPort.FromString("(not #f)"));
         var actual = Parser.ParseExpr(lexer);
