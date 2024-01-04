@@ -155,7 +155,7 @@ internal abstract class ET : Expression {
             ParameterExpression boolResult = Expression.Parameter(typeof(Expr), "boolResult");
             var k0 = Expression.Lambda<Continuation.OneArgDelegate>(
                 body: Expression.IfThenElse(
-                    test: Expression.Property(Expression.Convert(boolResult, typeof(Expr.Boolean)), "Value"),
+                    test: Expression.Convert(DynInv(Expression.Constant((Func<Expr, bool>) IfET.IsNotFalse), boolResult), typeof(bool)),
                     ifTrue: Expression.Invoke(consqCC, new Expression[] {kParam, envParam}),
                     ifFalse: Expression.Invoke(altCC, new Expression[] {kParam, envParam})),
                 parameters: new ParameterExpression[] {boolResult});
@@ -164,6 +164,12 @@ internal abstract class ET : Expression {
         }
 
         public override Expression Body {get;}
+        private static bool IsNotFalse(Expr x) {
+            if (x is Expr.Boolean boolExpr) {
+                return boolExpr.Value != false;
+            }
+            else return true;
+        }
     }
 
 
