@@ -49,6 +49,28 @@ public class Continuations
     }
 
     [TestMethod]
+    public void UsingApplyOnSavedContinuationWithMultiArgumentContinuation() {
+        string actual = new Interpreter().InterpretSequenceReadSyntax(new string[] {
+                "(define cont #f)",
+                "(call-with-values (lambda () (call/cc (lambda (cc) (set! cont cc) (values 1 2)))) (lambda (n m) (+ (* n n) (* m m))))",
+                "(apply cont '(2 3))"
+            });
+        Assert.AreEqual("13", actual);
+
+    }
+
+    [TestMethod]
+    public void UsingApplyOnSavedContinuationWithListArgumentContinuation() {
+        string actual = new Interpreter().InterpretSequenceReadSyntax(new string[] {
+                "(define cont #f)",
+                "(call-with-values (lambda () (call/cc (lambda (cc) (set! cont cc) (values 1 2 3)))) (lambda l (apply - l)))",
+                "(apply cont '(10 5 2))"
+            });
+        Assert.AreEqual("3", actual);
+
+    }
+
+    [TestMethod]
     public void ApplyingContinuationInIf() {
         string actual = new Interpreter().InterpretSequenceReadSyntax(new string[] {
                 "(define cont #f)",
