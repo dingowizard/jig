@@ -38,6 +38,7 @@ public static class Program {
     }
 
     public static void Eval(Delegate k, Expr ast, IEnvironment env) {
+        ast = new MacroExpander().Expand(ast, ExpansionEnvironment.Default);
         var compiled = Compiler.Compile(ast);
         compiled(k,env);
     }
