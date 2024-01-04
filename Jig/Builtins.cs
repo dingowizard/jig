@@ -275,4 +275,19 @@ internal static class Builtins {
 
     }
 
+    public static void error(Delegate k, List args) {
+        // TODO: something with second argument
+        if (args.Count() < 2) {
+            error(k, List.NewList(new Expr.String($"error: expected at least two arguments"), List.Empty));
+            return;
+        }
+        Expr.String? msg = args.ElementAt(0) as Expr.String;
+        if (msg is null) {
+            error(k, List.NewList(new Expr.String($"error: expected first argument to be a string but got {args.ElementAt(0).Print()}"), List.Empty));
+            return;
+        }
+        Console.Error.WriteLine(msg.Value);
+        return;
+    }
+
 }
