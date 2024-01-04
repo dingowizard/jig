@@ -70,13 +70,11 @@ internal abstract class ET : Expression {
     public ParameterExpression envParam;
     public abstract Expression Body {get;}
 
-    protected static Expression ConvertToObject(Expression x) => Expression.Convert(x, typeof(object)); // TODO: should this be ConvertToExpr?
-
     private class LiteralET : ET {
 
         public LiteralET(Expr x) : base() {
             x = x is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : x;
-            Body = ConvertToObject(DynInv(kParam, Expression.Constant(x)));
+            Body = DynInv(kParam, Expression.Constant(x));
         }
 
         public override Expression Body {get;}
@@ -111,6 +109,7 @@ internal abstract class ET : Expression {
     static PropertyInfo carPropertyInfo = typeof(IPair).GetProperty("Car") ?? throw new Exception("in ProcAppET: ProperLists should have one property named 'Car'");
     static PropertyInfo cdrPropertyInfo = typeof(IPair).GetProperty("Cdr") ?? throw new Exception("in ProcAppET: ProperLists should have one property named 'Cdr'");
 
+
     private class ProcAppET : ET {
 
         public ProcAppET(LexicalContext scope, List.NonEmpty list) : base () {
@@ -125,7 +124,6 @@ internal abstract class ET : Expression {
             var k = Expression.Lambda<Continuation.OneArgDelegate>(
                             DynInv(Expression.Constant((ApplyDelegate)Builtins.apply),
                                    kParam,
-                                   // Expression.Lambda<Continuation>(DynInv(kParam, v), new ParameterExpression[] {v}), // the continuation to apply
                                    Expression.Property(Expression.Convert(vParam, typeof(IPair)), carPropertyInfo),
                                    Expression.Property(Expression.Convert(vParam, typeof(IPair)), cdrPropertyInfo)),
                            parameters: new ParameterExpression[] {vParam});
