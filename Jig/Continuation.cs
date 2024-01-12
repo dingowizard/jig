@@ -42,18 +42,28 @@ public class Continuation : Procedure {
 
     }
 
-    internal static void ApplyDelegate(Delegate k, Expr arg) {
+    public class MaybeThunk {
+        public class None : MaybeThunk {}
+
+        public class Thunk : MaybeThunk {
+            public Continuation.Thunk Value {get;}
+
+            public Thunk(Continuation.Thunk thunk) {
+                Value = thunk;
+            }
+        }
+
+    }
+
+    internal static MaybeThunk ApplyDelegate(Delegate k, Expr arg) {
         // TODO: should we handle more continuation types here?
             if (k is Continuation.ContinuationAny cany) {
-                cany(arg);
-                return;
+                return cany(arg);
             }
             if (k is Continuation.OneArgDelegate c1) {
-                c1(arg);
-                return;
+                return c1(arg);
             }
-            k.DynamicInvoke(arg);
-            return;
+            return (MaybeThunk)k.DynamicInvoke(arg);
     }
 
 
@@ -97,7 +107,6 @@ public class Continuation : Procedure {
     private static Type? GetTypeForContinuation(Delegate proc)
     {
         switch (proc) {
-
             case ListFunction _:
                 return typeof(ListContinuation);
             case PairFunction _:
@@ -120,8 +129,9 @@ public class Continuation : Procedure {
     }
 
 
-    public delegate void OneArgDelegate(Expr arg);
-    public delegate void ContinuationAny(params Expr[] args);
+    public delegate MaybeThunk OneArgDelegate(Expr arg);
+    public delegate MaybeThunk ContinuationAny(params Expr[] args);
+    public delegate MaybeThunk Thunk();
     private delegate void ListContinuation(List rest);
     private delegate void PairContinuation(Expr arg0, List rest);
     private delegate void ImproperListContinuation2(Expr arg0, Expr arg1, List rest);

@@ -31,22 +31,26 @@ public static class Program {
         }
     }
 
-    public static void Print(params Expr[] exprs) {
+    public static Continuation.MaybeThunk Print(params Expr[] exprs) {
         foreach (var expr in exprs) {
             Console.WriteLine(expr.Print());
         }
+        return new Continuation.MaybeThunk.None();
     }
 
     public static void Eval(Delegate k, Expr ast, IEnvironment env) {
         ast = new MacroExpander().Expand(ast, ExpansionEnvironment.Default);
         var compiled = Compiler.Compile(ast);
-        compiled(k,env);
+        Run(compiled, k, env);
     }
 
     public static void Run(CompiledCode code, Delegate k, IEnvironment env) {
-        code(k, env);
-        return;
+        // trampoline
+        Continuation.MaybeThunk maybeThunk = code(k, env);
+        while (maybeThunk is Continuation.MaybeThunk.Thunk thunk) {
+            Console.WriteLine("trampoline: Bounce!");
+            maybeThunk = thunk.Value();
+        }
     }
-
 
 }

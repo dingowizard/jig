@@ -1,13 +1,8 @@
 namespace Jig;
 
-public delegate void CompiledCode(Delegate k, IEnvironment env);
+public delegate Continuation.MaybeThunk CompiledCode(Delegate k, IEnvironment env);
 
 internal static class Compiler {
-
-    // public static CompiledCode Compile(SyntaxObject stx) {
-    //     var lexVars = new LexicalContext();
-    //     return ET.Analyze(lexVars, stx).Compile();
-    // }
 
     public static CompiledCode Compile(Expr ast) {
         var scope = new LexicalContext();

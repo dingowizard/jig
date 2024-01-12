@@ -1,0 +1,15 @@
+namespace JigTests;
+
+[TestClass]
+public class Begin
+{
+    [TestMethod]
+    [DataRow("(begin 3 2 1)", "1")]
+    public void Begins(string input, string expected)
+    {
+        var actual = Utilities.Interpret(input);
+        Assert.AreEqual(actual, expected);
+    }
+
+
+}

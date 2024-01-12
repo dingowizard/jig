@@ -1,41 +1,35 @@
 namespace Jig;
 
 public class Procedure : LiteralExpr<Delegate> {
+    // TODO: are we sure that the procedures themselves should NOT be actions?
+    // lambda exprs have to return MaybeThunks in order to be trampolined
+    // what about builtins? couldn't they be Actions since they don't have to return thunks?
+    // but then what would the signature of Apply be?
 
     public Procedure(Delegate d) : base (d) {}
 
-    public void Apply(Delegate k, List args) {
+    public Continuation.MaybeThunk Apply(Delegate k, List args) {
         switch (Value) {
             case Builtin builtin:
-                builtin(k, args);
-                return;
+                return builtin(k, args);
             case ListFunction listFn:
-                listFn(k, args);
-                return;
+                return listFn(k, args);
             case PairFunction pairFn:
-                pairFn(k, args.ElementAt(0), List.NewList(args.Skip(1).ToArray()));
-                return;
+                return pairFn(k, args.ElementAt(0), List.NewList(args.Skip(1).ToArray()));
             case ImproperListFunction2 improper2:
-                improper2(k, args.ElementAt(0), args.ElementAt(1), List.NewList(args.Skip(2).ToArray()));
-                return;
+                return improper2(k, args.ElementAt(0), args.ElementAt(1), List.NewList(args.Skip(2).ToArray()));
             case ImproperListFunction3 improper3:
-                improper3(k, args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), List.NewList(args.Skip(3).ToArray()));
-                return;
+                return improper3(k, args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), List.NewList(args.Skip(3).ToArray()));
             case ImproperListFunction4 improper4:
-                improper4(k, args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), List.NewList(args.Skip(4).ToArray()));
-                return;
+                return improper4(k, args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), List.NewList(args.Skip(4).ToArray()));
             case ImproperListFunction5 improper5:
-                improper5(k, args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), args.ElementAt(4), List.NewList(args.Skip(5).ToArray()));
-                return;
+                return improper5(k, args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), args.ElementAt(4), List.NewList(args.Skip(5).ToArray()));
             case ImproperListFunction6 improper6:
-                improper6(k, args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), args.ElementAt(4), args.ElementAt(5), List.NewList(args.Skip(6).ToArray()));
-                return;
+                return improper6(k, args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), args.ElementAt(4), args.ElementAt(5), List.NewList(args.Skip(6).ToArray()));
             case ImproperListFunction7 improper7:
-                improper7(k, args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), args.ElementAt(4), args.ElementAt(5), args.ElementAt(6), List.NewList(args.Skip(7).ToArray()));
-                return;
+                return improper7(k, args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), args.ElementAt(4), args.ElementAt(5), args.ElementAt(6), List.NewList(args.Skip(7).ToArray()));
             default:
-                Value.DynamicInvoke(new List<object>{k}.Concat(args).ToArray());
-                return;
+                return (Continuation.MaybeThunk)Value.DynamicInvoke(new List<object>{k}.Concat(args).ToArray());
         }
 
     }

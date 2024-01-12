@@ -1,30 +1,27 @@
 namespace Jig;
 
-public delegate void Builtin(Delegate k, List args);
+public delegate Continuation.MaybeThunk Builtin(Delegate k, List args);
 
 internal static class Builtins {
 
-    internal static void map_internal(Continuation.OneArgDelegate k, Action<Continuation.OneArgDelegate, LiteralExpr<CompiledCode>> proc, List list) {
+    internal static Continuation.MaybeThunk map_internal(Continuation.OneArgDelegate k, Func<Continuation.OneArgDelegate, LiteralExpr<CompiledCode>, Continuation.MaybeThunk> proc, List list) {
 // // (define (map/cps k fn xs)
 // //   (if (null? xs)
 // //       (k xs)
 // //       (fn (lambda (v0) (map/cps (lambda (v1) (k (cons v0 v1))) fn (cdr xs))) (car xs))))
         if (list is List.NonEmpty properList) {
             Continuation.OneArgDelegate k2 = (v0) => map_internal((Continuation.OneArgDelegate)((v1) => k((Expr)Expr.Pair.Cons(v0, (List) v1))), proc, (List)properList.Cdr);
-            proc(k2, (LiteralExpr<CompiledCode>)properList.Car);
-            return;
+            return proc(k2, (LiteralExpr<CompiledCode>)properList.Car);
         } else {
-            k(list); // at this point , k is (lambda (l) (apply (car l) (cdr l)))
-            return; // TODO: why is this needed?
+            return k(list); // at this point , k is (lambda (l) (apply (car l) (cdr l)))
         }
     }
 
-    public static void car (Delegate k, List args) {
+    public static Continuation.MaybeThunk car (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             switch (properList.Car) {
                 case IPair pair:
-                    Continuation.ApplyDelegate(k, pair.Car);
-                    return;
+                    return Continuation.ApplyDelegate(k, pair.Car);
                 default:
                     throw new Exception($"car: expected pair but got {properList.Car}");
             }
@@ -33,27 +30,24 @@ internal static class Builtins {
         }
     }
 
-    public static void nullP (Delegate k, List args) {
+    public static  Continuation.MaybeThunk nullP (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             Expr arg = properList.Car;
             if (arg is Expr.NullType) {
-                Continuation.ApplyDelegate(k, new Expr.Boolean(true));
-                return;
+                return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
             }
-            Continuation.ApplyDelegate(k, new Expr.Boolean(false));
-            return;
+            return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
 
         } else {
             throw new Exception("null?: expected one argument but got none");
         }
     }
 
-    public static void cdr (Delegate k, List args) {
+    public static Continuation.MaybeThunk cdr (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             switch (properList.Car) {
                 case IPair pair:
-                    Continuation.ApplyDelegate(k, pair.Cdr);
-                    return;
+                    return Continuation.ApplyDelegate(k, pair.Cdr);
                 default:
                     throw new Exception($"cdr: expected pair but got {properList.Cdr}");
             }
@@ -62,12 +56,11 @@ internal static class Builtins {
         }
     }
 
-    public static void succ(Delegate k, List args) {
+    public static Continuation.MaybeThunk succ(Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             object arg = properList.Car;
             if (arg is Expr.Integer intExpr) {
-                Continuation.ApplyDelegate(k, new Expr.Integer(intExpr.Value + 1));
-                return;
+                return Continuation.ApplyDelegate(k, new Expr.Integer(intExpr.Value + 1));
             } else {
                 throw new Exception($"incr: expected single integer argument, but got {args}");
             }
@@ -76,7 +69,7 @@ internal static class Builtins {
         }
     }
 
-    public static void sum(Delegate k, List args) {
+    public static Continuation.MaybeThunk sum(Delegate k, List args) {
         Expr.Integer intResult = new Expr.Integer(0);
         bool resultIsInt = true;
         Expr.Double doubleResult = new Expr.Double(0.0);
@@ -105,12 +98,11 @@ internal static class Builtins {
 
             }
         }
-        Continuation.ApplyDelegate(k, resultIsInt ? intResult : doubleResult);
-        return;
+        return Continuation.ApplyDelegate(k, resultIsInt ? intResult : doubleResult);
 
     }
 
-    public static void diff(Delegate k, Expr first, List args) {
+    public static Continuation.MaybeThunk diff(Delegate k, Expr first, List args) {
         bool resultIsInt = true;
         Expr.Integer intResult = new Expr.Integer(0);
         Expr.Double doubleResult = new Expr.Double(0.0);
@@ -146,11 +138,10 @@ internal static class Builtins {
                 }
             }
         }
-        Continuation.ApplyDelegate(k, resultIsInt ? intResult : doubleResult);
-        return;
+        return Continuation.ApplyDelegate(k, resultIsInt ? intResult : doubleResult);
     }
 
-    public static void numEq(Delegate k, Expr first, List args) {
+    public static Continuation.MaybeThunk numEq(Delegate k, Expr first, List args) {
         // TODO: should 1 = 1.0? it does in chez. if so best way to implement
         if (first is Expr.Integer i) {
             Expr.Integer current = i;
@@ -159,18 +150,15 @@ internal static class Builtins {
                     if (current.Equals(nextInt)) {
                         continue;
                     } else {
-                        Continuation.ApplyDelegate(k, new Expr.Boolean(false));
-                        return;
+                        return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
                     }
                 } else if (arg is Expr.Double) {
-                    Continuation.ApplyDelegate(k, new Expr.Boolean(false));
-                    return;
+                    return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
                 } else {
                     throw new Exception($"=: expected numeric arguments, but got {arg}");
                 }
             }
-            Continuation.ApplyDelegate(k, new Expr.Boolean(true));
-            return;
+            return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
         } else if (first is Expr.Double d) {
             Expr.Double current = d;
             foreach(var arg in args) {
@@ -178,25 +166,22 @@ internal static class Builtins {
                     if (current.Equals(nextD)) {
                         continue;
                     } else {
-                        Continuation.ApplyDelegate(k, new Expr.Boolean(false));
-                        return;
+                        return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
                     }
                 } else if (arg is Expr.Integer) {
-                    Continuation.ApplyDelegate(k, new Expr.Boolean(false));
-                    return;
+                    return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
                 } else {
                     throw new Exception($"=: expected numeric arguments, but got {arg}");
                 }
             }
-            Continuation.ApplyDelegate(k, new Expr.Boolean(true));
-            return;
+            return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
 
         } else {
             throw new Exception($"=: expects only numeric arguments. Got {first}");
         }
     }
 
-    public static void product(Delegate k, List args) {
+    public static Continuation.MaybeThunk product(Delegate k, List args) {
         Expr.Integer intResult = new Expr.Integer(1);
         bool resultIsInt = true;
         Expr.Double doubleResult = new Expr.Double(1.0);
@@ -225,11 +210,10 @@ internal static class Builtins {
 
             }
         }
-        Continuation.ApplyDelegate(k, resultIsInt ? intResult : doubleResult);
-        return;
+        return Continuation.ApplyDelegate(k, resultIsInt ? intResult : doubleResult);
     }
 
-    public static void cons (Delegate k, List args) {
+    public static Continuation.MaybeThunk cons (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             if (properList.Count() != 2) {
                 throw new Exception("cons: expected two arguments");
@@ -237,38 +221,36 @@ internal static class Builtins {
             Expr car = args.ElementAt(0);
             Expr cdr = args.ElementAt(1);
             Expr result = (Expr)Expr.Pair.Cons(car, cdr);
-            Continuation.ApplyDelegate(k, result);
-            return;
+            return Continuation.ApplyDelegate(k, result);
         } else {
             throw new Exception("cons: expected two arguments but got none");
         }
     }
 
 
-    public static void values(Delegate k, List args) {
-        new Continuation(k).Apply(args);
-    }
+    // public static void values(Delegate k, List args) {
+    //     new Continuation(k).Apply(args);
+    // }
 
-    public static void callcc(Delegate k, List args) {
-        if (args.Count() != 1) throw new Exception($"call/cc: expected one argument.");
-        Procedure proc = args.ElementAt(0) as Procedure ?? throw new Exception("call/cc: expected procedure argument but got {args.ElementAt(0)}");
-        if (proc.Value is Action<Delegate, Expr> del) {
-            del(k, new Continuation(k));
-            return;
-        } else {
-            throw new Exception("call/cc: expected procedure with one parameter but got {proc}");
-        }
-    }
+    // public static void callcc(Delegate k, List args) {
+    //     if (args.Count() != 1) throw new Exception($"call/cc: expected one argument.");
+    //     Procedure proc = args.ElementAt(0) as Procedure ?? throw new Exception("call/cc: expected procedure argument but got {args.ElementAt(0)}");
+    //     if (proc.Value is Action<Delegate, Expr> del) {
+    //         del(k, new Continuation(k));
+    //         return;
+    //     } else {
+    //         throw new Exception("call/cc: expected procedure with one parameter but got {proc}");
+    //     }
+    // }
 
-    public static void dynamic_wind(Delegate k, List args) {}
+    // public static void dynamic_wind(Delegate k, List args) {}
 
-    public static void apply (Delegate k, Expr x, List args) {
+    public static Continuation.MaybeThunk apply (Delegate k, Expr x, List args) {
         if (x is Continuation cont) {
-            cont.Apply(args);
-            return;
+            throw new NotImplementedException();
+            // return cont.Apply(args);
         } else if (x is Procedure proc) {
-            proc.Apply(k, args);
-            return;
+            return proc.Apply(k, args);
         } else {
             throw new Exception($"apply: expected procedure as first argument, but got {x}");
         }

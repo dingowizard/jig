@@ -10,16 +10,21 @@ public class Lambdas
     public void IDEvaluatesToProcedure()
     {
         Expr result = List.Empty;
-        Continuation.OneArgDelegate setResult = (x) => result = x;
+        Continuation.OneArgDelegate setResult = (x) => {result = x; return new Continuation.MaybeThunk.None();};
         Expr? expr = Jig.Reader.Reader.Read(InputPort.FromString("(lambda (x) x)"));
         Assert.IsNotNull(expr);
         Program.Eval(setResult, expr, new Jig.Environment());
         Assert.IsInstanceOfType(result, typeof(Procedure));
 
     }
+    [TestMethod]
+    public void ApplySimpleLambdaExprToInt() {
+        string actual = Utilities.Interpret("((lambda (x) x) 1)");
+        Assert.AreEqual("1", actual);
+    }
 
     [TestMethod]
-    [DataRow("((lambda (x) x) 1)", "1")]
+    [DataRow("((lambda () 1))", "1")]
     [DataRow("((lambda (p) (car p)) (cons 1 2))", "1")]
     [DataRow("((lambda (p) (car (cdr p))) (cons 1 (quote (2 3))))", "2")]
     [DataRow("((lambda (a b) b) (cons 3 4) (cons 1 (quote (2))))", "(1 2)")]

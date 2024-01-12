@@ -142,7 +142,7 @@ public class ExpansionEnvironment {
         _dict = dict;
     }
 
-    private static void or_macro(Delegate k, List args) {
+    private static Continuation.MaybeThunk or_macro(Delegate k, List args) {
         Expr result;
         if (args.Count() == 0) {
             result = new Expr.Boolean(false);
@@ -150,7 +150,7 @@ public class ExpansionEnvironment {
             Expr first = args.ElementAt(0);
             result = List.NewList(new Expr.Symbol("if"), first, first, List.ListFromEnumerable(new List<Expr>{new Expr.Symbol("or")}.Concat(args.Skip(1))));
         }
-        Continuation.ApplyDelegate(k, result);
+        return Continuation.ApplyDelegate(k, result);
     }
 
     public static ExpansionEnvironment Default {get;} =

@@ -15,7 +15,13 @@ public class If
     {
         var actual = Utilities.Interpret(input);
         Assert.AreEqual(actual, expected);
+    }
 
+    [TestMethod]
+    public void SimplestIf()
+    {
+        var actual = Utilities.Interpret("(if #t 1 0)");
+        Assert.AreEqual("1", actual);
     }
 
     [TestMethod]
