@@ -25,7 +25,7 @@ public class Interpreter : IInterpreter {
 
     public string InterpretSequence(string[] inputs) {
         string result = "";
-        Continuation.OneArgDelegate setResult = (x) => {result = x.Print(); return new Continuation.MaybeThunk.None();};
+        Continuation.OneArgDelegate setResult = (x) => {result = x.Print(); return null;};
         foreach (string input in inputs) {
             Expr? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
             Assert.IsNotNull(x);
@@ -37,7 +37,7 @@ public class Interpreter : IInterpreter {
 
     public string InterpretSequenceReadSyntax(string[] inputs) {
         string result = "";
-        Continuation.ContinuationAny setResult = (xs) => {result = xs.ElementAt(0).Print(); return new Continuation.MaybeThunk.None();};
+        Continuation.ContinuationAny setResult = (xs) => {result = xs.ElementAt(0).Print(); return null;};
         foreach (string input in inputs) {
             Expr? x = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
             Assert.IsNotNull(x);
@@ -49,7 +49,7 @@ public class Interpreter : IInterpreter {
     public string Interpret(string input) {
         string result = "";
         // Continuation setResult = (x) => result = x.Print();
-        Continuation.ContinuationAny setResult = (xs) => {result = xs.ElementAt(0).Print(); return new Continuation.MaybeThunk.None();};
+        Continuation.ContinuationAny setResult = (xs) => {result = xs.ElementAt(0).Print(); return null;};
         Expr? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
         Assert.IsNotNull(x);
         Program.Eval(setResult, x, Env);
@@ -59,7 +59,7 @@ public class Interpreter : IInterpreter {
     public string InterpretMultipleValues(string input) {
         string result = "";
         // Continuation setResult = (x) => result = x.Print();
-        Continuation.ContinuationAny setResult = (xs) => {result = string.Join(", ", xs.Select(x => x.Print())); return new Continuation.MaybeThunk.None();};
+        Continuation.ContinuationAny setResult = (xs) => {result = string.Join(", ", xs.Select(x => x.Print())); return null;};
         Expr? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
         Assert.IsNotNull(x);
         Program.Eval(setResult, x, Env);
@@ -68,7 +68,7 @@ public class Interpreter : IInterpreter {
 
     public string InterpretUsingReadSyntax(string input) {
         string result = "";
-        Continuation.OneArgDelegate setResult = (x) => {result = x.Print(); return new Continuation.MaybeThunk.None();};
+        Continuation.OneArgDelegate setResult = (x) => {result = x.Print(); return null;};
         Expr? x = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
         Assert.IsNotNull(x);
         Program.Eval(setResult, x, Env);

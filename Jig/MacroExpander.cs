@@ -142,7 +142,7 @@ public class ExpansionEnvironment {
         _dict = dict;
     }
 
-    private static Continuation.MaybeThunk or_macro(Delegate k, List args) {
+    private static Thunk or_macro(Delegate k, List args) {
         Expr result;
         if (args.Count() == 0) {
             result = new Expr.Boolean(false);

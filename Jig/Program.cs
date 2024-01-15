@@ -31,11 +31,11 @@ public static class Program {
         }
     }
 
-    public static Continuation.MaybeThunk Print(params Expr[] exprs) {
+    public static Thunk? Print(params Expr[] exprs) {
         foreach (var expr in exprs) {
             Console.WriteLine(expr.Print());
         }
-        return new Continuation.MaybeThunk.None();
+        return null;
     }
 
     public static void Eval(Delegate k, Expr ast, IEnvironment env) {
@@ -46,10 +46,10 @@ public static class Program {
 
     public static void Run(CompiledCode code, Delegate k, IEnvironment env) {
         // trampoline
-        Continuation.MaybeThunk maybeThunk = code(k, env);
-        while (maybeThunk is Continuation.MaybeThunk.Thunk thunk) {
+        Thunk? thunk = code(k, env);
+        while (thunk is not null) {
             // Console.WriteLine("trampoline: Bounce!");
-            maybeThunk = thunk.Value();
+            thunk = thunk();
         }
     }
 

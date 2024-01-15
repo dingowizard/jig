@@ -10,7 +10,7 @@ public class Lambdas
     public void IDEvaluatesToProcedure()
     {
         Expr result = List.Empty;
-        Continuation.OneArgDelegate setResult = (x) => {result = x; return new Continuation.MaybeThunk.None();};
+        Continuation.OneArgDelegate setResult = (x) => {result = x; return null;};
         Expr? expr = Jig.Reader.Reader.Read(InputPort.FromString("(lambda (x) x)"));
         Assert.IsNotNull(expr);
         Program.Eval(setResult, expr, new Jig.Environment());

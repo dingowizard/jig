@@ -20,7 +20,7 @@ public class Environment : IEnvironment {
         // _dict.Add(new Expr.Symbol("error"), new Procedure( (Builtin)Builtins.error));
     }
 
-    public Continuation.MaybeThunk Set(Delegate k, Expr sym, Expr v) {
+    public Thunk Set(Delegate k, Expr sym, Expr v) {
         Expr.Symbol s = sym is SyntaxObject.Identifier i ? i.Symbol : ((Expr.Symbol) sym);
         if (!_dict.ContainsKey(s)) {
             throw new Exception($"set!: unbound variable {s}");
@@ -30,7 +30,7 @@ public class Environment : IEnvironment {
 
     }
 
-    public Continuation.MaybeThunk Define (Delegate k, Expr sym, Expr v) {
+    public Thunk Define (Delegate k, Expr sym, Expr v) {
         Expr.Symbol s = sym is SyntaxObject.Identifier i ? i.Symbol : ((Expr.Symbol) sym);
         if (_dict.ContainsKey(s)) {
             _dict[s] = v;
@@ -40,7 +40,7 @@ public class Environment : IEnvironment {
         return Continuation.ApplyDelegate(k, s);
     }
 
-    public Continuation.MaybeThunk LookUp (Delegate k, Expr expr) {
+    public Thunk LookUp (Delegate k, Expr expr) {
         Expr.Symbol symbol = expr is SyntaxObject.Identifier id ? id.Symbol : (Expr.Symbol) expr;
         if (_dict.TryGetValue(symbol, out Expr? result)) {
             return Continuation.ApplyDelegate(k, result);

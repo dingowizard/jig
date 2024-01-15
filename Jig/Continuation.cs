@@ -6,7 +6,7 @@ public class Continuation : Procedure {
 
     public Continuation(Delegate d) : base (d) {}
 
-    public Continuation.MaybeThunk Apply(List args) {
+    public Thunk Apply(List args) {
         switch (Value) {
             case ContinuationAny cany:
                 return cany(args.ToArray());
@@ -27,25 +27,13 @@ public class Continuation : Procedure {
             case ImproperListContinuation7 ic7:
                 return ic7(args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), args.ElementAt(4), args.ElementAt(5), args.ElementAt(6), List.NewList(args.Skip(7).ToArray()));
             default:
-                return (MaybeThunk)Value.DynamicInvoke(args.ToArray());
+                return  (Thunk) Value.DynamicInvoke(args.ToArray());
         }
 
     }
 
-    public class MaybeThunk {
-        public class None : MaybeThunk {}
 
-        public class Thunk : MaybeThunk {
-            public Continuation.Thunk Value {get;}
-
-            public Thunk(Continuation.Thunk thunk) {
-                Value = thunk;
-            }
-        }
-
-    }
-
-    internal static MaybeThunk ApplyDelegate(Delegate k, Expr arg) {
+    internal static Thunk ApplyDelegate(Delegate k, Expr arg) {
         // TODO: should we handle more continuation types here?
             if (k is Continuation.ContinuationAny cany) {
                 return cany(arg);
@@ -53,18 +41,18 @@ public class Continuation : Procedure {
             if (k is Continuation.OneArgDelegate c1) {
                 return c1(arg);
             }
-            return (MaybeThunk)k.DynamicInvoke(arg);
+            return (Thunk)k.DynamicInvoke(arg);
     }
 
 
     public override string Print() => "#<continuation>";
 
-    public static Continuation.MaybeThunk call_with_values(Delegate k, Procedure producerExpr, Procedure consumerExpr) {
+    public static Thunk call_with_values(Delegate k, Procedure producerExpr, Procedure consumerExpr) {
         // TODO: make signature consistent with other builtins. do validation of args
         var producer = producerExpr.Value; // the producer is a thunk, but internally that is something like (lambda (k) ...)
         var consumer = consumerExpr.Value;
         Delegate cont = ContinuationFromProc(k, consumer);
-        Func<Delegate, Continuation.MaybeThunk> action = producer as Func<Delegate,Continuation.MaybeThunk> ?? throw new Exception("call-with-values: expected first argument to be a thunk.");
+        Func<Delegate, Thunk> action = producer as Func<Delegate,Thunk> ?? throw new Exception("call-with-values: expected first argument to be a thunk.");
         return action(cont);
     }
 
@@ -79,14 +67,14 @@ public class Continuation : Procedure {
         Type? type = GetTypeForContinuation(proc);
         if (type is null) {
             LambdaExpression lexpr = Expression.Lambda(
-                body: Expression.Convert(ET.DynInv(new Expression [] {Expression.Constant(proc), Expression.Constant(k)}.Concat(paramList).ToArray()), typeof(MaybeThunk)),
+                body: Expression.Convert(ET.DynInv(new Expression [] {Expression.Constant(proc), Expression.Constant(k)}.Concat(paramList).ToArray()), typeof(Thunk)),
                 parameters: paramList.ToArray()
             );
             return lexpr.Compile();
         }
         return Expression.Lambda(
             delegateType: type,
-            body: Expression.Convert(ET.DynInv(new Expression [] {Expression.Constant(proc), Expression.Constant(k)}.Concat(paramList).ToArray()), typeof(MaybeThunk)),
+            body: Expression.Convert(ET.DynInv(new Expression [] {Expression.Constant(proc), Expression.Constant(k)}.Concat(paramList).ToArray()), typeof(Thunk)),
             parameters: paramList.ToArray()
         ).Compile();
         throw new NotImplementedException();
@@ -117,15 +105,15 @@ public class Continuation : Procedure {
     }
 
 
-    public delegate MaybeThunk OneArgDelegate(Expr arg);
-    public delegate MaybeThunk ContinuationAny(params Expr[] args);
-    public delegate MaybeThunk Thunk();
-    private delegate MaybeThunk ListContinuation(List rest);
-    private delegate MaybeThunk PairContinuation(Expr arg0, List rest);
-    private delegate MaybeThunk ImproperListContinuation2(Expr arg0, Expr arg1, List rest);
-    private delegate MaybeThunk ImproperListContinuation3(Expr arg0, Expr arg1, Expr arg2, List rest);
-    private delegate MaybeThunk ImproperListContinuation4(Expr arg0, Expr arg1, Expr arg2, Expr arg3, List rest);
-    private delegate MaybeThunk ImproperListContinuation5(Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, List rest);
-    private delegate MaybeThunk ImproperListContinuation6(Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, Expr arg5, List rest);
-    private delegate MaybeThunk ImproperListContinuation7(Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, Expr arg5, Expr arg6, List rest);
+    public delegate Thunk OneArgDelegate(Expr arg);
+    public delegate Thunk ContinuationAny(params Expr[] args);
+    private delegate Thunk ListContinuation(List rest);
+    private delegate Thunk PairContinuation(Expr arg0, List rest);
+    private delegate Thunk ImproperListContinuation2(Expr arg0, Expr arg1, List rest);
+    private delegate Thunk ImproperListContinuation3(Expr arg0, Expr arg1, Expr arg2, List rest);
+    private delegate Thunk ImproperListContinuation4(Expr arg0, Expr arg1, Expr arg2, Expr arg3, List rest);
+    private delegate Thunk ImproperListContinuation5(Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, List rest);
+    private delegate Thunk ImproperListContinuation6(Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, Expr arg5, List rest);
+    private delegate Thunk ImproperListContinuation7(Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, Expr arg5, Expr arg6, List rest);
 }
+

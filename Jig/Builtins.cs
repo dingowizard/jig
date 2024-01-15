@@ -1,10 +1,10 @@
 namespace Jig;
 
-public delegate Continuation.MaybeThunk Builtin(Delegate k, List args);
+public delegate Thunk Builtin(Delegate k, List args);
 
 internal static class Builtins {
 
-    internal static Continuation.MaybeThunk map_internal(Continuation.OneArgDelegate k, Func<Continuation.OneArgDelegate, LiteralExpr<CompiledCode>, Continuation.MaybeThunk> proc, List list) {
+    internal static Thunk map_internal(Continuation.OneArgDelegate k, Func<Continuation.OneArgDelegate, LiteralExpr<CompiledCode>, Thunk> proc, List list) {
 // // (define (map/cps k fn xs)
 // //   (if (null? xs)
 // //       (k xs)
@@ -17,7 +17,7 @@ internal static class Builtins {
         }
     }
 
-    public static Continuation.MaybeThunk car (Delegate k, List args) {
+    public static Thunk car (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             switch (properList.Car) {
                 case IPair pair:
@@ -30,7 +30,7 @@ internal static class Builtins {
         }
     }
 
-    public static  Continuation.MaybeThunk nullP (Delegate k, List args) {
+    public static  Thunk nullP (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             Expr arg = properList.Car;
             if (arg is Expr.NullType) {
@@ -43,7 +43,7 @@ internal static class Builtins {
         }
     }
 
-    public static Continuation.MaybeThunk cdr (Delegate k, List args) {
+    public static Thunk cdr (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             switch (properList.Car) {
                 case IPair pair:
@@ -56,7 +56,7 @@ internal static class Builtins {
         }
     }
 
-    public static Continuation.MaybeThunk succ(Delegate k, List args) {
+    public static Thunk succ(Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             object arg = properList.Car;
             if (arg is Expr.Integer intExpr) {
@@ -69,7 +69,7 @@ internal static class Builtins {
         }
     }
 
-    public static Continuation.MaybeThunk sum(Delegate k, List args) {
+    public static Thunk sum(Delegate k, List args) {
         Expr.Integer intResult = new Expr.Integer(0);
         bool resultIsInt = true;
         Expr.Double doubleResult = new Expr.Double(0.0);
@@ -102,7 +102,7 @@ internal static class Builtins {
 
     }
 
-    public static Continuation.MaybeThunk diff(Delegate k, Expr first, List args) {
+    public static Thunk diff(Delegate k, Expr first, List args) {
         bool resultIsInt = true;
         Expr.Integer intResult = new Expr.Integer(0);
         Expr.Double doubleResult = new Expr.Double(0.0);
@@ -141,7 +141,7 @@ internal static class Builtins {
         return Continuation.ApplyDelegate(k, resultIsInt ? intResult : doubleResult);
     }
 
-    public static Continuation.MaybeThunk numEq(Delegate k, Expr first, List args) {
+    public static Thunk numEq(Delegate k, Expr first, List args) {
         // TODO: should 1 = 1.0? it does in chez. if so best way to implement
         if (first is Expr.Integer i) {
             Expr.Integer current = i;
@@ -181,7 +181,7 @@ internal static class Builtins {
         }
     }
 
-    public static Continuation.MaybeThunk product(Delegate k, List args) {
+    public static Thunk product(Delegate k, List args) {
         Expr.Integer intResult = new Expr.Integer(1);
         bool resultIsInt = true;
         Expr.Double doubleResult = new Expr.Double(1.0);
@@ -213,7 +213,7 @@ internal static class Builtins {
         return Continuation.ApplyDelegate(k, resultIsInt ? intResult : doubleResult);
     }
 
-    public static Continuation.MaybeThunk cons (Delegate k, List args) {
+    public static Thunk cons (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             if (properList.Count() != 2) {
                 throw new Exception("cons: expected two arguments");
@@ -228,19 +228,19 @@ internal static class Builtins {
     }
 
 
-    public static Continuation.MaybeThunk values(Delegate k, List args) {
+    public static Thunk values(Delegate k, List args) {
         return new Continuation(k).Apply(args);
     }
 
-    public static Continuation.MaybeThunk callcc(Delegate k, List args) {
+    public static Thunk callcc(Delegate k, List args) {
         if (args.Count() != 1) throw new Exception($"call/cc: expected one argument.");
         Procedure proc = args.ElementAt(0) as Procedure ?? throw new Exception("call/cc: expected procedure argument but got {args.ElementAt(0)}");
-        if (proc.Value is Func<Delegate, Expr, Continuation.MaybeThunk> del) {
-            // return del(k, new Continuation(k));
+        if (proc.Value is Func<Delegate, Expr, Thunk> del) {
+            return del(k, new Continuation(k));
             // return Continuation.ApplyDelegate(k, del(k, new Continuation(k)));
             // Continuation.Thunk thunk = () => del(k, new Continuation(k));
-            // return new Continuation.MaybeThunk.Thunk(thunk);
-            return proc.Apply(k, List.NewList(new Continuation(k)));
+            // // return new Continuation.MaybeThunk.Thunk(thunk);
+            // return proc.Apply(k, List.NewList(new Continuation(k)));
         } else {
             throw new Exception("call/cc: expected procedure with one parameter but got {proc}");
         }
@@ -248,7 +248,7 @@ internal static class Builtins {
 
     // public static void dynamic_wind(Delegate k, List args) {}
 
-    public static Continuation.MaybeThunk apply (Delegate k, Expr x, List args) {
+    public static Thunk apply (Delegate k, Expr x, List args) {
         if (x is Continuation cont) {
             return cont.Apply(args);
         } else if (x is Procedure proc) {

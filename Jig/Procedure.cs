@@ -8,7 +8,7 @@ public class Procedure : LiteralExpr<Delegate> {
 
     public Procedure(Delegate d) : base (d) {}
 
-    public Continuation.MaybeThunk Apply(Delegate k, List args) {
+    public Thunk Apply(Delegate k, List args) {
         switch (Value) {
             case Builtin builtin:
                 return builtin(k, args);
@@ -29,7 +29,7 @@ public class Procedure : LiteralExpr<Delegate> {
             case ImproperListFunction7 improper7:
                 return improper7(k, args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), args.ElementAt(4), args.ElementAt(5), args.ElementAt(6), List.NewList(args.Skip(7).ToArray()));
             default:
-                return (Continuation.MaybeThunk)Value.DynamicInvoke(new List<object>{k}.Concat(args).ToArray());
+                return (Thunk)Value.DynamicInvoke(new List<object>{k}.Concat(args).ToArray());
         }
 
     }

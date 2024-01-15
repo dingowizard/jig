@@ -1,6 +1,7 @@
 namespace Jig;
 
-public delegate Continuation.MaybeThunk CompiledCode(Delegate k, IEnvironment env);
+public delegate Thunk? Thunk();
+public delegate Thunk CompiledCode(Delegate k, IEnvironment env);
 
 internal static class Compiler {
 

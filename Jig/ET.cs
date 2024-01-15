@@ -5,14 +5,14 @@ using Microsoft.Scripting.Actions;
 
 namespace Jig;
 
-internal delegate Continuation.MaybeThunk ListFunction(Delegate k, List rest);
-internal delegate Continuation.MaybeThunk PairFunction(Delegate k, Expr arg0, List rest);
-internal delegate Continuation.MaybeThunk ImproperListFunction2(Delegate k, Expr arg0, Expr arg1, List rest);
-internal delegate Continuation.MaybeThunk ImproperListFunction3(Delegate k, Expr arg0, Expr arg1, Expr arg2, List rest);
-internal delegate Continuation.MaybeThunk ImproperListFunction4(Delegate k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, List rest);
-internal delegate Continuation.MaybeThunk ImproperListFunction5(Delegate k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, List rest);
-internal delegate Continuation.MaybeThunk ImproperListFunction6(Delegate k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, Expr arg5, List rest);
-internal delegate Continuation.MaybeThunk ImproperListFunction7(Delegate k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, Expr arg5, Expr arg6, List rest);
+internal delegate Thunk ListFunction(Delegate k, List rest);
+internal delegate Thunk PairFunction(Delegate k, Expr arg0, List rest);
+internal delegate Thunk ImproperListFunction2(Delegate k, Expr arg0, Expr arg1, List rest);
+internal delegate Thunk ImproperListFunction3(Delegate k, Expr arg0, Expr arg1, Expr arg2, List rest);
+internal delegate Thunk ImproperListFunction4(Delegate k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, List rest);
+internal delegate Thunk ImproperListFunction5(Delegate k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, List rest);
+internal delegate Thunk ImproperListFunction6(Delegate k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, Expr arg5, List rest);
+internal delegate Thunk ImproperListFunction7(Delegate k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, Expr arg5, Expr arg6, List rest);
 
 internal abstract class ET : Expression {
 
@@ -74,7 +74,7 @@ internal abstract class ET : Expression {
 
         public LiteralET(Expr x) : base() {
             x = x is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : x;
-            Body = Expression.Convert(DynInv(kParam, Expression.Constant(x)), typeof(Continuation.MaybeThunk));
+            Body = Expression.Convert(DynInv(kParam, Expression.Constant(x)), typeof(Thunk));
         }
 
         public override Expression Body {get;}
@@ -89,12 +89,12 @@ internal abstract class ET : Expression {
             ParameterExpression? pe = scope.LookUp(x);
             if (pe is null) {
                 var v = Expression.Parameter(typeof(Expr));
-                var k = Expression.Lambda<Continuation.OneArgDelegate>(Expression.Convert(DynInv(kParam, v), typeof(Continuation.MaybeThunk)), new ParameterExpression[] {v});
+                var k = Expression.Lambda<Continuation.OneArgDelegate>(Expression.Convert(DynInv(kParam, v), typeof(Thunk)), new ParameterExpression[] {v});
                 Body = Expression.Call(envParam,
                                        LookUp,
                                        new Expression [] {k, Expression.Constant(x)});
             } else {
-                Body = Expression.Convert(DynInv(kParam, pe), typeof(Continuation.MaybeThunk));
+                Body = Expression.Convert(DynInv(kParam, pe), typeof(Thunk));
             }
         }
 
@@ -103,9 +103,9 @@ internal abstract class ET : Expression {
 
     internal delegate List MakeListDelegate(params CompiledCode[] args);
 
-    delegate Continuation.MaybeThunk MapInternalDelegate(Continuation.OneArgDelegate continuation, Func<Continuation.OneArgDelegate, LiteralExpr<CompiledCode>, Continuation.MaybeThunk> proc, List list );
+    delegate Thunk MapInternalDelegate(Continuation.OneArgDelegate continuation, Func<Continuation.OneArgDelegate, LiteralExpr<CompiledCode>, Thunk> proc, List list );
 
-    delegate Continuation.MaybeThunk ApplyDelegate(Delegate k, Procedure proc, List args);
+    delegate Thunk ApplyDelegate(Delegate k, Procedure proc, List args);
     static PropertyInfo carPropertyInfo = typeof(IPair).GetProperty("Car") ?? throw new Exception("in ProcAppET: ProperLists should have one property named 'Car'");
     static PropertyInfo cdrPropertyInfo = typeof(IPair).GetProperty("Cdr") ?? throw new Exception("in ProcAppET: ProperLists should have one property named 'Cdr'");
 
@@ -126,17 +126,17 @@ internal abstract class ET : Expression {
                                    kParam,
                                    Expression.Property(Expression.Convert(vParam, typeof(IPair)), carPropertyInfo),
                                    Expression.Property(Expression.Convert(vParam, typeof(IPair)), cdrPropertyInfo)),
-                                               typeof(Continuation.MaybeThunk)),
+                                               typeof(Thunk)),
                            parameters: new ParameterExpression[] {vParam});
             Body =
                 Expression.Convert(
                     DynInv(Expression.Constant((MapInternalDelegate) Builtins.map_internal),
                        k,
-                       Expression.Lambda<Func<Continuation.OneArgDelegate, LiteralExpr<CompiledCode>, Continuation.MaybeThunk>>( // (lambda (k code) (code k env))
-                           body: Expression.Convert(DynInv(Expression.Property(procParam, "Value"), contParam, envParam), typeof(Continuation.MaybeThunk)),
+                       Expression.Lambda<Func<Continuation.OneArgDelegate, LiteralExpr<CompiledCode>, Thunk>>( // (lambda (k code) (code k env))
+                           body: Expression.Convert(DynInv(Expression.Property(procParam, "Value"), contParam, envParam), typeof(Thunk)),
                            parameters: new ParameterExpression[] {contParam, procParam}),
                        Expression.Invoke(Expression.Constant(listProc), Expression.NewArrayInit(typeof(CompiledCode), analyzed))),
-                    typeof(Continuation.MaybeThunk));
+                    typeof(Thunk));
         }
 
         public override Expression Body {get;}
@@ -159,8 +159,8 @@ internal abstract class ET : Expression {
             var k0 = Expression.Lambda<Continuation.OneArgDelegate>(
                 body: Expression.Condition( // the Condition Expression returns something. IfThenElse is void
                     test: Expression.Convert(DynInv(Expression.Constant((Func<Expr, bool>) IfET.IsNotFalse), boolResult), typeof(bool)),
-                    ifTrue: NewMaybeThunkExpression(DynInv(consqCC, kParam, envParam)),
-                    ifFalse: NewMaybeThunkExpression(DynInv(altCC, kParam, envParam))),
+                    ifTrue: Expression.Lambda<Thunk>(Expression.Convert(DynInv(consqCC, kParam, envParam), typeof(Thunk))),
+                    ifFalse: Expression.Lambda<Thunk>(Expression.Convert(DynInv(altCC, kParam, envParam), typeof(Thunk)))),
                 parameters: new ParameterExpression[] {boolResult});
             Body = Expression.Invoke(condCC, new Expression[] {k0, envParam});
 
@@ -175,14 +175,14 @@ internal abstract class ET : Expression {
         }
     }
 
-    private static Expression NewMaybeThunkExpression(Expression body) {
-        ConstructorInfo maybeThunkCstr = typeof(Continuation.MaybeThunk.Thunk).GetConstructor(types: new Type[] {typeof(Continuation.Thunk)})
-                ?? throw new Exception("couldn't find MaybeThunk.Thunk constructor");
-        return Expression.New(maybeThunkCstr,
-                              Expression.Lambda<Continuation.Thunk>(
-                                  Expression.Convert(body,
-                                                     typeof(Continuation.MaybeThunk))));
-    }
+    // private static Expression NewMaybeThunkExpression(Expression body) {
+    //     ConstructorInfo maybeThunkCstr = typeof(Continuation.MaybeThunk.Thunk).GetConstructor(types: new Type[] {typeof(Continuation.Thunk)})
+    //             ?? throw new Exception("couldn't find MaybeThunk.Thunk constructor");
+    //     return Expression.New(maybeThunkCstr,
+    //                           Expression.Lambda<Continuation.Thunk>(
+    //                               Expression.Convert(body,
+    //                                                  typeof(Continuation.MaybeThunk))));
+    // }
 
 
     private class SetBangET : ET {
@@ -278,7 +278,7 @@ internal abstract class ET : Expression {
                                                             new Expression[] {
                                                                 Expression.Lambda(body: LambdaExpressionBody,
                                                                                   parameters: LambdaExpressionParams)
-                                                            })), typeof(Continuation.MaybeThunk));
+                                                            })), typeof(Thunk));
                     return;
                 case Expr.Symbol onlyRestSymbol: // cases like (lambda x x)
                     lambdaScope = scope.Extend(new Expr.Symbol[]{onlyRestSymbol});
@@ -291,7 +291,7 @@ internal abstract class ET : Expression {
                                                                 Expression.Lambda(delegateType: typeof(ListFunction),
                                                                body: LambdaExpressionBody,
                                                                parameters: LambdaExpressionParams)
-                                                            })), typeof(Continuation.MaybeThunk));
+                                                            })), typeof(Thunk));
                     return;
                 case IPair andRest: // cases like (lambda (proc l . ls))
                     IEnumerable<Expr.Symbol> symbols = ValidateAndConvertToSymbols(andRest);
@@ -304,7 +304,7 @@ internal abstract class ET : Expression {
                                                                 Expression.Lambda(delegateType: FunctionTypeFromParameters(andRest),
                                                                body: LambdaExpressionBody,
                                                                parameters: LambdaExpressionParams)
-                                                            })), typeof(Continuation.MaybeThunk));
+                                                            })), typeof(Thunk));
                     return;
 
                 default:
@@ -376,7 +376,7 @@ internal abstract class ET : Expression {
 
             // this should represent what code to run when the procedure is called
             return Expression.Invoke(
-                Expression.Lambda<Func<Delegate, Continuation.MaybeThunk>>(
+                Expression.Lambda<Func<Delegate, Thunk>>(
                     // body: DynInv(new BlockET(scope.Extend(), exprs).LambdaExpression(), cont, envParam),
                     body: Expression.Invoke(
                         // Analyze(scope, exprs.ElementAt(0)),
@@ -423,15 +423,17 @@ internal abstract class ET : Expression {
             // forcing to array to deal with weird bug where things were done out of order when handled as IEnumerable
             // the last expr in the list has to return a MaybeThunk for trampoline
             Expression<CompiledCode> lastExprCC = (Expression<CompiledCode>)Analyze(blockScope, exprs.Last()).Reduce();
-            Expression newMaybeThunk = NewMaybeThunkExpression(DynInv(lastExprCC, kParam, envParam));
+            Expression thunkExpr = Expression.Lambda<Thunk>(Expression.Convert(DynInv(lastExprCC, kParam, envParam), typeof(Thunk)));
+
+                // NewMaybeThunkExpression(DynInv(lastExprCC, kParam, envParam));
             // have to 'Reduce' by hand because newMaybeThunk is not an ET
-            Expression<CompiledCode> last = Expression.Lambda<CompiledCode>(newMaybeThunk, new ParameterExpression[] {kParam, envParam});
+            Expression<CompiledCode> last = Expression.Lambda<CompiledCode>(thunkExpr, new ParameterExpression[] {kParam, envParam});
             analyzed = analyzed.ToList().Append(last).ToArray();
             var listExpr = Expression.Convert(Expression.Invoke(Expression.Constant(listProc), Expression.NewArrayInit(typeof(CompiledCode), analyzed)), typeof(List.NonEmpty));
 
             Body = Expression.Block(blockScope.Parameters,
                 new Expression[] {Expression.Invoke(
-                Expression.Constant((Func<Delegate, IEnvironment, List.NonEmpty, Continuation.MaybeThunk>) doSequence),
+                Expression.Constant((Func<Delegate, IEnvironment, List.NonEmpty, Thunk>) doSequence),
                 new Expression[] {
                     kParam,
                     envParam,
@@ -440,7 +442,7 @@ internal abstract class ET : Expression {
                     )});
         }
 
-        private Continuation.MaybeThunk doSequence(Delegate k, IEnvironment env, List list) {
+        private Thunk doSequence(Delegate k, IEnvironment env, List list) {
             // TODO: make caller guarantee properlist
             List.NonEmpty? exprs = list as List.NonEmpty;
             if (exprs == null) throw new Exception("doSequence: should not be called with empty list");
