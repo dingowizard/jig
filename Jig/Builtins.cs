@@ -228,27 +228,29 @@ internal static class Builtins {
     }
 
 
-    // public static void values(Delegate k, List args) {
-    //     new Continuation(k).Apply(args);
-    // }
+    public static Continuation.MaybeThunk values(Delegate k, List args) {
+        return new Continuation(k).Apply(args);
+    }
 
-    // public static void callcc(Delegate k, List args) {
-    //     if (args.Count() != 1) throw new Exception($"call/cc: expected one argument.");
-    //     Procedure proc = args.ElementAt(0) as Procedure ?? throw new Exception("call/cc: expected procedure argument but got {args.ElementAt(0)}");
-    //     if (proc.Value is Action<Delegate, Expr> del) {
-    //         del(k, new Continuation(k));
-    //         return;
-    //     } else {
-    //         throw new Exception("call/cc: expected procedure with one parameter but got {proc}");
-    //     }
-    // }
+    public static Continuation.MaybeThunk callcc(Delegate k, List args) {
+        if (args.Count() != 1) throw new Exception($"call/cc: expected one argument.");
+        Procedure proc = args.ElementAt(0) as Procedure ?? throw new Exception("call/cc: expected procedure argument but got {args.ElementAt(0)}");
+        if (proc.Value is Func<Delegate, Expr, Continuation.MaybeThunk> del) {
+            // return del(k, new Continuation(k));
+            // return Continuation.ApplyDelegate(k, del(k, new Continuation(k)));
+            // Continuation.Thunk thunk = () => del(k, new Continuation(k));
+            // return new Continuation.MaybeThunk.Thunk(thunk);
+            return proc.Apply(k, List.NewList(new Continuation(k)));
+        } else {
+            throw new Exception("call/cc: expected procedure with one parameter but got {proc}");
+        }
+    }
 
     // public static void dynamic_wind(Delegate k, List args) {}
 
     public static Continuation.MaybeThunk apply (Delegate k, Expr x, List args) {
         if (x is Continuation cont) {
-            throw new NotImplementedException();
-            // return cont.Apply(args);
+            return cont.Apply(args);
         } else if (x is Procedure proc) {
             return proc.Apply(k, args);
         } else {

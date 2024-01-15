@@ -48,7 +48,7 @@ public static class Program {
         // trampoline
         Continuation.MaybeThunk maybeThunk = code(k, env);
         while (maybeThunk is Continuation.MaybeThunk.Thunk thunk) {
-            Console.WriteLine("trampoline: Bounce!");
+            // Console.WriteLine("trampoline: Bounce!");
             maybeThunk = thunk.Value();
         }
     }

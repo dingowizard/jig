@@ -13,21 +13,20 @@ public class Environment : IEnvironment {
         _dict.Add(new Expr.Symbol("-"), new Procedure((PairFunction) Builtins.diff));
         _dict.Add(new Expr.Symbol("="), new Procedure((PairFunction) Builtins.numEq));
         _dict.Add(new Expr.Symbol("apply"), new Procedure( Builtins.apply));
-        // _dict.Add(new Expr.Symbol("call/cc"), new Procedure( (Builtin)Builtins.callcc));
-        // _dict.Add(new Expr.Symbol("call-with-values"), new Procedure( Continuation.call_with_values));
-        // _dict.Add(new Expr.Symbol("values"), new Procedure( (Builtin)Builtins.values));
+        _dict.Add(new Expr.Symbol("call/cc"), new Procedure( (Builtin)Builtins.callcc));
+        _dict.Add(new Expr.Symbol("call-with-values"), new Procedure( Continuation.call_with_values));
+        _dict.Add(new Expr.Symbol("values"), new Procedure( (Builtin)Builtins.values));
         // _dict.Add(new Expr.Symbol("dynamic-wind"), new Procedure( (Builtin)Builtins.dynamic_wind));
         // _dict.Add(new Expr.Symbol("error"), new Procedure( (Builtin)Builtins.error));
     }
 
-    public void Set(Delegate k, Expr sym, Expr v) {
+    public Continuation.MaybeThunk Set(Delegate k, Expr sym, Expr v) {
         Expr.Symbol s = sym is SyntaxObject.Identifier i ? i.Symbol : ((Expr.Symbol) sym);
         if (!_dict.ContainsKey(s)) {
             throw new Exception($"set!: unbound variable {s}");
         }
         _dict[s] = v;
-        Continuation.ApplyDelegate(k, s);
-        return;
+        return Continuation.ApplyDelegate(k, s);
 
     }
 

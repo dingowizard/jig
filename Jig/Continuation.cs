@@ -6,38 +6,28 @@ public class Continuation : Procedure {
 
     public Continuation(Delegate d) : base (d) {}
 
-    public void Apply(List args) {
+    public Continuation.MaybeThunk Apply(List args) {
         switch (Value) {
             case ContinuationAny cany:
-                cany(args.ToArray());
-                return;
+                return cany(args.ToArray());
             case ListContinuation lc:
-                lc(args);
-                return;
+                return lc(args);
             case PairContinuation pc:
-                pc(args.ElementAt(0),  List.NewList(args.Skip(1).ToArray()));
-                return;
+                return pc(args.ElementAt(0),  List.NewList(args.Skip(1).ToArray()));
             case ImproperListContinuation2 ic2:
-                ic2(args.ElementAt(0), args.ElementAt(1), List.NewList(args.Skip(2).ToArray()));
-                return;
+                return ic2(args.ElementAt(0), args.ElementAt(1), List.NewList(args.Skip(2).ToArray()));
             case ImproperListContinuation3 ic3:
-                ic3(args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), List.NewList(args.Skip(3).ToArray()));
-                return;
+                return ic3(args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), List.NewList(args.Skip(3).ToArray()));
             case ImproperListContinuation4 ic4:
-                ic4(args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), List.NewList(args.Skip(4).ToArray()));
-                return;
+                return ic4(args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), List.NewList(args.Skip(4).ToArray()));
             case ImproperListContinuation5 ic5:
-                ic5(args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), args.ElementAt(4), List.NewList(args.Skip(5).ToArray()));
-                return;
+                return ic5(args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), args.ElementAt(4), List.NewList(args.Skip(5).ToArray()));
             case ImproperListContinuation6 ic6:
-                ic6(args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), args.ElementAt(4), args.ElementAt(5), List.NewList(args.Skip(6).ToArray()));
-                return;
+                return ic6(args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), args.ElementAt(4), args.ElementAt(5), List.NewList(args.Skip(6).ToArray()));
             case ImproperListContinuation7 ic7:
-                ic7(args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), args.ElementAt(4), args.ElementAt(5), args.ElementAt(6), List.NewList(args.Skip(7).ToArray()));
-                return;
+                return ic7(args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), args.ElementAt(4), args.ElementAt(5), args.ElementAt(6), List.NewList(args.Skip(7).ToArray()));
             default:
-                Value.DynamicInvoke(args.ToArray());
-                return;
+                return (MaybeThunk)Value.DynamicInvoke(args.ToArray());
         }
 
     }
@@ -69,14 +59,13 @@ public class Continuation : Procedure {
 
     public override string Print() => "#<continuation>";
 
-    public static void call_with_values(Delegate k, Procedure producerExpr, Procedure consumerExpr) {
+    public static Continuation.MaybeThunk call_with_values(Delegate k, Procedure producerExpr, Procedure consumerExpr) {
         // TODO: make signature consistent with other builtins. do validation of args
         var producer = producerExpr.Value; // the producer is a thunk, but internally that is something like (lambda (k) ...)
         var consumer = consumerExpr.Value;
         Delegate cont = ContinuationFromProc(k, consumer);
-        Action<Delegate> action = producer as Action<Delegate> ?? throw new Exception("call-with-values: expected first argument to be a thunk.");
-        action(cont);
-        return;
+        Func<Delegate, Continuation.MaybeThunk> action = producer as Func<Delegate,Continuation.MaybeThunk> ?? throw new Exception("call-with-values: expected first argument to be a thunk.");
+        return action(cont);
     }
 
     private static Delegate ContinuationFromProc(Delegate k, Delegate proc) {
@@ -87,18 +76,17 @@ public class Continuation : Procedure {
         {
             paramList.Add(Expression.Parameter(typeof(Expr), p.ToString()));
         }
-        // TODO: handle situation when lambda expression has a rest param Eg (lambda (a . rest) rest) or (lambda l l)
         Type? type = GetTypeForContinuation(proc);
         if (type is null) {
             LambdaExpression lexpr = Expression.Lambda(
-                body: ET.DynInv(new Expression [] {Expression.Constant(proc), Expression.Constant(k)}.Concat(paramList).ToArray()),
+                body: Expression.Convert(ET.DynInv(new Expression [] {Expression.Constant(proc), Expression.Constant(k)}.Concat(paramList).ToArray()), typeof(MaybeThunk)),
                 parameters: paramList.ToArray()
             );
             return lexpr.Compile();
         }
         return Expression.Lambda(
             delegateType: type,
-            body: ET.DynInv(new Expression [] {Expression.Constant(proc), Expression.Constant(k)}.Concat(paramList).ToArray()),
+            body: Expression.Convert(ET.DynInv(new Expression [] {Expression.Constant(proc), Expression.Constant(k)}.Concat(paramList).ToArray()), typeof(MaybeThunk)),
             parameters: paramList.ToArray()
         ).Compile();
         throw new NotImplementedException();
@@ -132,12 +120,12 @@ public class Continuation : Procedure {
     public delegate MaybeThunk OneArgDelegate(Expr arg);
     public delegate MaybeThunk ContinuationAny(params Expr[] args);
     public delegate MaybeThunk Thunk();
-    private delegate void ListContinuation(List rest);
-    private delegate void PairContinuation(Expr arg0, List rest);
-    private delegate void ImproperListContinuation2(Expr arg0, Expr arg1, List rest);
-    private delegate void ImproperListContinuation3(Expr arg0, Expr arg1, Expr arg2, List rest);
-    private delegate void ImproperListContinuation4(Expr arg0, Expr arg1, Expr arg2, Expr arg3, List rest);
-    private delegate void ImproperListContinuation5(Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, List rest);
-    private delegate void ImproperListContinuation6(Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, Expr arg5, List rest);
-    private delegate void ImproperListContinuation7(Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, Expr arg5, Expr arg6, List rest);
+    private delegate MaybeThunk ListContinuation(List rest);
+    private delegate MaybeThunk PairContinuation(Expr arg0, List rest);
+    private delegate MaybeThunk ImproperListContinuation2(Expr arg0, Expr arg1, List rest);
+    private delegate MaybeThunk ImproperListContinuation3(Expr arg0, Expr arg1, Expr arg2, List rest);
+    private delegate MaybeThunk ImproperListContinuation4(Expr arg0, Expr arg1, Expr arg2, Expr arg3, List rest);
+    private delegate MaybeThunk ImproperListContinuation5(Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, List rest);
+    private delegate MaybeThunk ImproperListContinuation6(Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, Expr arg5, List rest);
+    private delegate MaybeThunk ImproperListContinuation7(Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, Expr arg5, Expr arg6, List rest);
 }
