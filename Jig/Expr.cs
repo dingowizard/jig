@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
@@ -6,6 +7,8 @@ using System.Text;
 namespace Jig;
 
 public abstract class Expr {
+
+    // TODO: decide whether it makes sense to have all of these as nested classes
 
     internal class NullType : List {
         public override string Print() => "()";
@@ -16,6 +19,45 @@ public abstract class Expr {
     public class Boolean : LiteralExpr<bool> {
         public Boolean(bool b) : base(b) {}
         public override string Print() => Value ? "#t" : "#f";
+    }
+
+    public class Lambda : SpecialForm {
+
+        public Lambda(Expr keyword, Expr parameters, List.NonEmpty body) : base(keyword, new List.NonEmpty(parameters, body)) {
+            Parameters = parameters;
+            Body = body;
+        }
+
+        public Expr Parameters {get;}
+
+        public List.NonEmpty Body {get;}
+
+    }
+
+    public class If : SpecialForm {
+
+        public If(Expr keyword, Expr cond, Expr conseq, Expr alt) : base(keyword, (List.NonEmpty)List.NewList(cond, conseq, alt)) {}
+
+    }
+
+    public class Quote : SpecialForm {
+
+        public Quote(Expr keyword, Expr datum) : base(keyword, (List.NonEmpty)List.NewList(datum)) {
+            Datum = datum;
+        }
+
+        public Expr Datum {get;}
+
+    }
+
+    public class Define : SpecialForm {
+        public Define(Expr keyword, Expr sym, Expr val) : base(keyword, (List.NonEmpty)List.NewList(sym, val)) {}
+
+    }
+
+    public class Set : SpecialForm {
+        public Set(Expr keyword, Expr sym, Expr val) : base(keyword, (List.NonEmpty)List.NewList(sym, val)) {}
+
     }
 
     public class String : LiteralExpr<string> {
@@ -69,11 +111,20 @@ public abstract class Expr {
     }
 
     public class Symbol : Expr {
+        public static Symbol FromName(string name) => name switch {
+            "lambda" => new Keyword.Lambda(),
+            "if" => new Keyword.If(),
+            "define" => new Keyword.Define(),
+            "set!" => new Keyword.Set(),
+            "quote" => new Keyword.Quote(), // TODO: do they have to be new? couldn't they be static instances on Keyword?
+            _ => new Symbol(name),
+        };
+
         public Symbol(string name) {
             Name = name;
         }
 
-        public string Name {get;}
+        public virtual string Name {get;}
 
         public override bool Equals(object? obj) {
             if (obj is null) return false;
@@ -81,7 +132,6 @@ public abstract class Expr {
                 return this.Name == sym2.Name;
             }
             return false;
-
         }
 
         public override int GetHashCode() {
@@ -170,6 +220,7 @@ public abstract class Expr {
 
     internal static bool IsNonEmptyList(Expr ast)
     {
+
         if (ast is SyntaxObject stx) {
             return SyntaxObject.E(stx) is List.NonEmpty;
         }
@@ -190,6 +241,37 @@ public abstract class Expr {
     }
 
 }
+
+public abstract class Keyword : Expr.Symbol {
+
+    public Keyword(string name) : base (name) {}
+
+    public new class Lambda : Keyword {
+        public Lambda() : base("lambda") {}
+    }
+
+    public new class If : Keyword {
+        public If() : base("if") {}
+    }
+
+    public class Define : Keyword {
+        public Define() : base("define") {}
+    }
+
+    public class Set : Keyword {
+        public Set() : base("set!") {}
+    }
+
+    public class Quote : Keyword {
+        public Quote() : base("quote") {}
+    }
+    public static bool Is<T>(Expr car) where T : Keyword => car switch {
+            SyntaxObject.Identifier id => id.Symbol is T,
+            Expr.Symbol symbol => symbol is T,
+            _ => false,
+        };
+}
+
 
 
 
@@ -319,4 +401,31 @@ public abstract class List : Expr, IEnumerable<Expr> {
         }
         return hash;
     }
+}
+
+public abstract class SpecialForm : List.NonEmpty {
+
+    public SpecialForm(Expr car, List.NonEmpty cdr) : base(car,cdr) {}
+
+    public static bool Is<T>(Expr x, [NotNullWhen(returnValue: true)] out T? result) where T : SpecialForm {
+        if (x is SyntaxObject stx) {
+            // TODO: SyntaxObject.ToDatum will not produce an Expr.Lambda here
+            if (SyntaxObject.E(stx) is T t) {
+                result = t;
+                return true;
+            } else {
+                result = null;
+                return false;
+            }
+        }
+        if (x is T thing) {
+            result = thing;
+            return true;
+        } else {
+            result = null;
+            return false;
+        }
+
+    }
+
 }

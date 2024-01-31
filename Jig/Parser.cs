@@ -15,11 +15,11 @@ public class Parser {
                 tokenStream.Read();
                 Expr arg = ParseExpr(tokenStream, syntax);
                 if (syntax) {
-                   return new SyntaxObject(
-                       List.NewList(new SyntaxObject.Identifier(new Expr.Symbol("quote"), quoteToken.SrcLoc), arg),
+                   return new SyntaxObject(new SpecialForm.Quote(
+                       new SyntaxObject.Identifier(Expr.Symbol.FromName("quote"), quoteToken.SrcLoc), arg),
                        ((SyntaxObject)arg).SrcLoc);
                 } else {
-                    return List.NewList(new Expr.Symbol("quote"), arg);
+                    return new SpecialForm.Quote(Expr.Symbol.FromName("quote"), arg);
                 }
             case Token.OpenParen openToken:
                 tokenStream.Read();
@@ -39,7 +39,6 @@ public class Parser {
                     if (syntax) {
                         return SyntaxObject.FromDatum(pair, SrcLoc.Combine(openToken.SrcLoc, close.SrcLoc));
                     } else {
-
                         return pair;
                     }
                 } else {
@@ -70,8 +69,7 @@ public class Parser {
         }
     }
 
-    private static Expr ParseNumber(Token.Number num, TokenStream tokenStream, bool syntax)
-    {
+    private static Expr ParseNumber(Token.Number num, TokenStream tokenStream, bool syntax) {
         tokenStream.Read();
         if (Int32.TryParse(num.Text, out int i)) {
             if (syntax) {
@@ -119,15 +117,15 @@ public class Parser {
     static Expr ParseSymbol(Token.Identifier id, TokenStream tokenStream, bool syntax = false) {
         var tok = tokenStream.Read();
         Debug.Assert(tok is Token.Identifier);
-        if (syntax) {
-            return new SyntaxObject.Identifier(new Expr.Symbol(id.Text), id.SrcLoc);
-        } else {
-            return new Expr.Symbol(id.Text);
-        }
+        Expr.Symbol sym = Expr.Symbol.FromName(id.Text);
+        return syntax ? new SyntaxObject.Identifier(sym, id.SrcLoc) : sym;
     }
 
     static Expr ParsePair(TokenStream tokenStream, bool syntax = false) {
         Expr car = ParseExpr(tokenStream, syntax);
+        if (Keyword.Is<Keyword>(car)) {
+            return ParseSpecialForm(car, tokenStream, syntax);
+        }
         // next token could be dot, closeparen or something else, in which case the rest will be another pair
         Expr cdr;
         if (tokenStream.Peek() is Token.Dot) {
@@ -145,5 +143,108 @@ public class Parser {
 
 
     }
+
+    private static Expr ParseSpecialForm(Expr keyword, TokenStream tokenStream, bool syntax)
+    {
+        if (Keyword.Is<Keyword.Lambda>(keyword)) {
+            return ParseLambdaExpression(keyword, tokenStream, syntax);
+        } else if (Keyword.Is<Keyword.If>(keyword)) {
+            return ParseIfExpression(keyword, tokenStream, syntax);
+        } else if (Keyword.Is<Keyword.Quote>(keyword)) {
+            return ParseQuoteExpression(keyword, tokenStream, syntax);
+        } else if (Keyword.Is<Keyword.Define>(keyword)) {
+            return ParseDefineExpression(keyword, tokenStream, syntax);
+        } else if (Keyword.Is<Keyword.Set>(keyword)) {
+            return ParseSetExpression(keyword, tokenStream, syntax);
+        }
+        throw new NotImplementedException();
+    }
+
+    private static Expr ParseSetExpression(Expr keyword, TokenStream tokenStream, bool syntax)
+    {
+        Expr sym = ParseExpr(tokenStream, syntax);
+        if (sym is not Expr.Symbol && sym is not SyntaxObject.Identifier) {
+            throw new Exception($"syntax error @ {tokenStream.Port.Source}: {tokenStream.Port.Line}, {tokenStream.Port.Column}: malformed 'set!' -- expected symbol but got {sym}.");
+        }
+        Expr val = ParseExpr(tokenStream, syntax);
+        if (tokenStream.Peek() is not Token.CloseParen) {
+            throw new Exception($"syntax error @ {tokenStream.Port.Source}: {tokenStream.Port.Line}, {tokenStream.Port.Column}: malformed 'set!' -- expected close parenthesis after value expression.");
+        }
+        return new SpecialForm.Set(keyword, sym, val);
+    }
+
+    private static Expr ParseDefineExpression(Expr keyword, TokenStream tokenStream, bool syntax)
+    {
+        Expr sym = ParseExpr(tokenStream, syntax);
+        if (sym is not Expr.Symbol && sym is not SyntaxObject.Identifier) {
+            throw new Exception($"syntax error @ {tokenStream.Port.Source}: {tokenStream.Port.Line}, {tokenStream.Port.Column}: malformed 'define' -- expected symbol but got {sym}.");
+        }
+        Expr val = ParseExpr(tokenStream, syntax);
+        if (tokenStream.Peek() is not Token.CloseParen) {
+            throw new Exception($"syntax error @ {tokenStream.Port.Source}: {tokenStream.Port.Line}, {tokenStream.Port.Column}: malformed 'define' -- expected close parenthesis after value expression.");
+        }
+        return new SpecialForm.Define(keyword, sym, val);
+    }
+
+    private static Expr ParseQuoteExpression(Expr keyword, TokenStream tokenStream, bool syntax)
+    {
+        Expr datum = ParseExpr(tokenStream, syntax);
+        // TODO: check for malformed quote, throw syntax errors
+        return new SpecialForm.Quote(keyword, datum);
+    }
+
+    private static Expr ParseIfExpression(Expr keyword, TokenStream tokenStream, bool syntax)
+    {
+        if (tokenStream.Peek() is Token.CloseParen close) {
+            throw new Exception($"syntax error @ {close.SrcLoc.Source}: {close.SrcLoc.Line}, {close.SrcLoc.Column}: malformed 'if' -- unexpected close parenthesis.");
+        }
+        Expr cond = ParseExpr(tokenStream, syntax);
+        if (tokenStream.Peek() is Token.CloseParen closeTok) {
+            throw new Exception($"syntax error @ {closeTok.SrcLoc.Source}: {closeTok.SrcLoc.Line}, {closeTok.SrcLoc.Column}: malformed 'if' -- unexpected close parenthesis.");
+        }
+        Expr conseq = ParseExpr(tokenStream, syntax);
+        // TODO: handle case where if has no else branch
+        Expr alt = ParseExpr(tokenStream, syntax);
+        if (tokenStream.Peek() is not Token.CloseParen) {
+            throw new Exception($"syntax error @ {tokenStream.Port.Source}: {tokenStream.Port.Line}, {tokenStream.Port.Column}: malformed 'if' -- expected close parenthesis.");
+        }
+        return new Expr.If(keyword, cond, conseq, alt);
+    }
+
+    private static Expr ParseLambdaExpression(Expr keyword, TokenStream tokenStream, bool syntax)
+    {
+        // TODO: better error messages
+        Expr parameters = ParseExpr(tokenStream, syntax);
+        if (!ValidLambdaParameters(parameters)) {
+            throw new Exception("syntax error: all lambda parameters must be symbols");
+        }
+        if (tokenStream.Peek() is Token.CloseParen) {
+            throw new Exception("syntax error: lambda expressions must have a body");
+        }
+        List.NonEmpty body = ParseLambdaBody(tokenStream, syntax);
+        return new Expr.Lambda(keyword, parameters, body);
+    }
+
+    private static List.NonEmpty ParseLambdaBody(TokenStream tokenStream, bool syntax)
+    {
+        if (tokenStream.Peek() is Token.Dot) {
+            throw new Exception("syntax error: lambda body should be a proper list");
+        }
+        Expr x = ParseExpr(tokenStream, syntax);
+        if (tokenStream.Peek() is Token.CloseParen) {
+            return new List.NonEmpty(x, List.Empty);
+        }
+        return new List.NonEmpty(x, ParseLambdaBody(tokenStream, syntax));
+    }
+
+    private static bool ValidLambdaParameters(Expr parameters) => parameters switch
+    {
+        // TODO: check that no parameter names are repeated
+        SyntaxObject stx => ValidLambdaParameters(SyntaxObject.ToDatum(stx)),
+        List.NullType => true,
+        Expr.Symbol => true,
+        IPair pair => ValidLambdaParameters(pair.Car) && ValidLambdaParameters(pair.Cdr),
+        _ => false,
+    };
 
 }

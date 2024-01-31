@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -25,6 +26,26 @@ internal abstract class ET : Expression {
         envParam = Expression.Parameter(typeof(IEnvironment));
     }
 
+    private static bool IsLambdaExpr(Expr ast, [NotNullWhen(returnValue: true)] out Expr.Lambda? result) {
+        if (ast is SyntaxObject stx) {
+            var datum = SyntaxObject.E(stx); // TODO: SyntaxObject.ToDatum will not produce an Expr.Lambda here
+            if (datum is Expr.Lambda le) {
+                result = le;
+                return true;
+            } else {
+                result = null;
+                return false;
+            }
+        }
+        if (ast is Expr.Lambda lexpr) {
+            result = lexpr;
+            return true;
+        } else {
+            result = null;
+            return false;
+        }
+    }
+
     public static ET Analyze(LexicalContext scope, Expr ast) {
         if (Expr.IsLiteral(ast)) {
             return new LiteralET(ast);
@@ -32,21 +53,21 @@ internal abstract class ET : Expression {
             return new SymbolET(scope, ast);
         } else if (Expr.IsNonEmptyList(ast)) {
             List.NonEmpty list = ast is SyntaxObject stx ? (List.NonEmpty)SyntaxObject.E(stx) : (List.NonEmpty)ast;
-            // TODO: rewrite below ET constructors to take full ast (as list probably)
-            if (Expr.IsKeyword("quote", ast)) {
+            if (SpecialForm.Is<Expr.Quote>(ast, out Expr.Quote? quote)) {
                 // TODO: QuoteET
-                return new LiteralET(((List.NonEmpty)list.Cdr).Car);
-            } else if (Expr.IsKeyword("lambda", ast)) {
-                return new LambdaExprET(scope, (List.NonEmpty)list.Cdr);
-            } else if (Expr.IsKeyword("if", ast)) {
-                return new IfET(scope, list);
-            } else if (Expr.IsKeyword("define", ast)) {
-                return new DefineET(scope, list);
+                return new LiteralET(quote.Datum);
+            } else if (SpecialForm.Is<Expr.If>(ast, out Expr.If? ifExpr)) {
+                return new IfET(scope, ifExpr);
+            } else if (SpecialForm.Is<Expr.Lambda>(ast, out Expr.Lambda? lexpr)) {
+                return new LambdaExprET(scope, lexpr);
+            } else if (SpecialForm.Is<Expr.Define>(ast, out Expr.Define? defExpr)) {
+                return new DefineET(scope, defExpr);
             } else if (Expr.IsKeyword("begin", ast)){
+                // TODO: rewrite begin as builtin transformer
                 return new BlockET(scope, (List.NonEmpty)list.Cdr);
             }
-            else if (Expr.IsKeyword("set!", ast)){
-                return new SetBangET(scope, list);
+            else if (SpecialForm.Is<Expr.Set>(ast, out Expr.Set? setExpr)) {
+                return new SetBangET(scope, setExpr);
             }
             else {
                 return new ProcAppET(scope, list);
@@ -175,16 +196,6 @@ internal abstract class ET : Expression {
         }
     }
 
-    // private static Expression NewMaybeThunkExpression(Expression body) {
-    //     ConstructorInfo maybeThunkCstr = typeof(Continuation.MaybeThunk.Thunk).GetConstructor(types: new Type[] {typeof(Continuation.Thunk)})
-    //             ?? throw new Exception("couldn't find MaybeThunk.Thunk constructor");
-    //     return Expression.New(maybeThunkCstr,
-    //                           Expression.Lambda<Continuation.Thunk>(
-    //                               Expression.Convert(body,
-    //                                                  typeof(Continuation.MaybeThunk))));
-    // }
-
-
     private class SetBangET : ET {
 
         private static MethodInfo _setMethod {get;} = typeof(IEnvironment).GetMethod("Set") ?? throw new Exception("while initializeing SetBangET, could not find 'Set' method on IEnvironment");
@@ -259,10 +270,9 @@ internal abstract class ET : Expression {
     private class LambdaExprET : ET {
         static ConstructorInfo procedureCstr = typeof(Procedure).GetConstructor(new Type[] {typeof(Delegate)}) ?? throw new Exception("could not find constructor for Procedure");
 
-        public LambdaExprET(LexicalContext scope, List.NonEmpty args) {
-            // args will be something like ((a b) body..) but may or may not be syntax objects
-            Expr lambdaParameters = args.Car is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : args.Car; // TODO: do we want to throw this info out already?
-            List.NonEmpty lambdaBody = args.Cdr as List.NonEmpty ?? throw new Exception($"malformed lambda: no body");
+        public LambdaExprET(LexicalContext scope, Expr.Lambda lexpr) {
+            Expr lambdaParameters = lexpr.Parameters is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : lexpr.Parameters; // TODO: do we want to throw this info out already?
+            List.NonEmpty lambdaBody = lexpr.Body;
 
             var k = Expression.Parameter(typeof(Delegate), "k in MakeProcET"); // this is the continuation paramter for the proc we are making
             LexicalContext lambdaScope;
@@ -273,12 +283,16 @@ internal abstract class ET : Expression {
                     lambdaScope = scope.Extend(properListSymbols);
                     LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
                     LambdaExpressionParams = new ParameterExpression[] {k}.Concat(lambdaScope.Parameters).ToArray();
-                    Body = Expression.Convert(DynInv(kParam, // here kParam is the continuation when the lambda expression is being evaluated
-                                             Expression.New(procedureCstr,
-                                                            new Expression[] {
-                                                                Expression.Lambda(body: LambdaExpressionBody,
-                                                                                  parameters: LambdaExpressionParams)
-                                                            })), typeof(Thunk));
+                    Body =
+                        Expression.Convert(
+                            DynInv(kParam,
+                                   Expression.New(
+                                       procedureCstr,
+                                       new Expression[] {
+                                           Expression.Lambda(body: LambdaExpressionBody,
+                                                             parameters: LambdaExpressionParams)
+                                       })),
+                            typeof(Thunk));
                     return;
                 case Expr.Symbol onlyRestSymbol: // cases like (lambda x x)
                     lambdaScope = scope.Extend(new Expr.Symbol[]{onlyRestSymbol});

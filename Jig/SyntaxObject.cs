@@ -2,6 +2,7 @@
 namespace Jig;
 
 public class SyntaxObject : Expr {
+    // TODO: should this be an interface rather than a class? then e.g. Identifier : Symbol, ISyntaxObject
 
     public SyntaxObject(Expr expr, SrcLoc srcLoc) {
         Expression = expr;
