@@ -61,19 +61,6 @@ public class MacroExpander {
 
     }
 
-    private (bool, Expr) ExpandSpecial(List.NonEmpty astAsList, ExpansionEnvironment ee, int skip) {
-        bool foundMacro = false;
-        List<Expr> xs = new List<Expr>();
-        foreach (var x in astAsList.Skip(skip)) {
-            (bool foundMacroInBodyExpr, Expr bodyExpr) = Expand_1(x, ee);
-            if (foundMacroInBodyExpr) {
-                foundMacro = true;
-            }
-            xs.Add(bodyExpr);
-        }
-        return (foundMacro, List.ListFromEnumerable(astAsList.Take(skip).Concat(xs)));
-    }
-
     private (bool, Expr) ExpandSet(List.NonEmpty astAsList, ExpansionEnvironment ee)
     {
         bool foundMacro = false;
