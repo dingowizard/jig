@@ -227,6 +227,27 @@ public abstract class Expr {
         return ast is List.NonEmpty;
     }
 
+    internal static bool IsNonEmptyList(Expr ast, [NotNullWhen(returnValue: true)]out List.NonEmpty? list)
+    {
+
+        if (ast is SyntaxObject stx) {
+            if ( SyntaxObject.E(stx) is List.NonEmpty l) {
+                list = l;
+                return true;
+            } else {
+                list = null;
+                return false;
+            }
+        }
+        if (ast is List.NonEmpty last) {
+            list = last;
+            return true;
+
+        }
+        list = null;
+        return false;
+    }
+
     internal static bool IsKeyword(string name, Expr ast) {
         if (ast is SyntaxObject stx) {
             if (SyntaxObject.E(stx) is List.NonEmpty list) {
@@ -411,6 +432,7 @@ public abstract class SpecialForm : List.NonEmpty {
         if (x is SyntaxObject stx) {
             // TODO: SyntaxObject.ToDatum will not produce an Expr.Lambda here
             if (SyntaxObject.E(stx) is T t) {
+                // Console.WriteLine($"\tIs SyntaxObject.E({stx}) a {typeof(T)}? {SyntaxObject.E(stx) is T}");
                 result = t;
                 return true;
             } else {

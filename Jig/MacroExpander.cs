@@ -14,20 +14,20 @@ public class MacroExpander {
     }
 
     private (bool, Expr) Expand_1(Expr ast, ExpansionEnvironment ee) {
-        ast = ast is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : ast;
+        // ast = ast is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : ast;
         // TODO: rewrite this in a way that we don't have to remember to change it everytime a keyword is added
-        if (ast is List.NonEmpty listExpr) {
-            if (Expr.IsKeyword("quote", listExpr)) {
+        if (Expr.IsNonEmptyList(ast, out List.NonEmpty? listExpr)) {
+            if (SpecialForm.Is<Expr.Quote>(ast, out Expr.Quote? quote )) {
                 return (false, ast);
-            } else if (Expr.IsKeyword("lambda", ast)) {
+            } else if (SpecialForm.Is<Expr.Lambda>(ast, out Expr.Lambda? _)) {
                 return ExpandLambda(listExpr, ee);
-            } else if (Expr.IsKeyword("if", ast)) {
+            } else if (SpecialForm.Is<Expr.If>(ast, out Expr.If? _)) {
                 return ExpandIf(listExpr, ee);
-            } else if (Expr.IsKeyword("define", ast)) {
+            } else if (SpecialForm.Is<Expr.Define>(ast, out Expr.Define? _)) {
                 return ExpandDefine(listExpr, ee);
             } else if (Expr.IsKeyword("begin", ast)){
                 return ExpandBegin(listExpr, ee);
-            } else if (Expr.IsKeyword("set!", ast)){
+            } else if (SpecialForm.Is<Expr.Set>(ast, out Expr.Set? _)) {
                 return ExpandSet(listExpr, ee);
             } else {
                 return ExpandApplication(listExpr, ee);
@@ -39,7 +39,15 @@ public class MacroExpander {
 
     private (bool, Expr) ExpandApplication(List.NonEmpty listExpr, ExpansionEnvironment ee)
     {
-        if (listExpr.ElementAt(0) is Expr.Symbol sym && ee.TryFindMacro(sym, out Macro macro)) {
+        Expr first = listExpr.ElementAt(0);
+        Expr.Symbol? sym =
+            first is SyntaxObject.Identifier id ?
+            id.Symbol :
+            first is Expr.Symbol s ?
+            s :
+            null;
+
+        if (sym is not null && ee.TryFindMacro(sym, out Macro macro)) {
                 var list = List.ListFromEnumerable(listExpr.Skip(1));
                 return (true, macro.Apply(list));
         } else {

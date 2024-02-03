@@ -47,6 +47,7 @@ internal abstract class ET : Expression {
     }
 
     public static ET Analyze(LexicalContext scope, Expr ast) {
+        Console.WriteLine($"analyzing ast");
         if (Expr.IsLiteral(ast)) {
             return new LiteralET(ast);
         } else if (Expr.IsSymbol(ast)) {
@@ -57,6 +58,7 @@ internal abstract class ET : Expression {
                 // TODO: QuoteET
                 return new LiteralET(quote.Datum);
             } else if (SpecialForm.Is<Expr.If>(ast, out Expr.If? ifExpr)) {
+                Console.WriteLine($"found an If");
                 return new IfET(scope, ifExpr);
             } else if (SpecialForm.Is<Expr.Lambda>(ast, out Expr.Lambda? lexpr)) {
                 return new LambdaExprET(scope, lexpr);
@@ -166,6 +168,7 @@ internal abstract class ET : Expression {
     private class IfET : ET {
 
         public IfET(LexicalContext lexVars, List.NonEmpty list) : base() {
+            Console.WriteLine($"Making an IfET!");
 
             List.NonEmpty listCdr = list.Cdr as List.NonEmpty ?? throw new Exception($"malformed if: {list}"); // TODO: should the parser be doing all this checking for malformed whatevers?
             Expr cond = listCdr.Car;

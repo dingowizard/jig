@@ -39,7 +39,9 @@ public static class Program {
     }
 
     public static void Eval(Delegate k, Expr ast, IEnvironment env) {
-        // ast = new MacroExpander().Expand(ast, ExpansionEnvironment.Default);
+        Console.Write($"{ast} macro-expanded to ");
+        ast = new MacroExpander().Expand(ast, ExpansionEnvironment.Default);
+        Console.WriteLine($"{ast}");
         var compiled = Compiler.Compile(ast);
         Run(compiled, k, env);
     }
