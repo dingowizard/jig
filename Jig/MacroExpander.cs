@@ -22,13 +22,13 @@ public class MacroExpander {
             } else if (Expr.IsKeyword("lambda", ast)) {
                 return ExpandLambda(listExpr, ee);
             } else if (Expr.IsKeyword("if", ast)) {
-                return ExpandSpecial(listExpr, ee, 1);
+                return ExpandIf(listExpr, ee);
             } else if (Expr.IsKeyword("define", ast)) {
                 return ExpandDefine(listExpr, ee);
             } else if (Expr.IsKeyword("begin", ast)){
                 return ExpandBegin(listExpr, ee);
             } else if (Expr.IsKeyword("set!", ast)){
-                return ExpandSpecial(listExpr, ee, 2);
+                return ExpandSet(listExpr, ee);
             } else {
                 return ExpandApplication(listExpr, ee);
             }
