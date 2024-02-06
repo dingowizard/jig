@@ -27,8 +27,8 @@ internal abstract class ET : Expression {
     }
 
     private static bool IsLambdaExpr(Expr ast, [NotNullWhen(returnValue: true)] out Expr.Lambda? result) {
-        if (ast is SyntaxObject stx) {
-            var datum = SyntaxObject.E(stx); // TODO: SyntaxObject.ToDatum will not produce an Expr.Lambda here
+        if (ast is Syntax stx) {
+            var datum = Syntax.E(stx); // TODO: SyntaxObject.ToDatum will not produce an Expr.Lambda here
             if (datum is Expr.Lambda le) {
                 result = le;
                 return true;
@@ -47,18 +47,17 @@ internal abstract class ET : Expression {
     }
 
     public static ET Analyze(LexicalContext scope, Expr ast) {
-        Console.WriteLine($"analyzing ast");
+        Console.WriteLine($"Analyze called with {ast}, a {ast.GetType()}.");
         if (Expr.IsLiteral(ast)) {
             return new LiteralET(ast);
         } else if (Expr.IsSymbol(ast)) {
             return new SymbolET(scope, ast);
         } else if (Expr.IsNonEmptyList(ast)) {
-            List.NonEmpty list = ast is SyntaxObject stx ? (List.NonEmpty)SyntaxObject.E(stx) : (List.NonEmpty)ast;
+            List.NonEmpty list = ast is Syntax stx ? (List.NonEmpty)Syntax.E(stx) : (List.NonEmpty)ast;
             if (SpecialForm.Is<Expr.Quote>(ast, out Expr.Quote? quote)) {
                 // TODO: QuoteET
                 return new LiteralET(quote.Datum);
             } else if (SpecialForm.Is<Expr.If>(ast, out Expr.If? ifExpr)) {
-                Console.WriteLine($"found an If");
                 return new IfET(scope, ifExpr);
             } else if (SpecialForm.Is<Expr.Lambda>(ast, out Expr.Lambda? lexpr)) {
                 return new LambdaExprET(scope, lexpr);
@@ -75,7 +74,7 @@ internal abstract class ET : Expression {
                 return new ProcAppET(scope, list);
             }
         } else {
-            throw new Exception($"Analyze: doesnn't know what to do with {ast}");
+            throw new Exception($"Analyze: doesn't know what to do with {ast}");
         }
     }
 
@@ -96,7 +95,7 @@ internal abstract class ET : Expression {
     private class LiteralET : ET {
 
         public LiteralET(Expr x) : base() {
-            x = x is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : x;
+            x = x is Syntax stx ? Syntax.ToDatum(stx) : x;
             Body = Expression.Convert(DynInv(kParam, Expression.Constant(x)), typeof(Thunk));
         }
 
@@ -168,7 +167,6 @@ internal abstract class ET : Expression {
     private class IfET : ET {
 
         public IfET(LexicalContext lexVars, List.NonEmpty list) : base() {
-            Console.WriteLine($"Making an IfET!");
 
             List.NonEmpty listCdr = list.Cdr as List.NonEmpty ?? throw new Exception($"malformed if: {list}"); // TODO: should the parser be doing all this checking for malformed whatevers?
             Expr cond = listCdr.Car;
@@ -274,7 +272,7 @@ internal abstract class ET : Expression {
         static ConstructorInfo procedureCstr = typeof(Procedure).GetConstructor(new Type[] {typeof(Delegate)}) ?? throw new Exception("could not find constructor for Procedure");
 
         public LambdaExprET(LexicalContext scope, Expr.Lambda lexpr) {
-            Expr lambdaParameters = lexpr.Parameters is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : lexpr.Parameters; // TODO: do we want to throw this info out already?
+            Expr lambdaParameters = lexpr.Parameters is Syntax stx ? Syntax.ToDatum(stx) : lexpr.Parameters; // TODO: do we want to throw this info out already?
             List.NonEmpty lambdaBody = lexpr.Body;
 
             var k = Expression.Parameter(typeof(Delegate), "k in MakeProcET"); // this is the continuation paramter for the proc we are making

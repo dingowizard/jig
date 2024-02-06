@@ -148,6 +148,17 @@ public abstract class Expr {
     public class Pair : Expr, IPair {
 
         public static IPair Cons(Expr car, Expr cdr) {
+            if (car is Syntax stxCar) {
+                if (cdr == List.Empty) {
+                    return new SyntaxList(stxCar, List.Empty);
+                } else if (cdr is SyntaxList stxListCdr) {
+                    return new SyntaxList(stxCar, stxListCdr);
+                } else if (cdr is Syntax stxCdr) {
+                    return new SyntaxPair(stxCar, stxCdr);
+                } else {
+                    return new Pair(stxCar, cdr);
+                }
+            }
             if (cdr is List list) {
                 return  new List.NonEmpty(car, list);
             } else {
@@ -200,7 +211,7 @@ public abstract class Expr {
 
     internal static bool IsLiteral(Expr ast)
     {
-        Expr x = ast is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : ast;
+        Expr x = ast is Syntax stx ? Syntax.ToDatum(stx) : ast;
         switch (x) {
             case Expr.Boolean: return true;
             case Expr.Integer: return true;
@@ -214,15 +225,15 @@ public abstract class Expr {
     internal static bool IsSymbol(Expr ast)
     {
         if (ast is Expr.Symbol) return true;
-        if (ast is SyntaxObject.Identifier) return true;
+        if (ast is Syntax.Identifier) return true;
         return false;
     }
 
     internal static bool IsNonEmptyList(Expr ast)
     {
 
-        if (ast is SyntaxObject stx) {
-            return SyntaxObject.E(stx) is List.NonEmpty;
+        if (ast is Syntax stx) {
+            return Syntax.E(stx) is List.NonEmpty;
         }
         return ast is List.NonEmpty;
     }
@@ -230,8 +241,8 @@ public abstract class Expr {
     internal static bool IsNonEmptyList(Expr ast, [NotNullWhen(returnValue: true)]out List.NonEmpty? list)
     {
 
-        if (ast is SyntaxObject stx) {
-            if ( SyntaxObject.E(stx) is List.NonEmpty l) {
+        if (ast is Syntax stx) {
+            if ( Syntax.E(stx) is List.NonEmpty l) {
                 list = l;
                 return true;
             } else {
@@ -249,9 +260,9 @@ public abstract class Expr {
     }
 
     internal static bool IsKeyword(string name, Expr ast) {
-        if (ast is SyntaxObject stx) {
-            if (SyntaxObject.E(stx) is List.NonEmpty list) {
-                if (list.Car is SyntaxObject.Identifier id) {
+        if (ast is Syntax stx) {
+            if (Syntax.E(stx) is List.NonEmpty list) {
+                if (list.Car is Syntax.Identifier id) {
                     return id.Symbol.Name == name;
                 } return false;
             } return false;
@@ -261,6 +272,10 @@ public abstract class Expr {
         } return false;
     }
 
+}
+
+public class SyntaxPair : Expr.Pair {
+    public SyntaxPair(Syntax car, Syntax cdr) : base(car,cdr) {}
 }
 
 public abstract class Keyword : Expr.Symbol {
@@ -287,7 +302,7 @@ public abstract class Keyword : Expr.Symbol {
         public Quote() : base("quote") {}
     }
     public static bool Is<T>(Expr car) where T : Keyword => car switch {
-            SyntaxObject.Identifier id => id.Symbol is T,
+            Syntax.Identifier id => id.Symbol is T,
             Expr.Symbol symbol => symbol is T,
             _ => false,
         };
@@ -364,6 +379,7 @@ public abstract class List : Expr, IEnumerable<Expr> {
         public NonEmpty(Expr car, List cdr) {
             Car = car;
             Cdr = cdr;
+            Rest = cdr;
         }
 
         public override bool Equals(object? obj) {
@@ -376,7 +392,7 @@ public abstract class List : Expr, IEnumerable<Expr> {
 
         public Expr Car {get; set;}
         public Expr Cdr {get; set;}
-        public List CdrAsList {
+        public List CdrAsList { // TODO: replace usages of this with Rest
             get {
                 #pragma warning disable CS8603
                 return this.Cdr as List;
@@ -384,6 +400,8 @@ public abstract class List : Expr, IEnumerable<Expr> {
             }
 
         }
+
+        public List Rest {get;}
         public override int GetHashCode() {
             return base.GetHashCode();
         }
@@ -428,11 +446,13 @@ public abstract class SpecialForm : List.NonEmpty {
 
     public SpecialForm(Expr car, List.NonEmpty cdr) : base(car,cdr) {}
 
+    public SpecialForm(Syntax car, SyntaxList cdr) : base(car, cdr) {}
+
     public static bool Is<T>(Expr x, [NotNullWhen(returnValue: true)] out T? result) where T : SpecialForm {
-        if (x is SyntaxObject stx) {
+        if (x is Syntax stx) {
             // TODO: SyntaxObject.ToDatum will not produce an Expr.Lambda here
-            if (SyntaxObject.E(stx) is T t) {
-                // Console.WriteLine($"\tIs SyntaxObject.E({stx}) a {typeof(T)}? {SyntaxObject.E(stx) is T}");
+            if (Syntax.E(stx) is T t) {
+                Console.WriteLine($"\tIs Syntax.E({stx}) a {typeof(T)}? {Syntax.E(stx) is T}");
                 result = t;
                 return true;
             } else {

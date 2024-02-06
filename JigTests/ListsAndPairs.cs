@@ -16,7 +16,7 @@ public class ListsAndPairs
     public void Cons(string input, string expected) {
         string actual = "";
         Continuation.OneArgDelegate setResult = (x) => {actual = x.Print(); return null;};
-        SyntaxObject? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
+        Syntax? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
         Assert.IsNotNull(stx);
         Program.Eval(setResult, stx, new Jig.Environment());
         Assert.AreEqual(expected, actual);
@@ -28,7 +28,7 @@ public class ListsAndPairs
     public void Car(string input, string expected) {
         string actual = "";
         Continuation.OneArgDelegate setResult = (x) => {actual = x.Print(); return null;};
-        SyntaxObject? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
+        Syntax? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
         Assert.IsNotNull(stx);
         Program.Eval(setResult, stx, new Jig.Environment());
         Assert.AreEqual(expected, actual);
@@ -40,7 +40,7 @@ public class ListsAndPairs
     public void Cdr(string input, string expected) {
         string actual = "";
         Continuation.OneArgDelegate setResult = (x) => {actual = x.Print(); return null;};
-        SyntaxObject? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
+        Syntax? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
         Assert.IsNotNull(stx);
         Program.Eval(setResult, stx, new Jig.Environment());
         Assert.AreEqual(expected, actual);
@@ -52,7 +52,7 @@ public class ListsAndPairs
     public void ConsCarCdr(string input, string expected) {
         string actual = "";
         Continuation.OneArgDelegate setResult = (x) => {actual = x.Print(); return null;};
-        SyntaxObject? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
+        Syntax? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
         Assert.IsNotNull(stx);
         Program.Eval(setResult, stx, new Jig.Environment());
         Assert.AreEqual(expected, actual);
@@ -67,7 +67,7 @@ public class ListsAndPairs
     public void NullP(string input, string expected) {
         string actual = "";
         Continuation.OneArgDelegate setResult = (x) => {actual = x.Print(); return null;};
-        SyntaxObject? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
+        Syntax? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
         Assert.IsNotNull(stx);
         Program.Eval(setResult, stx, new Jig.Environment());
         Assert.AreEqual(expected, actual);

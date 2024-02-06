@@ -12,7 +12,7 @@ public static class Program {
         Continuation.ContinuationAny print = (Continuation.ContinuationAny)Print;
         // REPL
         Console.Write("> ");
-        SyntaxObject? input;
+        Syntax? input;
         while (true) {
             using (InputPort port = new InputPort(Console.In)) {
                 try {
@@ -39,9 +39,9 @@ public static class Program {
     }
 
     public static void Eval(Delegate k, Expr ast, IEnvironment env) {
-        Console.Write($"{ast} macro-expanded to ");
-        ast = new MacroExpander().Expand(ast, ExpansionEnvironment.Default);
-        Console.WriteLine($"{ast}");
+        if (ast is Syntax stx) {
+            ast = new MacroExpander().Expand(stx, ExpansionEnvironment.Default);
+        }
         var compiled = Compiler.Compile(ast);
         Run(compiled, k, env);
     }

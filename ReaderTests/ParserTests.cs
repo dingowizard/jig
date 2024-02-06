@@ -15,8 +15,8 @@ public class ParserTests {
     [TestMethod]
     public void ParseSytaxOpenCloseParensReturnsNull() {
         var tokenStream = new TokenStream(InputPort.FromString("()"));
-        SyntaxObject actual = (SyntaxObject)Parser.ParseExpr(tokenStream, syntax: true);
-        Assert.AreEqual(List.Empty, SyntaxObject.ToDatum(actual));
+        Syntax actual = (Syntax)Parser.ParseExpr(tokenStream, syntax: true);
+        Assert.AreEqual(List.Empty, Syntax.ToDatum(actual));
         Assert.AreEqual(1, actual.SrcLoc.Line);
         Assert.AreEqual(1, actual.SrcLoc.Position);
         Assert.AreEqual(0, actual.SrcLoc.Column);
@@ -33,21 +33,21 @@ public class ParserTests {
     [TestMethod]
     public void ParseSyntaxOneItemList() {
         var tokenStream = new TokenStream(InputPort.FromString("(abc)"));
-        SyntaxObject stx = Parser.ParseSyntax(tokenStream);
-        Assert.IsInstanceOfType(stx, typeof(SyntaxObject));
-        Expr x = SyntaxObject.E(stx);
+        Syntax stx = Parser.ParseSyntax(tokenStream);
+        Assert.IsInstanceOfType(stx, typeof(Syntax));
+        Expr x = Syntax.E(stx);
         Assert.IsInstanceOfType(x, typeof(IPair));
         Expr car = ((IPair)x).Car;
-        Assert.IsInstanceOfType(car, typeof(SyntaxObject));
-        SyntaxObject so = (SyntaxObject)car;
-        Assert.AreEqual(new Expr.Symbol("abc"), SyntaxObject.ToDatum(so));
+        Assert.IsInstanceOfType(car, typeof(Syntax));
+        Syntax so = (Syntax)car;
+        Assert.AreEqual(new Expr.Symbol("abc"), Syntax.ToDatum(so));
     }
 
     [TestMethod]
     public void ParseSyntaxOneItemListCdrIsNull() {
         var tokenStream = new TokenStream(InputPort.FromString("(abc)"));
-        SyntaxObject stx = Parser.ParseSyntax(tokenStream);
-        Expr x = SyntaxObject.E(stx);
+        Syntax stx = Parser.ParseSyntax(tokenStream);
+        Expr x = Syntax.E(stx);
         Expr cdr = ((IPair) x).Cdr;
         Assert.AreEqual(List.Empty, cdr);
     }
@@ -56,7 +56,7 @@ public class ParserTests {
     [TestMethod]
     public void ParseSyntaxListHasCorrectSrcLoc() {
         var tokenStream = new TokenStream(InputPort.FromString("(abc def)"));
-        var actual = (SyntaxObject)Parser.ParseExpr(tokenStream, syntax: true);
+        var actual = (Syntax)Parser.ParseExpr(tokenStream, syntax: true);
         Assert.AreEqual(9, actual.SrcLoc.Span);
 
     }
@@ -64,7 +64,7 @@ public class ParserTests {
     [TestMethod]
     public void ParseSyntaxPairHasCorrectSrcLoc() {
         var tokenStream = new TokenStream(InputPort.FromString("(abc . def)"));
-        var actual = (SyntaxObject)Parser.ParseExpr(tokenStream, syntax: true);
+        var actual = (Syntax)Parser.ParseExpr(tokenStream, syntax: true);
         Assert.AreEqual(11, actual.SrcLoc.Span);
 
     }
@@ -79,12 +79,12 @@ public class ParserTests {
     [TestMethod]
     public void ParseSyntaxTwoItemList() {
         var tokenStream = new TokenStream(InputPort.FromString("(abc def)"));
-        SyntaxObject stx = Parser.ParseSyntax(tokenStream);
-        IPair? stxPair = SyntaxObject.E(stx) as IPair;
+        Syntax stx = Parser.ParseSyntax(tokenStream);
+        IPair? stxPair = Syntax.E(stx) as IPair;
         Assert.IsNotNull(stxPair);
         List.NonEmpty? rest = stxPair.Cdr as List.NonEmpty;
         Assert.IsNotNull(rest);
-        SyntaxObject.Identifier? id = rest.Car as SyntaxObject.Identifier;
+        Syntax.Identifier? id = rest.Car as Syntax.Identifier;
         Assert.IsNotNull(id);
         Assert.AreEqual(new Expr.Symbol("def"), id.Symbol);
     }
@@ -92,21 +92,21 @@ public class ParserTests {
     [TestMethod]
     public void ParseSyntaxNestedList() {
         var tokenStream = new TokenStream(InputPort.FromString("(quote (abc def))"));
-        SyntaxObject stx = Parser.ParseSyntax(tokenStream);
-        Assert.IsInstanceOfType(stx, typeof(SyntaxObject));
-        IPair? stxPair = SyntaxObject.E(stx) as IPair;
+        Syntax stx = Parser.ParseSyntax(tokenStream);
+        Assert.IsInstanceOfType(stx, typeof(Syntax));
+        IPair? stxPair = Syntax.E(stx) as IPair;
         Assert.IsNotNull(stxPair);
         List.NonEmpty? rest = stxPair.Cdr as List.NonEmpty;
         Assert.IsNotNull(rest);
         // rest should be ((abc def))
-        SyntaxObject? carCdr = rest.Car as SyntaxObject; // should be (abc def)
+        Syntax? carCdr = rest.Car as Syntax; // should be (abc def)
         Assert.IsNotNull(carCdr);
-        IPair? stxPairCarCdr = SyntaxObject.E(carCdr) as IPair;
+        IPair? stxPairCarCdr = Syntax.E(carCdr) as IPair;
         Assert.IsNotNull(stxPairCarCdr);
-        SyntaxObject? abc = stxPairCarCdr.Car as SyntaxObject;
+        Syntax? abc = stxPairCarCdr.Car as Syntax;
         Assert.IsNotNull(abc);
-        Assert.AreEqual(new Expr.Symbol("abc"), SyntaxObject.ToDatum(abc));
-        Assert.AreEqual(List.NewList(new Expr.Symbol("abc"), new Expr.Symbol("def")), SyntaxObject.ToDatum(carCdr));
+        Assert.AreEqual(new Expr.Symbol("abc"), Syntax.ToDatum(abc));
+        Assert.AreEqual(List.NewList(new Expr.Symbol("abc"), new Expr.Symbol("def")), Syntax.ToDatum(carCdr));
     }
 
     [TestMethod]

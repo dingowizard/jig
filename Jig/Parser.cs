@@ -4,8 +4,8 @@ namespace Jig.Reader;
 
 public class Parser {
 
-    public static SyntaxObject ParseSyntax(TokenStream tokenStream) {
-        return (SyntaxObject)ParseExpr(tokenStream, syntax: true);
+    public static Syntax ParseSyntax(TokenStream tokenStream) {
+        return (Syntax)ParseExpr(tokenStream, syntax: true);
     }
 
     public static Expr ParseExpr(TokenStream tokenStream, bool syntax = false) {
@@ -15,9 +15,9 @@ public class Parser {
                 tokenStream.Read();
                 Expr arg = ParseExpr(tokenStream, syntax);
                 if (syntax) {
-                   return new SyntaxObject(new SpecialForm.Quote(
-                       new SyntaxObject.Identifier(Expr.Symbol.FromName("quote"), quoteToken.SrcLoc), arg),
-                       ((SyntaxObject)arg).SrcLoc);
+                   return new Syntax(new SpecialForm.Quote(
+                       new Syntax.Identifier(Expr.Symbol.FromName("quote"), quoteToken.SrcLoc), arg),
+                       ((Syntax)arg).SrcLoc);
                 } else {
                     return new SpecialForm.Quote(Expr.Symbol.FromName("quote"), arg);
                 }
@@ -28,7 +28,7 @@ public class Parser {
                     // this is an empty list
                     tokenStream.Read();
                     if (syntax) {
-                        return new SyntaxObject(List.Empty, SrcLoc.Combine(openToken.SrcLoc, closeToken.SrcLoc));
+                        return new Syntax(List.Empty, SrcLoc.Combine(openToken.SrcLoc, closeToken.SrcLoc));
                     } else {
                         return List.Empty;
                     }
@@ -37,7 +37,7 @@ public class Parser {
                 if (tokenStream.Peek() is Token.CloseParen close) {
                     tokenStream.Read();
                     if (syntax) {
-                        return SyntaxObject.FromDatum(pair, SrcLoc.Combine(openToken.SrcLoc, close.SrcLoc));
+                        return Syntax.FromDatum(pair, SrcLoc.Combine(openToken.SrcLoc, close.SrcLoc));
                     } else {
                         return pair;
                     }
@@ -63,7 +63,7 @@ public class Parser {
         tokenStream.Read();
         var x = new Expr.String(str.Text.Substring(1, str.Text.Length - 2));
         if (syntax) {
-            return new SyntaxObject(x, str.SrcLoc);
+            return new Syntax(x, str.SrcLoc);
         } else {
             return x;
         }
@@ -73,13 +73,13 @@ public class Parser {
         tokenStream.Read();
         if (Int32.TryParse(num.Text, out int i)) {
             if (syntax) {
-                return new SyntaxObject.Literal(new Expr.Integer(i), num.SrcLoc);
+                return new Syntax.Literal(new Expr.Integer(i), num.SrcLoc);
             } else {
                 return new Expr.Integer(i);
             }
         } else if (Double.TryParse(num.Text, out double d)) {
             if (syntax) {
-                return new SyntaxObject.Literal(new Expr.Double(d), num.SrcLoc);
+                return new Syntax.Literal(new Expr.Double(d), num.SrcLoc);
             } else {
                 return new Expr.Double(d);
             }
@@ -95,13 +95,13 @@ public class Parser {
                 // tokenStream.Read();
                 if (b.Text == "#t" || b.Text == "#true") {
                     if (syntax) {
-                        return new SyntaxObject.Literal(new Expr.Boolean(true), b.SrcLoc);
+                        return new Syntax.Literal(new Expr.Boolean(true), b.SrcLoc);
                     } else {
                         return new Expr.Boolean(true);
                     }
                 } else if (b.Text == "#f" || b.Text == "#false") {
                     if (syntax) {
-                        return new SyntaxObject.Literal(new Expr.Boolean(false), b.SrcLoc);
+                        return new Syntax.Literal(new Expr.Boolean(false), b.SrcLoc);
                     } else {
                         return new Expr.Boolean(false);
                     }
@@ -118,7 +118,7 @@ public class Parser {
         var tok = tokenStream.Read();
         Debug.Assert(tok is Token.Identifier);
         Expr.Symbol sym = Expr.Symbol.FromName(id.Text);
-        return syntax ? new SyntaxObject.Identifier(sym, id.SrcLoc) : sym;
+        return syntax ? new Syntax.Identifier(sym, id.SrcLoc) : sym;
     }
 
     static Expr ParsePair(TokenStream tokenStream, bool syntax = false) {
@@ -163,7 +163,7 @@ public class Parser {
     private static Expr ParseSetExpression(Expr keyword, TokenStream tokenStream, bool syntax)
     {
         Expr sym = ParseExpr(tokenStream, syntax);
-        if (sym is not Expr.Symbol && sym is not SyntaxObject.Identifier) {
+        if (sym is not Expr.Symbol && sym is not Syntax.Identifier) {
             throw new Exception($"syntax error @ {tokenStream.Port.Source}: {tokenStream.Port.Line}, {tokenStream.Port.Column}: malformed 'set!' -- expected symbol but got {sym}.");
         }
         Expr val = ParseExpr(tokenStream, syntax);
@@ -176,7 +176,7 @@ public class Parser {
     private static Expr ParseDefineExpression(Expr keyword, TokenStream tokenStream, bool syntax)
     {
         Expr sym = ParseExpr(tokenStream, syntax);
-        if (sym is not Expr.Symbol && sym is not SyntaxObject.Identifier) {
+        if (sym is not Expr.Symbol && sym is not Syntax.Identifier) {
             throw new Exception($"syntax error @ {tokenStream.Port.Source}: {tokenStream.Port.Line}, {tokenStream.Port.Column}: malformed 'define' -- expected symbol but got {sym}.");
         }
         Expr val = ParseExpr(tokenStream, syntax);
@@ -240,7 +240,7 @@ public class Parser {
     private static bool ValidLambdaParameters(Expr parameters) => parameters switch
     {
         // TODO: check that no parameter names are repeated
-        SyntaxObject stx => ValidLambdaParameters(SyntaxObject.ToDatum(stx)),
+        Syntax stx => ValidLambdaParameters(Syntax.ToDatum(stx)),
         List.NullType => true,
         Expr.Symbol => true,
         IPair pair => ValidLambdaParameters(pair.Car) && ValidLambdaParameters(pair.Cdr),
