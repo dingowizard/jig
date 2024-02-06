@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -31,28 +33,27 @@ internal abstract class ET : Expression {
         } else if (Expr.IsSymbol(ast)) {
             return new SymbolET(scope, ast);
         } else if (Expr.IsNonEmptyList(ast)) {
-            List.NonEmpty list = ast is SyntaxObject stx ? (List.NonEmpty)SyntaxObject.E(stx) : (List.NonEmpty)ast;
-            // TODO: rewrite below ET constructors to take full ast (as list probably)
+            List.NonEmpty list = ast is Syntax stx ? (List.NonEmpty)Syntax.E(stx) : (List.NonEmpty)ast;
             if (Expr.IsKeyword("quote", ast)) {
                 // TODO: QuoteET
-                return new LiteralET(((List.NonEmpty)list.Cdr).Car);
-            } else if (Expr.IsKeyword("lambda", ast)) {
-                return new LambdaExprET(scope, (List.NonEmpty)list.Cdr);
+                return new LiteralET(list.ElementAt(1));
             } else if (Expr.IsKeyword("if", ast)) {
                 return new IfET(scope, list);
+            } else if (Expr.IsKeyword("lambda", ast)) {
+                return new LambdaExprET(scope, list);
             } else if (Expr.IsKeyword("define", ast)) {
                 return new DefineET(scope, list);
-            } else if (Expr.IsKeyword("begin", ast)){
+            } else if (Expr.IsKeyword("begin", ast)) {
+                // TODO: rewrite begin as builtin transformer
                 return new BlockET(scope, (List.NonEmpty)list.Cdr);
-            }
-            else if (Expr.IsKeyword("set!", ast)){
+            } else if (Expr.IsKeyword("set!", ast)) {
                 return new SetBangET(scope, list);
             }
             else {
                 return new ProcAppET(scope, list);
             }
         } else {
-            throw new Exception($"Analyze: doesnn't know what to do with {ast}");
+            throw new Exception($"Analyze: doesn't know what to do with {ast}");
         }
     }
 
@@ -73,7 +74,7 @@ internal abstract class ET : Expression {
     private class LiteralET : ET {
 
         public LiteralET(Expr x) : base() {
-            x = x is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : x;
+            x = x is Syntax stx ? Syntax.ToDatum(stx) : x;
             Body = Expression.Convert(DynInv(kParam, Expression.Constant(x)), typeof(Thunk));
         }
 
@@ -175,16 +176,6 @@ internal abstract class ET : Expression {
         }
     }
 
-    // private static Expression NewMaybeThunkExpression(Expression body) {
-    //     ConstructorInfo maybeThunkCstr = typeof(Continuation.MaybeThunk.Thunk).GetConstructor(types: new Type[] {typeof(Continuation.Thunk)})
-    //             ?? throw new Exception("couldn't find MaybeThunk.Thunk constructor");
-    //     return Expression.New(maybeThunkCstr,
-    //                           Expression.Lambda<Continuation.Thunk>(
-    //                               Expression.Convert(body,
-    //                                                  typeof(Continuation.MaybeThunk))));
-    // }
-
-
     private class SetBangET : ET {
 
         private static MethodInfo _setMethod {get;} = typeof(IEnvironment).GetMethod("Set") ?? throw new Exception("while initializeing SetBangET, could not find 'Set' method on IEnvironment");
@@ -260,9 +251,9 @@ internal abstract class ET : Expression {
         static ConstructorInfo procedureCstr = typeof(Procedure).GetConstructor(new Type[] {typeof(Delegate)}) ?? throw new Exception("could not find constructor for Procedure");
 
         public LambdaExprET(LexicalContext scope, List.NonEmpty args) {
-            // args will be something like ((a b) body..) but may or may not be syntax objects
-            Expr lambdaParameters = args.Car is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : args.Car; // TODO: do we want to throw this info out already?
-            List.NonEmpty lambdaBody = args.Cdr as List.NonEmpty ?? throw new Exception($"malformed lambda: no body");
+            Expr lambdaParameters = args.ElementAt(1) is Syntax stx ? Syntax.ToDatum(stx) : args.ElementAt(1); // TODO: do we want to throw this info out already?
+            Debug.Assert(args.Count() >= 3);
+            List.NonEmpty lambdaBody = (List.NonEmpty)List.ListFromEnumerable(args.Skip(2));
 
             var k = Expression.Parameter(typeof(Delegate), "k in MakeProcET"); // this is the continuation paramter for the proc we are making
             LexicalContext lambdaScope;
@@ -273,12 +264,16 @@ internal abstract class ET : Expression {
                     lambdaScope = scope.Extend(properListSymbols);
                     LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
                     LambdaExpressionParams = new ParameterExpression[] {k}.Concat(lambdaScope.Parameters).ToArray();
-                    Body = Expression.Convert(DynInv(kParam, // here kParam is the continuation when the lambda expression is being evaluated
-                                             Expression.New(procedureCstr,
-                                                            new Expression[] {
-                                                                Expression.Lambda(body: LambdaExpressionBody,
-                                                                                  parameters: LambdaExpressionParams)
-                                                            })), typeof(Thunk));
+                    Body =
+                        Expression.Convert(
+                            DynInv(kParam,
+                                   Expression.New(
+                                       procedureCstr,
+                                       new Expression[] {
+                                           Expression.Lambda(body: LambdaExpressionBody,
+                                                             parameters: LambdaExpressionParams)
+                                       })),
+                            typeof(Thunk));
                     return;
                 case Expr.Symbol onlyRestSymbol: // cases like (lambda x x)
                     lambdaScope = scope.Extend(new Expr.Symbol[]{onlyRestSymbol});

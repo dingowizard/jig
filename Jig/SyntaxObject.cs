@@ -1,30 +1,54 @@
+using System.Collections;
+using System.Linq;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Jig;
 
-public class SyntaxObject : Expr {
+public class Syntax : Expr {
+    // TODO: should this be an interface rather than a class? then e.g. Identifier : Symbol, ISyntaxObject
+    //
+    // NOTE:
+    // in racket, syntax-objects do not have to have srclocs. a syntx-object could return #f for syntax-line or syntax-source
 
-    public SyntaxObject(Expr expr, SrcLoc srcLoc) {
-        Expression = expr;
-        SrcLoc = srcLoc;
+    public static Expr E(Syntax stx) {
+        return stx.Expression;
     }
 
-    public static SyntaxObject FromDatum(Expr datum, SrcLoc srcLoc) {
+    public static Expr ToDatum(Syntax stx) {
+        Expr x = Syntax.E(stx);
+        if (x is IPair stxPair) {
+            return SyntaxPairToDatum(stxPair);
+        }
+        return x;
+    }
+
+    public static Syntax FromDatum(Expr datum, SrcLoc srcLoc) {
         switch (datum) {
             case Expr.Boolean: case Expr.Integer: case Expr.Double:
                 return new Literal(datum, srcLoc);
             case Expr.Symbol sym:
                 return new Identifier(sym, srcLoc);
             default:
-                return new SyntaxObject(datum, srcLoc);
+                return new Syntax(datum, srcLoc);
         }
     }
 
-    public class Literal : SyntaxObject {
-        internal Literal(Expr x, SrcLoc srcLoc) : base (x, srcLoc) {}
+    public static bool ToList(Syntax stx, [NotNullWhen(returnValue: true)] out SyntaxList stxList) {
+        throw new NotImplementedException();
 
     }
 
-    public class Identifier : SyntaxObject {
+
+    public Syntax(Expr expr, SrcLoc srcLoc) {
+        Expression = expr;
+        SrcLoc = srcLoc;
+    }
+
+    public class Literal : Syntax {
+        internal Literal(Expr x, SrcLoc srcLoc) : base (x, srcLoc) {}
+    }
+
+    public class Identifier : Syntax {
         internal Identifier(Expr.Symbol symbol, SrcLoc srcLoc) : base (symbol, srcLoc) {}
 
         public new Expr.Symbol Symbol {
@@ -38,23 +62,12 @@ public class SyntaxObject : Expr {
 
     public override string ToString() => $"#<syntax: {ToDatum(this).ToString()}>";
 
-    public static Expr E(SyntaxObject stx) {
-        return stx.Expression;
-    }
-
-    public static Expr ToDatum(SyntaxObject stx) {
-        Expr x = SyntaxObject.E(stx);
-        if (x is IPair stxPair) {
-            return SyntaxPairToDatum(stxPair);
-        }
-        return x;
-    }
-
     private static Expr SyntaxPairToDatum(IPair stxPair) {
-            SyntaxObject car = stxPair.Car as SyntaxObject ?? throw new Exception($"SyntaxObject.SyntaxPairToDatum: expected syntax pair, but car ({stxPair.Car}) is not a syntax object");
+            Syntax car = stxPair.Car as Syntax ??
+                throw new Exception($"SyntaxObject.SyntaxPairToDatum: expected syntax pair, but car -- {stxPair.Car} -- is not a syntax object");
             if (stxPair.Cdr is Expr.NullType) {
                 return (Expr)Expr.Pair.Cons(ToDatum(car), (Expr)List.Empty);
-            } else if (stxPair.Cdr is SyntaxObject soCdr) {
+            } else if (stxPair.Cdr is Syntax soCdr) {
                 return (Expr)Expr.Pair.Cons(ToDatum(car), ToDatum(soCdr));
             } else if (stxPair.Cdr is IPair cdrPair) {
                 return (Expr)Expr.Pair.Cons(ToDatum(car), SyntaxPairToDatum(cdrPair));
@@ -62,12 +75,6 @@ public class SyntaxObject : Expr {
                 throw new Exception($"SyntaxPairToDatum: cdr of a syntax pair should be a syntax object, null or a pair. {stxPair.Cdr} is none of these)");
             }
     }
-
-
-
-    // public override string ToString() {
-    //     return $"< SyntaxObject {Datum} >";
-    // }
 
     protected virtual Expr Expression {get;}
 
@@ -103,4 +110,44 @@ public struct SrcLoc {
                               first.Column,
                               first.Position,
                               (last.Position - first.Position) + last.Span);    }
+}
+
+public class SyntaxList : List.NonEmpty, IEnumerable<Syntax> {
+
+    public SyntaxList(Syntax car, List cdr) : base(car, cdr) {
+        First = car;
+    }
+
+    public static List FromIEnumerable(IEnumerable<Syntax> stxs) {
+        List result = List.Empty;
+        for (int index = stxs.Count() - 1; index >= 0; index--) {
+            result = new SyntaxList(stxs.ElementAt(index), result);
+        }
+        return result;
+    }
+
+    public static List FromParams(params Syntax[] stxs) {
+        List result = List.Empty;
+        for (int index = stxs.Count() - 1; index >= 0; index--) {
+            result = new SyntaxList(stxs.ElementAt(index), result);
+        }
+        return result;
+    }
+
+    public Syntax First {get;}
+
+    public new IEnumerator<Syntax> GetEnumerator() {
+        List theList = this;
+        while (theList is SyntaxList nonEmptyList) {
+            yield return nonEmptyList.First;
+            theList = nonEmptyList.CdrAsList;
+        }
+
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() {
+        return this.GetEnumerator();
+    }
+
+
 }

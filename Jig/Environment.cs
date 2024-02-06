@@ -21,7 +21,7 @@ public class Environment : IEnvironment {
     }
 
     public Thunk Set(Delegate k, Expr sym, Expr v) {
-        Expr.Symbol s = sym is SyntaxObject.Identifier i ? i.Symbol : ((Expr.Symbol) sym);
+        Expr.Symbol s = sym is Syntax.Identifier i ? i.Symbol : ((Expr.Symbol) sym);
         if (!_dict.ContainsKey(s)) {
             throw new Exception($"set!: unbound variable {s}");
         }
@@ -31,7 +31,7 @@ public class Environment : IEnvironment {
     }
 
     public Thunk Define (Delegate k, Expr sym, Expr v) {
-        Expr.Symbol s = sym is SyntaxObject.Identifier i ? i.Symbol : ((Expr.Symbol) sym);
+        Expr.Symbol s = sym is Syntax.Identifier i ? i.Symbol : ((Expr.Symbol) sym);
         if (_dict.ContainsKey(s)) {
             _dict[s] = v;
             return Continuation.ApplyDelegate(k, s);
@@ -41,7 +41,7 @@ public class Environment : IEnvironment {
     }
 
     public Thunk LookUp (Delegate k, Expr expr) {
-        Expr.Symbol symbol = expr is SyntaxObject.Identifier id ? id.Symbol : (Expr.Symbol) expr;
+        Expr.Symbol symbol = expr is Syntax.Identifier id ? id.Symbol : (Expr.Symbol) expr;
         if (_dict.TryGetValue(symbol, out Expr? result)) {
             return Continuation.ApplyDelegate(k, result);
         } else {

@@ -28,7 +28,7 @@ internal class LexicalContext {
     }
 
     public ParameterExpression ParameterForDefine(Expr x) {
-        Expr.Symbol sym = x is SyntaxObject.Identifier id ? id.Symbol : (Expr.Symbol)x;
+        Expr.Symbol sym = x is Syntax.Identifier id ? id.Symbol : (Expr.Symbol)x;
         ParameterExpression? pe = Symbols.Find(tup => tup.Item1.Equals(sym))?.Item2;
         if (pe is null) {
             pe = Expression.Parameter(typeof(Expr), sym.Name);
@@ -43,8 +43,8 @@ internal class LexicalContext {
     public ParameterExpression? LookUp(Expr x) {
 
         Expr.Symbol symbol =
-            x is SyntaxObject stx ?
-            (Expr.Symbol)SyntaxObject.ToDatum(stx) :
+            x is Syntax stx ?
+            (Expr.Symbol)Syntax.ToDatum(stx) :
             (Expr.Symbol) x;
         ParameterExpression? pe = Symbols.Find(tup => tup.Item1.Equals(symbol))?.Item2;
         if (pe is null) {

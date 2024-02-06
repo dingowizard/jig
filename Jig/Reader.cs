@@ -9,7 +9,7 @@ public static class Reader {
         return Parser.ParseExpr(new TokenStream(port));
     }
 
-    public static SyntaxObject? ReadSyntax(InputPort port) {
+    public static Syntax? ReadSyntax(InputPort port) {
         if (port.Peek() == -1) return null;
         return Parser.ParseSyntax(new TokenStream(port));
     }

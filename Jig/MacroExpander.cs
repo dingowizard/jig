@@ -1,137 +1,143 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Jig;
 
 public class MacroExpander {
 
-    public Expr Expand(Expr ast, ExpansionEnvironment ee) {
+    public Syntax Expand(Syntax ast, ExpansionEnvironment ee) {
         bool foundMacro = false;
         do {
+            Syntax save = ast;
             (foundMacro, ast) = Expand_1(ast, ee);
 
         } while (foundMacro);
         return ast;
     }
 
-    private (bool, Expr) Expand_1(Expr ast, ExpansionEnvironment ee) {
-        ast = ast is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : ast;
+    private (bool, Syntax) Expand_1(Syntax stx, ExpansionEnvironment ee) {
+        // ast = ast is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : ast;
         // TODO: rewrite this in a way that we don't have to remember to change it everytime a keyword is added
-        if (ast is List.NonEmpty listExpr) {
-            if (Expr.IsKeyword("quote", listExpr)) {
-                return (false, ast);
-            } else if (Expr.IsKeyword("lambda", ast)) {
-                return ExpandLambda(listExpr, ee);
-            } else if (Expr.IsKeyword("if", ast)) {
-                return ExpandIf(listExpr, ee);
-            } else if (Expr.IsKeyword("define", ast)) {
-                return ExpandDefine(listExpr, ee);
-            } else if (Expr.IsKeyword("begin", ast)){
-                return ExpandBegin(listExpr, ee);
-            } else if (Expr.IsKeyword("set!", ast)){
-                return ExpandSet(listExpr, ee);
+        switch (stx) {
+            case Syntax.Identifier id: return (false, id);
+            case Syntax.Literal lit: return (false, lit);
+        }
+        if (Syntax.E(stx) is SyntaxList stxList) {
+            if (Expr.IsKeyword("quote", stx)) {
+                return (false, stx);
+            } else if (Expr.IsKeyword("lambda", stx)) {
+                return ExpandLambda(stx.SrcLoc, stxList, ee);
+            } else if (Expr.IsKeyword("if", stx)) {
+                return ExpandIf(stx.SrcLoc, stxList, ee);
+            } else if (Expr.IsKeyword("define", stx)) {
+                return ExpandDefine(stx.SrcLoc, stxList, ee);
+            } else if (Expr.IsKeyword("begin", stx)) {
+                return ExpandBegin(stx.SrcLoc, stxList, ee);
+            } else if (Expr.IsKeyword("set!", stx)) {
+                return ExpandSet(stx.SrcLoc, stxList, ee);
             } else {
-                return ExpandApplication(listExpr, ee);
+                return ExpandApplication(stx.SrcLoc, stxList, ee);
             }
         } else {
-            return (false, ast);
+            return (false, stx);
         }
     }
 
-    private (bool, Expr) ExpandApplication(List.NonEmpty listExpr, ExpansionEnvironment ee)
+    private (bool, Syntax) ExpandApplication(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
-        if (listExpr.ElementAt(0) is Expr.Symbol sym && ee.TryFindMacro(sym, out Macro macro)) {
-                var list = List.ListFromEnumerable(listExpr.Skip(1));
-                return (true, macro.Apply(list));
+        if (stxList.ElementAt<Syntax>(0) is Syntax.Identifier id && ee.TryFindMacro(id.Symbol, out Macro? macro)) {
+                List list = stxList.Rest;
+                return (true, macro.Apply(list)); // TODO: macros should take whole stx not just args
         } else {
-                return ExpandSequence(listExpr, ee);
+                return ExpandSequence(srcLoc, stxList, ee);
         }
     }
 
-    private (bool, Expr) ExpandSequence(List.NonEmpty exprs, ExpansionEnvironment ee) {
-                List<Expr> xs = new List<Expr>();
+    private (bool, Syntax) ExpandSequence(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
+                List<Syntax> xs = new List<Syntax>();
                 bool foundMacro = false;
-                foreach (var x in exprs) {
-                    (bool foundMacroInBodyExpr, Expr bodyExpr) = Expand_1(x, ee);
+                foreach (var x in stxList) {
+                    (bool foundMacroInBodyExpr, Syntax bodyExpr) = Expand_1(x, ee);
                     if (foundMacroInBodyExpr) {
                         foundMacro = true;
                     }
                     xs.Add(bodyExpr);
                 }
-                return (foundMacro, List.ListFromEnumerable(xs));
+                return (foundMacro, new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc));
 
     }
 
-    private (bool, Expr) ExpandSet(List.NonEmpty astAsList, ExpansionEnvironment ee)
+    private (bool, Syntax) ExpandSet(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
         bool foundMacro = false;
-        List<Expr> xs = new List<Expr>();
-        Debug.Assert(astAsList.Count() == 3);
-        xs.Add(astAsList.ElementAt(0));
-        xs.Add(astAsList.ElementAt(1));
-        foreach (var x in astAsList.Skip(2)) {
-            (bool foundMacroInBodyExpr, Expr bodyExpr) = Expand_1(x, ee);
+        List<Syntax> xs = new List<Syntax>();
+        Debug.Assert(stxList.Count<Syntax>() == 3);
+        xs.Add(stxList.ElementAt<Syntax>(0));
+        xs.Add(stxList.ElementAt<Syntax>(1));
+        foreach (var x in stxList.Skip<Syntax>(2)) {
+            (bool foundMacroInBodyExpr, Syntax bodyExpr) = Expand_1(x, ee);
             if (foundMacroInBodyExpr) {
                 foundMacro = true;
             }
             xs.Add(bodyExpr);
         }
-        return (foundMacro, List.ListFromEnumerable(xs));
+        return (foundMacro, new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc));
     }
 
-    private (bool, Expr) ExpandBegin(List.NonEmpty ast, ExpansionEnvironment ee)
+    private (bool, Syntax) ExpandBegin(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
-        return ExpandSequence(ast, ee);
+        return ExpandSequence(srcLoc, stxList, ee);
     }
 
-    private (bool, Expr) ExpandDefine(List.NonEmpty astAsList, ExpansionEnvironment ee)
+    private (bool, Syntax) ExpandDefine(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
         bool foundMacro = false;
-        List<Expr> xs = new List<Expr>();
-        Debug.Assert(astAsList.Count() == 3);
-        xs.Add(astAsList.ElementAt(0));
-        xs.Add(astAsList.ElementAt(1));
-        foreach (var x in astAsList.Skip(2)) {
-            (bool foundMacroInBodyExpr, Expr bodyExpr) = Expand_1(x, ee);
+        List<Syntax> xs = new List<Syntax>();
+        Debug.Assert(stxList.Count<Syntax>() == 3);
+        xs.Add(stxList.ElementAt<Syntax>(0));
+        xs.Add(stxList.ElementAt<Syntax>(1));
+        foreach (var x in stxList.Skip<Syntax>(2)) {
+            (bool foundMacroInBodyExpr, Syntax bodyExpr) = Expand_1(x, ee);
             if (foundMacroInBodyExpr) {
                 foundMacro = true;
             }
             xs.Add(bodyExpr);
         }
-        return (foundMacro, List.ListFromEnumerable(xs));
+        return (foundMacro, new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc));
     }
 
-    private (bool, Expr) ExpandIf(List.NonEmpty astAsList, ExpansionEnvironment ee)
+    private (bool, Syntax) ExpandIf(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
         bool foundMacro = false;
-        List<Expr> xs = new List<Expr>();
-        Debug.Assert(astAsList.Count() == 4);
-        xs.Add(astAsList.ElementAt(0));
-        foreach (var x in astAsList.Skip(1)) {
-            (bool foundMacroInBodyExpr, Expr bodyExpr) = Expand_1(x, ee);
+        List<Syntax> xs = new List<Syntax>();
+        Debug.Assert(stxList.Count<Syntax>() == 4);
+        xs.Add(stxList.ElementAt<Syntax>(0));
+        foreach (var x in stxList.Skip<Syntax>(1)) {
+            (bool foundMacroInBodyExpr, Syntax bodyExpr) = Expand_1(x, ee);
             if (foundMacroInBodyExpr) {
                 foundMacro = true;
             }
             xs.Add(bodyExpr);
         }
-        return (foundMacro, List.ListFromEnumerable(xs));
+        return (foundMacro, new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc));
     }
 
-    private (bool, Expr) ExpandLambda(List.NonEmpty astAsList, ExpansionEnvironment ee) {
+    private (bool, Syntax) ExpandLambda(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
         // TODO: Parser should produce a lambdaExpr Expr that is a type of List.NonEmpty
         bool foundMacro = false;
-        List<Expr> xs = new List<Expr>();
+        List<Syntax> xs = new List<Syntax>();
         // below assert breaks a lot of tests having to do with multiple values
         // Debug.Assert(astAsList.Count() > 3);
-        xs.Add(astAsList.ElementAt(0));
-        xs.Add(astAsList.ElementAt(1));
-        foreach (var x in astAsList.Skip(2)) {
-            (bool foundMacroInBodyExpr, Expr bodyExpr) = Expand_1(x, ee);
+        xs.Add(stxList.ElementAt<Syntax>(0));
+        xs.Add(stxList.ElementAt<Syntax>(1));
+        foreach (var x in stxList.Skip<Syntax>(2)) {
+            (bool foundMacroInBodyExpr, Syntax bodyExpr) = Expand_1(x, ee);
             if (foundMacroInBodyExpr) {
                 foundMacro = true;
             }
             xs.Add(bodyExpr);
         }
-        return (foundMacro, List.ListFromEnumerable(xs));
+        return (foundMacro, new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc));
     }
 
 }
@@ -143,13 +149,23 @@ public class ExpansionEnvironment {
     }
 
     private static Thunk or_macro(Delegate k, List args) {
-        Expr result;
+        Syntax result;
         if (args.Count() == 0) {
-            result = new Expr.Boolean(false);
-        } else {
-            Expr first = args.ElementAt(0);
-            result = List.NewList(new Expr.Symbol("if"), first, first, List.ListFromEnumerable(new List<Expr>{new Expr.Symbol("or")}.Concat(args.Skip(1))));
+            result = new Syntax(new Expr.Boolean(false), new SrcLoc());
+            return Continuation.ApplyDelegate(k, result);
         }
+        SyntaxList stxList = args as SyntaxList ?? throw new Exception($"in or_macro: expected args to be SyntaxList");
+        Syntax first = stxList.ElementAt<Syntax>(0);
+        result = new Syntax(
+            SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("if"), new SrcLoc()),
+                                    first,
+                                    first,
+                                    new Syntax(
+                                    SyntaxList.FromIEnumerable(new List<Syntax>{
+                                        new Syntax.Identifier(new Expr.Symbol("or"), new SrcLoc())
+                                                                            }.Concat<Syntax>(stxList.Skip<Syntax>(1))),
+                                    new SrcLoc())),
+            new SrcLoc()); // TODO: should get whole sytax with srcLoc in args and use it
         return Continuation.ApplyDelegate(k, result);
     }
 
@@ -159,8 +175,13 @@ public class ExpansionEnvironment {
             }
         );
 
-    public bool TryFindMacro(Expr.Symbol sym, out Macro macro) {
-        return _dict.TryGetValue(sym, out macro);
+    public bool TryFindMacro(Expr.Symbol sym, [NotNullWhen(returnValue: true)] out Macro? macro) {
+        if (_dict.TryGetValue(sym, out Macro? result)) {
+            macro = result;
+            return true;
+        }
+        macro = null;
+        return false;
     }
 
     private Dictionary<Expr.Symbol, Macro> _dict;

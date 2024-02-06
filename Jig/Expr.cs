@@ -1,11 +1,12 @@
 using System.Collections;
-using System.Linq.Expressions;
-using System.Reflection;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace Jig;
 
 public abstract class Expr {
+
+    // TODO: decide whether it makes sense to have all of these as nested classes
 
     internal class NullType : List {
         public override string Print() => "()";
@@ -69,11 +70,20 @@ public abstract class Expr {
     }
 
     public class Symbol : Expr {
+        public static Symbol FromName(string name) => name switch {
+            "lambda" => new Keyword.Lambda(),
+            "if" => new Keyword.If(),
+            "define" => new Keyword.Define(),
+            "set!" => new Keyword.Set(),
+            "quote" => new Keyword.Quote(), // TODO: do they have to be new? couldn't they be static instances on Keyword?
+            _ => new Symbol(name),
+        };
+
         public Symbol(string name) {
             Name = name;
         }
 
-        public string Name {get;}
+        public virtual string Name {get;}
 
         public override bool Equals(object? obj) {
             if (obj is null) return false;
@@ -81,7 +91,6 @@ public abstract class Expr {
                 return this.Name == sym2.Name;
             }
             return false;
-
         }
 
         public override int GetHashCode() {
@@ -98,6 +107,17 @@ public abstract class Expr {
     public class Pair : Expr, IPair {
 
         public static IPair Cons(Expr car, Expr cdr) {
+            if (car is Syntax stxCar) {
+                if (cdr == List.Empty) {
+                    return new SyntaxList(stxCar, List.Empty);
+                } else if (cdr is SyntaxList stxListCdr) {
+                    return new SyntaxList(stxCar, stxListCdr);
+                } else if (cdr is Syntax stxCdr) {
+                    return new SyntaxPair(stxCar, stxCdr);
+                } else {
+                    return new Pair(stxCar, cdr);
+                }
+            }
             if (cdr is List list) {
                 return  new List.NonEmpty(car, list);
             } else {
@@ -150,7 +170,7 @@ public abstract class Expr {
 
     internal static bool IsLiteral(Expr ast)
     {
-        Expr x = ast is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : ast;
+        Expr x = ast is Syntax stx ? Syntax.ToDatum(stx) : ast;
         switch (x) {
             case Expr.Boolean: return true;
             case Expr.Integer: return true;
@@ -164,22 +184,46 @@ public abstract class Expr {
     internal static bool IsSymbol(Expr ast)
     {
         if (ast is Expr.Symbol) return true;
-        if (ast is SyntaxObject.Identifier) return true;
+        if (ast is Syntax.Identifier) return true;
         return false;
     }
 
     internal static bool IsNonEmptyList(Expr ast)
     {
-        if (ast is SyntaxObject stx) {
-            return SyntaxObject.E(stx) is List.NonEmpty;
+
+        if (ast is Syntax stx) {
+            if (Syntax.E(stx) is List list) {
+                return list.Count() != 0;
+            }
         }
         return ast is List.NonEmpty;
     }
 
+    internal static bool IsNonEmptyList(Expr ast, [NotNullWhen(returnValue: true)]out List.NonEmpty? list)
+    {
+
+        if (ast is Syntax stx) {
+            if ( Syntax.E(stx) is List.NonEmpty l) {
+                list = l;
+                return true;
+            } else {
+                list = null;
+                return false;
+            }
+        }
+        if (ast is List.NonEmpty last) {
+            list = last;
+            return true;
+
+        }
+        list = null;
+        return false;
+    }
+
     internal static bool IsKeyword(string name, Expr ast) {
-        if (ast is SyntaxObject stx) {
-            if (SyntaxObject.E(stx) is List.NonEmpty list) {
-                if (list.Car is SyntaxObject.Identifier id) {
+        if (ast is Syntax stx) {
+            if (Syntax.E(stx) is List list) {
+                if (list.ElementAt(0) is Syntax.Identifier id) {
                     return id.Symbol.Name == name;
                 } return false;
             } return false;
@@ -190,6 +234,41 @@ public abstract class Expr {
     }
 
 }
+
+public class SyntaxPair : Expr.Pair {
+    public SyntaxPair(Syntax car, Syntax cdr) : base(car,cdr) {}
+}
+
+public abstract class Keyword : Expr.Symbol {
+
+    public Keyword(string name) : base (name) {}
+
+    public new class Lambda : Keyword {
+        public Lambda() : base("lambda") {}
+    }
+
+    public new class If : Keyword {
+        public If() : base("if") {}
+    }
+
+    public class Define : Keyword {
+        public Define() : base("define") {}
+    }
+
+    public class Set : Keyword {
+        public Set() : base("set!") {}
+    }
+
+    public class Quote : Keyword {
+        public Quote() : base("quote") {}
+    }
+    public static bool Is<T>(Expr car) where T : Keyword => car switch {
+            Syntax.Identifier id => id.Symbol is T,
+            Expr.Symbol symbol => symbol is T,
+            _ => false,
+        };
+}
+
 
 
 
@@ -261,6 +340,7 @@ public abstract class List : Expr, IEnumerable<Expr> {
         public NonEmpty(Expr car, List cdr) {
             Car = car;
             Cdr = cdr;
+            Rest = cdr;
         }
 
         public override bool Equals(object? obj) {
@@ -273,7 +353,7 @@ public abstract class List : Expr, IEnumerable<Expr> {
 
         public Expr Car {get; set;}
         public Expr Cdr {get; set;}
-        public List CdrAsList {
+        public List CdrAsList { // TODO: replace usages of this with Rest
             get {
                 #pragma warning disable CS8603
                 return this.Cdr as List;
@@ -281,6 +361,8 @@ public abstract class List : Expr, IEnumerable<Expr> {
             }
 
         }
+
+        public List Rest {get;}
         public override int GetHashCode() {
             return base.GetHashCode();
         }
@@ -320,3 +402,4 @@ public abstract class List : Expr, IEnumerable<Expr> {
         return hash;
     }
 }
+
