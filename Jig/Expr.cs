@@ -222,19 +222,8 @@ public abstract class Expr {
 
     internal static bool IsKeyword(string name, Expr ast) {
         if (ast is Syntax stx) {
-            if (name == "if") {
-                Console.WriteLine($"IsKeyword: is {stx} 'if'?");
-
-            }
-            if (name == "if") {
-                Console.WriteLine($"\tSyntax.E({stx}) is a {Syntax.E(stx).GetType()}");
-            }
             if (Syntax.E(stx) is List list) {
                 if (list.ElementAt(0) is Syntax.Identifier id) {
-                    if (name == "if") {
-                        Console.WriteLine($"\t{id.Symbol.Name == name}");
-
-                    }
                     return id.Symbol.Name == name;
                 } return false;
             } return false;

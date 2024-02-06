@@ -63,7 +63,8 @@ public class Syntax : Expr {
     public override string ToString() => $"#<syntax: {ToDatum(this).ToString()}>";
 
     private static Expr SyntaxPairToDatum(IPair stxPair) {
-            Syntax car = stxPair.Car as Syntax ?? throw new Exception($"SyntaxObject.SyntaxPairToDatum: expected syntax pair, but car ({stxPair.Car}) is not a syntax object");
+            Syntax car = stxPair.Car as Syntax ??
+                throw new Exception($"SyntaxObject.SyntaxPairToDatum: expected syntax pair, but car -- {stxPair.Car} -- is not a syntax object");
             if (stxPair.Cdr is Expr.NullType) {
                 return (Expr)Expr.Pair.Cons(ToDatum(car), (Expr)List.Empty);
             } else if (stxPair.Cdr is Syntax soCdr) {

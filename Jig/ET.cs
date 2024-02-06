@@ -28,7 +28,6 @@ internal abstract class ET : Expression {
     }
 
     public static ET Analyze(LexicalContext scope, Expr ast) {
-        Console.WriteLine($"Analyze called with {ast}, a {ast.GetType()}.");
         if (Expr.IsLiteral(ast)) {
             return new LiteralET(ast);
         } else if (Expr.IsSymbol(ast)) {
@@ -253,7 +252,7 @@ internal abstract class ET : Expression {
 
         public LambdaExprET(LexicalContext scope, List.NonEmpty args) {
             Expr lambdaParameters = args.ElementAt(1) is Syntax stx ? Syntax.ToDatum(stx) : args.ElementAt(1); // TODO: do we want to throw this info out already?
-            Debug.Assert(args.Count() > 3);
+            Debug.Assert(args.Count() >= 3);
             List.NonEmpty lambdaBody = (List.NonEmpty)List.ListFromEnumerable(args.Skip(2));
 
             var k = Expression.Parameter(typeof(Delegate), "k in MakeProcET"); // this is the continuation paramter for the proc we are making

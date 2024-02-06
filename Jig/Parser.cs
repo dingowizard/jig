@@ -123,9 +123,9 @@ public class Parser {
 
     static Expr ParsePair(TokenStream tokenStream, bool syntax = false) {
         Expr car = ParseExpr(tokenStream, syntax);
-        if (Keyword.Is<Keyword>(car)) {
-            return ParseSpecialForm(car, tokenStream, syntax);
-        }
+        // if (Keyword.Is<Keyword>(car)) {
+        //     return ParseSpecialForm(car, tokenStream, syntax);
+        // }
         // next token could be dot, closeparen or something else, in which case the rest will be another pair
         Expr cdr;
         if (tokenStream.Peek() is Token.Dot) {
@@ -215,6 +215,7 @@ public class Parser {
     {
         // TODO: better error messages
         Expr parameters = ParseExpr(tokenStream, syntax);
+        Console.WriteLine($"ParseLambdaExpression: parsed parameters to {parameters}");
         if (!ValidLambdaParameters(parameters)) {
             throw new Exception("syntax error: all lambda parameters must be symbols");
         }
@@ -233,6 +234,9 @@ public class Parser {
         Expr x = ParseExpr(tokenStream, syntax);
         if (tokenStream.Peek() is Token.CloseParen) {
             return new List.NonEmpty(x, List.Empty);
+        }
+        if (syntax) {
+            return new SyntaxList((Syntax)x, ParseLambdaBody(tokenStream, syntax));
         }
         return new List.NonEmpty(x, ParseLambdaBody(tokenStream, syntax));
     }

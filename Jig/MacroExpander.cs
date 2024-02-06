@@ -10,9 +10,6 @@ public class MacroExpander {
         do {
             Syntax save = ast;
             (foundMacro, ast) = Expand_1(ast, ee);
-            if (foundMacro) {
-                Console.WriteLine($"Expand: I expanded a macro! ({save} => {ast}). Better check to see if it generated another!");
-            }
 
         } while (foundMacro);
         return ast;
@@ -160,7 +157,7 @@ public class ExpansionEnvironment {
         SyntaxList stxList = args as SyntaxList ?? throw new Exception($"in or_macro: expected args to be SyntaxList");
         Syntax first = stxList.ElementAt<Syntax>(0);
         result = new Syntax(
-            SyntaxList.FromParams(new Syntax(new Expr.Symbol("if"), new SrcLoc()),
+            SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("if"), new SrcLoc()),
                                     first,
                                     first,
                                     new Syntax(
