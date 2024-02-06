@@ -15,11 +15,11 @@ public class Parser {
                 tokenStream.Read();
                 Expr arg = ParseExpr(tokenStream, syntax);
                 if (syntax) {
-                   return new Syntax(new SpecialForm.Quote(
+                   return new Syntax(List.NewList(
                        new Syntax.Identifier(Expr.Symbol.FromName("quote"), quoteToken.SrcLoc), arg),
                        ((Syntax)arg).SrcLoc);
                 } else {
-                    return new SpecialForm.Quote(Expr.Symbol.FromName("quote"), arg);
+                    return List.NewList(Expr.Symbol.FromName("quote"), arg);
                 }
             case Token.OpenParen openToken:
                 tokenStream.Read();
@@ -170,7 +170,7 @@ public class Parser {
         if (tokenStream.Peek() is not Token.CloseParen) {
             throw new Exception($"syntax error @ {tokenStream.Port.Source}: {tokenStream.Port.Line}, {tokenStream.Port.Column}: malformed 'set!' -- expected close parenthesis after value expression.");
         }
-        return new SpecialForm.Set(keyword, sym, val);
+        return List.NewList(keyword, sym, val);
     }
 
     private static Expr ParseDefineExpression(Expr keyword, TokenStream tokenStream, bool syntax)
@@ -183,14 +183,14 @@ public class Parser {
         if (tokenStream.Peek() is not Token.CloseParen) {
             throw new Exception($"syntax error @ {tokenStream.Port.Source}: {tokenStream.Port.Line}, {tokenStream.Port.Column}: malformed 'define' -- expected close parenthesis after value expression.");
         }
-        return new SpecialForm.Define(keyword, sym, val);
+        return List.NewList(keyword, sym, val);
     }
 
     private static Expr ParseQuoteExpression(Expr keyword, TokenStream tokenStream, bool syntax)
     {
         Expr datum = ParseExpr(tokenStream, syntax);
         // TODO: check for malformed quote, throw syntax errors
-        return new SpecialForm.Quote(keyword, datum);
+        return List.NewList(keyword, datum);
     }
 
     private static Expr ParseIfExpression(Expr keyword, TokenStream tokenStream, bool syntax)
@@ -208,7 +208,7 @@ public class Parser {
         if (tokenStream.Peek() is not Token.CloseParen) {
             throw new Exception($"syntax error @ {tokenStream.Port.Source}: {tokenStream.Port.Line}, {tokenStream.Port.Column}: malformed 'if' -- expected close parenthesis.");
         }
-        return new Expr.If(keyword, cond, conseq, alt);
+        return List.NewList(keyword, cond, conseq, alt);
     }
 
     private static Expr ParseLambdaExpression(Expr keyword, TokenStream tokenStream, bool syntax)
@@ -222,7 +222,7 @@ public class Parser {
             throw new Exception("syntax error: lambda expressions must have a body");
         }
         List.NonEmpty body = ParseLambdaBody(tokenStream, syntax);
-        return new Expr.Lambda(keyword, parameters, body);
+        return List.NewList(keyword, parameters, body);
     }
 
     private static List.NonEmpty ParseLambdaBody(TokenStream tokenStream, bool syntax)

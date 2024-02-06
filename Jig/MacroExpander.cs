@@ -19,7 +19,6 @@ public class MacroExpander {
     }
 
     private (bool, Syntax) Expand_1(Syntax stx, ExpansionEnvironment ee) {
-        Console.WriteLine($"Expand_1: called with {stx}");
         // ast = ast is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : ast;
         // TODO: rewrite this in a way that we don't have to remember to change it everytime a keyword is added
         switch (stx) {
@@ -27,24 +26,21 @@ public class MacroExpander {
             case Syntax.Literal lit: return (false, lit);
         }
         if (Syntax.E(stx) is SyntaxList stxList) {
-            if (SpecialForm.Is<Expr.Quote>(stx, out Expr.Quote? quote )) {
+            if (Expr.IsKeyword("quote", stx)) {
                 return (false, stx);
-            } else if (SpecialForm.Is<Expr.Lambda>(stx, out Expr.Lambda? _)) {
+            } else if (Expr.IsKeyword("lambda", stx)) {
                 return ExpandLambda(stx.SrcLoc, stxList, ee);
-            } else if (SpecialForm.Is<Expr.If>(stx, out Expr.If? _)) {
+            } else if (Expr.IsKeyword("if", stx)) {
                 return ExpandIf(stx.SrcLoc, stxList, ee);
-            } else if (SpecialForm.Is<Expr.Define>(stx, out Expr.Define? _)) {
+            } else if (Expr.IsKeyword("define", stx)) {
                 return ExpandDefine(stx.SrcLoc, stxList, ee);
-            } else if (Expr.IsKeyword("begin", stx)){
+            } else if (Expr.IsKeyword("begin", stx)) {
                 return ExpandBegin(stx.SrcLoc, stxList, ee);
-            } else if (SpecialForm.Is<Expr.Set>(stx, out Expr.Set? _)) {
+            } else if (Expr.IsKeyword("set!", stx)) {
                 return ExpandSet(stx.SrcLoc, stxList, ee);
             } else {
                 return ExpandApplication(stx.SrcLoc, stxList, ee);
             }
-        } else if (SpecialForm.Is<Expr.If>(Syntax.E(stx), out Expr.If? ifExpr)) {
-            return ExpandIf(stx.SrcLoc, (SyntaxList)SyntaxList.FromIEnumerable(ifExpr.Cast<Syntax>()), ee);
-
         } else {
             return (false, stx);
         }
@@ -54,7 +50,6 @@ public class MacroExpander {
     {
         if (stxList.ElementAt<Syntax>(0) is Syntax.Identifier id && ee.TryFindMacro(id.Symbol, out Macro? macro)) {
                 List list = stxList.Rest;
-                Console.WriteLine($"Found macro {id}. About to apply it to args {list}, which is a {list.GetType()}");
                 return (true, macro.Apply(list)); // TODO: macros should take whole stx not just args
         } else {
                 return ExpandSequence(srcLoc, stxList, ee);
@@ -116,7 +111,6 @@ public class MacroExpander {
 
     private (bool, Syntax) ExpandIf(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
-        Console.WriteLine($"ExpandIf: called with {stxList}");
         bool foundMacro = false;
         List<Syntax> xs = new List<Syntax>();
         Debug.Assert(stxList.Count<Syntax>() == 4);
@@ -161,30 +155,20 @@ public class ExpansionEnvironment {
         Syntax result;
         if (args.Count() == 0) {
             result = new Syntax(new Expr.Boolean(false), new SrcLoc());
-            Console.WriteLine($"or_macro: about to return {result}");
             return Continuation.ApplyDelegate(k, result);
         }
         SyntaxList stxList = args as SyntaxList ?? throw new Exception($"in or_macro: expected args to be SyntaxList");
         Syntax first = stxList.ElementAt<Syntax>(0);
         result = new Syntax(
-            new Expr.If(new Syntax(new Keyword.If(), new SrcLoc()),
-                        first,
-                        first,
-                        new Syntax(
-                        SyntaxList.FromIEnumerable(new List<Syntax>{
-                            new Syntax.Identifier(new Expr.Symbol("or"), new SrcLoc())
-                                                                }.Concat<Syntax>(stxList.Skip<Syntax>(1))),
-                        new SrcLoc())),
-            // SyntaxList.FromParams(new Syntax(new Expr.Symbol("if"), new SrcLoc()),
-            //                         first,
-            //                         first,
-            //                         new Syntax(
-            //                         SyntaxList.FromIEnumerable(new List<Syntax>{
-            //                             new Syntax.Identifier(new Expr.Symbol("or"), new SrcLoc())
-            //                                                                 }.Concat<Syntax>(stxList.Skip<Syntax>(1))),
-            //                         new SrcLoc())),
+            SyntaxList.FromParams(new Syntax(new Expr.Symbol("if"), new SrcLoc()),
+                                    first,
+                                    first,
+                                    new Syntax(
+                                    SyntaxList.FromIEnumerable(new List<Syntax>{
+                                        new Syntax.Identifier(new Expr.Symbol("or"), new SrcLoc())
+                                                                            }.Concat<Syntax>(stxList.Skip<Syntax>(1))),
+                                    new SrcLoc())),
             new SrcLoc()); // TODO: should get whole sytax with srcLoc in args and use it
-        Console.WriteLine($"or_macro: about to return {result}");
         return Continuation.ApplyDelegate(k, result);
     }
 
@@ -194,7 +178,7 @@ public class ExpansionEnvironment {
             }
         );
 
-    public bool TryFindMacro(Expr.Symbol sym, [NotNullWhen(returnValue: true)]out Macro? macro) {
+    public bool TryFindMacro(Expr.Symbol sym, [NotNullWhen(returnValue: true)] out Macro? macro) {
         if (_dict.TryGetValue(sym, out Macro? result)) {
             macro = result;
             return true;

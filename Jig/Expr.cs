@@ -1,7 +1,5 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq.Expressions;
-using System.Reflection;
 using System.Text;
 
 namespace Jig;
@@ -19,45 +17,6 @@ public abstract class Expr {
     public class Boolean : LiteralExpr<bool> {
         public Boolean(bool b) : base(b) {}
         public override string Print() => Value ? "#t" : "#f";
-    }
-
-    public class Lambda : SpecialForm {
-
-        public Lambda(Expr keyword, Expr parameters, List.NonEmpty body) : base(keyword, new List.NonEmpty(parameters, body)) {
-            Parameters = parameters;
-            Body = body;
-        }
-
-        public Expr Parameters {get;}
-
-        public List.NonEmpty Body {get;}
-
-    }
-
-    public class If : SpecialForm {
-
-        public If(Expr keyword, Expr cond, Expr conseq, Expr alt) : base(keyword, (List.NonEmpty)List.NewList(cond, conseq, alt)) {}
-
-    }
-
-    public class Quote : SpecialForm {
-
-        public Quote(Expr keyword, Expr datum) : base(keyword, (List.NonEmpty)List.NewList(datum)) {
-            Datum = datum;
-        }
-
-        public Expr Datum {get;}
-
-    }
-
-    public class Define : SpecialForm {
-        public Define(Expr keyword, Expr sym, Expr val) : base(keyword, (List.NonEmpty)List.NewList(sym, val)) {}
-
-    }
-
-    public class Set : SpecialForm {
-        public Set(Expr keyword, Expr sym, Expr val) : base(keyword, (List.NonEmpty)List.NewList(sym, val)) {}
-
     }
 
     public class String : LiteralExpr<string> {
@@ -233,7 +192,9 @@ public abstract class Expr {
     {
 
         if (ast is Syntax stx) {
-            return Syntax.E(stx) is List.NonEmpty;
+            if (Syntax.E(stx) is List list) {
+                return list.Count() != 0;
+            }
         }
         return ast is List.NonEmpty;
     }
@@ -261,8 +222,19 @@ public abstract class Expr {
 
     internal static bool IsKeyword(string name, Expr ast) {
         if (ast is Syntax stx) {
-            if (Syntax.E(stx) is List.NonEmpty list) {
-                if (list.Car is Syntax.Identifier id) {
+            if (name == "if") {
+                Console.WriteLine($"IsKeyword: is {stx} 'if'?");
+
+            }
+            if (name == "if") {
+                Console.WriteLine($"\tSyntax.E({stx}) is a {Syntax.E(stx).GetType()}");
+            }
+            if (Syntax.E(stx) is List list) {
+                if (list.ElementAt(0) is Syntax.Identifier id) {
+                    if (name == "if") {
+                        Console.WriteLine($"\t{id.Symbol.Name == name}");
+
+                    }
                     return id.Symbol.Name == name;
                 } return false;
             } return false;
@@ -442,32 +414,3 @@ public abstract class List : Expr, IEnumerable<Expr> {
     }
 }
 
-public abstract class SpecialForm : List.NonEmpty {
-
-    public SpecialForm(Expr car, List.NonEmpty cdr) : base(car,cdr) {}
-
-    public SpecialForm(Syntax car, SyntaxList cdr) : base(car, cdr) {}
-
-    public static bool Is<T>(Expr x, [NotNullWhen(returnValue: true)] out T? result) where T : SpecialForm {
-        if (x is Syntax stx) {
-            // TODO: SyntaxObject.ToDatum will not produce an Expr.Lambda here
-            if (Syntax.E(stx) is T t) {
-                Console.WriteLine($"\tIs Syntax.E({stx}) a {typeof(T)}? {Syntax.E(stx) is T}");
-                result = t;
-                return true;
-            } else {
-                result = null;
-                return false;
-            }
-        }
-        if (x is T thing) {
-            result = thing;
-            return true;
-        } else {
-            result = null;
-            return false;
-        }
-
-    }
-
-}
