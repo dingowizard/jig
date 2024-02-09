@@ -36,20 +36,20 @@ public class MacroExpander {
             } else if (Expr.IsKeyword("set!", stx)) {
                 return ExpandSet(stx.SrcLoc, stxList, ee);
             } else {
-                return ExpandApplication(stx.SrcLoc, stxList, ee);
+                return ExpandApplication(stx, stxList, ee);
             }
         } else {
             return (false, stx);
         }
     }
 
-    private (bool, Syntax) ExpandApplication(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
+    private (bool, Syntax) ExpandApplication(Syntax stx, SyntaxList stxList, ExpansionEnvironment ee)
     {
         if (stxList.ElementAt<Syntax>(0) is Syntax.Identifier id && ee.TryFindMacro(id.Symbol, out Macro? macro)) {
                 List list = stxList.Rest;
-                return (true, macro.Apply(list)); // TODO: macros should take whole stx not just args
+                return (true, macro.Apply(stx));
         } else {
-                return ExpandSequence(srcLoc, stxList, ee);
+                return ExpandSequence(stx.SrcLoc, stxList, ee);
         }
     }
 
@@ -148,30 +148,57 @@ public class ExpansionEnvironment {
         _dict = dict;
     }
 
-    private static Thunk or_macro(Delegate k, List args) {
+    // private static Thunk or_macro(Delegate k, List args) {
+    //     Syntax result;
+    //     if (args.Count() == 0) {
+    //         result = new Syntax(new Expr.Boolean(false), new SrcLoc());
+    //         return Continuation.ApplyDelegate(k, result);
+    //     }
+    //     SyntaxList stxList = args as SyntaxList ?? throw new Exception($"in or_macro: expected args to be SyntaxList");
+    //     Syntax first = stxList.ElementAt<Syntax>(0);
+    //     result = new Syntax(
+    //         SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("if"), new SrcLoc()),
+    //                                 first,
+    //                                 first,
+    //                                 new Syntax(
+    //                                 SyntaxList.FromIEnumerable(new List<Syntax>{
+    //                                     new Syntax.Identifier(new Expr.Symbol("or"), new SrcLoc())
+    //                                                                         }.Concat<Syntax>(stxList.Skip<Syntax>(1))),
+    //                                 new SrcLoc())),
+    //         new SrcLoc()); // TODO: should get whole sytax with srcLoc in args and use it
+    //     return Continuation.ApplyDelegate(k, result);
+    // }
+
+    private static Thunk and_macro(Delegate k, Syntax stx) {
         Syntax result;
-        if (args.Count() == 0) {
-            result = new Syntax(new Expr.Boolean(false), new SrcLoc());
+        SyntaxList stxList = Syntax.E(stx) as SyntaxList ?? throw new Exception("and: syntax should expand to list");
+        if (stxList.Count<Syntax>() == 1) { // E.g. (and)
+            result = new Syntax(new Expr.Boolean(true), new SrcLoc());
             return Continuation.ApplyDelegate(k, result);
         }
-        SyntaxList stxList = args as SyntaxList ?? throw new Exception($"in or_macro: expected args to be SyntaxList");
-        Syntax first = stxList.ElementAt<Syntax>(0);
+        if (stxList.Count<Syntax>() == 2) { // Eg (and 1)
+            result = stxList.ElementAt<Syntax>(1);
+            return Continuation.ApplyDelegate(k, result);
+        }
+        Syntax first = stxList.ElementAt<Syntax>(1);
         result = new Syntax(
             SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("if"), new SrcLoc()),
                                     first,
-                                    first,
                                     new Syntax(
                                     SyntaxList.FromIEnumerable(new List<Syntax>{
-                                        new Syntax.Identifier(new Expr.Symbol("or"), new SrcLoc())
-                                                                            }.Concat<Syntax>(stxList.Skip<Syntax>(1))),
-                                    new SrcLoc())),
+                                        new Syntax.Identifier(new Expr.Symbol("and"), new SrcLoc())
+                                                                            }.Concat<Syntax>(stxList.Skip<Syntax>(2))),
+
+                                    new SrcLoc()),
+                                    new Syntax(new Expr.Boolean(false), new SrcLoc())),
             new SrcLoc()); // TODO: should get whole sytax with srcLoc in args and use it
         return Continuation.ApplyDelegate(k, result);
+
     }
 
     public static ExpansionEnvironment Default {get;} =
         new ExpansionEnvironment(new Dictionary<Expr.Symbol, Macro>{
-            {new Expr.Symbol("or"), new Macro((Builtin) or_macro)},
+            {new Expr.Symbol("and"), new Macro((MacroDelegate) and_macro)},
             }
         );
 
