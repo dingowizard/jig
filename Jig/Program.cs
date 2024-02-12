@@ -10,6 +10,7 @@ public static class Program {
         IEnvironment topLevel = new Environment();
         // Continuation id = (x) => Console.WriteLine(x.Print());
         Continuation.ContinuationAny print = (Continuation.ContinuationAny)Print;
+        ExecuteFile("prelude.scm", topLevel);
         // REPL
         Console.Write("> ");
         Syntax? input;
@@ -28,6 +29,18 @@ public static class Program {
                 }
                 Console.Write("> ");
             }
+        }
+    }
+
+    private static void ExecuteFile(string path, IEnvironment topLevel)
+    {
+        InputPort port = new InputPort(path);
+        Continuation.ContinuationAny throwAwayResult = (xs) => null;
+        Syntax? x = Jig.Reader.Reader.ReadSyntax(port);
+        while (x is not null) {
+            Console.WriteLine($"read an {x}. port is now at {port.Line}");
+            Eval(throwAwayResult, x, topLevel);
+            x = Jig.Reader.Reader.ReadSyntax(port);
         }
     }
 
