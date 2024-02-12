@@ -10,7 +10,11 @@ internal static class Builtins {
 // //       (k xs)
 // //       (fn (lambda (v0) (map/cps (lambda (v1) (k (cons v0 v1))) fn (cdr xs))) (car xs))))
         if (list is List.NonEmpty properList) {
-            Continuation.OneArgDelegate k2 = (v0) => map_internal((Continuation.OneArgDelegate)((v1) => k((Expr)Expr.Pair.Cons(v0, (List) v1))), proc, (List)properList.Cdr);
+            List? args = properList.Cdr as List;
+            if (args is null) {
+                throw new Exception($"in Builtins.map_internal: tried to get cdr of {properList} as List but type was {properList.Cdr.GetType()}");
+            }
+            Continuation.OneArgDelegate k2 = (v0) => map_internal((Continuation.OneArgDelegate)((v1) => k((Expr)Expr.Pair.Cons(v0, (List) v1))), proc, args);
             return proc(k2, (LiteralExpr<CompiledCode>)properList.Car);
         } else {
             return k(list); // at this point , k is (lambda (l) (apply (car l) (cdr l)))
@@ -249,6 +253,7 @@ internal static class Builtins {
     // public static void dynamic_wind(Delegate k, List args) {}
 
     public static Thunk apply (Delegate k, Expr x, List args) {
+        // Console.WriteLine($"in Builtins.apply: applying {x} to {args}");
         if (x is Continuation cont) {
             return cont.Apply(args);
         } else if (x is Procedure proc) {
@@ -256,7 +261,34 @@ internal static class Builtins {
         } else {
             throw new Exception($"apply: expected procedure as first argument, but got {x}");
         }
+    }
 
+    public static Thunk syntax_to_list(Delegate k, List args) {
+        if (args.Count() != 1) throw new Exception($"syntax->list: expected one argument.");
+        Syntax stx = args.ElementAt(0) as Syntax ?? throw new Exception($"syntax->list: expected a syntax argument, got got {args.ElementAt(0)}");
+        if (Syntax.ToList(stx, out SyntaxList? result)) {
+            return Continuation.ApplyDelegate(k, result);
+        } else {
+            return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+        }
+    }
+
+    public static Thunk syntax_p(Delegate k, List args) {
+        if (args.Count() != 1) throw new Exception($"syntax?: expected one argument.");
+        if (args.ElementAt(0) is Syntax) {
+            return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
+        } else {
+            return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+        }
+    }
+
+    public static Thunk datum_to_syntax(Delegate k, List args) {
+        if (args.Count() != 2) throw new Exception($"datum->syntax: expected two arguments but got {args.Count()}.");
+        if (args.ElementAt(0) is Syntax stx) {
+            return Continuation.ApplyDelegate(k, new Syntax(args.ElementAt(1), stx.SrcLoc));
+        } else {
+            throw new Exception($"datum->syntax: expected first argument to be syntax, but got {args.ElementAt(0)}");
+        }
     }
 
     public static void error(Delegate k, List args) {

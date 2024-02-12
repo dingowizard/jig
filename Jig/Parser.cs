@@ -37,7 +37,7 @@ public class Parser {
                 if (tokenStream.Peek() is Token.CloseParen close) {
                     tokenStream.Read();
                     if (syntax) {
-                        return Syntax.FromDatum(pair, SrcLoc.Combine(openToken.SrcLoc, close.SrcLoc));
+                        return new Syntax(pair, SrcLoc.Combine(openToken.SrcLoc, close.SrcLoc));
                     } else {
                         return pair;
                     }

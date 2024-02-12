@@ -22,19 +22,18 @@ public class Syntax : Expr {
         return x;
     }
 
-    public static Syntax FromDatum(Expr datum, SrcLoc srcLoc) {
-        switch (datum) {
-            case Expr.Boolean: case Expr.Integer: case Expr.Double:
-                return new Literal(datum, srcLoc);
-            case Expr.Symbol sym:
-                return new Identifier(sym, srcLoc);
-            default:
-                return new Syntax(datum, srcLoc);
+    public static bool ToList(Syntax stx, [NotNullWhen(returnValue: true)] out SyntaxList? stxList) {
+        Expr e = Syntax.E(stx);
+        if (e is SyntaxList slist) {
+            stxList = slist;
+            return true;
+        } else if (e is List l) {
+            IEnumerable<Syntax> xs = l.Select(x => new Syntax(x, new SrcLoc()));
+            stxList = (SyntaxList)SyntaxList.FromIEnumerable(xs);
+            return true;
         }
-    }
-
-    public static bool ToList(Syntax stx, [NotNullWhen(returnValue: true)] out SyntaxList stxList) {
-        throw new NotImplementedException();
+        stxList = null;
+        return false;
 
     }
 

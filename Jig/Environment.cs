@@ -16,6 +16,9 @@ public class Environment : IEnvironment {
         _dict.Add(new Expr.Symbol("call/cc"), new Procedure( (Builtin)Builtins.callcc));
         _dict.Add(new Expr.Symbol("call-with-values"), new Procedure( Continuation.call_with_values));
         _dict.Add(new Expr.Symbol("values"), new Procedure( (Builtin)Builtins.values));
+        _dict.Add(new Expr.Symbol("syntax->list"), new Procedure( (Builtin)Builtins.syntax_to_list));
+        _dict.Add(new Expr.Symbol("syntax?"), new Procedure( (Builtin)Builtins.syntax_p));
+        _dict.Add(new Expr.Symbol("datum->syntax"), new Procedure( (Builtin)Builtins.datum_to_syntax));
         // _dict.Add(new Expr.Symbol("dynamic-wind"), new Procedure( (Builtin)Builtins.dynamic_wind));
         // _dict.Add(new Expr.Symbol("error"), new Procedure( (Builtin)Builtins.error));
     }
