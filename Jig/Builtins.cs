@@ -282,6 +282,11 @@ internal static class Builtins {
         }
     }
 
+    public static Thunk pair_p(Delegate k, List args) {
+        if (args.Count() != 1) throw new Exception($"pair?: expected one argument.");
+        return Continuation.ApplyDelegate(k, new Expr.Boolean(args.ElementAt(0) is IPair));
+    }
+
     public static Thunk datum_to_syntax(Delegate k, List args) {
         if (args.Count() != 2) throw new Exception($"datum->syntax: expected two arguments but got {args.Count()}.");
         if (args.ElementAt(0) is Syntax stx) {
