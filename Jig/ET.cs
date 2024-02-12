@@ -37,6 +37,8 @@ internal abstract class ET : Expression {
             if (Expr.IsKeyword("quote", ast)) {
                 // TODO: QuoteET
                 return new LiteralET(list.ElementAt(1));
+            } else if (Expr.IsKeyword("syntax", ast)) {
+                return new SyntaxLiteralET(ast);
             } else if (Expr.IsKeyword("if", ast)) {
                 return new IfET(scope, list);
             } else if (Expr.IsKeyword("lambda", ast)) {
@@ -76,6 +78,26 @@ internal abstract class ET : Expression {
         public LiteralET(Expr x) : base() {
             x = x is Syntax stx ? Syntax.ToDatum(stx) : x;
             Body = Expression.Convert(DynInv(kParam, Expression.Constant(x)), typeof(Thunk));
+        }
+
+        public override Expression Body {get;}
+
+    }
+
+    private class SyntaxLiteralET : ET {
+
+        public SyntaxLiteralET(Expr x) : base() {
+            if (x is Syntax stx) {
+                if (Syntax.ToList(stx, out SyntaxList? syntaxList)) {
+                    Body = Expression.Convert(DynInv(kParam, Expression.Constant(syntaxList.ElementAt<Syntax>(1))), typeof(Thunk));
+                } else {
+                    throw new Exception($"malformed syntax @ {stx.SrcLoc.Line}: {stx.SrcLoc.Column}: {x}");
+                }
+            } else {
+                // expression was made with read rather than read-syntax
+                Body = Expression.Convert(DynInv(kParam, Expression.Constant(x)), typeof(Thunk));
+
+            }
         }
 
         public override Expression Body {get;}

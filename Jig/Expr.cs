@@ -115,7 +115,11 @@ public abstract class Expr {
                 } else if (cdr is Syntax stxCdr) {
                     return new SyntaxPair(stxCar, stxCdr);
                 } else {
-                    return new Pair(stxCar, cdr);
+                    if (cdr is List l) {
+                        return  new List.NonEmpty(car, l);
+                    } else {
+                        return  new Pair(car, cdr);
+                    }
                 }
             }
             if (cdr is List list) {

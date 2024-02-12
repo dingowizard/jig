@@ -69,7 +69,7 @@ public class Interpreter : IInterpreter {
     public string InterpretUsingReadSyntax(string input) {
         string result = "";
         Continuation.OneArgDelegate setResult = (x) => {result = x.Print(); return null;};
-        Expr? x = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
+        Syntax? x = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
         Assert.IsNotNull(x);
         Program.Eval(setResult, x, Env);
         return result;
