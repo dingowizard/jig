@@ -296,6 +296,19 @@ internal static class Builtins {
         }
     }
 
+    public static Thunk expand_once(Delegate k, List args) {
+        // TODO: this doesn't work as intended because the macroexpander expands the argument before the function gets it
+        // needs to be a macro?
+        if (args.Count() != 1) throw new Exception($"expand-once: expected a single argument but got {args.Count()}");
+        if (args.ElementAt(0) is Syntax stx) {
+            // TODO: what should expansion environment be?
+            (_, Syntax result) = MacroExpander.Expand_1(stx, ExpansionEnvironment.Default);
+            return Continuation.ApplyDelegate(k, result);
+        } else {
+            throw new Exception($"expand-once: expected syntax argument, but got {args.ElementAt(0)}");
+        }
+    }
+
     public static void error(Delegate k, List args) {
         // TODO: something with second argument
         if (args.Count() < 2) {

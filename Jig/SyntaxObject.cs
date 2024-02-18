@@ -49,6 +49,7 @@ public class Syntax : Expr {
     internal static void ToggleScope(Syntax stx, Scope scope) {
         if (stx is Syntax.Identifier id) {
             if (!id.ScopeSet.Remove(scope)) {
+                // NOTE: HashSet.Remove returns false if it does not find the item
                 id.ScopeSet.Add(scope);
             }
 

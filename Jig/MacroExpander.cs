@@ -5,8 +5,11 @@ namespace Jig;
 
 public class MacroExpander {
 
+    internal static Scope TopLevelScope = new Scope();
+
     public Syntax Expand(Syntax ast, ExpansionEnvironment ee) {
         bool foundMacro = false;
+        Syntax.AddScope(ast, TopLevelScope); // introduce
         do {
             Syntax save = ast;
             (foundMacro, ast) = Expand_1(ast, ee);
@@ -15,7 +18,7 @@ public class MacroExpander {
         return ast;
     }
 
-    private (bool, Syntax) Expand_1(Syntax stx, ExpansionEnvironment ee) {
+    public static (bool, Syntax) Expand_1(Syntax stx, ExpansionEnvironment ee) {
         // ast = ast is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : ast;
         // TODO: rewrite this in a way that we don't have to remember to change it everytime a keyword is added
         switch (stx) {
@@ -43,17 +46,21 @@ public class MacroExpander {
         }
     }
 
-    private (bool, Syntax) ExpandApplication(Syntax stx, SyntaxList stxList, ExpansionEnvironment ee)
+    private static (bool, Syntax) ExpandApplication(Syntax stx, SyntaxList stxList, ExpansionEnvironment ee)
     {
         if (stxList.ElementAt<Syntax>(0) is Syntax.Identifier id && ee.TryFindMacro(id.Symbol, out Macro? macro)) {
                 List list = stxList.Rest;
-                return (true, macro.Apply(stx));
+                Scope macroExpansionScope = new Scope();
+                Syntax.AddScope(stx, macroExpansionScope);
+                var result = (true, macro.Apply(stx));
+                Syntax.ToggleScope(result.Item2, macroExpansionScope);
+                return result;
         } else {
                 return ExpandSequence(stx.SrcLoc, stxList, ee);
         }
     }
 
-    private (bool, Syntax) ExpandSequence(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
+    private static (bool, Syntax) ExpandSequence(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
                 List<Syntax> xs = new List<Syntax>();
                 bool foundMacro = false;
                 foreach (var x in stxList) {
@@ -67,7 +74,7 @@ public class MacroExpander {
 
     }
 
-    private (bool, Syntax) ExpandSet(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
+    private static (bool, Syntax) ExpandSet(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
         bool foundMacro = false;
         List<Syntax> xs = new List<Syntax>();
@@ -84,12 +91,12 @@ public class MacroExpander {
         return (foundMacro, new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc));
     }
 
-    private (bool, Syntax) ExpandBegin(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
+    private static (bool, Syntax) ExpandBegin(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
         return ExpandSequence(srcLoc, stxList, ee);
     }
 
-    private (bool, Syntax) ExpandDefine(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
+    private static (bool, Syntax) ExpandDefine(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
         bool foundMacro = false;
         List<Syntax> xs = new List<Syntax>();
@@ -106,7 +113,7 @@ public class MacroExpander {
         return (foundMacro, new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc));
     }
 
-    private (bool, Syntax) ExpandIf(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
+    private static (bool, Syntax) ExpandIf(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
         bool foundMacro = false;
         List<Syntax> xs = new List<Syntax>();
@@ -122,15 +129,19 @@ public class MacroExpander {
         return (foundMacro, new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc));
     }
 
-    private (bool, Syntax) ExpandLambda(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
+    private static (bool, Syntax) ExpandLambda(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
         // TODO: Parser should produce a lambdaExpr Expr that is a type of List.NonEmpty
         bool foundMacro = false;
         List<Syntax> xs = new List<Syntax>();
         // below assert breaks a lot of tests having to do with multiple values
         // Debug.Assert(astAsList.Count() > 3);
-        xs.Add(stxList.ElementAt<Syntax>(0));
-        xs.Add(stxList.ElementAt<Syntax>(1));
+        xs.Add(stxList.ElementAt<Syntax>(0)); // lamdbda keyword
+        var newScope = new Scope();
+        var parameters = stxList.ElementAt<Syntax>(1);
+        Syntax.AddScope(parameters, newScope);
+        xs.Add(parameters);
         foreach (var x in stxList.Skip<Syntax>(2)) {
+            Syntax.AddScope(x, newScope);
             (bool foundMacroInBodyExpr, Syntax bodyExpr) = Expand_1(x, ee);
             if (foundMacroInBodyExpr) {
                 foundMacro = true;
