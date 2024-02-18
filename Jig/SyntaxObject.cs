@@ -22,6 +22,44 @@ public class Syntax : Expr {
         return x;
     }
 
+    internal static void AddScope(Syntax stx, Scope scope) {
+        if (stx is Syntax.Identifier id) {
+            id.ScopeSet.Add(scope);
+            return;
+        }
+        if (Syntax.E(stx) is SyntaxList stxList) {
+            stxList.ToList<Syntax>().ForEach(s => AddScope(s, scope));
+            return;
+        }
+        return;
+    }
+
+    internal static void RemoveScope(Syntax stx, Scope scope) {
+        if (stx is Syntax.Identifier id) {
+            id.ScopeSet.Remove(scope);
+            return;
+        }
+        if (Syntax.E(stx) is SyntaxList stxList) {
+            stxList.ToList<Syntax>().ForEach(s => RemoveScope(s, scope));
+            return;
+        }
+        return;
+    }
+
+    internal static void ToggleScope(Syntax stx, Scope scope) {
+        if (stx is Syntax.Identifier id) {
+            if (!id.ScopeSet.Remove(scope)) {
+                id.ScopeSet.Add(scope);
+            }
+
+        }
+        if (Syntax.E(stx) is SyntaxList stxList) {
+            stxList.ToList<Syntax>().ForEach(s => ToggleScope(s, scope));
+            return;
+        }
+        return;
+    }
+
     public static bool ToList(Syntax stx, [NotNullWhen(returnValue: true)] out SyntaxList? stxList) {
         Expr e = Syntax.E(stx);
         if (e is SyntaxList slist) {
