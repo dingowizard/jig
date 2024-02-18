@@ -35,6 +35,26 @@ public class ListsAndPairs
     }
 
     [TestMethod]
+    [DataRow("(pair? (cons 1 2))", "#t")]
+    [DataRow("(pair? (cons 1 (list)))", "#t")]
+    [DataRow("(pair? (cons (list 1 2 3) '()))", "#t")]
+    public void ConsMakesPairs(string input, string expected) {
+        var actual = new Interpreter().InterpretUsingReadSyntax(input);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
+    [DataRow("(list? (cons 1 2))", "#f")]
+    [DataRow("(list? (cons 1 (list)))", "#t")]
+    [DataRow("(list? (cons (list 1 2 3) '()))", "#t")]
+    [DataRow("(list? (cons (list 1 2 3) '(1 . 2)))", "#f")]
+    [DataRow("(list? (list 1 2 3 4))", "#t")]
+    public void ListMakesListAndConsMight(string input, string expected) {
+        var actual = new Interpreter().InterpretUsingReadSyntax(input);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
     [DataRow("(cdr (quote (1 2)))", "(2)")]
     [DataRow("(cdr (quote (a . b)))", "b")]
     public void Cdr(string input, string expected) {

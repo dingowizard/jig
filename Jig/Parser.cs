@@ -9,6 +9,7 @@ public class Parser {
     }
 
     public static Expr? ParseExpr(TokenStream tokenStream, bool syntax = false) {
+        // TODO: handle comments!
         var peeked = tokenStream.Peek();
         switch (peeked) {
             case Token.Quote quoteToken:

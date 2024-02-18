@@ -48,13 +48,17 @@ public class Syntax : Expr {
     }
 
     public class Identifier : Syntax {
-        internal Identifier(Expr.Symbol symbol, SrcLoc srcLoc) : base (symbol, srcLoc) {}
+        internal Identifier(Expr.Symbol symbol, SrcLoc srcLoc) : base (symbol, srcLoc) {
+            ScopeSet = new HashSet<Scope>();
+        }
 
         public new Expr.Symbol Symbol {
             get {
                 return (Symbol)Expression;
             }
         }
+
+        internal HashSet<Scope> ScopeSet {get; private set;}
     }
 
     public override string Print() => $"#<syntax: {ToDatum(this).Print()}>";
@@ -150,3 +154,5 @@ public class SyntaxList : List.NonEmpty, IEnumerable<Syntax> {
 
 
 }
+
+internal struct Scope {}

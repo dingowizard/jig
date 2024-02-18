@@ -18,3 +18,13 @@
         (if (pair? x)
             (list? (cdr x))
             #f))))
+
+(define fold
+  (lambda (fn init xs)
+    (if (null? xs)
+        init
+        (fold fn (fn (car xs) init) (cdr xs)))))
+
+(define reverse
+  (lambda (xs)
+    (fold cons (list) xs)))

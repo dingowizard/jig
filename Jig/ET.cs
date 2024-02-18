@@ -225,6 +225,16 @@ internal abstract class ET : Expression {
     }
 
     private class DefineET : ET {
+        // TODO: recursive definitions inside of blocks do not work:
+        // Eg in (define len
+        //         (lambda (l)
+        //           (define loop
+        //             (lambda (acc l)
+        //               (if (null? l)
+        //                    acc
+        //                    (loop (+ acc 1) (cdr l)))))
+        //            (loop 0 l)))
+        //  the call to loop within the definition of loop cannot find loop
 
         private static MethodInfo _defineMethod {get;} = typeof(IEnvironment).GetMethod("Define") ?? throw new Exception("while initializing DefineET, could not find 'Define' method on IEnvironment");
 

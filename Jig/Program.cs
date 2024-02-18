@@ -32,13 +32,12 @@ public static class Program {
         }
     }
 
-    private static void ExecuteFile(string path, IEnvironment topLevel)
+    public static void ExecuteFile(string path, IEnvironment topLevel)
     {
         InputPort port = new InputPort(path);
         Continuation.ContinuationAny throwAwayResult = (xs) => null;
         Syntax? x = Jig.Reader.Reader.ReadSyntax(port);
         while (x is not null) {
-            Console.WriteLine($"read an {x}. port is now at {port.Line}");
             Eval(throwAwayResult, x, topLevel);
             x = Jig.Reader.Reader.ReadSyntax(port);
         }

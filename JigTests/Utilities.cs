@@ -21,6 +21,7 @@ public class Interpreter : IInterpreter {
     IEnvironment Env {get;}
     public Interpreter() {
         Env = new Jig.Environment();
+        Program.ExecuteFile("prelude.scm", Env);
     }
 
     public string InterpretSequence(string[] inputs) {
