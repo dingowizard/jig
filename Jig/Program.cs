@@ -5,12 +5,13 @@ namespace Jig;
 public static class Program {
 
     public static IEnvironment TopLevel = new Environment();
+    public static ExpansionEnvironment ExEnv = ExpansionEnvironment.Default;
 
     static void Main(string[] args) {
-        IEnvironment topLevel = new Environment();
+        // IEnvironment topLevel = new Environment();
         // Continuation id = (x) => Console.WriteLine(x.Print());
         Continuation.ContinuationAny print = (Continuation.ContinuationAny)Print;
-        ExecuteFile("prelude.scm", topLevel);
+        ExecuteFile("prelude.scm", TopLevel);
         // REPL
         Console.Write("> ");
         Syntax? input;
@@ -23,7 +24,7 @@ public static class Program {
                         Console.WriteLine("Goodbye!");
                         break;
                     }
-                    Eval(print, input, topLevel);
+                    Eval(print, input, TopLevel);
                 } catch (Exception x) {
                     Console.WriteLine(x);
                 }
@@ -50,12 +51,24 @@ public static class Program {
         return null;
     }
 
-    public static void Eval(Delegate k, Expr ast, IEnvironment env) {
+    public static void Eval(Delegate k, Expr ast, IEnvironment? env = null) {
+        if (env is null) {
+            env = Program.TopLevel;
+        }
         if (ast is Syntax stx) {
-            ast = new MacroExpander().Expand(stx, ExpansionEnvironment.Default);
+            ast = MacroExpander.Expand(stx, ExEnv);
         }
         var compiled = Compiler.Compile(ast);
         Run(compiled, k, env);
+    }
+
+    public static Expr EvalNonCPS(Expr ast, IEnvironment env = null) {
+        Expr? expr = null;
+        Continuation.OneArgDelegate setResult = (x) => {expr = x; return null;};
+        Eval(setResult, ast, Program.TopLevel);
+
+        if (expr is null) throw new Exception();
+        return expr;
     }
 
     public static void Run(CompiledCode code, Delegate k, IEnvironment env) {

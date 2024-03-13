@@ -174,7 +174,12 @@ public abstract class Expr {
 
     internal static bool IsLiteral(Expr ast)
     {
-        Expr x = ast is Syntax stx ? Syntax.ToDatum(stx) : ast;
+        Expr x;
+        if (ast is Syntax stx) {
+            x = Syntax.E(stx);
+        } else {
+            x = ast;
+        }
         switch (x) {
             case Expr.Boolean: return true;
             case Expr.Integer: return true;
@@ -194,7 +199,6 @@ public abstract class Expr {
 
     internal static bool IsNonEmptyList(Expr ast)
     {
-
         if (ast is Syntax stx) {
             if (Syntax.E(stx) is List list) {
                 return list.Count() != 0;

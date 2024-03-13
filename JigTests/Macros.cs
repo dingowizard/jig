@@ -3,18 +3,6 @@ namespace JigTests;
 [TestClass]
 public class Macros {
 
-
-    // [TestMethod]
-    // [DataRow("(or #f 26)", "26")]
-    // [DataRow("(or)", "#f")]
-    // [DataRow("(or 1)", "1")]
-    // [DataRow("(or 1 2 3)", "1")]
-    // [DataRow("(or #f #f #f 3)", "3")]
-    // public void ApplyOrMacro(string input, string expected) {
-    //     var actual = Utilities.InterpretUsingReadSyntax(input);
-    //     Assert.AreEqual(expected, actual);
-    // }
-
     [TestMethod]
     [DataRow("(and #f 26)", "#f")]
     [DataRow("(and)", "#t")]
@@ -29,4 +17,19 @@ public class Macros {
         Assert.AreEqual(expected, actual);
     }
 
+    [TestMethod]
+    [DataRow("(or 1 2)", "1")]
+    [DataRow("(or #f 2)", "2")]
+    [DataRow("(or #f #f)", "#f")]
+    public void ApplyOrMacro(string input, string expected) {
+        var actual = Utilities.InterpretUsingReadSyntax(input);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
+    [DataRow("(let ((x 1)) x)", "1")]
+    public void LetMacro(string input, string expected) {
+        var actual = Utilities.InterpretUsingReadSyntax(input);
+        Assert.AreEqual(expected, actual);
+    }
 }

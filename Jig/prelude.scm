@@ -17,4 +17,12 @@
         #t
         (if (pair? x)
             (list? (cdr x))
-            #f)))
+            #f))))
+
+(define-syntax or
+  (lambda (stx)
+    (datum->syntax
+     stx
+     (list
+      (list 'lambda (list 'tmp) (list 'if 'tmp 'tmp (car (cdr (cdr (syntax->list stx))))))
+      (car (cdr (syntax->list stx)))))))

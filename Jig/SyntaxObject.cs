@@ -17,6 +17,7 @@ public class Syntax : Expr {
     public static Expr ToDatum(Syntax stx) {
         Expr x = Syntax.E(stx);
         if (x is IPair stxPair) {
+            // Console.WriteLine($"Syntax.ToDatum: {stx}");
             return SyntaxPairToDatum(stxPair);
         }
         return x;
@@ -76,6 +77,23 @@ public class Syntax : Expr {
 
     }
 
+    public static Syntax FromDatum(SrcLoc srcLoc, Expr x) {
+        switch (x) {
+            case Syntax stx:
+                return stx;
+            case Symbol sym:
+                return new Identifier(sym, srcLoc);
+            case List list:
+                return new Syntax(SyntaxList.FromIEnumerable(list.Select(x => Syntax.FromDatum(srcLoc, x))), srcLoc);
+            case IPair pair:
+                return new Syntax((Expr)Expr.Pair.Cons(FromDatum(srcLoc, pair.Car),
+                                                 FromDatum(srcLoc, pair.Cdr)),
+                                  srcLoc);
+            default:
+                return new Syntax(x, srcLoc);
+        }
+    }
+
 
     public Syntax(Expr expr, SrcLoc srcLoc) {
         Expression = expr;
@@ -91,6 +109,8 @@ public class Syntax : Expr {
             ScopeSet = new HashSet<Scope>();
         }
 
+        // public static implicit operator Expr.Symbol(Identifier i) => i.Symbol;
+
         public new Expr.Symbol Symbol {
             get {
                 return (Symbol)Expression;
@@ -105,14 +125,15 @@ public class Syntax : Expr {
     public override string ToString() => $"#<syntax: {ToDatum(this).ToString()}>";
 
     private static Expr SyntaxPairToDatum(IPair stxPair) {
-            Syntax car = stxPair.Car as Syntax ??
-                throw new Exception($"SyntaxObject.SyntaxPairToDatum: expected syntax pair, but car -- {stxPair.Car} -- is not a syntax object");
+            // Syntax car = stxPair.Car as Syntax ??
+            //     throw new Exception($"SyntaxObject.SyntaxPairToDatum: expected syntax pair, but car -- {stxPair.Car} -- is not a syntax object");
+            Expr car = stxPair.Car is Syntax stxCar ? ToDatum(stxCar) : stxPair.Car;
             if (stxPair.Cdr is Expr.NullType) {
-                return (Expr)Expr.Pair.Cons(ToDatum(car), (Expr)List.Empty);
+                return (Expr)Expr.Pair.Cons(car, (Expr)List.Empty);
             } else if (stxPair.Cdr is Syntax soCdr) {
-                return (Expr)Expr.Pair.Cons(ToDatum(car), ToDatum(soCdr));
+                return (Expr)Expr.Pair.Cons(car, ToDatum(soCdr));
             } else if (stxPair.Cdr is IPair cdrPair) {
-                return (Expr)Expr.Pair.Cons(ToDatum(car), SyntaxPairToDatum(cdrPair));
+                return (Expr)Expr.Pair.Cons(car, SyntaxPairToDatum(cdrPair));
             } else {
                 throw new Exception($"SyntaxPairToDatum: cdr of a syntax pair should be a syntax object, null or a pair. {stxPair.Cdr} is none of these)");
             }

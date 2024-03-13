@@ -290,7 +290,7 @@ internal static class Builtins {
     public static Thunk datum_to_syntax(Delegate k, List args) {
         if (args.Count() != 2) throw new Exception($"datum->syntax: expected two arguments but got {args.Count()}.");
         if (args.ElementAt(0) is Syntax stx) {
-            return Continuation.ApplyDelegate(k, new Syntax(args.ElementAt(1), stx.SrcLoc));
+            return Continuation.ApplyDelegate(k, Syntax.FromDatum(stx.SrcLoc, args.ElementAt(1)));
         } else {
             throw new Exception($"datum->syntax: expected first argument to be syntax, but got {args.ElementAt(0)}");
         }

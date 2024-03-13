@@ -7,12 +7,15 @@ public class MacroExpander {
 
     internal static Scope TopLevelScope = new Scope();
 
-    public Syntax Expand(Syntax ast, ExpansionEnvironment ee) {
+    public static Syntax Expand(Syntax ast, ExpansionEnvironment ee) {
         bool foundMacro = false;
         Syntax.AddScope(ast, TopLevelScope); // introduce
         do {
             Syntax save = ast;
             (foundMacro, ast) = Expand_1(ast, ee);
+            // if (foundMacro) {
+            //     Console.WriteLine($"{save} => {ast}");
+            // }
 
         } while (foundMacro);
         return ast;
@@ -38,6 +41,8 @@ public class MacroExpander {
                 return ExpandBegin(stx.SrcLoc, stxList, ee);
             } else if (Expr.IsKeyword("set!", stx)) {
                 return ExpandSet(stx.SrcLoc, stxList, ee);
+            } else if (Expr.IsKeyword("define-syntax", stx)) {
+                return ExpandDefineSyntax(stx.SrcLoc, stxList, ee);
             } else {
                 return ExpandApplication(stx, stxList, ee);
             }
@@ -46,14 +51,38 @@ public class MacroExpander {
         }
     }
 
+    private static (bool, Syntax) ExpandDefineSyntax(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
+    {
+        Syntax.Identifier id = stxList.ElementAt<Syntax>(1) as Syntax.Identifier ?? throw new Exception() ;
+        Syntax shouldBeLambdaExpr = stxList.ElementAt<Syntax>(2);
+        if (!Expr.IsKeyword("lambda", shouldBeLambdaExpr)) {
+            throw new Exception($"define-syntax: expected 2nd argument to be a transformer. Got {stxList.ElementAt<Syntax>(2)}");
+        }
+        Syntax expandedLambdaExpr = Expand(stxList.ElementAt<Syntax>(2), ee);
+        Transformer transformer = EvaluateTransformer(expandedLambdaExpr);
+        ee.AddTransformer(id.Symbol, transformer);
+        return (false, new Syntax(List.NewList(new Syntax.Identifier(new Expr.Symbol("quote"), new SrcLoc()), id), srcLoc));
+
+    }
+
+    private static Transformer EvaluateTransformer(Syntax lambdaExprSyntax) {
+        Procedure procedure = Program.EvalNonCPS(lambdaExprSyntax) as Procedure ??
+            throw new Exception($"define-syntax: second argument should be evaluate to a transformer.");
+        return new Transformer(procedure.Value as Func<Delegate, Expr, Thunk> ??
+            throw new Exception($"define-syntax: second argument should be a transformer (got {procedure.Value})"));
+    }
+
+
     private static (bool, Syntax) ExpandApplication(Syntax stx, SyntaxList stxList, ExpansionEnvironment ee)
     {
-        if (stxList.ElementAt<Syntax>(0) is Syntax.Identifier id && ee.TryFindMacro(id.Symbol, out Macro? macro)) {
+        if (stxList.ElementAt<Syntax>(0) is Syntax.Identifier id && ee.TryFindTransformer(id.Symbol, out Transformer? macro)) {
                 List list = stxList.Rest;
                 Scope macroExpansionScope = new Scope();
                 Syntax.AddScope(stx, macroExpansionScope);
-                var result = (true, macro.Apply(stx));
+                Syntax output = macro.Apply(stx);
+                var result = (true, output);
                 Syntax.ToggleScope(result.Item2, macroExpansionScope);
+                // Console.WriteLine($"{stx} => {output}");
                 return result;
         } else {
                 return ExpandSequence(stx.SrcLoc, stxList, ee);
@@ -155,7 +184,7 @@ public class MacroExpander {
 
 public class ExpansionEnvironment {
 
-    public ExpansionEnvironment(Dictionary<Expr.Symbol, Macro> dict) {
+    public ExpansionEnvironment(Dictionary<Expr.Symbol, Transformer> dict) {
         _dict = dict;
     }
 
@@ -180,7 +209,8 @@ public class ExpansionEnvironment {
     //     return Continuation.ApplyDelegate(k, result);
     // }
 
-    private static Thunk and_macro(Delegate k, Syntax stx) {
+    private static Thunk and_macro(Delegate k, Expr x) {
+        Syntax stx = x as Syntax ?? throw new Exception($"and: expected syntax, got {x.GetType()}");
         Syntax result;
         SyntaxList stxList = Syntax.E(stx) as SyntaxList ?? throw new Exception("and: syntax should expand to list");
         if (stxList.Count<Syntax>() == 1) { // E.g. (and)
@@ -208,13 +238,13 @@ public class ExpansionEnvironment {
     }
 
     public static ExpansionEnvironment Default {get;} =
-        new ExpansionEnvironment(new Dictionary<Expr.Symbol, Macro>{
-            {new Expr.Symbol("and"), new Macro((MacroDelegate) and_macro)},
+        new ExpansionEnvironment(new Dictionary<Expr.Symbol, Transformer>{
+            {new Expr.Symbol("and"), new Transformer((Func<Delegate, Expr, Thunk>) and_macro)},
             }
         );
 
-    public bool TryFindMacro(Expr.Symbol sym, [NotNullWhen(returnValue: true)] out Macro? macro) {
-        if (_dict.TryGetValue(sym, out Macro? result)) {
+    public bool TryFindTransformer(Expr.Symbol sym, [NotNullWhen(returnValue: true)] out Transformer? macro) {
+        if (_dict.TryGetValue(sym, out Transformer? result)) {
             macro = result;
             return true;
         }
@@ -222,6 +252,10 @@ public class ExpansionEnvironment {
         return false;
     }
 
-    private Dictionary<Expr.Symbol, Macro> _dict;
+    public void AddTransformer(Expr.Symbol sym, Transformer transformer) {
+        _dict[sym] = transformer;
+    }
+
+    private Dictionary<Expr.Symbol, Transformer> _dict;
 
 }

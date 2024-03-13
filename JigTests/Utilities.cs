@@ -20,7 +20,7 @@ public static class Utilities {
 public class Interpreter : IInterpreter {
     IEnvironment Env {get;}
     public Interpreter() {
-        Env = new Jig.Environment();
+        Env = Program.TopLevel;
         Program.ExecuteFile("prelude.scm", Env);
     }
 
