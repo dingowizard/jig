@@ -4,16 +4,17 @@ using Jig.IO;
 namespace JigTests;
 
 public static class Utilities {
+    static Interpreter _interp = new Interpreter();
     public static string Interpret(string input) {
-        return new Interpreter().Interpret(input);
+        return _interp.Interpret(input);
     }
 
     public static string InterpretUsingReadSyntax(string input) {
-        return new Interpreter().InterpretUsingReadSyntax(input);
+        return _interp.InterpretUsingReadSyntax(input);
     }
 
     public static string InterpretMultipleValues(string input) {
-        return new Interpreter().InterpretMultipleValues(input);
+        return _interp.InterpretMultipleValues(input);
     }
 }
 
