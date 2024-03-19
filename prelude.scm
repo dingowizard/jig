@@ -4,12 +4,23 @@
         0
         (+ 1 (length (cdr l))))))
 
-(define list
-  (lambda l l))
+(define list (lambda l l))
 
-(define not
-  (lambda (x)
-    (if x #f #t)))
+(define list-tail
+  (lambda (x k)
+    (if (= k 0)
+        x
+        (list-tail (cdr x) (- k 1)))))
+
+(define list-ref
+  (lambda (xs k)
+    (if (= k 0)
+        (car xs)
+        (list-ref (cdr xs) (- k 1)))))
+
+(define zero? (lambda (x) (= x 0)))
+
+(define not (lambda (x) (if x #f #t)))
 
 (define list?
   (lambda (x)
@@ -41,6 +52,16 @@
         l2
         (cons (car l1) (append (cdr l1) l2)))))
 
+(define caar (lambda (p) (car (car p))))
+
+(define cadr (lambda (p) (car (cdr p))))
+
+(define cdar (lambda (p) (cdr (car p))))
+
+(define cddr (lambda (p) (cdr (cdr p))))
+
+(define caddr (lambda (p) (car (cdr (cdr p)))))
+
 (define-syntax let
   (lambda (stx)
     (datum->syntax
@@ -53,8 +74,11 @@
 
 (define-syntax or
   (lambda (stx)
-    (datum->syntax
-     stx
-     (list
-      (list 'lambda (list 'tmp) (list 'if 'tmp 'tmp (car (cdr (cdr (syntax->list stx))))))
-      (car (cdr (syntax->list stx)))))))
+    (let ((stx-list (syntax->list stx)))
+      (if (= 1 (length stx-list))
+          (datum->syntax stx (quote #f))
+          (datum->syntax
+           stx
+           (list 'let
+                 (list (list 'x (car (cdr stx-list))))
+                 (list 'if 'x 'x (append (list 'or) (cdr (cdr stx-list))))))))))
