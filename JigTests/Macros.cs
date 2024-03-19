@@ -32,4 +32,18 @@ public class Macros {
         var actual = Utilities.InterpretUsingReadSyntax(input);
         Assert.AreEqual(expected, actual);
     }
+
+    [TestMethod]
+    [DataRow("(or 1 (oops!))", "1")]
+    public void OrShortCircuits(string input, string expected) {
+        var actual = Utilities.InterpretUsingReadSyntax(input);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
+    [DataRow("(and 1 #f (oops!))", "#f")]
+    public void AndShortCircuits(string input, string expected) {
+        var actual = Utilities.InterpretUsingReadSyntax(input);
+        Assert.AreEqual(expected, actual);
+    }
 }
