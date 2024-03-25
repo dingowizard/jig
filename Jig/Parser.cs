@@ -11,6 +11,10 @@ public class Parser {
     public static Expr? ParseExpr(TokenStream tokenStream, bool syntax = false) {
         // TODO: handle comments!
         var peeked = tokenStream.Peek();
+        while (peeked is Token.Comment) {
+            tokenStream.Read();
+            peeked = tokenStream.Peek();
+        }
         switch (peeked) {
             case Token.Quote quoteToken:
                 tokenStream.Read();
