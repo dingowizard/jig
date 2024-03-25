@@ -25,6 +25,14 @@ public class Environment : IEnvironment {
         // _dict.Add(new Expr.Symbol("error"), new Procedure( (Builtin)Builtins.error));
     }
 
+    public IEnumerable<Expr.Symbol> Symbols {
+
+        get {
+            return _dict.Keys;
+        }
+
+    }
+
     public Thunk Set(Delegate k, Expr sym, Expr v) {
         Expr.Symbol s = sym is Syntax.Identifier i ? i.Symbol : ((Expr.Symbol) sym);
         if (!_dict.ContainsKey(s)) {

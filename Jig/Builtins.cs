@@ -302,7 +302,7 @@ internal static class Builtins {
         if (args.Count() != 1) throw new Exception($"expand-once: expected a single argument but got {args.Count()}");
         if (args.ElementAt(0) is Syntax stx) {
             // TODO: what should expansion environment be?
-            (_, Syntax result) = MacroExpander.Expand_1(stx, ExpansionEnvironment.Default);
+            (_, Syntax result) = new MacroExpander().Expand_1(stx, ExpansionEnvironment.Default);
             return Continuation.ApplyDelegate(k, result);
         } else {
             throw new Exception($"expand-once: expected syntax argument, but got {args.ElementAt(0)}");

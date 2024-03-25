@@ -4,7 +4,7 @@
         0
         (+ 1 (length (cdr l))))))
 
-(define list (lambda l l))
+(define list (lambda xs xs))
 
 (define list-tail
   (lambda (x k)

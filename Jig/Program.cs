@@ -56,7 +56,7 @@ public static class Program {
             env = Program.TopLevel;
         }
         if (ast is Syntax stx) {
-            ast = MacroExpander.Expand(stx, ExEnv);
+            ast = new MacroExpander().Expand(stx, ExEnv);
         }
         var compiled = Compiler.Compile(ast);
         Run(compiled, k, env);

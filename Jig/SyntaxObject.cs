@@ -25,7 +25,15 @@ public class Syntax : Expr {
 
     internal static void AddScope(Syntax stx, Scope scope) {
         if (stx is Syntax.Identifier id) {
-            id.ScopeSet.Add(scope);
+            bool added = id.ScopeSet.Add(scope);
+            // if (added) {
+            //     Console.WriteLine($"AddScope: {scope} was added.");
+            //     Console.WriteLine($"AddScope: ScopeSet contains {id.ScopeSet.Count}");
+            //     foreach (var sc in id.ScopeSet) {
+            //         Console.WriteLine ($"{sc} in ScopeSet Equals scope to add: {sc.Equals(scope)}");
+            //         Console.WriteLine ($"sc.GetHashCode == scope.GetHashCode() : {sc.GetHashCode() == scope.GetHashCode()}");
+            //     }
+            // }
             return;
         }
         if (Syntax.E(stx) is SyntaxList stxList) {
@@ -115,6 +123,32 @@ public class Syntax : Expr {
             get {
                 return (Symbol)Expression;
             }
+        }
+
+        public override bool Equals(object? obj) {
+            // if (Symbol.Name == "stx") {
+            //     Console.WriteLine($"Equals: we're here!");
+            // }
+            if (obj is Identifier id) {
+                if (!Symbol.Equals(id.Symbol)) return false;
+                if (ScopeSet.Equals(id.ScopeSet)) return true;
+                return false;
+
+            } else {
+                return false;
+            }
+
+        }
+
+        public override int GetHashCode() {
+            // if (Symbol.Name == "stx") {
+                // Console.WriteLine($"GetHashCode: we're here!");
+            // }
+            int hash = Symbol.GetHashCode();
+            unchecked {
+                hash = hash * 31 + ScopeSet.GetHashCode();
+            }
+            return hash;
         }
 
         internal HashSet<Scope> ScopeSet {get; private set;}
@@ -215,4 +249,21 @@ public class SyntaxList : List.NonEmpty, IEnumerable<Syntax> {
 
 }
 
-internal struct Scope {}
+internal struct Scope {
+    static int count = 0;
+    int me;
+    public Scope () {
+        me = count ++;
+    }
+    public override int GetHashCode() => me;
+    public override string ToString() => "scope" + me.ToString();
+    public override bool Equals(object? obj) {
+        if (obj is null) return false;
+        if (obj is Scope sc) {
+            return me == sc.me;
+
+        } else {
+            return false;
+        }
+    }
+}

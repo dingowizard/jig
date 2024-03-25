@@ -175,6 +175,7 @@ internal abstract class ET : Expression {
             List.NonEmpty listCdrCdr = listCdr.Cdr as List.NonEmpty ?? throw new Exception($"malformed if: {list}");
             Expr consq = listCdrCdr.Car;
             Expression<CompiledCode> consqCC = (Expression<CompiledCode>)Analyze(lexVars, consq).Reduce();
+            // TODO: actually, if doesn't need an else branch
             List.NonEmpty listCdrCdrCdr = listCdrCdr.Cdr as List.NonEmpty ?? throw new Exception($"malformed if: {list}");
             Expr alt = listCdrCdrCdr.Car;
             Expression<CompiledCode> altCC = (Expression<CompiledCode>)Analyze(lexVars, alt).Reduce();
