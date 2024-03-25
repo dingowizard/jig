@@ -8,7 +8,7 @@ public class Begin
     public void Begins(string input, string expected)
     {
         var actual = Utilities.InterpretUsingReadSyntax(input);
-        Assert.AreEqual(actual, expected);
+        Assert.AreEqual(expected, actual);
     }
 
 
