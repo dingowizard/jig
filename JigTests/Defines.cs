@@ -15,9 +15,7 @@ public class Defines {
     }
 
     [TestMethod]
-    [DataRow("(begin (define z 26) z)", "26")]
-    [DataRow("(begin (define z 26) (begin (define z 1) (set! z 2)) z)", "26")]
-    [DataRow("(begin (define z (car (cons 12 13))) z)", "12")]
+    [DataRow("((lambda () (define z (car (cons 12 13))) z))", "12")]
     [DataRow("((lambda () (define z 26) z))", "26")]
     public void DefineLexicalVar(string input, string expected) {
         var actual = Utilities.Interpret(input);
@@ -36,6 +34,7 @@ public class Defines {
     }
 
     [TestMethod]
+    [DataRow("(begin (define z 26) (begin (define z 1) (set! z 2)) z)", "26")]
     [DataRow("(begin (define z 26) z)", "26")]
     [DataRow("(begin (define z (car (cons 12 13))) z)", "12")]
     public void DefineLexicalVarSyntax(string input, string expected) {

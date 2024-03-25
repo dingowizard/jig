@@ -45,9 +45,6 @@ internal abstract class ET : Expression {
                 return new LambdaExprET(scope, list);
             } else if (Expr.IsKeyword("define", ast)) {
                 return new DefineET(scope, list);
-            } else if (Expr.IsKeyword("begin", ast)) {
-                // TODO: rewrite begin as builtin transformer
-                return new BlockET(scope, (List.NonEmpty)list.Cdr);
             } else if (Expr.IsKeyword("set!", ast)) {
                 return new SetBangET(scope, list);
             }

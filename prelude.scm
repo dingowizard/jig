@@ -62,6 +62,14 @@
 
 (define caddr (lambda (p) (car (cdr (cdr p)))))
 
+(define-syntax begin
+  (lambda (stx)
+    (datum->syntax
+     stx
+     (list
+      (append (list 'lambda (list))
+              (cdr (syntax->list stx)))))))
+
 (define-syntax let
   (lambda (stx)
     (datum->syntax

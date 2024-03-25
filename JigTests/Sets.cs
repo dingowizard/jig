@@ -21,7 +21,7 @@ public class Sets {
     [DataRow("(begin (define z 25) (set! z 26) z)", "26")]
     [DataRow("(begin (define z 26) (set! z (car (cons 12 13))) z)", "12")]
     public void SetLexicalVar(string input, string expected) {
-        var actual = Utilities.Interpret(input);
+        var actual = Utilities.InterpretUsingReadSyntax(input);
         Assert.AreEqual(expected, actual);
     }
 

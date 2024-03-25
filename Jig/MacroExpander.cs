@@ -49,8 +49,6 @@ public class MacroExpander {
 
     }
 
-
-
     public Syntax Expand(Syntax ast, ExpansionEnvironment ee) {
         bool foundMacro = false;
         if (!introduced) {
@@ -84,8 +82,6 @@ public class MacroExpander {
                 return ExpandIf(stx.SrcLoc, stxList, ee);
             } else if (Expr.IsKeyword("define", stx)) {
                 return ExpandDefine(stx.SrcLoc, stxList, ee);
-            } else if (Expr.IsKeyword("begin", stx)) {
-                return ExpandBegin(stx.SrcLoc, stxList, ee);
             } else if (Expr.IsKeyword("set!", stx)) {
                 return ExpandSet(stx.SrcLoc, stxList, ee);
             } else if (Expr.IsKeyword("define-syntax", stx)) {
@@ -169,11 +165,6 @@ public class MacroExpander {
             xs.Add(bodyExpr);
         }
         return (foundMacro, new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc));
-    }
-
-    private (bool, Syntax) ExpandBegin(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
-    {
-        return ExpandSequence(srcLoc, stxList, ee);
     }
 
     private (bool, Syntax) ExpandDefine(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
