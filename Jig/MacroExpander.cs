@@ -10,32 +10,20 @@ public class MacroExpander {
     public MacroExpander() {
 
         Bindings = new Dictionary<Syntax.Identifier, Binding>();
-        foreach (var sym in Program.TopLevel.Symbols) {
-            // add all top level symbols to bindings
-            var id = new Syntax.Identifier(sym, new SrcLoc()); // TODO: srcloc should refer to prelude file or wherever
-            Syntax.AddScope(id, TopLevelScope);
-            Bindings.Add(id, Binding.TopLevel);
-        }
-
+        // TODO: we shouldn't do this every time the macro expander runs
+        // foreach (var sym in Program.TopLevel.Symbols) {
+        //     // add all top level symbols to bindings
+        //     var id = new Syntax.Identifier(sym, new SrcLoc()); // TODO: srcloc should refer to prelude file or wherever
+        //     Syntax.AddScope(id, TopLevelScope);
+        //     id.Symbol.Binding = Binding.TopLevel;
+        //     Bindings.Add(id, Binding.TopLevel);
+        // }
     }
-
-    bool introduced = false;
 
     internal Dictionary<Syntax.Identifier, Binding> Bindings {get;}
 
     IEnumerable<Syntax.Identifier> FindCandidateIdentifiers(Syntax.Identifier id) {
-        var sameSymbol = Bindings.Keys.Where(i => i.Symbol.Name == id.Symbol.Name);
-        var result = sameSymbol.Where(i => i.ScopeSet.IsSubsetOf(id.ScopeSet));
-        if (id.Symbol.Name == "l") {
-            Console.WriteLine($"FindCandidateIdentifiers: for l at {id.SrcLoc}, found {sameSymbol.Count()} bindings with same name.");
-            if (sameSymbol.Count() > 0) {
-                Console.WriteLine($"\tThe first one is at {sameSymbol.ElementAt(0).SrcLoc}");
-                Console.WriteLine($"\tThe scope set of the first candidate ({string.Join(',', sameSymbol.ElementAt(0).ScopeSet)}) is a subset of the id's scope set({string.Join(',',id.ScopeSet)}): {sameSymbol.ElementAt(0).ScopeSet.IsSubsetOf(id.ScopeSet)}");
-            }
-            Console.WriteLine($"\treturning {result.Count()} candidates.");
-
-        }
-        return result;
+        return Bindings.Keys.Where(i => i.Symbol.Name == id.Symbol.Name && i.ScopeSet.IsSubsetOf(id.ScopeSet));
     }
 
     bool TryResolve(Syntax.Identifier id, [NotNullWhen(returnValue: true)] out Binding? binding) {
@@ -44,7 +32,10 @@ public class MacroExpander {
             binding = null;
             return false;
         }
-        Syntax.Identifier maxID = candidates.MaxBy<Syntax.Identifier, int>(i => i.ScopeSet.Count) ?? throw new Exception("impossible");
+        #pragma warning disable CS8600
+        Syntax.Identifier maxID = candidates.MaxBy<Syntax.Identifier, int>(i => i.ScopeSet.Count);// ?? throw new Exception("impossible");
+        Debug.Assert(maxID is not null);
+        #pragma warning restore CS8600
         CheckUnambiguous(maxID, candidates);
         binding = Bindings[maxID];
         return true;
@@ -60,32 +51,14 @@ public class MacroExpander {
 
     }
 
-    // public Syntax Expand(Syntax ast, ExpansionEnvironment ee) {
-    //     bool foundMacro = false;
-    //     if (!introduced) {
-    //         Syntax.AddScope(ast, TopLevelScope); // introduce
-    //         introduced = true;
-    //     }
-    //     do {
-    //         Syntax save = ast;
-    //         (foundMacro, ast) = Expand_1(ast, ee);
-    //         // if (foundMacro) {
-    //         //     Console.WriteLine($"{save} => {ast}");
-    //         // }
-
-    //     } while (foundMacro);
-    //     return ast;
-    // }
-
     public  Syntax Expand(Syntax stx, ExpansionEnvironment ee) {
-        // ast = ast is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : ast;
         // TODO: rewrite this in a way that we don't have to remember to change it everytime a keyword is added
         switch (stx) {
             case Syntax.Identifier id:
                 if(TryResolve(id, out Binding? binding)) {
-                    return new Syntax.Identifier(new Expr.Symbol(id.Symbol.Name, binding), id.SrcLoc);
+                    id.Symbol.Binding = binding;
+                    return id;
                 } else {
-                    Console.WriteLine($"Expand: free variable '{id.Symbol}' at {id.SrcLoc}");
                     return id;
                 }
             case Syntax.Literal lit: return lit;
@@ -116,11 +89,9 @@ public class MacroExpander {
     private  Syntax ExpandDefineSyntax(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
         Syntax.Identifier id = stxList.ElementAt<Syntax>(1) as Syntax.Identifier ?? throw new Exception() ;
-        // Scope newScope = new Scope();
-        // Syntax.AddScope(id, newScope);
-        Bindings.Add(id, new Binding());
+        id.Symbol.Binding = new Binding();
+        Bindings.Add(id, id.Symbol.Binding);
         Syntax shouldBeLambdaExpr = stxList.ElementAt<Syntax>(2);
-        // Syntax.AddScope(shouldBeLambdaExpr, newScope);
         if (!Expr.IsKeyword("lambda", shouldBeLambdaExpr)) {
             throw new Exception($"define-syntax: expected 2nd argument to be a transformer. Got {stxList.ElementAt<Syntax>(2)}");
         }
@@ -141,12 +112,12 @@ public class MacroExpander {
 
     private  Syntax ExpandApplication(Syntax stx, SyntaxList stxList, ExpansionEnvironment ee)
     {
-        if (stxList.ElementAt<Syntax>(0) is Syntax.Identifier id && ee.TryFindTransformer(id.Symbol, out Transformer? macro)) {
+        if (stxList.ElementAt<Syntax>(0) is Syntax.Identifier id && ee.TryFindTransformer(id.Symbol, out Transformer? transformer)) {
 
             List list = stxList.Rest;
             Scope macroExpansionScope = new Scope();
             Syntax.AddScope(stx, macroExpansionScope);
-            Syntax output = macro.Apply(stx);
+            Syntax output = transformer.Apply(stx);
             var result = output;
             Syntax.ToggleScope(result, macroExpansionScope);
             // Console.WriteLine($"{stx} => {output}");
@@ -170,9 +141,8 @@ public class MacroExpander {
     {
         List<Syntax> xs = new List<Syntax>();
         Debug.Assert(stxList.Count<Syntax>() == 3);
-        xs.Add(stxList.ElementAt<Syntax>(0));
-        xs.Add(stxList.ElementAt<Syntax>(1));
-        foreach (var x in stxList.Skip<Syntax>(2)) {
+        xs.Add(stxList.ElementAt<Syntax>(0)); // set!
+        foreach (var x in stxList.Skip<Syntax>(1)) {
             Syntax bodyExpr = Expand(x, ee);
             xs.Add(bodyExpr);
         }
@@ -182,28 +152,27 @@ public class MacroExpander {
     private  Syntax ExpandDefine(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
         List<Syntax> xs = new List<Syntax>();
-        Debug.Assert(stxList.Count<Syntax>() == 3);
+        Debug.Assert(stxList.Count<Syntax>() == 3); // TODO: this should be a syntax error
         xs.Add(stxList.ElementAt<Syntax>(0));
-        xs.Add(stxList.ElementAt<Syntax>(1));
         Syntax.Identifier id = stxList.ElementAt<Syntax>(1) as Syntax.Identifier
             ?? throw new Exception($"ExpandDefine: expected first argument to be identifier. Got {stxList.ElementAt<Syntax>(1)}");
         // var newScope = new Scope();
         // Syntax.AddScope(id, newScope);
         if (!Bindings.ContainsKey(id)) {
-            Bindings.Add(id, new Binding());
+            id.Symbol.Binding = new Binding();
+            Bindings.Add(id, id.Symbol.Binding);
         }
+        xs.Add(id);
         var x = stxList.ElementAt<Syntax>(2);
-        // Syntax.AddScope(x, newScope);
-        Syntax bodyExpr = Expand(x, ee);
-        xs.Add(bodyExpr);
+        xs.Add(Expand(x, ee));
         return new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc);
     }
 
     private  Syntax ExpandIf(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
         List<Syntax> xs = new List<Syntax>();
-        Debug.Assert(stxList.Count<Syntax>() >= 3);
-        xs.Add(stxList.ElementAt<Syntax>(0));
+        Debug.Assert(stxList.Count<Syntax>() >= 3); // TODO: this should be syntax error not failed assertion
+        xs.Add(stxList.ElementAt<Syntax>(0)); // TODO: maybe simplify all these by ignoring keywords on expand symbol?
         foreach (var x in stxList.Skip<Syntax>(1)) {
             Syntax bodyExpr = Expand(x, ee);
             xs.Add(bodyExpr);
@@ -212,41 +181,32 @@ public class MacroExpander {
     }
 
     private  Syntax ExpandLambda(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
-        // TODO: Parser should produce a lambdaExpr Expr that is a type of List.NonEmpty
         List<Syntax> xs = new List<Syntax>();
-        // below assert breaks a lot of tests having to do with multiple values
-        // Debug.Assert(astAsList.Count() > 3);
         xs.Add(stxList.ElementAt<Syntax>(0)); // lamdbda keyword
         var newScope = new Scope();
         var parameters = stxList.ElementAt<Syntax>(1);
-        Syntax.AddScope(parameters, newScope);
+        Syntax.AddScope(parameters, newScope); // TODO: is this necessary? Seems so. deleting it breaks a lot of tests.
         // create a new binding for each parameter
         if (Syntax.E(parameters) is SyntaxList psStxList) {
             foreach(var stx in psStxList) {
                 Syntax.Identifier id = stx as Syntax.Identifier ?? throw new Exception($"ExpandLambda: expected parameters to be identifiers, but got {stx}");
-                if (!Bindings.ContainsKey(id)){
-                    Binding binding = new Binding();
-                    id.Symbol.Binding = binding;
-                    Bindings.Add(id, binding);
-                }
+                Binding binding = new Binding();
+                id.Symbol.Binding = binding;
+                Bindings.Add(id, binding);
             }
         } else if (Syntax.E(parameters) is IPair pair) {
             while (pair.Cdr is IPair cdrPair) {
                 if (pair.Car is Syntax.Identifier ident) {
-                   if (!Bindings.ContainsKey(ident)) {
-                       Binding binding = new Binding();
-                       ident.Symbol.Binding = binding;
-                       Bindings.Add(ident, binding);
-                   }
+                    Binding binding = new Binding();
+                    ident.Symbol.Binding = binding;
+                    Bindings.Add(ident, binding);
                 }
                 pair = cdrPair;
             }
             if (pair.Cdr is Syntax.Identifier id) {
-                if (!Bindings.ContainsKey(id)) {
-                    Binding binding = new Binding();
-                    id.Symbol.Binding = binding;
-                    Bindings.Add(id, binding);
-                }
+                Binding binding = new Binding();
+                id.Symbol.Binding = binding;
+                Bindings.Add(id, binding);
             }
         } else if (parameters is Syntax.Identifier psId) {
                 Binding binding = new Binding();
@@ -273,27 +233,6 @@ public class ExpansionEnvironment {
     public ExpansionEnvironment(Dictionary<Expr.Symbol, Transformer> dict) {
         _dict = dict;
     }
-
-    // private static Thunk or_macro(Delegate k, List args) {
-    //     Syntax result;
-    //     if (args.Count() == 0) {
-    //         result = new Syntax(new Expr.Boolean(false), new SrcLoc());
-    //         return Continuation.ApplyDelegate(k, result);
-    //     }
-    //     SyntaxList stxList = args as SyntaxList ?? throw new Exception($"in or_macro: expected args to be SyntaxList");
-    //     Syntax first = stxList.ElementAt<Syntax>(0);
-    //     result = new Syntax(
-    //         SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("if"), new SrcLoc()),
-    //                                 first,
-    //                                 first,
-    //                                 new Syntax(
-    //                                 SyntaxList.FromIEnumerable(new List<Syntax>{
-    //                                     new Syntax.Identifier(new Expr.Symbol("or"), new SrcLoc())
-    //                                                                         }.Concat<Syntax>(stxList.Skip<Syntax>(1))),
-    //                                 new SrcLoc())),
-    //         new SrcLoc()); // TODO: should get whole sytax with srcLoc in args and use it
-    //     return Continuation.ApplyDelegate(k, result);
-    // }
 
     private static Thunk and_macro(Delegate k, Expr x) {
         Syntax stx = x as Syntax ?? throw new Exception($"and: expected syntax, got {x.GetType()}");
@@ -347,5 +286,8 @@ public class ExpansionEnvironment {
 }
 
 public class Binding {
+    //TODO: why can't scope be like this? (scope needs a member to work. maybe because it has to define gethashcode and equals?)
+    //TODO: should the binding contain the scope that it comes from?
+    //TODO: can Scope and binding classes be combined in some way?
     public static Binding TopLevel {get;} = new Binding();
 }

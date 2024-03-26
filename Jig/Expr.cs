@@ -258,11 +258,11 @@ public abstract class Keyword : Expr.Symbol {
 
     public Keyword(string name) : base (name) {}
 
-    public new class Lambda : Keyword {
+    public class Lambda : Keyword {
         public Lambda() : base("lambda") {}
     }
 
-    public new class If : Keyword {
+    public class If : Keyword {
         public If() : base("if") {}
     }
 

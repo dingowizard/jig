@@ -264,7 +264,6 @@ internal static class Builtins {
     }
 
     public static Thunk syntax_to_list(Delegate k, List args) {
-        Console.WriteLine($"syntax->list: called with {args}");
         if (args.Count() != 1) throw new Exception($"syntax->list: expected one argument.");
         Syntax stx = args.ElementAt(0) as Syntax ?? throw new Exception($"syntax->list: expected a syntax argument, got got {args.ElementAt(0)}");
         if (Syntax.ToList(stx, out SyntaxList? result)) {

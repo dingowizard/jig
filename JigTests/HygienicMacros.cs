@@ -16,9 +16,9 @@ public class HygienicMacros {
                                (list (list 'x (cadr (syntax->list stx))))
                                (list 'if 'x 'x (caddr (syntax->list stx)))))))
                     """,
-                    "(let ((x 1)) (or2 #f x))"
+                    "(let ((x #t)) (or2 #f x))"
                 });
-        Assert.AreEqual("1", actual);
+        Assert.AreEqual("#t", actual);
     }
 
 }

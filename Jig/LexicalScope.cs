@@ -47,9 +47,9 @@ internal class LexicalContext {
             (Expr.Symbol)Syntax.ToDatum(stx) :
             (Expr.Symbol) x;
         var candidates = Symbols.Where(tup => tup.Item1.Name==symbol.Name);
-        if (symbol.Name == "l") {
+        if (symbol.Name == "z") {
             if (candidates.Count() > 0) {
-                Console.WriteLine($"$LookUp: found {candidates.Count()} candidate(s) for 'l'");
+                Console.WriteLine($"$LookUp: found {candidates.Count()} candidate(s) for 'z'");
                 Binding? binding = candidates.ElementAt(0).Item1.Binding;
                 Console.WriteLine($"$LookUp: the first candidate has binding = {(binding is null ? "null" : binding.ToString())} and the symbol has binding = {(symbol.Binding == null ? "null" : symbol.Binding.ToString())}");
             }
