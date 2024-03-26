@@ -83,6 +83,13 @@ public abstract class Expr {
             Name = name;
         }
 
+        public Symbol(string name, Binding binding) {
+            Name = name;
+            Binding = binding;
+        }
+
+        internal Binding? Binding;
+
         public virtual string Name {get;}
 
         public override bool Equals(object? obj) {

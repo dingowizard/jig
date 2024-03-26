@@ -24,7 +24,18 @@ public class MacroExpander {
     internal Dictionary<Syntax.Identifier, Binding> Bindings {get;}
 
     IEnumerable<Syntax.Identifier> FindCandidateIdentifiers(Syntax.Identifier id) {
-        return Bindings.Keys.Where(i => i.Symbol == id.Symbol && i.ScopeSet.IsSubsetOf(id.ScopeSet));
+        var sameSymbol = Bindings.Keys.Where(i => i.Symbol.Name == id.Symbol.Name);
+        var result = sameSymbol.Where(i => i.ScopeSet.IsSubsetOf(id.ScopeSet));
+        if (id.Symbol.Name == "l") {
+            Console.WriteLine($"FindCandidateIdentifiers: for l at {id.SrcLoc}, found {sameSymbol.Count()} bindings with same name.");
+            if (sameSymbol.Count() > 0) {
+                Console.WriteLine($"\tThe first one is at {sameSymbol.ElementAt(0).SrcLoc}");
+                Console.WriteLine($"\tThe scope set of the first candidate ({string.Join(',', sameSymbol.ElementAt(0).ScopeSet)}) is a subset of the id's scope set({string.Join(',',id.ScopeSet)}): {sameSymbol.ElementAt(0).ScopeSet.IsSubsetOf(id.ScopeSet)}");
+            }
+            Console.WriteLine($"\treturning {result.Count()} candidates.");
+
+        }
+        return result;
     }
 
     bool TryResolve(Syntax.Identifier id, [NotNullWhen(returnValue: true)] out Binding? binding) {
@@ -49,33 +60,39 @@ public class MacroExpander {
 
     }
 
-    public Syntax Expand(Syntax ast, ExpansionEnvironment ee) {
-        bool foundMacro = false;
-        if (!introduced) {
-            Syntax.AddScope(ast, TopLevelScope); // introduce
-            introduced = true;
-        }
-        do {
-            Syntax save = ast;
-            (foundMacro, ast) = Expand_1(ast, ee);
-            // if (foundMacro) {
-            //     Console.WriteLine($"{save} => {ast}");
-            // }
+    // public Syntax Expand(Syntax ast, ExpansionEnvironment ee) {
+    //     bool foundMacro = false;
+    //     if (!introduced) {
+    //         Syntax.AddScope(ast, TopLevelScope); // introduce
+    //         introduced = true;
+    //     }
+    //     do {
+    //         Syntax save = ast;
+    //         (foundMacro, ast) = Expand_1(ast, ee);
+    //         // if (foundMacro) {
+    //         //     Console.WriteLine($"{save} => {ast}");
+    //         // }
 
-        } while (foundMacro);
-        return ast;
-    }
+    //     } while (foundMacro);
+    //     return ast;
+    // }
 
-    public (bool, Syntax) Expand_1(Syntax stx, ExpansionEnvironment ee) {
+    public  Syntax Expand(Syntax stx, ExpansionEnvironment ee) {
         // ast = ast is SyntaxObject stx ? SyntaxObject.ToDatum(stx) : ast;
         // TODO: rewrite this in a way that we don't have to remember to change it everytime a keyword is added
         switch (stx) {
-            case Syntax.Identifier id: return (false, id);
-            case Syntax.Literal lit: return (false, lit);
+            case Syntax.Identifier id:
+                if(TryResolve(id, out Binding? binding)) {
+                    return new Syntax.Identifier(new Expr.Symbol(id.Symbol.Name, binding), id.SrcLoc);
+                } else {
+                    Console.WriteLine($"Expand: free variable '{id.Symbol}' at {id.SrcLoc}");
+                    return id;
+                }
+            case Syntax.Literal lit: return lit;
         }
         if (Syntax.E(stx) is SyntaxList stxList) {
             if (Expr.IsKeyword("quote", stx)) {
-                return (false, stx);
+                return stx;
             } else if (Expr.IsKeyword("lambda", stx)) {
                 return ExpandLambda(stx.SrcLoc, stxList, ee);
             } else if (Expr.IsKeyword("if", stx)) {
@@ -86,15 +103,17 @@ public class MacroExpander {
                 return ExpandSet(stx.SrcLoc, stxList, ee);
             } else if (Expr.IsKeyword("define-syntax", stx)) {
                 return ExpandDefineSyntax(stx.SrcLoc, stxList, ee);
+            } else if (Expr.IsKeyword("syntax", stx)) {
+                return stx;
             } else {
                 return ExpandApplication(stx, stxList, ee);
             }
         } else {
-            return (false, stx);
+            return stx;
         }
     }
 
-    private (bool, Syntax) ExpandDefineSyntax(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
+    private  Syntax ExpandDefineSyntax(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
         Syntax.Identifier id = stxList.ElementAt<Syntax>(1) as Syntax.Identifier ?? throw new Exception() ;
         // Scope newScope = new Scope();
@@ -108,7 +127,7 @@ public class MacroExpander {
         Syntax expandedLambdaExpr = Expand(stxList.ElementAt<Syntax>(2), ee);
         Transformer transformer = EvaluateTransformer(expandedLambdaExpr);
         ee.AddTransformer(id.Symbol, transformer);
-        return (false, new Syntax(List.NewList(new Syntax.Identifier(new Expr.Symbol("quote"), new SrcLoc()), id), srcLoc));
+        return new Syntax(List.NewList(new Syntax.Identifier(new Expr.Symbol("quote"), new SrcLoc()), id), srcLoc);
 
     }
 
@@ -120,56 +139,48 @@ public class MacroExpander {
     }
 
 
-    private (bool, Syntax) ExpandApplication(Syntax stx, SyntaxList stxList, ExpansionEnvironment ee)
+    private  Syntax ExpandApplication(Syntax stx, SyntaxList stxList, ExpansionEnvironment ee)
     {
         if (stxList.ElementAt<Syntax>(0) is Syntax.Identifier id && ee.TryFindTransformer(id.Symbol, out Transformer? macro)) {
-                List list = stxList.Rest;
-                Scope macroExpansionScope = new Scope();
-                Syntax.AddScope(stx, macroExpansionScope);
-                Syntax output = macro.Apply(stx);
-                var result = (true, output);
-                Syntax.ToggleScope(result.Item2, macroExpansionScope);
-                // Console.WriteLine($"{stx} => {output}");
-                return result;
+
+            List list = stxList.Rest;
+            Scope macroExpansionScope = new Scope();
+            Syntax.AddScope(stx, macroExpansionScope);
+            Syntax output = macro.Apply(stx);
+            var result = output;
+            Syntax.ToggleScope(result, macroExpansionScope);
+            // Console.WriteLine($"{stx} => {output}");
+            return Expand(result, ee);
         } else {
-                return ExpandSequence(stx.SrcLoc, stxList, ee);
+            return ExpandSequence(stx.SrcLoc, stxList, ee);
         }
     }
 
-    private (bool, Syntax) ExpandSequence(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
+    private  Syntax ExpandSequence(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
                 List<Syntax> xs = new List<Syntax>();
-                bool foundMacro = false;
                 foreach (var x in stxList) {
-                    (bool foundMacroInBodyExpr, Syntax bodyExpr) = Expand_1(x, ee);
-                    if (foundMacroInBodyExpr) {
-                        foundMacro = true;
-                    }
+                    Syntax bodyExpr = Expand(x, ee);
                     xs.Add(bodyExpr);
                 }
-                return (foundMacro, new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc));
+                return new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc);
 
     }
 
-    private (bool, Syntax) ExpandSet(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
+    private  Syntax ExpandSet(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
-        bool foundMacro = false;
         List<Syntax> xs = new List<Syntax>();
         Debug.Assert(stxList.Count<Syntax>() == 3);
         xs.Add(stxList.ElementAt<Syntax>(0));
         xs.Add(stxList.ElementAt<Syntax>(1));
         foreach (var x in stxList.Skip<Syntax>(2)) {
-            (bool foundMacroInBodyExpr, Syntax bodyExpr) = Expand_1(x, ee);
-            if (foundMacroInBodyExpr) {
-                foundMacro = true;
-            }
+            Syntax bodyExpr = Expand(x, ee);
             xs.Add(bodyExpr);
         }
-        return (foundMacro, new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc));
+        return new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc);
     }
 
-    private (bool, Syntax) ExpandDefine(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
+    private  Syntax ExpandDefine(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
-        bool foundMacro = false;
         List<Syntax> xs = new List<Syntax>();
         Debug.Assert(stxList.Count<Syntax>() == 3);
         xs.Add(stxList.ElementAt<Syntax>(0));
@@ -183,33 +194,25 @@ public class MacroExpander {
         }
         var x = stxList.ElementAt<Syntax>(2);
         // Syntax.AddScope(x, newScope);
-        (bool foundMacroInBodyExpr, Syntax bodyExpr) = Expand_1(x, ee);
-        if (foundMacroInBodyExpr) {
-            foundMacro = true;
-        }
+        Syntax bodyExpr = Expand(x, ee);
         xs.Add(bodyExpr);
-        return (foundMacro, new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc));
+        return new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc);
     }
 
-    private (bool, Syntax) ExpandIf(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
+    private  Syntax ExpandIf(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
-        bool foundMacro = false;
         List<Syntax> xs = new List<Syntax>();
         Debug.Assert(stxList.Count<Syntax>() >= 3);
         xs.Add(stxList.ElementAt<Syntax>(0));
         foreach (var x in stxList.Skip<Syntax>(1)) {
-            (bool foundMacroInBodyExpr, Syntax bodyExpr) = Expand_1(x, ee);
-            if (foundMacroInBodyExpr) {
-                foundMacro = true;
-            }
+            Syntax bodyExpr = Expand(x, ee);
             xs.Add(bodyExpr);
         }
-        return (foundMacro, new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc));
+        return new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc);
     }
 
-    private (bool, Syntax) ExpandLambda(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
+    private  Syntax ExpandLambda(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
         // TODO: Parser should produce a lambdaExpr Expr that is a type of List.NonEmpty
-        bool foundMacro = false;
         List<Syntax> xs = new List<Syntax>();
         // below assert breaks a lot of tests having to do with multiple values
         // Debug.Assert(astAsList.Count() > 3);
@@ -222,25 +225,33 @@ public class MacroExpander {
             foreach(var stx in psStxList) {
                 Syntax.Identifier id = stx as Syntax.Identifier ?? throw new Exception($"ExpandLambda: expected parameters to be identifiers, but got {stx}");
                 if (!Bindings.ContainsKey(id)){
-                    Bindings.Add(id, new Binding());
+                    Binding binding = new Binding();
+                    id.Symbol.Binding = binding;
+                    Bindings.Add(id, binding);
                 }
             }
         } else if (Syntax.E(parameters) is IPair pair) {
             while (pair.Cdr is IPair cdrPair) {
                 if (pair.Car is Syntax.Identifier ident) {
                    if (!Bindings.ContainsKey(ident)) {
-                       Bindings.Add(ident, new Binding());
+                       Binding binding = new Binding();
+                       ident.Symbol.Binding = binding;
+                       Bindings.Add(ident, binding);
                    }
                 }
                 pair = cdrPair;
             }
             if (pair.Cdr is Syntax.Identifier id) {
                 if (!Bindings.ContainsKey(id)) {
-                    Bindings.Add(id, new Binding());
+                    Binding binding = new Binding();
+                    id.Symbol.Binding = binding;
+                    Bindings.Add(id, binding);
                 }
             }
         } else if (parameters is Syntax.Identifier psId) {
-                Bindings.Add(psId, new Binding());
+                Binding binding = new Binding();
+                psId.Symbol.Binding = binding;
+                Bindings.Add(psId, binding);
         } else if (Syntax.E(parameters) is List.NullType) {
             
         } else {
@@ -249,13 +260,10 @@ public class MacroExpander {
         xs.Add(parameters);
         foreach (var x in stxList.Skip<Syntax>(2)) {
             Syntax.AddScope(x, newScope);
-            (bool foundMacroInBodyExpr, Syntax bodyExpr) = Expand_1(x, ee);
-            if (foundMacroInBodyExpr) {
-                foundMacro = true;
-            }
+            Syntax bodyExpr = Expand(x, ee);
             xs.Add(bodyExpr);
         }
-        return (foundMacro, new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc));
+        return new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc);
     }
 
 }

@@ -46,7 +46,19 @@ internal class LexicalContext {
             x is Syntax stx ?
             (Expr.Symbol)Syntax.ToDatum(stx) :
             (Expr.Symbol) x;
-        ParameterExpression? pe = Symbols.Find(tup => tup.Item1.Equals(symbol))?.Item2;
+        var candidates = Symbols.Where(tup => tup.Item1.Name==symbol.Name);
+        if (symbol.Name == "l") {
+            if (candidates.Count() > 0) {
+                Console.WriteLine($"$LookUp: found {candidates.Count()} candidate(s) for 'l'");
+                Binding? binding = candidates.ElementAt(0).Item1.Binding;
+                Console.WriteLine($"$LookUp: the first candidate has binding = {(binding is null ? "null" : binding.ToString())} and the symbol has binding = {(symbol.Binding == null ? "null" : symbol.Binding.ToString())}");
+            }
+        }
+        var candidates2 = candidates.Where(tup => tup.Item1.Binding==symbol.Binding);
+        ParameterExpression? pe = null;
+        if (candidates2.Count() > 0) {
+            pe = candidates2.ElementAt(0)?.Item2;
+        }
         if (pe is null) {
             if (EnclosingScope is null) {
                 return null;

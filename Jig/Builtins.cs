@@ -264,6 +264,7 @@ internal static class Builtins {
     }
 
     public static Thunk syntax_to_list(Delegate k, List args) {
+        Console.WriteLine($"syntax->list: called with {args}");
         if (args.Count() != 1) throw new Exception($"syntax->list: expected one argument.");
         Syntax stx = args.ElementAt(0) as Syntax ?? throw new Exception($"syntax->list: expected a syntax argument, got got {args.ElementAt(0)}");
         if (Syntax.ToList(stx, out SyntaxList? result)) {
@@ -302,7 +303,7 @@ internal static class Builtins {
         if (args.Count() != 1) throw new Exception($"expand-once: expected a single argument but got {args.Count()}");
         if (args.ElementAt(0) is Syntax stx) {
             // TODO: what should expansion environment be?
-            (_, Syntax result) = new MacroExpander().Expand_1(stx, ExpansionEnvironment.Default);
+            Syntax result = new MacroExpander().Expand(stx, ExpansionEnvironment.Default);
             return Continuation.ApplyDelegate(k, result);
         } else {
             throw new Exception($"expand-once: expected syntax argument, but got {args.ElementAt(0)}");

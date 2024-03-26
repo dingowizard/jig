@@ -80,13 +80,13 @@
               (cdr (cdr (syntax->list stx))))
       (map (lambda (b) (car (cdr (syntax->list b)))) (syntax->list (car (cdr (syntax->list stx)))))))))
 
-(define-syntax or
-  (lambda (stx)
-    (let ((stx-list (syntax->list stx)))
-      (if (= 1 (length stx-list))
-          (datum->syntax stx (quote #f))
-          (datum->syntax
-           stx
-           (list 'let
-                 (list (list 'x (car (cdr stx-list))))
-                 (list 'if 'x 'x (append (list 'or) (cdr (cdr stx-list))))))))))
+;; (define-syntax or
+;;   (lambda (stx)
+;;     (let ((stx-list (syntax->list stx)))
+;;       (if (= 1 (length stx-list))
+;;           (datum->syntax stx (quote #f))
+;;           (datum->syntax
+;;            stx
+;;            (list 'let
+;;                  (list (list 'x (car (cdr stx-list))))
+;;                  (list 'if 'x 'x (append (list 'or) (cdr (cdr stx-list))))))))))
