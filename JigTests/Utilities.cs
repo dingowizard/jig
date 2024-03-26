@@ -13,6 +13,10 @@ public static class Utilities {
         return _interp.InterpretUsingReadSyntax(input);
     }
 
+    public static string InterpretUsingReadSyntax(string[] inputs) {
+        return _interp.InterpretSequenceReadSyntax(inputs);
+    }
+
     public static string InterpretMultipleValues(string input) {
         return _interp.InterpretMultipleValues(input);
     }
