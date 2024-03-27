@@ -63,6 +63,12 @@ public class TokenStream {
             case '\'':
                 Port.Read();
                 return new Token.Quote(startLoc.Source,startLoc.Line, startLoc.Column, startLoc.Position, 1);
+            case '`':
+                Port.Read();
+                return new Token.QuasiQuote(startLoc.Source,startLoc.Line, startLoc.Column, startLoc.Position, 1);
+            case ',':
+                Port.Read();
+                return Comma(sb, startLoc);
             //letter
             case char l when ((l >= 'a' && l <= 'z') || (l >= 'A' && l <= 'Z')):
             // special initial
@@ -98,6 +104,17 @@ public class TokenStream {
             default:
                 throw new Exception($"TokenStream.Start: unhandled character '{peeked}'");
 
+        }
+    }
+
+    private Token Comma(StringBuilder sb, SrcLoc startLoc)
+    {
+        char peeked = (char)Port.Peek();
+        if (peeked != '@') {
+            return new Token.UnQuote(startLoc.Source,startLoc.Line, startLoc.Column, startLoc.Position, 1);
+        } else {
+            Port.Read();
+            return new Token.UnQuoteSplicing(startLoc.Source,startLoc.Line, startLoc.Column, startLoc.Position, 2);
         }
     }
 

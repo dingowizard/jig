@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Jig;
 
 public delegate Thunk MacroDelegate(Delegate k, Syntax stx);
@@ -9,14 +11,17 @@ public class Transformer : LiteralExpr<Delegate> {
 
     public Syntax Apply(Syntax stx) {
         Expr? result = null;
-        Continuation.OneArgDelegate setResult = (x) => {result = x; return null;};
+        // TODO: someday figure out Thunk and Thunk? and null. Until then, ignore warnings!
+        #pragma warning disable CS8603
+        Continuation.OneArgDelegate setResult =  Thunk (Expr x) => {result = x; return null;};
+        #pragma warning restore CS8603
         Thunk? thunk = TransformerDelegate(setResult, stx);
         // TODO: this seems crazy
         while (thunk is not null) {
             thunk = thunk();
         }
-        if (result is null) throw new Exception($"apply transformer: outupt is null");
-        return result as Syntax ?? throw new Exception();
+        Debug.Assert(result is not null);
+        return result as Syntax ?? throw new Exception($"transformer must return a syntax object. (got '{result}')");
 
     }
 

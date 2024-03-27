@@ -368,14 +368,6 @@ public abstract class List : Expr, IEnumerable<Expr> {
 
         public Expr Car {get; set;}
         public Expr Cdr {get; set;}
-        public List CdrAsList { // TODO: replace usages of this with Rest
-            get {
-                #pragma warning disable CS8603
-                return this.Cdr as List;
-                #pragma warning disable CS8603
-            }
-
-        }
 
         public List Rest {get;}
         public override int GetHashCode() {
@@ -397,7 +389,7 @@ public abstract class List : Expr, IEnumerable<Expr> {
         List theList = this;
         while (theList is NonEmpty nonEmptyList) {
             yield return nonEmptyList.Car;
-            theList = nonEmptyList.CdrAsList;
+            theList = nonEmptyList.Rest;
         }
 
     }

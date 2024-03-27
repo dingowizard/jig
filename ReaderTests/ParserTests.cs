@@ -222,4 +222,16 @@ public class ParserTests {
         Assert.AreEqual(List.NewList(new Expr.Symbol("not"), new Expr.Boolean(false)), actual);
 
     }
+
+    [TestMethod]
+    [DataRow("`(a b c)", "(quasiquote (a b c))")]
+    [DataRow("`(a ,b c)", "(quasiquote (a (unquote b) c))")]
+    [DataRow("`(a ,@(list b c) d)", "(quasiquote (a (unquote-splicing (list b c)) d))")]
+    public void ParseQuasiquote(string input, string expected) {
+        var lexer = new TokenStream(InputPort.FromString(input));
+        var actual = Parser.ParseExpr(lexer);
+        Assert.IsNotNull(actual);
+        Assert.AreEqual(expected, actual.Print());
+
+    }
 }

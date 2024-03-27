@@ -21,11 +21,44 @@ public class Parser {
                 Expr? arg = ParseExpr(tokenStream, syntax);
                 if (arg is null) throw new Exception("unexpected EOF");
                 if (syntax) {
-                   return new Syntax(List.NewList(
-                       new Syntax.Identifier(Expr.Symbol.FromName("quote"), quoteToken.SrcLoc), arg),
+                   return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Expr.Symbol.FromName("quote"), quoteToken.SrcLoc),
+                                                           (Syntax)arg),
                        ((Syntax)arg).SrcLoc);
                 } else {
                     return List.NewList(Expr.Symbol.FromName("quote"), arg);
+                }
+            case Token.QuasiQuote quasiquoteToken:
+                tokenStream.Read();
+                Expr? quasiArg = ParseExpr(tokenStream, syntax);
+                if (quasiArg is null) throw new Exception("unexpected EOF");
+                if (syntax) {
+                   return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Expr.Symbol.FromName("quasiquote"), quasiquoteToken.SrcLoc),
+                                                           (Syntax)quasiArg),
+                       ((Syntax)quasiArg).SrcLoc);
+                } else {
+                    return List.NewList(Expr.Symbol.FromName("quasiquote"), quasiArg);
+                }
+            case Token.UnQuote unquoteToken:
+                tokenStream.Read();
+                Expr? unquoteArg = ParseExpr(tokenStream, syntax);
+                if (unquoteArg is null) throw new Exception("unexpected EOF");
+                if (syntax) {
+                   return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Expr.Symbol.FromName("unquote"), unquoteToken.SrcLoc),
+                                                           (Syntax)unquoteArg),
+                       ((Syntax)unquoteArg).SrcLoc);
+                } else {
+                    return List.NewList(Expr.Symbol.FromName("unquote"), unquoteArg);
+                }
+            case Token.UnQuoteSplicing unquoteSplicingToken:
+                tokenStream.Read();
+                Expr? unquoteSplicingArg = ParseExpr(tokenStream, syntax);
+                if (unquoteSplicingArg is null) throw new Exception("unexpected EOF");
+                if (syntax) {
+                   return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Expr.Symbol.FromName("unquote-splicing"), unquoteSplicingToken.SrcLoc),
+                                                           (Syntax)unquoteSplicingArg),
+                       ((Syntax)unquoteSplicingArg).SrcLoc);
+                } else {
+                    return List.NewList(Expr.Symbol.FromName("unquote-splicing"), unquoteSplicingArg);
                 }
             case Token.OpenParen openToken:
                 tokenStream.Read();

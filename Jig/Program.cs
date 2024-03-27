@@ -56,13 +56,15 @@ public static class Program {
             env = Program.TopLevel;
         }
         if (ast is Syntax stx) {
+            // Console.Write($"{ast} => ");
             ast = new MacroExpander().Expand(stx, ExEnv);
+            // Console.WriteLine($"{ast}.");
         }
         var compiled = Compiler.Compile(ast);
         Run(compiled, k, env);
     }
 
-    public static Expr EvalNonCPS(Expr ast, IEnvironment env = null) {
+    public static Expr EvalNonCPS(Expr ast, IEnvironment? env = null) {
         Expr? expr = null;
         Continuation.OneArgDelegate setResult = (x) => {expr = x; return null;};
         Eval(setResult, ast, Program.TopLevel);
