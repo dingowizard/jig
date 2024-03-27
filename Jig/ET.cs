@@ -85,8 +85,8 @@ internal abstract class ET : Expression {
 
         public SyntaxLiteralET(Expr x) : base() {
             if (x is Syntax stx) {
-                if (Syntax.ToList(stx, out SyntaxList? syntaxList)) {
-                    Body = Expression.Convert(DynInv(kParam, Expression.Constant(syntaxList.ElementAt<Syntax>(1))), typeof(Thunk));
+                if (Syntax.ToList(stx, out List? syntaxList)) {
+                    Body = Expression.Convert(DynInv(kParam, Expression.Constant(syntaxList.ElementAt<Expr>(1))), typeof(Thunk));
                 } else {
                     throw new Exception($"malformed syntax @ {stx.SrcLoc.Line}: {stx.SrcLoc.Column}: {x}");
                 }
@@ -166,6 +166,7 @@ internal abstract class ET : Expression {
 
         public IfET(LexicalContext lexVars, List.NonEmpty list) : base() {
 
+            // TODO: In scheme, an if form can have no else expr, like this: (if #t 1)
             List.NonEmpty listCdr = list.Cdr as List.NonEmpty ?? throw new Exception($"malformed if: {list}"); // TODO: should the parser be doing all this checking for malformed whatevers?
             Expr cond = listCdr.Car;
             Expression<CompiledCode> condCC = (Expression<CompiledCode>)Analyze(lexVars, cond).Reduce();

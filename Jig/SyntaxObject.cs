@@ -70,12 +70,17 @@ public class Syntax : Expr {
         return;
     }
 
-    public static bool ToList(Syntax stx, [NotNullWhen(returnValue: true)] out SyntaxList? stxList) {
+    public static bool ToList(Syntax stx, [NotNullWhen(returnValue: true)] out List? stxList) {
         Expr e = Syntax.E(stx);
         if (e is SyntaxList slist) {
             stxList = slist;
             return true;
         } else if (e is List l) {
+            if (l is List.NullType) {
+                stxList = List.Empty;
+                return true;
+
+            }
             IEnumerable<Syntax> xs = l.Select(x => new Syntax(x, new SrcLoc()));
             stxList = (SyntaxList)SyntaxList.FromIEnumerable(xs);
             return true;
@@ -237,7 +242,7 @@ public class SyntaxList : List.NonEmpty, IEnumerable<Syntax> {
         List theList = this;
         while (theList is SyntaxList nonEmptyList) {
             yield return nonEmptyList.First;
-            theList = nonEmptyList.CdrAsList;
+            theList = nonEmptyList.Rest;
         }
 
     }
