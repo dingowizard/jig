@@ -1,10 +1,13 @@
-(define length
-  (lambda (l)
-    (if (null? l)
-        0
-        (+ 1 (length (cdr l))))))
-
 (define list (lambda xs xs))
+
+(define length
+    (lambda (l)
+      (define loop
+        (lambda (acc l)
+          (if (null? l)
+              acc
+              (loop (+ 1 acc) (cdr l)))))
+      (loop 0 l)))
 
 (define list-tail
   (lambda (x k)

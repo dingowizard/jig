@@ -242,7 +242,6 @@ internal abstract class ET : Expression {
             // (begin (define loop (lambda (n) (if (= n 0) n (loop (- n 1))))) (loop 3))
             Expr sym = list.ElementAt(1);
             Expr valExpr = list.ElementAt(2);
-            Expression<CompiledCode> valCC = (Expression<CompiledCode>)Analyze(lexVars, valExpr).Reduce();
             ParameterExpression val = Expression.Parameter(typeof(Expr), "val");
             Expression contBody;
             if (lexVars.AtTopLevel()) {
@@ -255,6 +254,7 @@ internal abstract class ET : Expression {
                 ParameterExpression pe = lexVars.ParameterForDefine(sym);
                 contBody = DynInv(kParam, Expression.Assign(pe, val));
             }
+            Expression<CompiledCode> valCC = (Expression<CompiledCode>)Analyze(lexVars, valExpr).Reduce();
 
 
             var k = Expression.Lambda(contBody, new ParameterExpression [] {val});
