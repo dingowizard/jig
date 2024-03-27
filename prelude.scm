@@ -90,3 +90,31 @@
            (list 'let
                  (list (list 'x (car (cdr stx-list))))
                  (list 'if 'x 'x (append (list 'or) (cdr (cdr stx-list))))))))))
+
+(define-syntax let*
+  (lambda (stx)
+    (let ((syntax-list (syntax->list stx)))
+      (let ((bindings (syntax->list (cadr syntax-list))))
+        (datum->syntax
+         stx
+         (let ((len (length bindings))
+               (body (cddr syntax-list)))
+          (if (= len 0)
+              `((lambda () ,@body))
+              (if (= len 1)
+                  `(let (,(car bindings)) ,@body)
+                  `(let (,(car bindings)) (let* ,(cdr bindings) ,@body))))))))))
+
+(define-syntax cond
+  (lambda (stx)
+    (let ((clauses (cdr (syntax->list stx))))
+      (let ((clause1 (syntax->list (car clauses))))
+        (datum->syntax
+         stx
+         (if (= (length clauses) 1)
+             `(if ,(car clause1)
+                  ,(cadr clause1)
+                  #f)
+             `(if ,(car clause1)
+                  ,(cadr clause1)
+                  (cond ,@(cdr clauses)))))))))

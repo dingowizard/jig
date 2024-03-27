@@ -46,4 +46,22 @@ public class Macros {
         var actual = Utilities.InterpretUsingReadSyntax(input);
         Assert.AreEqual(expected, actual);
     }
+
+    [TestMethod]
+    [DataRow("(let* () 1)", "1")]
+    [DataRow("(let* ((a 1)) a)", "1")]
+    [DataRow("(let* ((a 0) (b (+ a 1))) (+ a b))", "1")]
+    public void LetStar(string input, string expected) {
+        var actual = Utilities.InterpretUsingReadSyntax(input);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
+    [DataRow("(cond (#f 1) (#t 2))", "2")]
+    [DataRow("(cond ((null? (list 1 2)) 1) ((= 0 1) 2) (#t 3))", "3")]
+    public void BasicCond(string input, string expected) {
+        var actual = Utilities.InterpretUsingReadSyntax(input);
+        Assert.AreEqual(expected, actual);
+    }
+
 }
