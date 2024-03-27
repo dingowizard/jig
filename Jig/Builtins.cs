@@ -231,6 +231,33 @@ internal static class Builtins {
         }
     }
 
+    public static Thunk symbol_equal_p (Delegate k, List args) {
+        if (args is List.NonEmpty properList) {
+            if (properList.Count() < 2) {
+                throw new Exception("symbol=?: expected two or more arguments.");
+            }
+            Expr.Symbol sym1 = properList.Car as Expr.Symbol ?? throw new Exception($"symbol=?: expected all arguments to be symbols, but got {properList.Car}");
+            List rest = properList.Rest;
+            Expr.Symbol sym2 = rest.ElementAt(0) as Expr.Symbol ?? throw new Exception($"symbol=?: expected all arguments to be symbols, but got {rest.ElementAt(0)}");
+            while (rest is List.NonEmpty nonEmpty) {
+                if (!sym1.Equals(sym2)) {
+                    return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+                }
+                sym1 = sym2;
+                sym2 = nonEmpty.Car as Expr.Symbol ?? throw new Exception($"symbol=?: expected all arguments to be symbols, but got {nonEmpty.Car}");
+                rest = nonEmpty.Rest;
+            }
+            if (sym1.Equals(sym2)) {
+                return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
+            } else {
+                return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+            }
+        } else {
+            throw new Exception("symbol=?: expected two or more arguments.");
+        }
+
+    }
+
 
     public static Thunk values(Delegate k, List args) {
         return new Continuation(k).Apply(args);

@@ -21,6 +21,7 @@ public class Environment : IEnvironment {
         _dict.Add(new Expr.Symbol("datum->syntax"), new Procedure( (Builtin)Builtins.datum_to_syntax));
         _dict.Add(new Expr.Symbol("expand"), new Procedure( (Builtin)Builtins.expand));
         _dict.Add(new Expr.Symbol("pair?"), new Procedure( (Builtin)Builtins.pair_p));
+        _dict.Add(new Expr.Symbol("symbol=?"), new Procedure( (Builtin)Builtins.symbol_equal_p));
         // _dict.Add(new Expr.Symbol("dynamic-wind"), new Procedure( (Builtin)Builtins.dynamic_wind));
         // _dict.Add(new Expr.Symbol("error"), new Procedure( (Builtin)Builtins.error));
     }
