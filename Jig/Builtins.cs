@@ -266,7 +266,7 @@ internal static class Builtins {
     public static Thunk syntax_to_list(Delegate k, List args) {
         if (args.Count() != 1) throw new Exception($"syntax->list: expected one argument.");
         Syntax stx = args.ElementAt(0) as Syntax ?? throw new Exception($"syntax->list: expected a syntax argument, got got {args.ElementAt(0)}");
-        if (Syntax.ToList(stx, out SyntaxList? result)) {
+        if (Syntax.ToList(stx, out List? result)) {
             return Continuation.ApplyDelegate(k, result);
         } else {
             return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
@@ -296,16 +296,16 @@ internal static class Builtins {
         }
     }
 
-    public static Thunk expand_once(Delegate k, List args) {
-        // TODO: this doesn't work as intended because the macroexpander expands the argument before the function gets it
-        // needs to be a macro?
-        if (args.Count() != 1) throw new Exception($"expand-once: expected a single argument but got {args.Count()}");
+    public static Thunk expand(Delegate k, List args) {
+        if (args.Count() != 1) throw new Exception($"expand: expected a single argument but got {args.Count()}");
         if (args.ElementAt(0) is Syntax stx) {
             // TODO: what should expansion environment be?
             Syntax result = new MacroExpander().Expand(stx, ExpansionEnvironment.Default);
             return Continuation.ApplyDelegate(k, result);
         } else {
-            throw new Exception($"expand-once: expected syntax argument, but got {args.ElementAt(0)}");
+            stx = Syntax.FromDatum(new SrcLoc(), args.ElementAt(0));
+            Syntax result = new MacroExpander().Expand(stx, ExpansionEnvironment.Default);
+            return Continuation.ApplyDelegate(k, result);
         }
     }
 
