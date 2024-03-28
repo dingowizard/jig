@@ -258,6 +258,46 @@ internal static class Builtins {
 
     }
 
+    public static Thunk symbol_p (Delegate k, List args) {
+        if (args is List.NonEmpty properList) {
+            if (properList.Count() != 1) {
+                throw new Exception("symbol?: expected one argument.");
+            }
+            return Continuation.ApplyDelegate(k, new Expr.Boolean(properList.Car is Expr.Symbol));
+        } else {
+            throw new Exception("symbol?: expected one argument.");
+        }
+
+    }
+
+    public static Thunk syntax_e (Delegate k, List args) {
+        if (args is List.NonEmpty properList) {
+            if (properList.Count() != 1) {
+                throw new Exception("syntax-e: expected one argument.");
+            }
+            Syntax stx = properList.Car as Syntax ?? throw new Exception($"syntax-e: expected syntax argument but got {properList.Car}");
+            return Continuation.ApplyDelegate(k, Syntax.E(stx));
+        } else {
+            throw new Exception("syntax-e: expected one argument.");
+        }
+
+    }
+
+    public static Thunk symbol_to_string (Delegate k, List args) {
+        if (args is List.NonEmpty properList) {
+            if (properList.Count() != 1) {
+                throw new Exception("symbol->string: expected one argument.");
+            }
+            if (properList.Car is Expr.Symbol symbol) {
+                return Continuation.ApplyDelegate(k, new Expr.String(symbol.Name));
+            } else {
+                throw new Exception("symbol->string: expected its argument to be a symbol.");
+            }
+        } else {
+            throw new Exception("symbol->string: expected one argument.");
+        }
+
+    }
 
     public static Thunk values(Delegate k, List args) {
         return new Continuation(k).Apply(args);
