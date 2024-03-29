@@ -171,7 +171,7 @@ public class MacroExpander {
     private  Syntax ExpandIf(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
         List<Syntax> xs = new List<Syntax>();
-        Debug.Assert(stxList.Count<Syntax>() >= 3); // TODO: this should be syntax error not failed assertion
+        // Debug.Assert(stxList.Count<Syntax>() >= 3);
         xs.Add(stxList.ElementAt<Syntax>(0)); // TODO: maybe simplify all these by ignoring keywords on expand symbol?
         foreach (var x in stxList.Skip<Syntax>(1)) {
             Syntax bodyExpr = Expand(x, ee);
