@@ -8,6 +8,12 @@ public abstract class Expr {
 
     // TODO: decide whether it makes sense to have all of these as nested classes
 
+    public readonly static VoidType Void = new();
+
+    public class VoidType : Expr {
+        internal VoidType() {}
+        public override string Print() => "#<void>";
+    }
     internal class NullType : List {
         public override string Print() => "()";
     }

@@ -28,7 +28,7 @@ internal abstract class ET : Expression {
     }
 
     public static ET Analyze(LexicalContext scope, Expr ast) {
-        if (Expr.IsLiteral(ast)) {
+        if (Expr.IsLiteral(ast) || ast is Expr.VoidType) {
             return new LiteralET(ast);
         } else if (Expr.IsSymbol(ast)) {
             return new SymbolET(scope, ast);
@@ -174,15 +174,28 @@ internal abstract class ET : Expression {
             Expr consq = listCdrCdr.Car;
             Expression<CompiledCode> consqCC = (Expression<CompiledCode>)Analyze(lexVars, consq).Reduce();
             // TODO: actually, if doesn't need an else branch
-            List.NonEmpty listCdrCdrCdr = listCdrCdr.Cdr as List.NonEmpty ?? throw new Exception($"malformed if: {list}");
-            Expr alt = listCdrCdrCdr.Car;
-            Expression<CompiledCode> altCC = (Expression<CompiledCode>)Analyze(lexVars, alt).Reduce();
+            List.NonEmpty listCdrCdrCdr;
+            Expr alt;
+            Expression ifFalseExpr;
             ParameterExpression boolResult = Expression.Parameter(typeof(Expr), "boolResult");
+            if (list.Count() == 4) {
+
+                listCdrCdrCdr = listCdrCdr.Cdr as List.NonEmpty ?? throw new Exception($"malformed if: {list}");
+                alt = listCdrCdrCdr.Car;
+            } else if (list.Count() == 3) {
+                alt = Expr.Void;
+            } else {
+                throw new Exception($"malformed if: {list}");
+
+            }
+            ifFalseExpr = Expression.Lambda<Thunk>(
+                    Expression.Convert(DynInv((Expression<CompiledCode>)Analyze(lexVars, alt).Reduce(), kParam, envParam),
+                                       typeof(Thunk)));
             var k0 = Expression.Lambda<Continuation.OneArgDelegate>(
                 body: Expression.Condition( // the Condition Expression returns something. IfThenElse is void
                     test: Expression.Convert(DynInv(Expression.Constant((Func<Expr, bool>) IfET.IsNotFalse), boolResult), typeof(bool)),
                     ifTrue: Expression.Lambda<Thunk>(Expression.Convert(DynInv(consqCC, kParam, envParam), typeof(Thunk))),
-                    ifFalse: Expression.Lambda<Thunk>(Expression.Convert(DynInv(altCC, kParam, envParam), typeof(Thunk)))),
+                    ifFalse: ifFalseExpr),
                 parameters: new ParameterExpression[] {boolResult});
             Body = Expression.Invoke(condCC, new Expression[] {k0, envParam});
 

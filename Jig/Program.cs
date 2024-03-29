@@ -46,7 +46,9 @@ public static class Program {
 
     public static Thunk? Print(params Expr[] exprs) {
         foreach (var expr in exprs) {
-            Console.WriteLine(expr.Print());
+            if (expr is not Expr.VoidType) {
+                Console.WriteLine(expr.Print());
+            }
         }
         return null;
     }
