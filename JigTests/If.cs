@@ -18,6 +18,12 @@ public class If
     }
 
     [TestMethod]
+    public void IfWithoutElse() {
+        var actual = Utilities.Interpret("(if #t 1)");
+        Assert.AreEqual("1", actual);
+    }
+
+    [TestMethod]
     public void SimplestIf()
     {
         var actual = Utilities.Interpret("(if #t 1 0)");
