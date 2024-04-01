@@ -15,6 +15,18 @@ public class Syntaxes
         Assert.AreEqual(actual, expected);
 
     }
+
+    [TestMethod]
+    [DataRow("(syntax? (syntax-e (syntax boo)))", "#f")]
+    [DataRow("(symbol? (syntax-e (syntax boo)))", "#t")]
+    [DataRow("(symbol=? 'boo (syntax-e (syntax boo)))", "#t")]
+    public void SyntaxE(string input, string expected)
+    {
+        var actual = Utilities.InterpretUsingReadSyntax(input);
+        Assert.AreEqual(actual, expected);
+
+    }
+
     [TestMethod]
     [DataRow("(syntax? (datum->syntax (syntax b) 1))", "#t")]
     [DataRow("(syntax? (datum->syntax (syntax b) '(+ 1 2 3 4)))", "#t")]
