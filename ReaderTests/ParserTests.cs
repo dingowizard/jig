@@ -15,7 +15,8 @@ public class ParserTests {
     [TestMethod]
     public void ParseSytaxOpenCloseParensReturnsNull() {
         var tokenStream = new TokenStream(InputPort.FromString("()"));
-        Syntax actual = (Syntax)Parser.ParseExpr(tokenStream, syntax: true);
+        Syntax? actual = Parser.ParseSyntax(tokenStream);
+        Assert.IsNotNull(actual);
         Assert.AreEqual(List.Empty, Syntax.ToDatum(actual));
         Assert.AreEqual(1, actual.SrcLoc.Line);
         Assert.AreEqual(1, actual.SrcLoc.Position);
@@ -33,7 +34,8 @@ public class ParserTests {
     [TestMethod]
     public void ParseSyntaxOneItemList() {
         var tokenStream = new TokenStream(InputPort.FromString("(abc)"));
-        Syntax stx = Parser.ParseSyntax(tokenStream);
+        Syntax? stx = Parser.ParseSyntax(tokenStream);
+        Assert.IsNotNull(stx);
         Assert.IsInstanceOfType(stx, typeof(Syntax));
         Expr x = Syntax.E(stx);
         Assert.IsInstanceOfType(x, typeof(IPair));
@@ -46,7 +48,8 @@ public class ParserTests {
     [TestMethod]
     public void ParseSyntaxOneItemListCdrIsNull() {
         var tokenStream = new TokenStream(InputPort.FromString("(abc)"));
-        Syntax stx = Parser.ParseSyntax(tokenStream);
+        Syntax? stx = Parser.ParseSyntax(tokenStream);
+        Assert.IsNotNull(stx);
         Expr x = Syntax.E(stx);
         Expr cdr = ((IPair) x).Cdr;
         Assert.AreEqual(List.Empty, cdr);
@@ -56,16 +59,18 @@ public class ParserTests {
     [TestMethod]
     public void ParseSyntaxListHasCorrectSrcLoc() {
         var tokenStream = new TokenStream(InputPort.FromString("(abc def)"));
-        var actual = (Syntax)Parser.ParseExpr(tokenStream, syntax: true);
-        Assert.AreEqual(9, actual.SrcLoc.Span);
+        Syntax? stx = Parser.ParseSyntax(tokenStream);
+        Assert.IsNotNull(stx);
+        Assert.AreEqual(9, stx.SrcLoc.Span);
 
     }
 
     [TestMethod]
     public void ParseSyntaxPairHasCorrectSrcLoc() {
         var tokenStream = new TokenStream(InputPort.FromString("(abc . def)"));
-        var actual = (Syntax)Parser.ParseExpr(tokenStream, syntax: true);
-        Assert.AreEqual(11, actual.SrcLoc.Span);
+        Syntax? stx = Parser.ParseSyntax(tokenStream);
+        Assert.IsNotNull(stx);
+        Assert.AreEqual(11, stx.SrcLoc.Span);
 
     }
 
@@ -79,7 +84,8 @@ public class ParserTests {
     [TestMethod]
     public void ParseSyntaxTwoItemList() {
         var tokenStream = new TokenStream(InputPort.FromString("(abc def)"));
-        Syntax stx = Parser.ParseSyntax(tokenStream);
+        Syntax? stx = Parser.ParseSyntax(tokenStream);
+        Assert.IsNotNull(stx);
         IPair? stxPair = Syntax.E(stx) as IPair;
         Assert.IsNotNull(stxPair);
         List.NonEmpty? rest = stxPair.Cdr as List.NonEmpty;
@@ -92,7 +98,8 @@ public class ParserTests {
     [TestMethod]
     public void ParseSyntaxNestedList() {
         var tokenStream = new TokenStream(InputPort.FromString("(quote (abc def))"));
-        Syntax stx = Parser.ParseSyntax(tokenStream);
+        Syntax? stx = Parser.ParseSyntax(tokenStream);
+        Assert.IsNotNull(stx);
         Assert.IsInstanceOfType(stx, typeof(Syntax));
         IPair? stxPair = Syntax.E(stx) as IPair;
         Assert.IsNotNull(stxPair);

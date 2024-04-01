@@ -27,58 +27,65 @@ public class Interpreter : IInterpreter {
     public Interpreter() {
         Env = Program.TopLevel;
         Program.ExecuteFile("prelude.scm", Env);
+        SetResultAny = _setResultAny;
+        SetResultOne = _setResultOne;
     }
 
     public string InterpretSequence(string[] inputs) {
-        string result = "";
-        Continuation.OneArgDelegate setResult = (x) => {result = x.Print(); return null;};
         foreach (string input in inputs) {
             Expr? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
             Assert.IsNotNull(x);
-            Program.Eval(setResult, x, Env);
+            Program.Eval(SetResultOne, x, Env);
         }
-        return result;
+        return _result;
 
+    }
+
+    Continuation.ContinuationAny SetResultAny;
+    Continuation.OneArgDelegate SetResultOne;
+
+    static string _result = "";
+
+    static Thunk? _setResultAny (params Expr[] xs) {
+        Expr? first = xs[0];
+        _result = first is null ? "" : first.Print();
+        return null;
+    }
+
+    static Thunk? _setResultOne (Expr x) {
+        _result = x.Print();
+        return null;
     }
 
     public string InterpretSequenceReadSyntax(string[] inputs) {
-        string result = "";
-        Continuation.ContinuationAny setResult = (xs) => {result = xs.ElementAt(0).Print(); return null;};
         foreach (string input in inputs) {
             Expr? x = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
             Assert.IsNotNull(x);
-            Program.Eval(setResult, x, Env);
+            Program.Eval(SetResultAny, x, Env);
         }
-        return result;
+        return _result;
     }
 
     public string Interpret(string input) {
-        string result = "";
         // Continuation setResult = (x) => result = x.Print();
-        Continuation.ContinuationAny setResult = (xs) => {result = xs.ElementAt(0).Print(); return null;};
         Expr? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
         Assert.IsNotNull(x);
-        Program.Eval(setResult, x, Env);
-        return result;
+        Program.Eval(SetResultAny, x, Env);
+        return _result;
     }
 
     public string InterpretMultipleValues(string input) {
-        string result = "";
-        // Continuation setResult = (x) => result = x.Print();
-        Continuation.ContinuationAny setResult = (xs) => {result = string.Join(", ", xs.Select(x => x.Print())); return null;};
         Expr? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
         Assert.IsNotNull(x);
-        Program.Eval(setResult, x, Env);
-        return result;
+        Program.Eval(SetResultAny, x, Env);
+        return _result;
     }
 
     public string InterpretUsingReadSyntax(string input) {
-        string result = "";
-        Continuation.OneArgDelegate setResult = (x) => {result = x.Print(); return null;};
         Syntax? x = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
         Assert.IsNotNull(x);
-        Program.Eval(setResult, x, Env);
-        return result;
+        Program.Eval(SetResultOne, x, Env);
+        return _result;
     }
 }
 

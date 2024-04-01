@@ -105,8 +105,8 @@ public class Continuation : Procedure {
     }
 
 
-    public delegate Thunk OneArgDelegate(Expr arg);
-    public delegate Thunk ContinuationAny(params Expr[] args);
+    public delegate Thunk? OneArgDelegate(Expr arg);
+    public delegate Thunk? ContinuationAny(params Expr[] args);
     private delegate Thunk ListContinuation(List rest);
     private delegate Thunk PairContinuation(Expr arg0, List rest);
     private delegate Thunk ImproperListContinuation2(Expr arg0, Expr arg1, List rest);
