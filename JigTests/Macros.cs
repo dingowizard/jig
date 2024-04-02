@@ -64,4 +64,12 @@ public class Macros {
         Assert.AreEqual(expected, actual);
     }
 
+    [TestMethod]
+    [DataRow("(when #t 2)", "2")]
+    [DataRow("(when (null? (list)) (define z 25) (set! z (+ 1 z)) z)", "26")]
+    public void When(string input, string expected) {
+        var actual = Utilities.InterpretUsingReadSyntax(input);
+        Assert.AreEqual(expected, actual);
+    }
+
 }

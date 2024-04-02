@@ -121,3 +121,10 @@
              `(if ,(car clause1)
                   ,(cadr clause1)
                   (cond ,@(cdr clauses)))))))))
+
+(define-syntax when
+  (lambda (stx)
+    (let* ((stx-list (syntax->list stx))
+           (condition (cadr stx-list))
+           (body (cddr stx-list)))
+      (datum->syntax stx `(if ,condition (begin ,@body))))))
