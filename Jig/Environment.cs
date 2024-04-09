@@ -25,6 +25,9 @@ public class Environment : IEnvironment {
         _dict.Add(new Expr.Symbol("symbol?"), new Procedure( (Builtin)Builtins.symbol_p));
         _dict.Add(new Expr.Symbol("symbol->string"), new Procedure( (Builtin)Builtins.symbol_to_string));
         _dict.Add(new Expr.Symbol("syntax-e"), new Procedure( (Builtin)Builtins.syntax_e));
+        _dict.Add(new Expr.Symbol("char?"), new Procedure( (Builtin)Builtins.char_p));
+        _dict.Add(new Expr.Symbol("eq?"), new Procedure( (Builtin)Builtins.eq_p));
+        _dict.Add(new Expr.Symbol(">"), new Procedure( (Builtin)Builtins.gt));
         // _dict.Add(new Expr.Symbol("dynamic-wind"), new Procedure( (Builtin)Builtins.dynamic_wind));
         // _dict.Add(new Expr.Symbol("error"), new Procedure( (Builtin)Builtins.error));
     }
@@ -43,7 +46,7 @@ public class Environment : IEnvironment {
             throw new Exception($"set!: unbound variable {s}");
         }
         _dict[s] = v;
-        return Continuation.ApplyDelegate(k, s);
+        return Continuation.ApplyDelegate(k, Expr.Void);
 
     }
 
@@ -51,10 +54,10 @@ public class Environment : IEnvironment {
         Expr.Symbol s = sym is Syntax.Identifier i ? i.Symbol : ((Expr.Symbol) sym);
         if (_dict.ContainsKey(s)) {
             _dict[s] = v;
-            return Continuation.ApplyDelegate(k, s);
+            return Continuation.ApplyDelegate(k, Expr.Void);
         }
         _dict.Add(s, v);
-        return Continuation.ApplyDelegate(k, s);
+        return Continuation.ApplyDelegate(k, Expr.Void);
     }
 
     public Thunk LookUp (Delegate k, Expr expr) {
