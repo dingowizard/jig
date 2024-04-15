@@ -244,12 +244,28 @@ public class TokenStream {
             case 'x': case 'X':
                 sb.Append((char)Port.Read());
                 return HashX(sb, startLoc);
+            case '\\':
+                sb.Append((char)Port.Read());
+                return HashSlash(sb, startLoc);
             case ';':
                 sb.Append((char)Port.Read());
                 return HashSemiColon(sb, startLoc);
             default:
                 throw new Exception($"syntax error: unexpected {(char)Port.Peek()} after '#'");
         }
+    }
+
+    private Token HashSlash(StringBuilder sb, SrcLoc startLoc)
+    {
+        char peeked = (char)Port.Peek();
+        if (Char.IsAsciiLetterOrDigit(peeked)) {
+            sb.Append((char)Port.Read());
+            return new Token.Char(sb.ToString(), startLoc.Source, startLoc.Line, startLoc.Column, startLoc.Position, Port.Position);
+        } else {
+            sb.Append((char)Port.Read());
+            throw new NotImplementedException($"Tokenizer doesn't know what to do with {sb.ToString()} yet!");
+        }
+
     }
 
     private Token HashSemiColon(StringBuilder sb, SrcLoc startLoc)

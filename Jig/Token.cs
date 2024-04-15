@@ -71,6 +71,12 @@ public class Token {
         {
         }
     }
+
+    internal class Char : TokenBase
+    {
+        public Char(string text, string source, int line, int col, int start, int span) : base(text, source, line, col, start, span) {}
+
+    }
 }
 
 

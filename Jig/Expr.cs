@@ -25,6 +25,11 @@ public abstract class Expr {
         public override string Print() => Value ? "#t" : "#f";
     }
 
+    public class Char : LiteralExpr<char> {
+        public Char(char c) : base(c) {}
+        public override string Print() => $"#\\{Value}";
+    }
+
     public class String : LiteralExpr<string> {
         public String(string s) : base(s) {}
 
@@ -194,6 +199,7 @@ public abstract class Expr {
             x = ast;
         }
         switch (x) {
+            case Expr.Char: return true;
             case Expr.Boolean: return true;
             case Expr.Integer: return true;
             case Expr.Double: return true;

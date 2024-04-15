@@ -85,6 +85,8 @@ public class Parser {
                 }
             case Token.Identifier id:
                 return ParseSymbol(id, tokenStream, syntax);
+            case Token.Char c:
+                return ParseChar(c, tokenStream, syntax);
             case Token.Number num:
                 return ParseNumber(num, tokenStream, syntax);
             case Token.String str:
@@ -124,6 +126,16 @@ public class Parser {
             }
         } else {
             throw new Exception($"ParseExpr: could not parse number token {num.Text} to number.");
+        }
+    }
+
+    private static Expr ParseChar(Token.Char cTok, TokenStream tokenStream, bool syntax = false) {
+        tokenStream.Read();
+        var charExpr = new Expr.Char(cTok.Text[2]);
+        if (syntax) {
+            return new Syntax.Literal(charExpr, cTok.SrcLoc);
+        } else {
+            return charExpr;
         }
     }
 
