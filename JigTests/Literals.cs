@@ -36,6 +36,15 @@ public class Literals
     }
 
     [TestMethod]
+    [DataRow("#\\c", "#\\c")]
+    [DataRow("#\\1", "#\\1")]
+    public void EvalCharReturnsCharReadSyntax(string input, string expected)
+    {
+        var actual = Utilities.InterpretUsingReadSyntax(input);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
     [DataRow("1.2", "1.2")]
     public void EvalDoubleReturnsDouble(string input, string expected)
     {
