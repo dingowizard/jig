@@ -177,8 +177,7 @@
          stx
          (if (= (length clauses) 1)
              `(if ,(car clause1)
-                  ,(cadr clause1)
-                  #f)
+                  ,(cadr clause1))
              `(if ,(car clause1)
                   ,(cadr clause1)
                   (cond ,@(cdr clauses)))))))))
@@ -248,10 +247,6 @@
     (lambda (in body out)
       (in)
       (set! winders (cons (cons in out) winders))
-      ;; (let ((ans (body)))
-      ;;   (set! winders (cdr winders))
-      ;;   (out)
-      ;;   ans))))
       (call-with-values
           (lambda () (body))
         (lambda ans
@@ -259,42 +254,28 @@
           (out)
           (apply values ans))))))
 
-;; (let ((winders '()))
-;;   (define common-tail
-;;     (lambda (x y)
-;;       (let ((lx (length x)) (ly (length y)))
-;;         (do ((x (if (> lx ly) (list-tail x (- lx ly)) x) (cdr x))
-;;              (y (if (> ly lx) (list-tail y (- ly lx)) y) (cdr y)))
-;;             ((eq? x y) x)))))
-;;   (define do-wind
-;;     (lambda (new)
-;;       (let ((tail (common-tail new winders)))
-;;         (let f ((l winders))
-;;           (if (not (eq? l tail))
-;;               (begin
-;;                 (set! winders (cdr l))
-;;                 ((cdar l))
-;;                 (f (cdr l)))))
-;;         (let f ((l new))
-;;           (if (not (eq? l tail))
-;;               (begin
-;;                 (f (cdr l))
-;;                 ((caar l))
-;;                 (set! winders l)))))))
-;;   (set! call/cc
-;;     (let ((c call/cc))
-;;       (lambda (f)
-;;         (c (lambda (k)
-;;              (f (let ((save winders))
-;;                   (lambda (x)
-;;                     (if (not (eq? save winders)) (do-wind save))
-;;                     (k x)))))))))
-;;   (set! call-with-current-continuation call/cc)
-;;   (set! dynamic-wind
-;;     (lambda (in body out)
-;;       (in)
-;;       (set! winders (cons (cons in out) winders))
-;;       (let ((ans (body)))
-;;         (set! winders (cdr winders))
-;;         (out)
-;;         ans))))
+(define make-parameter
+  (lambda (init . o)
+    (let* ((converter (if (not (null? o)) (car o) (lambda (x) x)))
+           (value (converter init)))
+      (lambda args
+        (if (null? args)
+            value
+            (let ((len (length args)))
+              (cond ((= len 1)
+                     (set! value (converter (car args))))
+                    ((= len 2)
+                     (set! value ((cadr args) (car args))))
+                    (#t 'error))))))))
+
+; TODO: parameterize should handle multiple bindings
+(define-syntax parameterize
+  (lambda (stx)
+    (let* ((stx-list (syntax->list stx))
+           (bs (map syntax->list (syntax->list (cadr stx-list))))
+           (ps (map car bs))
+           (vs (map cadr bs))
+           (bodies (cddr stx-list)))
+      (datum->syntax
+       stx
+       `((lambda (old) (dynamic-wind (lambda () (,(car ps) ,(car vs))) (lambda () ,@bodies) (lambda () (,(car ps) old (lambda (x) x))))) (,(car ps)))))))
