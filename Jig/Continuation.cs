@@ -56,25 +56,43 @@ public class Continuation : Procedure {
         return action(cont);
     }
 
-    private static Delegate ContinuationFromProc(Delegate k, Delegate proc) {
-        MethodInfo method = proc.GetType().GetMethod("Invoke") ?? throw new Exception($"ContinuationFromProc: could not find 'Invoke' method on type of proc (proc.GetType())");
+    private static MethodInfo _listFromEnumerableMethod = typeof(List).GetMethod("ListFromEnumerable") ?? throw new Exception("couldn't find ListFromEnumerable");
+
+    private static Delegate ContinuationFromProc(Delegate k, Delegate consumerDel) {
+        MethodInfo method = consumerDel.GetType().GetMethod("Invoke") ?? throw new Exception($"ContinuationFromProc: could not find 'Invoke' method on type of proc (proc.GetType())");
         var parameterInfos = method.GetParameters().Skip(1); // get parameters that are not the continuation
         var paramList = new List<ParameterExpression>();
         foreach (var p in parameterInfos)
         {
             paramList.Add(Expression.Parameter(typeof(Expr), p.ToString()));
         }
-        Type? type = GetTypeForContinuation(proc);
+        Type? type = GetTypeForContinuation(consumerDel);
         if (type is null) {
             LambdaExpression lexpr = Expression.Lambda(
-                body: Expression.Convert(ET.DynInv(new Expression [] {Expression.Constant(proc), Expression.Constant(k)}.Concat(paramList).ToArray()), typeof(Thunk)),
+                body: Expression.Convert(ET.DynInv(new Expression [] {Expression.Constant(consumerDel), Expression.Constant(k)}.Concat(paramList).ToArray()), typeof(Thunk)),
                 parameters: paramList.ToArray()
             );
             return lexpr.Compile();
         }
+        if (type == typeof(ContinuationAny)) {
+            ParameterExpression xs = Expression.Parameter(typeof(Expr[]));
+            return Expression.Lambda<ContinuationAny>(
+                body: Expression.Convert(ET.DynInv(new Expression [] {
+                            Expression.Constant(consumerDel),
+                            Expression.Constant(k),
+                                Expression.Convert(
+                                    expression: Expression.Call(
+                                        method: _listFromEnumerableMethod,
+                                        xs
+                                        ),
+                                    type: typeof(List))
+                        }.ToArray()), typeof(Thunk)),
+                parameters: new ParameterExpression[] {xs}
+            ).Compile();
+        }
         return Expression.Lambda(
             delegateType: type,
-            body: Expression.Convert(ET.DynInv(new Expression [] {Expression.Constant(proc), Expression.Constant(k)}.Concat(paramList).ToArray()), typeof(Thunk)),
+            body: Expression.Convert(ET.DynInv(new Expression [] {Expression.Constant(consumerDel), Expression.Constant(k)}.Concat(paramList).ToArray()), typeof(Thunk)),
             parameters: paramList.ToArray()
         ).Compile();
         throw new NotImplementedException();
@@ -84,7 +102,7 @@ public class Continuation : Procedure {
     {
         switch (proc) {
             case ListFunction _:
-                return typeof(ListContinuation);
+                return typeof(ContinuationAny);
             case PairFunction _:
                 return typeof(PairContinuation);
             case ImproperListFunction2 _:

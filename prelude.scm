@@ -236,22 +236,28 @@
                   (set! winders l)))))
         (f new))))
   (set! call/cc
-    (let ((c call/cc))
+    (let ((prim-callcc call/cc))
       (lambda (f)
-        (c (lambda (k)
+        (prim-callcc (lambda (k)
              (f (let ((save winders))
-                  (lambda (x)
+                  (lambda xs
                     (if (not (eq? save winders)) (do-wind save))
-                    (k x)))))))))
+                    (apply k xs)))))))))
   ; (set! call-with-current-continuation call/cc)
   (set! dynamic-wind
     (lambda (in body out)
       (in)
       (set! winders (cons (cons in out) winders))
-      (let ((ans (body)))
-        (set! winders (cdr winders))
-        (out)
-        ans))))
+      ;; (let ((ans (body)))
+      ;;   (set! winders (cdr winders))
+      ;;   (out)
+      ;;   ans))))
+      (call-with-values
+          (lambda () (body))
+        (lambda ans
+          (set! winders (cdr winders))
+          (out)
+          (apply values ans))))))
 
 ;; (let ((winders '()))
 ;;   (define common-tail

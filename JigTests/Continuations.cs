@@ -80,6 +80,4 @@ public class Continuations
         Assert.AreEqual("1", actual);
     }
 
-
-
 }
