@@ -387,6 +387,34 @@ internal static class Builtins {
 
     }
 
+    public static Thunk display(Delegate k, List args) {
+        // TODO: should take argument for port but use current port parameter when no arg
+        // TODO: should write strings like 'write-string' : no quotes for one thing
+        if (args is List.NonEmpty properList) {
+            if (properList.Count() > 2) {
+                throw new Exception("display: expected one or two but not {properList.Count()} arguments.");
+            }
+            Console.Write(properList.Car.Print());
+            return Continuation.ApplyDelegate(k, Expr.Void);
+        } else {
+            throw new Exception("display: expected at least one argument.");
+        }
+    }
+
+    public static Thunk newline(Delegate k, List args) {
+        // TODO: should take argument for port but use current port parameter when no arg
+        if (args is List.NonEmpty properList) {
+            if (properList.Count() > 1) {
+                throw new Exception("newline: expected zero or one arguments but not {properList.Count()}.");
+            }
+            Console.WriteLine("");
+            return Continuation.ApplyDelegate(k, Expr.Void);
+        } else {
+            Console.WriteLine("");
+            return Continuation.ApplyDelegate(k, Expr.Void);
+        }
+    }
+
     public static Thunk values(Delegate k, List args) {
         return new Continuation(k).Apply(args);
     }
