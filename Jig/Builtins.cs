@@ -60,6 +60,20 @@ internal static class Builtins {
         }
     }
 
+    public static Thunk char_p(Delegate k, List args) {
+        if (args is List.NonEmpty properList) {
+            if (args.Count() != 1) throw new Exception("char?: expected one argument but got {args.Count()}");
+            Expr arg = properList.Car;
+            if (arg is Expr.Char) {
+                return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
+            }
+            return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+
+        } else {
+            throw new Exception("char?: expected one argument but got none");
+        }
+    }
+
     public static Thunk succ(Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             object arg = properList.Car;
@@ -182,6 +196,80 @@ internal static class Builtins {
 
         } else {
             throw new Exception($"=: expects only numeric arguments. Got {first}");
+        }
+    }
+
+    public static Thunk gt(Delegate k, List args) {
+        // TODO: OMG this is hideous. Move some of this logic into a Number class
+        // TODO: write some tests
+        if (args is List.NonEmpty nonEmpty) {
+            Expr first = nonEmpty.ElementAt(0);
+            args = nonEmpty.Rest;
+            while (args is List.NonEmpty rest) {
+                Expr second = rest.ElementAt(0);
+                if (first is Expr.Double d1) {
+                    if (second is Expr.Integer i2) {
+                        if (d1.Value > i2.Value) {
+                            first = second;
+                            args = rest.Rest;
+                            continue;
+                        } else {
+                            return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+                        }
+                    } else if (second is Expr.Double d2) {
+                        if (d1.Value > d2.Value) {
+                            first = second;
+                            args = rest.Rest;
+                            continue;
+                        } else {
+                            return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+                        }
+                    } else {
+                        throw new Exception($">: expected arguments to be numbers but got {first}");
+                    }
+                } else if (first is Expr.Integer i1) {
+                    if (second is Expr.Integer i2) {
+                        if (i1.Value > i2.Value) {
+                            first = second;
+                            args = rest.Rest;
+                            continue;
+                        } else {
+                            return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+                        }
+                    } else if (second is Expr.Double d2) {
+                        if (i1.Value > d2.Value) {
+                            first = second;
+                            args = rest.Rest;
+                            continue;
+                        } else {
+                            return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+                        }
+
+                    } else {
+                        throw new Exception($">: expected arguments to be numbers but got {first}");
+                    }
+                } else {
+                    throw new Exception($">: expected arguments to be numbers but got {first}");
+                }
+            }
+            return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
+        } else {
+            throw new Exception(">: expected at least one argument but got none");
+        }
+    }
+
+    public static Thunk eq_p(Delegate k, List args) {
+        // TODO: write some tests for eq?
+        if (args is List.NonEmpty properList) {
+            if (properList.Count() != 2) {
+                throw new Exception("eq?: expected two arguments");
+            }
+            Expr first = args.ElementAt(0);
+            Expr second = args.ElementAt(1);
+            bool result = first is IPair pair ? Object.ReferenceEquals(first,second) : first.Equals(second);
+            return Continuation.ApplyDelegate(k, new Expr.Boolean(result));
+        } else {
+            throw new Exception("eq?: expected two arguments but got none");
         }
     }
 
@@ -308,10 +396,6 @@ internal static class Builtins {
         Procedure proc = args.ElementAt(0) as Procedure ?? throw new Exception("call/cc: expected procedure argument but got {args.ElementAt(0)}");
         if (proc.Value is Func<Delegate, Expr, Thunk> del) {
             return del(k, new Continuation(k));
-            // return Continuation.ApplyDelegate(k, del(k, new Continuation(k)));
-            // Continuation.Thunk thunk = () => del(k, new Continuation(k));
-            // // return new Continuation.MaybeThunk.Thunk(thunk);
-            // return proc.Apply(k, List.NewList(new Continuation(k)));
         } else {
             throw new Exception("call/cc: expected procedure with one parameter but got {proc}");
         }
@@ -372,6 +456,19 @@ internal static class Builtins {
         } else {
             stx = Syntax.FromDatum(new SrcLoc(), args.ElementAt(0));
             Syntax result = new MacroExpander().Expand(stx, ExpansionEnvironment.Default);
+            return Continuation.ApplyDelegate(k, result);
+        }
+    }
+
+    public static Thunk expand_once(Delegate k, List args) {
+        if (args.Count() != 1) throw new Exception($"expand-once: expected a single argument but got {args.Count()}");
+        if (args.ElementAt(0) is Syntax stx) {
+            // TODO: what should expansion environment be?
+            Syntax result = new MacroExpander().Expand(stx, ExpansionEnvironment.Default, once: true);
+            return Continuation.ApplyDelegate(k, result);
+        } else {
+            stx = Syntax.FromDatum(new SrcLoc(), args.ElementAt(0));
+            Syntax result = new MacroExpander().Expand(stx, ExpansionEnvironment.Default, once: true);
             return Continuation.ApplyDelegate(k, result);
         }
     }
