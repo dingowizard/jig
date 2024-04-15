@@ -20,6 +20,7 @@ public class Environment : IEnvironment {
         _dict.Add(new Expr.Symbol("syntax?"), new Procedure( (Builtin)Builtins.syntax_p));
         _dict.Add(new Expr.Symbol("datum->syntax"), new Procedure( (Builtin)Builtins.datum_to_syntax));
         _dict.Add(new Expr.Symbol("expand"), new Procedure( (Builtin)Builtins.expand));
+        _dict.Add(new Expr.Symbol("expand-once"), new Procedure( (Builtin)Builtins.expand_once));
         _dict.Add(new Expr.Symbol("pair?"), new Procedure( (Builtin)Builtins.pair_p));
         _dict.Add(new Expr.Symbol("symbol=?"), new Procedure( (Builtin)Builtins.symbol_equal_p));
         _dict.Add(new Expr.Symbol("symbol?"), new Procedure( (Builtin)Builtins.symbol_p));
@@ -41,9 +42,10 @@ public class Environment : IEnvironment {
     }
 
     public Thunk Set(Delegate k, Expr sym, Expr v) {
-        Expr.Symbol s = sym is Syntax.Identifier i ? i.Symbol : ((Expr.Symbol) sym);
+        Syntax.Identifier? id = sym as Syntax.Identifier;
+        Expr.Symbol s = id is not null ? id.Symbol : (Expr.Symbol) sym;
         if (!_dict.ContainsKey(s)) {
-            throw new Exception($"set!: unbound variable {s}");
+            throw new Exception($"unbound variable: {s.Name} {(id is not null ? id.SrcLoc.ToString() : "")}");
         }
         _dict[s] = v;
         return Continuation.ApplyDelegate(k, Expr.Void);
@@ -61,11 +63,12 @@ public class Environment : IEnvironment {
     }
 
     public Thunk LookUp (Delegate k, Expr expr) {
-        Expr.Symbol symbol = expr is Syntax.Identifier id ? id.Symbol : (Expr.Symbol) expr;
+        Syntax.Identifier? id = expr as Syntax.Identifier;
+        Expr.Symbol symbol = id is not null ? id.Symbol : (Expr.Symbol) expr;
         if (_dict.TryGetValue(symbol, out Expr? result)) {
             return Continuation.ApplyDelegate(k, result);
         } else {
-            throw new Exception($"unbound variable: {symbol.Name}");
+            throw new Exception($"unbound variable: {symbol.Name} {(id is not null ? id.SrcLoc.ToString() : "")}");
         }
     }
 
