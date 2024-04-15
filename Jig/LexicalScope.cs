@@ -47,11 +47,16 @@ internal class LexicalContext {
             (Expr.Symbol)Syntax.ToDatum(stx) :
             (Expr.Symbol) x;
         var candidates = Symbols.Where(tup => tup.Item1.Name==symbol.Name);
-        if (symbol.Name == "z") {
-            if (candidates.Count() > 0) {
-                Binding? binding = candidates.ElementAt(0).Item1.Binding;
-            }
-        }
+        // if (symbol.Name == "u") {
+        //         Console.WriteLine($"$LookUp: found {candidates.Count()} candidate(s) for 'u'");
+        //         if (candidates.Count() > 0) {
+        //             Binding? binding = candidates.ElementAt(0).Item1.Binding;
+        //             if (binding is not null) {
+        //                 Console.WriteLine($"$LookUp: the first candidate has binding = {(binding is null ? "null" : binding.ToString())} and the symbol has binding = {(symbol.Binding == null ? "null" : symbol.Binding.ToString())}");
+        //             }
+
+        //         }
+        // }
         var candidates2 = candidates.Where(tup => tup.Item1.Binding==symbol.Binding);
         ParameterExpression? pe = null;
         if (candidates2.Count() > 0) {
@@ -65,6 +70,9 @@ internal class LexicalContext {
             }
 
         } else {
+            // if (symbol.Name == "u") {
+            //     Console.WriteLine($"about to return {pe}");
+            // }
             return pe;
         }
     }
