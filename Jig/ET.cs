@@ -226,7 +226,7 @@ internal abstract class ET : Expression {
                                        _setMethod,
                                        new Expression [] {kParam, Expression.Constant(sym), val});
             } else {
-                contBody = DynInv(kParam, Expression.Assign(pe, val));
+                contBody = DynInv(kParam, Expression.Block(Expression.Assign(pe, val), Expression.Constant(Expr.Void)));
             }
             var k = Expression.Lambda(contBody, new ParameterExpression [] {val});
 
