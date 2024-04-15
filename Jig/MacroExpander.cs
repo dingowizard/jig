@@ -23,11 +23,23 @@ public class MacroExpander {
     internal Dictionary<Syntax.Identifier, Binding> Bindings {get;}
 
     IEnumerable<Syntax.Identifier> FindCandidateIdentifiers(Syntax.Identifier id) {
-        return Bindings.Keys.Where(i => i.Symbol.Name == id.Symbol.Name && i.ScopeSet.IsSubsetOf(id.ScopeSet));
+        IEnumerable<Syntax.Identifier> sameName = Bindings.Keys.Where(i => i.Symbol.Name == id.Symbol.Name);
+        // if (id.Symbol.Name == "u") {
+        //     Console.WriteLine($"The search id -- {id} -- has the following scope sets: {string.Join(',', id.ScopeSet)}");
+        //     Console.WriteLine($"Found {sameName.Count()} bindings with same name.");
+        //     foreach (var b in sameName) {
+        //         Console.WriteLine($"\tscope sets: {string.Join(',', b.ScopeSet)}");
+        //     }
+        // }
+        var result = sameName.Where(i => i.ScopeSet.IsSubsetOf(id.ScopeSet));
+        return result;
     }
 
     bool TryResolve(Syntax.Identifier id, [NotNullWhen(returnValue: true)] out Binding? binding) {
         var candidates = FindCandidateIdentifiers(id);
+        if (id.Symbol.Name == "u") {
+            Console.WriteLine($"TryResolve: found {candidates.Count()} candidates for 'u' at {id.SrcLoc}");
+        }
         if (candidates.Count() == 0) {
             binding = null;
             return false;
@@ -51,7 +63,7 @@ public class MacroExpander {
 
     }
 
-    public  Syntax Expand(Syntax stx, ExpansionEnvironment ee) {
+    public  Syntax Expand(Syntax stx, ExpansionEnvironment ee, bool once = false) {
         // TODO: rewrite this in a way that we don't have to remember to change it everytime a keyword is added
         switch (stx) {
             case Syntax.Identifier id:
@@ -79,7 +91,7 @@ public class MacroExpander {
             } else if (Expr.IsKeyword("syntax", stx)) {
                 return stx;
             } else {
-                return ExpandApplication(stx, stxList, ee);
+                return ExpandApplication(stx, stxList, ee, once);
             }
         } else {
             return stx;
@@ -110,7 +122,7 @@ public class MacroExpander {
     }
 
 
-    private  Syntax ExpandApplication(Syntax stx, SyntaxList stxList, ExpansionEnvironment ee)
+    private  Syntax ExpandApplication(Syntax stx, SyntaxList stxList, ExpansionEnvironment ee, bool once = false)
     {
         if (stxList.ElementAt<Syntax>(0) is Syntax.Identifier id && ee.TryFindTransformer(id.Symbol, out Transformer? transformer)) {
 
@@ -118,10 +130,14 @@ public class MacroExpander {
             Scope macroExpansionScope = new Scope();
             Syntax.AddScope(stx, macroExpansionScope);
             Syntax output = transformer.Apply(stx);
-            var result = output;
-            Syntax.ToggleScope(result, macroExpansionScope);
+            // var result = output;
+            Syntax.ToggleScope(output, macroExpansionScope);
             // Console.WriteLine($"{stx} => {output}");
-            return Expand(result, ee);
+            if (once) {
+                return output;
+            } else {
+                return Expand(output, ee);
+            }
         } else {
             return ExpandSequence(stx.SrcLoc, stxList, ee);
         }
@@ -360,8 +376,14 @@ public class ExpansionEnvironment {
 }
 
 public class Binding {
+    static int count = 0;
+
+    public Binding() {
+        count++;
+    }
     //TODO: why can't scope be like this? (scope needs a member to work. maybe because it has to define gethashcode and equals?)
     //TODO: should the binding contain the scope that it comes from?
     //TODO: can Scope and binding classes be combined in some way?
     public static Binding TopLevel {get;} = new Binding();
+    public override string ToString() => $"binding{count}";
 }
