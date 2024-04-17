@@ -14,6 +14,7 @@ public class Environment : IEnvironment {
         _dict.Add(new Expr.Symbol("="), new Procedure((PairFunction) Builtins.numEq));
         _dict.Add(new Expr.Symbol("apply"), new Procedure( Builtins.apply));
         _dict.Add(new Expr.Symbol("call/cc"), new Procedure( (Builtin)Builtins.callcc));
+        _dict.Add(new Expr.Symbol("call-with-current-continuation"), new Procedure( (Builtin)Builtins.callcc));
         _dict.Add(new Expr.Symbol("call-with-values"), new Procedure( Continuation.call_with_values));
         _dict.Add(new Expr.Symbol("values"), new Procedure( (Builtin)Builtins.values));
         _dict.Add(new Expr.Symbol("syntax->list"), new Procedure( (Builtin)Builtins.syntax_to_list));

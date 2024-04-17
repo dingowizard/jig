@@ -45,8 +45,6 @@
 
 ;; TODO: why do we need to define map1? we get infinite loop otherwise
 ;; TODO: more efficient any-null? (short circuit with call/cc?)
-
-
 (define map
   (lambda (fn xs . rest)
     (define any-null?
@@ -65,6 +63,7 @@
           (cons (apply fn (map1 car ls))
                 (apply map (cons fn (map1 cdr ls)))))) (cons xs rest))))
 
+;; TODO: support any number of list arguments, including no args
 (define append
   (lambda (l1 l2)
     (if (null? l1)
@@ -95,11 +94,11 @@
   (lambda (stx)
     (datum->syntax
      stx
-    (cons
-      (append (list 'lambda
-                    (map (lambda (b) (car (syntax->list b))) (syntax->list (cadr (syntax->list stx)))))
-              (cddr (syntax->list stx)))
-      (map (lambda (b) (cadr (syntax->list b))) (syntax->list (cadr (syntax->list stx))))))))
+     (cons
+       (append (list 'lambda
+                     (map (lambda (b) (car (syntax->list b))) (syntax->list (cadr (syntax->list stx)))))
+               (cddr (syntax->list stx)))
+       (map (lambda (b) (cadr (syntax->list b))) (syntax->list (cadr (syntax->list stx))))))))
 
 (define-syntax or
   (lambda (stx)
@@ -238,11 +237,11 @@
     (let ((prim-callcc call/cc))
       (lambda (f)
         (prim-callcc (lambda (k)
-             (f (let ((save winders))
-                  (lambda xs
-                    (if (not (eq? save winders)) (do-wind save))
-                    (apply k xs)))))))))
-  ; (set! call-with-current-continuation call/cc)
+                      (f (let ((save winders))
+                           (lambda xs
+                             (if (not (eq? save winders)) (do-wind save))
+                             (apply k xs)))))))))
+  (set! call-with-current-continuation call/cc)
   (set! dynamic-wind
     (lambda (in body out)
       (in)
@@ -269,6 +268,7 @@
                     (#t 'error))))))))
 
 ; TODO: parameterize should handle multiple bindings
+; TODO: in below, it shold be possible to write `(lambda () . ,bodies), but it expands incorrectly
 (define-syntax parameterize
   (lambda (stx)
     (let* ((stx-list (syntax->list stx))
