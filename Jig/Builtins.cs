@@ -27,10 +27,10 @@ internal static class Builtins {
                 case IPair pair:
                     return Continuation.ApplyDelegate(k, pair.Car);
                 default:
-                    throw new Exception($"car: expected pair but got {properList.Car}");
+                    return Error(k, $"car: expected pair but got {properList.Car}");
             }
         } else {
-            throw new Exception("car: expected one argument but got none");
+            return Error(k, "car: expected one argument but got none");
         }
     }
 
@@ -43,7 +43,7 @@ internal static class Builtins {
             return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
 
         } else {
-            throw new Exception("null?: expected one argument but got none");
+            return Error(k, "null?: expected one argument but got none");
         }
     }
 
@@ -53,16 +53,16 @@ internal static class Builtins {
                 case IPair pair:
                     return Continuation.ApplyDelegate(k, pair.Cdr);
                 default:
-                    throw new Exception($"cdr: expected pair but got {properList.Cdr}");
+                    return Error(k, $"cdr: expected pair but got {properList.Cdr}");
             }
         } else {
-            throw new Exception("cdr: expected one argument but got none");
+            return Error(k, "cdr: expected one argument but got none");
         }
     }
 
     public static Thunk char_p(Delegate k, List args) {
         if (args is List.NonEmpty properList) {
-            if (args.Count() != 1) throw new Exception("char?: expected one argument but got {args.Count()}");
+            if (args.Count() != 1) return Error(k, "char?: expected one argument but got {args.Count()}");
             Expr arg = properList.Car;
             if (arg is Expr.Char) {
                 return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
@@ -70,7 +70,7 @@ internal static class Builtins {
             return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
 
         } else {
-            throw new Exception("char?: expected one argument but got none");
+            return Error(k, "char?: expected one argument but got none");
         }
     }
 
@@ -80,10 +80,25 @@ internal static class Builtins {
             if (arg is Expr.Integer intExpr) {
                 return Continuation.ApplyDelegate(k, new Expr.Integer(intExpr.Value + 1));
             } else {
-                throw new Exception($"incr: expected single integer argument, but got {args}");
+                return Error(k, $"succ: expected single integer argument, but got {args}");
             }
         } else {
-            throw new Exception("succ: expected one argument but got none");
+            return Error(k, "succ: expected one argument but got none");
+        }
+    }
+
+    public static Thunk number_p(Delegate k, List args) {
+        if (args is List.NonEmpty properList) {
+            object arg = properList.Car;
+            if (arg is Expr.Integer intExpr) {
+                return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
+            } else if (arg is Expr.Double) {
+                return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
+            } else {
+                return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+            }
+        } else {
+            return Error(k, "number?: expected one argument but got none");
         }
     }
 
@@ -101,7 +116,7 @@ internal static class Builtins {
                     doubleResult = intResult + d;
                     continue;
                 } else {
-                    throw new Exception($"+: all args must be numbers. {arg} is not a number.");
+                    return Error(k, $"+: all args must be numbers. {arg} is not a number.");
                 }
             } else {
                 if (arg is Expr.Integer i) {
@@ -111,7 +126,7 @@ internal static class Builtins {
                     doubleResult += d;
                     continue;
                 } else {
-                    throw new Exception($"+: all args must be numbers. {arg} is not a number.");
+                    return Error(k, $"+: all args must be numbers. {arg} is not a number.");
                 }
 
             }
@@ -130,7 +145,7 @@ internal static class Builtins {
             doubleResult = d;
             resultIsInt = false;
         } else {
-            throw new Exception($"-: all args must be numbers. {first} is not a number.");
+            return Error(k, $"-: all args must be numbers. {first} is not a number.");
         }
         foreach (var arg in args) {
             if (resultIsInt) {
@@ -142,7 +157,7 @@ internal static class Builtins {
                     doubleResult = intResult - d;
                     continue;
                 } else {
-                    throw new Exception($"-: all args must be numbers. {arg} is not a number.");
+                    return Error(k, $"-: all args must be numbers. {arg} is not a number.");
                 }
             } else {
                 if (arg is Expr.Integer x) {
@@ -152,7 +167,7 @@ internal static class Builtins {
                     doubleResult -= d;
                     continue;
                 } else {
-                    throw new Exception($"-: all args must be numbers. {arg} is not a number.");
+                    return Error(k, $"-: all args must be numbers. {arg} is not a number.");
                 }
             }
         }
@@ -173,7 +188,7 @@ internal static class Builtins {
                 } else if (arg is Expr.Double) {
                     return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
                 } else {
-                    throw new Exception($"=: expected numeric arguments, but got {arg}");
+                    return Error(k, $"=: expected numeric arguments, but got {arg}");
                 }
             }
             return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
@@ -189,13 +204,13 @@ internal static class Builtins {
                 } else if (arg is Expr.Integer) {
                     return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
                 } else {
-                    throw new Exception($"=: expected numeric arguments, but got {arg}");
+                    return Error(k, $"=: expected numeric arguments, but got {arg}");
                 }
             }
             return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
 
         } else {
-            throw new Exception($"=: expects only numeric arguments. Got {first}");
+            return Error(k, $"=: expects only numeric arguments. Got {first}");
         }
     }
 
@@ -225,7 +240,7 @@ internal static class Builtins {
                             return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
                         }
                     } else {
-                        throw new Exception($">: expected arguments to be numbers but got {first}");
+                        return Error(k, $">: expected arguments to be numbers but got {first}");
                     }
                 } else if (first is Expr.Integer i1) {
                     if (second is Expr.Integer i2) {
@@ -246,15 +261,15 @@ internal static class Builtins {
                         }
 
                     } else {
-                        throw new Exception($">: expected arguments to be numbers but got {first}");
+                        return Error(k, $">: expected arguments to be numbers but got {first}");
                     }
                 } else {
-                    throw new Exception($">: expected arguments to be numbers but got {first}");
+                    return Error(k, $">: expected arguments to be numbers but got {first}");
                 }
             }
             return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
         } else {
-            throw new Exception(">: expected at least one argument but got none");
+            return Error(k, ">: expected at least one argument but got none");
         }
     }
 
@@ -262,14 +277,14 @@ internal static class Builtins {
         // TODO: write some tests for eq?
         if (args is List.NonEmpty properList) {
             if (properList.Count() != 2) {
-                throw new Exception("eq?: expected two arguments");
+                return Error(k, "eq?: expected two arguments");
             }
             Expr first = args.ElementAt(0);
             Expr second = args.ElementAt(1);
             bool result = first is IPair pair ? Object.ReferenceEquals(first,second) : first.Equals(second);
             return Continuation.ApplyDelegate(k, new Expr.Boolean(result));
         } else {
-            throw new Exception("eq?: expected two arguments but got none");
+            return Error(k, "eq?: expected two arguments but got none");
         }
     }
 
@@ -287,7 +302,7 @@ internal static class Builtins {
                     doubleResult = intResult * d;
                     continue;
                 } else {
-                    throw new Exception($"*: all args must be numbers. {arg} is not a number.");
+                    return Error(k, $"*: all args must be numbers. {arg} is not a number.");
                 }
             } else {
                 if (arg is Expr.Integer i) {
@@ -297,7 +312,7 @@ internal static class Builtins {
                     doubleResult *= d;
                     continue;
                 } else {
-                    throw new Exception($"*: all args must be numbers. {arg} is not a number.");
+                    return Error(k, $"*: all args must be numbers. {arg} is not a number.");
                 }
 
             }
@@ -308,31 +323,34 @@ internal static class Builtins {
     public static Thunk cons (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             if (properList.Count() != 2) {
-                throw new Exception("cons: expected two arguments");
+                return Error(k, "cons: expected two arguments");
             }
             Expr car = args.ElementAt(0);
             Expr cdr = args.ElementAt(1);
             Expr result = (Expr)Expr.Pair.Cons(car, cdr);
             return Continuation.ApplyDelegate(k, result);
         } else {
-            throw new Exception("cons: expected two arguments but got none");
+            return Error(k, "cons: expected two arguments but got none");
         }
     }
 
     public static Thunk symbol_equal_p (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             if (properList.Count() < 2) {
-                throw new Exception("symbol=?: expected two or more arguments.");
+                return Error(k, "symbol=?: expected two or more arguments.");
             }
-            Expr.Symbol sym1 = properList.Car as Expr.Symbol ?? throw new Exception($"symbol=?: expected all arguments to be symbols, but got {properList.Car}");
+            Expr.Symbol? sym1 = properList.Car as Expr.Symbol;
+            if (sym1 is null) return Error(k, $"symbol=?: expected all arguments to be symbols, but got {properList.Car}");
             List rest = properList.Rest;
-            Expr.Symbol sym2 = rest.ElementAt(0) as Expr.Symbol ?? throw new Exception($"symbol=?: expected all arguments to be symbols, but got {rest.ElementAt(0)}");
+            Expr.Symbol? sym2 = rest.ElementAt(0) as Expr.Symbol;
+            if (sym2 is null) return Error(k, $"symbol=?: expected all arguments to be symbols, but got {rest.ElementAt(0)}");
             while (rest is List.NonEmpty nonEmpty) {
                 if (!sym1.Equals(sym2)) {
                     return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
                 }
                 sym1 = sym2;
-                sym2 = nonEmpty.Car as Expr.Symbol ?? throw new Exception($"symbol=?: expected all arguments to be symbols, but got {nonEmpty.Car}");
+                sym2 = nonEmpty.Car as Expr.Symbol;
+                if (sym2 is null) return Error(k, $"symbol=?: expected all arguments to be symbols, but got {nonEmpty.Car}");
                 rest = nonEmpty.Rest;
             }
             if (sym1.Equals(sym2)) {
@@ -341,7 +359,7 @@ internal static class Builtins {
                 return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
             }
         } else {
-            throw new Exception("symbol=?: expected two or more arguments.");
+            return Error(k, "symbol=?: expected two or more arguments.");
         }
 
     }
@@ -349,11 +367,11 @@ internal static class Builtins {
     public static Thunk symbol_p (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             if (properList.Count() != 1) {
-                throw new Exception("symbol?: expected one argument.");
+                return Error(k, "symbol?: expected one argument.");
             }
             return Continuation.ApplyDelegate(k, new Expr.Boolean(properList.Car is Expr.Symbol));
         } else {
-            throw new Exception("symbol?: expected one argument.");
+            return Error(k, "symbol?: expected one argument.");
         }
 
     }
@@ -361,12 +379,13 @@ internal static class Builtins {
     public static Thunk syntax_e (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             if (properList.Count() != 1) {
-                throw new Exception("syntax-e: expected one argument.");
+                return Error(k, "syntax-e: expected one argument.");
             }
-            Syntax stx = properList.Car as Syntax ?? throw new Exception($"syntax-e: expected syntax argument but got {properList.Car}");
+            Syntax? stx = properList.Car as Syntax;
+            if (stx is null) return Error(k, $"syntax-e: expected syntax argument but got {properList.Car}");
             return Continuation.ApplyDelegate(k, Syntax.E(stx));
         } else {
-            throw new Exception("syntax-e: expected one argument.");
+            return Error(k, "syntax-e: expected one argument.");
         }
 
     }
@@ -374,15 +393,31 @@ internal static class Builtins {
     public static Thunk symbol_to_string (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             if (properList.Count() != 1) {
-                throw new Exception("symbol->string: expected one argument.");
+                return Error(k, "symbol->string: expected one argument.");
             }
             if (properList.Car is Expr.Symbol symbol) {
                 return Continuation.ApplyDelegate(k, new Expr.String(symbol.Name));
             } else {
-                throw new Exception("symbol->string: expected its argument to be a symbol.");
+                return Error(k, "symbol->string: expected its argument to be a symbol.");
             }
         } else {
-            throw new Exception("symbol->string: expected one argument.");
+            return Error(k, "symbol->string: expected one argument.");
+        }
+
+    }
+
+    public static Thunk string_to_symbol (Delegate k, List args) {
+        if (args is List.NonEmpty properList) {
+            if (properList.Count() != 1) {
+                return Error(k, "string->symbol: expected one argument.");
+            }
+            if (properList.Car is Expr.String str) {
+                return Continuation.ApplyDelegate(k, new Expr.Symbol(str.Value));
+            } else {
+                return Error(k, "string->symbol: expected its argument to be a string.");
+            }
+        } else {
+            return Error(k, "string->symbol: expected one argument.");
         }
 
     }
@@ -392,12 +427,12 @@ internal static class Builtins {
         // TODO: should write strings like 'write-string' : no quotes for one thing
         if (args is List.NonEmpty properList) {
             if (properList.Count() > 2) {
-                throw new Exception("display: expected one or two but not {properList.Count()} arguments.");
+                return Error(k, "display: expected one or two but not {properList.Count()} arguments.");
             }
             Console.Write(properList.Car.Print());
             return Continuation.ApplyDelegate(k, Expr.Void);
         } else {
-            throw new Exception("display: expected at least one argument.");
+            return Error(k, "display: expected at least one argument.");
         }
     }
 
@@ -405,7 +440,7 @@ internal static class Builtins {
         // TODO: should take argument for port but use current port parameter when no arg
         if (args is List.NonEmpty properList) {
             if (properList.Count() > 1) {
-                throw new Exception("newline: expected zero or one arguments but not {properList.Count()}.");
+                return Error(k, "newline: expected zero or one arguments but not {properList.Count()}.");
             }
             Console.WriteLine("");
             return Continuation.ApplyDelegate(k, Expr.Void);
@@ -420,12 +455,13 @@ internal static class Builtins {
     }
 
     public static Thunk callcc(Delegate k, List args) {
-        if (args.Count() != 1) throw new Exception($"call/cc: expected one argument.");
-        Procedure proc = args.ElementAt(0) as Procedure ?? throw new Exception("call/cc: expected procedure argument but got {args.ElementAt(0)}");
+        if (args.Count() != 1) return Error(k, $"call/cc: expected one argument.");
+        Procedure? proc = args.ElementAt(0) as Procedure;
+        if (proc is null) return Error(k, "call/cc: expected procedure argument but got {args.ElementAt(0)}");
         if (proc.Value is Func<Delegate, Expr, Thunk> del) {
             return del(k, new Continuation(k));
         } else {
-            throw new Exception("call/cc: expected procedure with one parameter but got {proc}");
+            return Error(k, "call/cc: expected procedure with one parameter but got {proc}");
         }
     }
 
@@ -438,13 +474,14 @@ internal static class Builtins {
         } else if (x is Procedure proc) {
             return proc.Apply(k, args);
         } else {
-            throw new Exception($"apply: expected procedure as first argument, but got {x}");
+            return Error(k, $"apply: expected procedure as first argument, but got {x}");
         }
     }
 
     public static Thunk syntax_to_list(Delegate k, List args) {
-        if (args.Count() != 1) throw new Exception($"syntax->list: expected one argument.");
-        Syntax stx = args.ElementAt(0) as Syntax ?? throw new Exception($"syntax->list: expected a syntax argument, got got {args.ElementAt(0)}");
+        if (args.Count() != 1) return Error(k, $"syntax->list: expected one argument.");
+        Syntax? stx = args.ElementAt(0) as Syntax;
+        if (stx is null) return Error(k, $"syntax->list: expected a syntax argument, got got {args.ElementAt(0)}");
         if (Syntax.ToList(stx, out List? result)) {
             return Continuation.ApplyDelegate(k, result);
         } else {
@@ -453,7 +490,7 @@ internal static class Builtins {
     }
 
     public static Thunk syntax_p(Delegate k, List args) {
-        if (args.Count() != 1) throw new Exception($"syntax?: expected one argument.");
+        if (args.Count() != 1) return Error(k, $"syntax?: expected one argument.");
         if (args.ElementAt(0) is Syntax) {
             return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
         } else {
@@ -462,21 +499,21 @@ internal static class Builtins {
     }
 
     public static Thunk pair_p(Delegate k, List args) {
-        if (args.Count() != 1) throw new Exception($"pair?: expected one argument.");
+        if (args.Count() != 1) return Error(k, $"pair?: expected one argument.");
         return Continuation.ApplyDelegate(k, new Expr.Boolean(args.ElementAt(0) is IPair));
     }
 
     public static Thunk datum_to_syntax(Delegate k, List args) {
-        if (args.Count() != 2) throw new Exception($"datum->syntax: expected two arguments but got {args.Count()}.");
+        if (args.Count() != 2) return Error(k, $"datum->syntax: expected two arguments but got {args.Count()}.");
         if (args.ElementAt(0) is Syntax stx) {
             return Continuation.ApplyDelegate(k, Syntax.FromDatum(stx.SrcLoc, args.ElementAt(1)));
         } else {
-            throw new Exception($"datum->syntax: expected first argument to be syntax, but got {args.ElementAt(0)}");
+            return Error(k, $"datum->syntax: expected first argument to be syntax, but got {args.ElementAt(0)}");
         }
     }
 
     public static Thunk expand(Delegate k, List args) {
-        if (args.Count() != 1) throw new Exception($"expand: expected a single argument but got {args.Count()}");
+        if (args.Count() != 1) return Error(k, $"expand: expected a single argument but got {args.Count()}");
         if (args.ElementAt(0) is Syntax stx) {
             // TODO: what should expansion environment be?
             Syntax result = new MacroExpander().Expand(stx, ExpansionEnvironment.Default);
@@ -489,7 +526,7 @@ internal static class Builtins {
     }
 
     public static Thunk expand_once(Delegate k, List args) {
-        if (args.Count() != 1) throw new Exception($"expand-once: expected a single argument but got {args.Count()}");
+        if (args.Count() != 1) return Error(k, $"expand-once: expected a single argument but got {args.Count()}");
         if (args.ElementAt(0) is Syntax stx) {
             // TODO: what should expansion environment be?
             Syntax result = new MacroExpander().Expand(stx, ExpansionEnvironment.Default, once: true);
@@ -501,19 +538,55 @@ internal static class Builtins {
         }
     }
 
-    public static void error(Delegate k, List args) {
-        // TODO: something with second argument
-        if (args.Count() < 2) {
-            error(k, List.NewList(new Expr.String($"error: expected at least two arguments"), List.Empty));
-            return;
+    internal static Thunk Error(Delegate k, string msg, params Expr[] rest) {
+        // the reason we have to look up "error" in the global environment is that
+        // in prelude we redefine error so that it runs the 'out' thunks in winders.
+        // otherwise *current-exception-handlers* isn't restored properly
+        //
+        // TODO: should we use raise or raise-continuable in builtins instead?
+        // TODO: cache this search somehow
+        Expr errorExpr = Program.TopLevel[new Expr.Symbol("error")];
+        if (errorExpr is Procedure proc) {
+            return proc.Apply(k, List.NewList(new Expr.String(msg)));
+        } else {
+            throw new Exception("error is not bound to a procedure");
+        }
+    }
+
+    public static Thunk error(Delegate k, List args) {
+        // TODO: should probably be possible to use a different continuation than id
+        // for example if we are reading in a whole script rather than an expr at REPL
+        // TODO: print other args
+        // TODO: stack trace
+        Console.Error.Write("*** ERROR: ");
+        Continuation.OneArgDelegate end = (x) => null;
+        if (args.Count() < 1) {
+            Console.Error.WriteLine("error: expected at least one argument");
+            return Continuation.ApplyDelegate(end, Expr.Void);
         }
         Expr.String? msg = args.ElementAt(0) as Expr.String;
         if (msg is null) {
-            error(k, List.NewList(new Expr.String($"error: expected first argument to be a string but got {args.ElementAt(0).Print()}"), List.Empty));
-            return;
+            Console.Error.WriteLine($"error: expected first argument to be a string message but got {args.ElementAt(0)}.");
+        } else {
+            Console.Error.WriteLine(msg);
         }
-        Console.Error.WriteLine(msg.Value);
-        return;
+        return Continuation.ApplyDelegate(end, Expr.Void);
+    }
+
+    public static Thunk vector(Delegate k, List args) {
+        return Continuation.ApplyDelegate(k, new Expr.Vector(args.ToArray()));
+
+    }
+
+    public static Thunk vector_length(Delegate k, List args) {
+        if (args.Count() != 1) return Error(k, $"vector-length: expected a single argument but got {args.Count()}");
+        if (args.ElementAt(0) is Expr.Vector v) {
+            return Continuation.ApplyDelegate(k, v.Length);
+        } else {
+            return Error(k, "vector-length: expected argument to be vector");
+
+        }
+
     }
 
 }

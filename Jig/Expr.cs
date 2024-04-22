@@ -25,6 +25,35 @@ public abstract class Expr {
         public override string Print() => Value ? "#t" : "#f";
     }
 
+    public class Vector : Expr, IEnumerable<Expr> {
+        public Vector(params Expr[] xs) {
+            Elements = xs;
+
+        }
+
+        public Expr.Integer Length {
+            get {
+                return new Expr.Integer(Elements.Length);
+            }
+        }
+
+        private Expr[] Elements {get;}
+
+        public override string Print() => $"#({string.Join(' ', this)})";
+
+        public IEnumerator<Expr> GetEnumerator() {
+            foreach (var x in Elements) {
+                yield return x;
+            }
+
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() {
+            return this.GetEnumerator();
+        }
+
+    }
+
     public class Char : LiteralExpr<char> {
         public Char(char c) : base(c) {}
         public override string Print() => $"#\\{Value}";

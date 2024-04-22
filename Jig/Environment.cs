@@ -8,6 +8,7 @@ public class Environment : IEnvironment {
         _dict.Add(new Expr.Symbol("cons"), new Procedure((Builtin) Builtins.cons));
         _dict.Add(new Expr.Symbol("null?"), new Procedure((Builtin) Builtins.nullP));
         _dict.Add(new Expr.Symbol("succ"), new Procedure((Builtin) Builtins.succ));
+        _dict.Add(new Expr.Symbol("number?"), new Procedure((Builtin) Builtins.number_p));
         _dict.Add(new Expr.Symbol("+"), new Procedure((Builtin) Builtins.sum));
         _dict.Add(new Expr.Symbol("*"), new Procedure((Builtin) Builtins.product));
         _dict.Add(new Expr.Symbol("-"), new Procedure((PairFunction) Builtins.diff));
@@ -26,12 +27,16 @@ public class Environment : IEnvironment {
         _dict.Add(new Expr.Symbol("symbol=?"), new Procedure( (Builtin)Builtins.symbol_equal_p));
         _dict.Add(new Expr.Symbol("symbol?"), new Procedure( (Builtin)Builtins.symbol_p));
         _dict.Add(new Expr.Symbol("symbol->string"), new Procedure( (Builtin)Builtins.symbol_to_string));
+        _dict.Add(new Expr.Symbol("string->symbol"), new Procedure( (Builtin)Builtins.string_to_symbol));
         _dict.Add(new Expr.Symbol("syntax-e"), new Procedure( (Builtin)Builtins.syntax_e));
         _dict.Add(new Expr.Symbol("char?"), new Procedure( (Builtin)Builtins.char_p));
         _dict.Add(new Expr.Symbol("eq?"), new Procedure( (Builtin)Builtins.eq_p));
         _dict.Add(new Expr.Symbol(">"), new Procedure( (Builtin)Builtins.gt));
         _dict.Add(new Expr.Symbol("display"), new Procedure( (Builtin)Builtins.display));
         _dict.Add(new Expr.Symbol("newline"), new Procedure( (Builtin)Builtins.newline));
+        _dict.Add(new Expr.Symbol("error"), new Procedure( (Builtin)Builtins.error));
+        _dict.Add(new Expr.Symbol("vector"), new Procedure( (Builtin)Builtins.vector));
+        _dict.Add(new Expr.Symbol("vector-length"), new Procedure( (Builtin)Builtins.vector_length));
         // _dict.Add(new Expr.Symbol("dynamic-wind"), new Procedure( (Builtin)Builtins.dynamic_wind));
         // _dict.Add(new Expr.Symbol("error"), new Procedure( (Builtin)Builtins.error));
     }
@@ -42,6 +47,12 @@ public class Environment : IEnvironment {
             return _dict.Keys;
         }
 
+    }
+
+    public Expr this[Expr.Symbol symbol] {
+        get {
+            return _dict[symbol];
+        }
     }
 
     public Thunk Set(Delegate k, Expr sym, Expr v) {
