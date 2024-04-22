@@ -37,6 +37,7 @@ public class Environment : IEnvironment {
         _dict.Add(new Expr.Symbol("error"), new Procedure( (Builtin)Builtins.error));
         _dict.Add(new Expr.Symbol("vector"), new Procedure( (Builtin)Builtins.vector));
         _dict.Add(new Expr.Symbol("vector-length"), new Procedure( (Builtin)Builtins.vector_length));
+        _dict.Add(new Expr.Symbol("vector-ref"), new Procedure( (Builtin)Builtins.vector_ref));
         // _dict.Add(new Expr.Symbol("dynamic-wind"), new Procedure( (Builtin)Builtins.dynamic_wind));
         // _dict.Add(new Expr.Symbol("error"), new Procedure( (Builtin)Builtins.error));
     }

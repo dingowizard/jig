@@ -31,6 +31,21 @@ public abstract class Expr {
 
         }
 
+        public Vector(List xs) {
+            Elements = xs.ToArray();
+        }
+
+        public bool TryGetAtIndex(Expr.Integer i, [NotNullWhen(returnValue: true)] out Expr? result) {
+            if (i.Value >= Elements.Length) {
+                result = null;
+                return false;
+            } else {
+                result = Elements[i.Value];
+                return true;
+            }
+
+        }
+
         public Expr.Integer Length {
             get {
                 return new Expr.Integer(Elements.Length);

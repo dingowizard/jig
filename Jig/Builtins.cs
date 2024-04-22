@@ -574,7 +574,7 @@ internal static class Builtins {
     }
 
     public static Thunk vector(Delegate k, List args) {
-        return Continuation.ApplyDelegate(k, new Expr.Vector(args.ToArray()));
+        return Continuation.ApplyDelegate(k, new Expr.Vector(args));
 
     }
 
@@ -584,6 +584,26 @@ internal static class Builtins {
             return Continuation.ApplyDelegate(k, v.Length);
         } else {
             return Error(k, "vector-length: expected argument to be vector");
+
+        }
+
+    }
+
+    public static Thunk vector_ref(Delegate k, List args) {
+        if (args.Count() != 2) return Error(k, $"vector-ref: expected two arguments but got {args.Count()}");
+        if (args.ElementAt(0) is Expr.Vector v) {
+            if (args.ElementAt(1) is Expr.Integer i) {
+                if (v.TryGetAtIndex(i, out Expr? result)) {
+                    return Continuation.ApplyDelegate(k, result);
+                } else {
+                    return Error(k, $"vector-ref: {i} is not a valid index.");
+                }
+
+            } else {
+                return Error(k, $"vector-ref: expected second argument to be an integer, but got {args.ElementAt(1)}");
+            }
+        } else {
+            return Error(k, "vector-ref: expected first argument to be vector");
 
         }
 
