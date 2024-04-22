@@ -242,6 +242,19 @@
                              (if (not (eq? save winders)) (do-wind save))
                              (apply k xs)))))))))
   (set! call-with-current-continuation call/cc)
+  ;; (set! error
+  ;;   (let ((prim-error error))
+  ;;     (lambda (msg . xs)
+  ;;       (define run-all
+  ;;         (lambda (ws)
+  ;;           (if (null? ws)
+  ;;               '()
+  ;;               (begin
+  ;;                 ((cdar ws))
+  ;;                 (run-all (cdr ws))))))
+  ;;       ; do all out thunks before exiting
+  ;;       (run-all winders)
+  ;;       (apply prim-error (cons msg xs)))))
   (set! dynamic-wind
     (lambda (in body out)
       (in)
@@ -278,4 +291,60 @@
            (bodies (cddr stx-list)))
       (datum->syntax
        stx
-       `((lambda (old) (dynamic-wind (lambda () (,(car ps) ,(car vs))) (lambda () ,@bodies) (lambda () (,(car ps) old (lambda (x) x))))) (,(car ps)))))))
+       `((lambda (old)
+           (dynamic-wind
+             (lambda () (,(car ps) ,(car vs)))
+             (lambda () ,@bodies)
+             (lambda () (,(car ps) old (lambda (x) x))))) (,(car ps)))))))
+
+
+(define with-exception-handler #f)
+(define raise #f)
+(define raise-continuable #f)
+
+(call/cc
+ (lambda (k)
+   (define *current-exception-handlers*
+     (list (lambda (condition)
+             (display "unandled exception ")
+             (display condition)
+             (newline)
+             (k (void)))))
+    (define with-exception-handlers
+        (lambda (new-handlers thunk)
+            (let ((previous-handlers *current-exception-handlers*))
+            (dynamic-wind
+                (lambda ()
+                (set! *current-exception-handlers* new-handlers))
+                thunk
+                (lambda ()
+                (set! *current-exception-handlers* previous-handlers))))))
+    (set! with-exception-handler
+        (lambda (handler thunk)
+            (with-exception-handlers (cons handler *current-exception-handlers*)
+                                    thunk)))
+    (set! raise
+        (lambda (obj)
+            (let ((handlers *current-exception-handlers*))
+            (with-exception-handlers (cdr handlers)
+                (lambda ()
+                ((car handlers) obj)
+                (abort "user-defined handler returned on non-continuable exception"
+                        (car handlers)
+                        obj))))))
+    (set! raise-continuable
+        (lambda (obj)
+            (let ((handlers *current-exception-handlers*))
+            (with-exception-handlers (cdr handlers)
+                (lambda ()
+                ((car handlers) obj))))))))
+
+(define error #f)
+
+(call/cc
+ (lambda (k)
+   (set! error
+         (lambda (msg . xs)
+           (display msg)
+           (newline)
+           (k (void))))))
