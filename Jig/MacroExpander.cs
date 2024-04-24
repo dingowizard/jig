@@ -13,7 +13,7 @@ public class MacroExpander {
         // TODO: we shouldn't do this every time the macro expander runs
         // foreach (var sym in Program.TopLevel.Symbols) {
         //     // add all top level symbols to bindings
-        //     var id = new Syntax.Identifier(sym, new SrcLoc()); // TODO: srcloc should refer to prelude file or wherever
+        //     var id = new Syntax.Identifier(sym); // TODO: srcloc should refer to prelude file or wherever
         //     Syntax.AddScope(id, TopLevelScope);
         //     id.Symbol.Binding = Binding.TopLevel;
         //     Bindings.Add(id, Binding.TopLevel);
@@ -98,7 +98,7 @@ public class MacroExpander {
         }
     }
 
-    private  Syntax ExpandDefineSyntax(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
+    private  Syntax ExpandDefineSyntax(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
         Syntax.Identifier id = stxList.ElementAt<Syntax>(1) as Syntax.Identifier ?? throw new Exception() ;
         id.Symbol.Binding = new Binding();
@@ -110,7 +110,7 @@ public class MacroExpander {
         Syntax expandedLambdaExpr = Expand(stxList.ElementAt<Syntax>(2), ee);
         Transformer transformer = EvaluateTransformer(expandedLambdaExpr);
         ee.AddTransformer(id.Symbol, transformer);
-        return new Syntax(List.NewList(new Syntax.Identifier(new Expr.Symbol("quote"), new SrcLoc()), id), srcLoc);
+        return new Syntax(List.NewList(new Syntax.Identifier(new Expr.Symbol("quote")), id), srcLoc);
 
     }
 
@@ -143,7 +143,7 @@ public class MacroExpander {
         }
     }
 
-    private  Syntax ExpandSequence(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
+    private  Syntax ExpandSequence(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
                 List<Syntax> xs = new List<Syntax>();
                 foreach (var x in stxList) {
                     Syntax bodyExpr = Expand(x, ee);
@@ -153,7 +153,7 @@ public class MacroExpander {
 
     }
 
-    private  Syntax ExpandSet(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
+    private  Syntax ExpandSet(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
         List<Syntax> xs = new List<Syntax>();
         Debug.Assert(stxList.Count<Syntax>() == 3);
@@ -165,7 +165,7 @@ public class MacroExpander {
         return new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc);
     }
 
-    private  Syntax ExpandDefine(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
+    private  Syntax ExpandDefine(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
         List<Syntax> xs = new List<Syntax>();
         Debug.Assert(stxList.Count<Syntax>() == 3); // TODO: this should be a syntax error
@@ -184,7 +184,7 @@ public class MacroExpander {
         return new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc);
     }
 
-    private  Syntax ExpandIf(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
+    private  Syntax ExpandIf(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
         List<Syntax> xs = new List<Syntax>();
         // Debug.Assert(stxList.Count<Syntax>() >= 3);
@@ -196,7 +196,7 @@ public class MacroExpander {
         return new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc);
     }
 
-    private  Syntax ExpandLambda(SrcLoc srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
+    private  Syntax ExpandLambda(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
         List<Syntax> xs = new List<Syntax>();
         xs.Add(stxList.ElementAt<Syntax>(0)); // lamdbda keyword
         var newScope = new Scope();
@@ -255,7 +255,7 @@ public class ExpansionEnvironment {
         Syntax result;
         SyntaxList stxList = Syntax.E(stx) as SyntaxList ?? throw new Exception("and: syntax should expand to list");
         if (stxList.Count<Syntax>() == 1) { // E.g. (and)
-            result = new Syntax(new Expr.Boolean(true), new SrcLoc());
+            result = new Syntax(new Expr.Boolean(true), null);
             return Continuation.ApplyDelegate(k, result);
         }
         if (stxList.Count<Syntax>() == 2) { // Eg (and 1)
@@ -264,15 +264,15 @@ public class ExpansionEnvironment {
         }
         Syntax first = stxList.ElementAt<Syntax>(1);
         result = new Syntax(
-            SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("if"), new SrcLoc()),
+            SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("if")),
                                     first,
                                     new Syntax(
                                     SyntaxList.FromIEnumerable(new List<Syntax>{
-                                        new Syntax.Identifier(new Expr.Symbol("and"), new SrcLoc())
+                                        new Syntax.Identifier(new Expr.Symbol("and"))
                                                                             }.Concat<Syntax>(stxList.Skip<Syntax>(2))),
 
                                     new SrcLoc()),
-                                    new Syntax(new Expr.Boolean(false), new SrcLoc())),
+                                    new Syntax(new Expr.Boolean(false))),
             stx.SrcLoc);
         return Continuation.ApplyDelegate(k, result);
 
@@ -289,7 +289,7 @@ public class ExpansionEnvironment {
         Expr argE = Syntax.E(arg);
         if (argE is List.NullType ||
             argE is not IPair) {
-            result = new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("quote"), new SrcLoc()),
+            result = new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("quote")),
                                                       arg),
                                 stx.SrcLoc);
         } else if (argE is SyntaxList stxListArg) {
@@ -301,12 +301,12 @@ public class ExpansionEnvironment {
                 }
             } else if (Syntax.E(stxListArg.ElementAt<Syntax>(0)) is not SyntaxList) { // (quasiquote (x . rest)) where x is not a pair
                                                                        // => (cons (quote x) (quasiquote rest))
-                result = new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("cons"), new SrcLoc()),
-                                                          new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("quote"), new SrcLoc()),
+                result = new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("cons"), null),
+                                                          new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("quote")),
                                                                                            stxListArg.ElementAt<Syntax>(0)),
                                                                      new SrcLoc()),
-                                                          new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("quasiquote"), new SrcLoc()),
-                                                                                           new Syntax(SyntaxList.FromIEnumerable(stxListArg.Skip<Syntax>(1)), new SrcLoc())),
+                                                          new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("quasiquote")),
+                                                                                           new Syntax(SyntaxList.FromIEnumerable(stxListArg.Skip<Syntax>(1)))),
                                                                      new SrcLoc())),
                                     stx.SrcLoc);
 
@@ -320,21 +320,21 @@ public class ExpansionEnvironment {
                     // if (Syntax.E(listToSpliceStx) is not SyntaxList) {
                     //     throw new Exception("unquote-splicing: expected a list argument");
                     // }
-                    result = new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("append"), new SrcLoc()),
+                    result = new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("append")),
                                                               listToSpliceStx,
-                                                              new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("quasiquote"), new SrcLoc()),
-                                                                                           new Syntax(SyntaxList.FromIEnumerable(stxListArg.Skip<Syntax>(1)), new SrcLoc())),
+                                                              new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("quasiquote")),
+                                                                                           new Syntax(SyntaxList.FromIEnumerable(stxListArg.Skip<Syntax>(1)))),
                                                                      new SrcLoc())),
                                     stx.SrcLoc);
 
                 } else {
                     // (cons (quasiquote slist) (quasiquote rest))
-                    result = new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("cons"), new SrcLoc()),
-                                                          new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("quasiquote"), new SrcLoc()),
+                    result = new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("cons")),
+                                                          new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("quasiquote")),
                                                                                            stxListArg.ElementAt<Syntax>(0)),
                                                                      new SrcLoc()),
-                                                          new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("quasiquote"), new SrcLoc()),
-                                                                                           new Syntax(SyntaxList.FromIEnumerable(stxListArg.Skip<Syntax>(1)), new SrcLoc())),
+                                                          new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("quasiquote")),
+                                                                                           new Syntax(SyntaxList.FromIEnumerable(stxListArg.Skip<Syntax>(1)))),
                                                                      new SrcLoc())),
                                     stx.SrcLoc);
 

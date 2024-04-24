@@ -532,7 +532,7 @@ internal static class Builtins {
             Syntax result = new MacroExpander().Expand(stx, ExpansionEnvironment.Default, once: true);
             return Continuation.ApplyDelegate(k, result);
         } else {
-            stx = Syntax.FromDatum(new SrcLoc(), args.ElementAt(0));
+            stx = Syntax.FromDatum(null, args.ElementAt(0));
             Syntax result = new MacroExpander().Expand(stx, ExpansionEnvironment.Default, once: true);
             return Continuation.ApplyDelegate(k, result);
         }

@@ -81,7 +81,7 @@ public class Syntax : Expr {
                 return true;
 
             }
-            IEnumerable<Syntax> xs = l.Select(x => new Syntax(x, new SrcLoc()));
+            IEnumerable<Syntax> xs = l.Select(x => new Syntax(x, null));
             stxList = (SyntaxList)SyntaxList.FromIEnumerable(xs);
             return true;
         }
@@ -90,7 +90,7 @@ public class Syntax : Expr {
 
     }
 
-    public static Syntax FromDatum(SrcLoc srcLoc, Expr x) {
+    public static Syntax FromDatum(SrcLoc? srcLoc, Expr x) {
         switch (x) {
             case Syntax stx:
                 return stx;
@@ -108,7 +108,7 @@ public class Syntax : Expr {
     }
 
 
-    public Syntax(Expr expr, SrcLoc srcLoc) {
+    public Syntax(Expr expr, SrcLoc? srcLoc = null) {
         Expression = expr;
         SrcLoc = srcLoc;
     }
@@ -118,7 +118,7 @@ public class Syntax : Expr {
     }
 
     public class Identifier : Syntax {
-        internal Identifier(Expr.Symbol symbol, SrcLoc srcLoc) : base (symbol, srcLoc) {
+        internal Identifier(Expr.Symbol symbol, SrcLoc? srcLoc = null) : base (symbol, srcLoc) {
             ScopeSet = new HashSet<Scope>();
         }
 
@@ -180,7 +180,7 @@ public class Syntax : Expr {
 
     protected virtual Expr Expression {get;}
 
-    public SrcLoc SrcLoc {get;}
+    public SrcLoc? SrcLoc {get;}
     // public LexicalContext LexicalContext {get;}
 
 }

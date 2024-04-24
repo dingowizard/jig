@@ -17,11 +17,13 @@ public class ParserTests {
         var tokenStream = new TokenStream(InputPort.FromString("()"));
         Syntax? actual = Parser.ParseSyntax(tokenStream);
         Assert.IsNotNull(actual);
+        SrcLoc? srcLoc = actual.SrcLoc;
+        Assert.IsNotNull(srcLoc);
         Assert.AreEqual(List.Empty, Syntax.ToDatum(actual));
-        Assert.AreEqual(1, actual.SrcLoc.Line);
-        Assert.AreEqual(1, actual.SrcLoc.Position);
-        Assert.AreEqual(0, actual.SrcLoc.Column);
-        Assert.AreEqual(2, actual.SrcLoc.Span);
+        Assert.AreEqual(1, srcLoc?.Line);
+        Assert.AreEqual(1, srcLoc?.Position);
+        Assert.AreEqual(0, srcLoc?.Column);
+        Assert.AreEqual(2, srcLoc?.Span);
     }
 
     [TestMethod]
@@ -61,7 +63,7 @@ public class ParserTests {
         var tokenStream = new TokenStream(InputPort.FromString("(abc def)"));
         Syntax? stx = Parser.ParseSyntax(tokenStream);
         Assert.IsNotNull(stx);
-        Assert.AreEqual(9, stx.SrcLoc.Span);
+        Assert.AreEqual(9, stx.SrcLoc?.Span);
 
     }
 
@@ -70,7 +72,7 @@ public class ParserTests {
         var tokenStream = new TokenStream(InputPort.FromString("(abc . def)"));
         Syntax? stx = Parser.ParseSyntax(tokenStream);
         Assert.IsNotNull(stx);
-        Assert.AreEqual(11, stx.SrcLoc.Span);
+        Assert.AreEqual(11, stx.SrcLoc?.Span);
 
     }
 

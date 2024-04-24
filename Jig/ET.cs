@@ -88,7 +88,7 @@ internal abstract class ET : Expression {
                 if (Syntax.ToList(stx, out List? syntaxList)) {
                     Body = Expression.Convert(DynInv(kParam, Expression.Constant(syntaxList.ElementAt<Expr>(1))), typeof(Thunk));
                 } else {
-                    throw new Exception($"malformed syntax @ {stx.SrcLoc.Line}: {stx.SrcLoc.Column}: {x}");
+                    throw new Exception($"malformed syntax {stx}");
                 }
             } else {
                 // expression was made with read rather than read-syntax
