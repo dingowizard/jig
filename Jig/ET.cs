@@ -28,6 +28,10 @@ internal abstract class ET : Expression {
     }
 
     public static ET Analyze(LexicalContext scope, Expr ast) {
+        if (ast is IfExpr ifExpr) {
+            return new IfET(scope, ifExpr);
+
+        }
         if (Expr.IsLiteral(ast) || ast is Expr.VoidType) {
             return new LiteralET(ast);
         } else if (Expr.IsSymbol(ast)) {
@@ -163,6 +167,33 @@ internal abstract class ET : Expression {
     }
 
     private class IfET : ET {
+
+        public IfET(LexicalContext lexVars, IfExpr ifExpr) {
+
+            Expr cond = ifExpr.Condition;
+            Expression<CompiledCode> condCC = (Expression<CompiledCode>)Analyze(lexVars, cond).Reduce();
+            Expr consq = ifExpr.Then;
+            Expression<CompiledCode> consqCC = (Expression<CompiledCode>)Analyze(lexVars, consq).Reduce();
+            Expr alt;
+            Expression ifFalseExpr;
+            if (ifExpr.Else is not null) {
+                alt = ifExpr.Else;
+            } else {
+                alt = Expr.Void;
+            }
+            ifFalseExpr = Expression.Lambda<Thunk>(
+                    Expression.Convert(DynInv((Expression<CompiledCode>)Analyze(lexVars, alt).Reduce(), kParam, envParam),
+                                       typeof(Thunk)));
+            ParameterExpression boolResult = Expression.Parameter(typeof(Expr), "boolResult");
+            var k0 = Expression.Lambda<Continuation.OneArgDelegate>(
+                body: Expression.Condition( // the Condition Expression returns something. IfThenElse is void
+                    test: Expression.Convert(DynInv(Expression.Constant((Func<Expr, bool>) IfET.IsNotFalse), boolResult), typeof(bool)),
+                    ifTrue: Expression.Lambda<Thunk>(Expression.Convert(DynInv(consqCC, kParam, envParam), typeof(Thunk))),
+                    ifFalse: ifFalseExpr),
+                parameters: new ParameterExpression[] {boolResult});
+            Body = Expression.Invoke(condCC, new Expression[] {k0, envParam});
+
+        }
 
         public IfET(LexicalContext lexVars, List.NonEmpty list) : base() {
 

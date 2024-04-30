@@ -75,14 +75,18 @@ public class MacroExpander {
                 }
             case Syntax.Literal lit: return lit;
         }
+        if (IfExpr.TryParse(stx, this, ee, out IfExpr? ifExpr)) {
+            return ifExpr;
+        }
         if (Syntax.E(stx) is SyntaxList stxList) {
             if (Expr.IsKeyword("quote", stx)) {
                 return stx;
             } else if (Expr.IsKeyword("lambda", stx)) {
                 return ExpandLambda(stx.SrcLoc, stxList, ee);
-            } else if (Expr.IsKeyword("if", stx)) {
-                return ExpandIf(stx.SrcLoc, stxList, ee);
-            } else if (Expr.IsKeyword("define", stx)) {
+            }//  else if (Expr.IsKeyword("if", stx)) {
+            //     return ExpandIf(stx.SrcLoc, stxList, ee);
+            //
+            else if (Expr.IsKeyword("define", stx)) {
                 return ExpandDefine(stx.SrcLoc, stxList, ee);
             } else if (Expr.IsKeyword("set!", stx)) {
                 return ExpandSet(stx.SrcLoc, stxList, ee);
@@ -97,6 +101,7 @@ public class MacroExpander {
             return stx;
         }
     }
+
 
     private  Syntax ExpandDefineSyntax(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
@@ -184,17 +189,6 @@ public class MacroExpander {
         return new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc);
     }
 
-    private  Syntax ExpandIf(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
-    {
-        List<Syntax> xs = new List<Syntax>();
-        // Debug.Assert(stxList.Count<Syntax>() >= 3);
-        xs.Add(stxList.ElementAt<Syntax>(0)); // TODO: maybe simplify all these by ignoring keywords on expand symbol?
-        foreach (var x in stxList.Skip<Syntax>(1)) {
-            Syntax bodyExpr = Expand(x, ee);
-            xs.Add(bodyExpr);
-        }
-        return new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc);
-    }
 
     private  Syntax ExpandLambda(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
         List<Syntax> xs = new List<Syntax>();
