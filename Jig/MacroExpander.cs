@@ -77,19 +77,25 @@ public class MacroExpander {
         }
         if (IfExpr.TryParse(stx, this, ee, out IfExpr? ifExpr)) {
             return ifExpr;
+        } else if (LambdaExpr.TryParse(stx, this, ee, out LambdaExpr? lambdaExpr)) {
+            return lambdaExpr;
+        } else if (SetExpr.TryParse(stx, this, ee, out SetExpr? setExpr)) {
+            return setExpr;
+        } else if (DefineExpr.TryParse(stx, this, ee, out DefineExpr? defineExpr)) {
+            return defineExpr;
         }
         if (Syntax.E(stx) is SyntaxList stxList) {
             if (Expr.IsKeyword("quote", stx)) {
                 return stx;
             } else if (Expr.IsKeyword("lambda", stx)) {
                 return ExpandLambda(stx.SrcLoc, stxList, ee);
-            }//  else if (Expr.IsKeyword("if", stx)) {
+            //  else if (Expr.IsKeyword("if", stx)) {
             //     return ExpandIf(stx.SrcLoc, stxList, ee);
             //
-            else if (Expr.IsKeyword("define", stx)) {
-                return ExpandDefine(stx.SrcLoc, stxList, ee);
-            } else if (Expr.IsKeyword("set!", stx)) {
-                return ExpandSet(stx.SrcLoc, stxList, ee);
+            // else if (Expr.IsKeyword("define", stx)) {
+            //     return ExpandDefine(stx.SrcLoc, stxList, ee);
+            // } else if (Expr.IsKeyword("set!", stx)) {
+            //     return ExpandSet(stx.SrcLoc, stxList, ee);
             } else if (Expr.IsKeyword("define-syntax", stx)) {
                 return ExpandDefineSyntax(stx.SrcLoc, stxList, ee);
             } else if (Expr.IsKeyword("syntax", stx)) {

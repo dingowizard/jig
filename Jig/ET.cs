@@ -27,10 +27,29 @@ internal abstract class ET : Expression {
         envParam = Expression.Parameter(typeof(IEnvironment));
     }
 
+    public static ET Analyze(LexicalContext scope, ParsedExpr x) =>
+        x switch {
+        LambdaExpr lambdaExpr => new LambdaExprET(scope, lambdaExpr),
+        IfExpr ifExpr => new IfET(scope, ifExpr),
+        DefineExpr defineExpr => new DefineET(scope, defineExpr),
+        SetExpr setExpr => new SetBangET(scope, setExpr),
+        _ => throw new NotImplementedException()
+
+    };
+
     public static ET Analyze(LexicalContext scope, Expr ast) {
         if (ast is IfExpr ifExpr) {
             return new IfET(scope, ifExpr);
 
+        }
+        if (ast is LambdaExpr lambdaExpr) {
+            return new LambdaExprET(scope, lambdaExpr);
+        }
+        if (ast is DefineExpr defineExpr) {
+            return new DefineET(scope, defineExpr);
+        }
+        if (ast is SetExpr setExpr) {
+            return new SetBangET(scope, setExpr);
         }
         if (Expr.IsLiteral(ast) || ast is Expr.VoidType) {
             return new LiteralET(ast);
@@ -51,8 +70,7 @@ internal abstract class ET : Expression {
                 return new DefineET(scope, list);
             } else if (Expr.IsKeyword("set!", ast)) {
                 return new SetBangET(scope, list);
-            }
-            else {
+            } else {
                 return new ProcAppET(scope, list);
             }
         } else {
@@ -245,6 +263,28 @@ internal abstract class ET : Expression {
 
         private static MethodInfo _setMethod {get;} = typeof(IEnvironment).GetMethod("Set") ?? throw new Exception("while initializeing SetBangET, could not find 'Set' method on IEnvironment");
 
+        public SetBangET(LexicalContext lexVars, SetExpr setExpr) : base() {
+            Syntax.Identifier sym = setExpr.Variable;
+            // if (sym.Symbol.Name == "z") {
+            //     Console.WriteLine("set!");
+            // }
+            Syntax valExpr = setExpr.Value;
+            Expression<CompiledCode> valCC = (Expression<CompiledCode>)Analyze(lexVars, valExpr).Reduce();
+            ParameterExpression val = Expression.Parameter(typeof(Expr), "val");
+            Expression contBody;
+            ParameterExpression? pe = lexVars.LookUp(sym);
+            if (pe is null) {
+                contBody = Expression.Call(envParam,
+                                       _setMethod,
+                                       new Expression [] {kParam, Expression.Constant(sym), val});
+            } else {
+                contBody = DynInv(kParam, Expression.Block(Expression.Assign(pe, val), Expression.Constant(Expr.Void)));
+            }
+            var k = Expression.Lambda(contBody, new ParameterExpression [] {val});
+
+            Body = Expression.Invoke(valCC, new Expression[] {k, envParam});
+        }
+
         public SetBangET(LexicalContext lexVars, List.NonEmpty list) : base() {
             Expr sym = list.ElementAt(1);
             Expr valExpr = list.ElementAt(2);
@@ -270,6 +310,35 @@ internal abstract class ET : Expression {
     private class DefineET : ET {
 
         private static MethodInfo _defineMethod {get;} = typeof(IEnvironment).GetMethod("Define") ?? throw new Exception("while initializing DefineET, could not find 'Define' method on IEnvironment");
+
+        public DefineET(LexicalContext lexVars, DefineExpr defineExpr) : base() {
+            // TODO: can't have recursive definitions inside blocks ,eg:
+            // (begin (define loop (lambda (n) (if (= n 0) n (loop (- n 1))))) (loop 3))
+            Syntax.Identifier sym = defineExpr.Variable;
+            Syntax valExpr = defineExpr.Value;
+            // if (sym.Symbol.Name == "z") {
+            //     Console.WriteLine("define");
+            // }
+            ParameterExpression val = Expression.Parameter(typeof(Expr), "val");
+            Expression contBody;
+            if (lexVars.AtTopLevel()) {
+                    // we're defining a variable at global scope
+                    contBody = Expression.Call(envParam,
+                                               _defineMethod,
+                                               new Expression[] {kParam, Expression.Constant(sym), val});
+
+            } else {
+                ParameterExpression pe = lexVars.ParameterForDefine(sym);
+                contBody = DynInv(kParam, Expression.Assign(pe, val));
+            }
+            Expression<CompiledCode> valCC = (Expression<CompiledCode>)Analyze(lexVars, valExpr).Reduce();
+
+
+            var k = Expression.Lambda(contBody, new ParameterExpression [] {val});
+
+            Body = Expression.Invoke(valCC, new Expression[] {k, envParam});
+
+        }
 
         public DefineET(LexicalContext lexVars, List.NonEmpty list) : base() {
             // TODO: can't have recursive definitions inside blocks ,eg:
@@ -314,6 +383,64 @@ internal abstract class ET : Expression {
 
     private class LambdaExprET : ET {
         static ConstructorInfo procedureCstr = typeof(Procedure).GetConstructor(new Type[] {typeof(Delegate)}) ?? throw new Exception("could not find constructor for Procedure");
+
+        public LambdaExprET(LexicalContext scope, LambdaExpr lambdaExpr) {
+            Syntax lambdaParameters = lambdaExpr.Parameters;
+            SyntaxList lambdaBody = lambdaExpr.Bodies;
+
+            var k = Expression.Parameter(typeof(Delegate), "k in LambdaExprET"); // this is the continuation paramter for the proc we are making
+            LexicalContext lambdaScope;
+            Expr lambdaParameters_E = Syntax.E(lambdaParameters);
+            switch (lambdaParameters_E) {
+                case List properList:
+                    IEnumerable<Syntax.Identifier> properListSymbols = properList.Cast<Syntax.Identifier>();
+                    if (properListSymbols is null) throw new Exception($"malformed lambda: expected parameters to be symbols but got {properList}");
+                    lambdaScope = scope.Extend(properListSymbols.Select(i => i.Symbol));
+                    LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
+                    LambdaExpressionParams = new ParameterExpression[] {k}.Concat(lambdaScope.Parameters).ToArray();
+                    Body =
+                        Expression.Convert(
+                            DynInv(kParam,
+                                   Expression.New(
+                                       procedureCstr,
+                                       new Expression[] {
+                                           Expression.Lambda(body: LambdaExpressionBody,
+                                                             parameters: LambdaExpressionParams)
+                                       })),
+                            typeof(Thunk));
+                    return;
+                case Expr.Symbol onlyRestSymbol: // cases like (lambda x x)
+                    lambdaScope = scope.Extend(new Expr.Symbol[]{onlyRestSymbol});
+                    LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
+                    LambdaExpressionParams = new ParameterExpression[] {k}.Concat(lambdaScope.Parameters).ToArray();
+
+                    Body = Expression.Convert(DynInv(kParam, // here kParam is the continuation when the lambda expression is being evaluated
+                                             Expression.New(procedureCstr,
+                                                            new Expression[] {
+                                                                Expression.Lambda(delegateType: typeof(ListFunction),
+                                                               body: LambdaExpressionBody,
+                                                               parameters: LambdaExpressionParams)
+                                                            })), typeof(Thunk));
+                    return;
+                case IPair andRest: // cases like (lambda (proc l . ls))
+                    IEnumerable<Expr.Symbol> symbols = ValidateAndConvertToSymbols(andRest);
+                    lambdaScope = scope.Extend(symbols);
+                    LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
+                    LambdaExpressionParams = new ParameterExpression[] {k}.Concat(lambdaScope.Parameters).ToArray();
+                    Body = Expression.Convert(DynInv(kParam, // here kParam is the continuation when the lambda expression is being evaluated
+                                             Expression.New(procedureCstr,
+                                                            new Expression[] {
+                                                                Expression.Lambda(delegateType: FunctionTypeFromParameters(andRest),
+                                                               body: LambdaExpressionBody,
+                                                               parameters: LambdaExpressionParams)
+                                                            })), typeof(Thunk));
+                    return;
+
+                default:
+                    throw new Exception($"in LambdaExprET: can't handle parameters with type {lambdaParameters.GetType()} yet. (Got {lambdaParameters_E})");
+            }
+
+        }
 
         public LambdaExprET(LexicalContext scope, List.NonEmpty args) {
             Expr lambdaParameters = args.ElementAt(1) is Syntax stx ? Syntax.ToDatum(stx) : args.ElementAt(1); // TODO: do we want to throw this info out already?
@@ -381,17 +508,17 @@ internal abstract class ET : Expression {
 
         private IEnumerable<Expr.Symbol> ValidateAndConvertToSymbols(IPair parameters) {
             var result = new List<Expr.Symbol>();
-            object car = parameters.Car;
-            Expr.Symbol sym = car as Expr.Symbol ?? throw new Exception($"lambda: all parameters must be symbols (given {car})");
+            Expr car = parameters.Car;
+            Expr.Symbol sym = car is Syntax.Identifier id ? id.Symbol : car is Expr.Symbol s ? s : throw new Exception($"lambda: all parameters must be symbols (given {car}");
             result.Add(sym);
-            object cdr = parameters.Cdr;
+            Expr cdr = parameters.Cdr;
             while (cdr is IPair pairCdr) {
                 car = pairCdr.Car;
-                sym = car as Expr.Symbol ?? throw new Exception($"lambda: all paramters must be symbols (given {car})");
+                sym = car is Syntax.Identifier i ? i.Symbol : car is Expr.Symbol sm ? sm : throw new Exception($"lambda: all parameters must be symbols (given {car}");
                 result.Add(sym);
                 cdr = pairCdr.Cdr;
             }
-            sym = cdr as Expr.Symbol ?? throw new Exception($"lambda: all paramters must be symbols (given {cdr})");
+            sym = cdr is Syntax.Identifier idf ? idf.Symbol : cdr is Expr.Symbol symbol ? symbol : throw new Exception($"lambda: all paramters must be symbols (given {cdr})");
             result.Add(sym);
             return result;
 
@@ -490,7 +617,6 @@ internal abstract class ET : Expression {
             Expression<CompiledCode> last = Expression.Lambda<CompiledCode>(thunkExpr, new ParameterExpression[] {kParam, envParam});
             analyzed = analyzed.ToList().Append(last).ToArray();
             var listExpr = Expression.Convert(Expression.Invoke(Expression.Constant(listProc), Expression.NewArrayInit(typeof(CompiledCode), analyzed)), typeof(List.NonEmpty));
-
             Body = Expression.Block(blockScope.Parameters,
                 new Expression[] {Expression.Invoke(
                 Expression.Constant((Func<Delegate, IEnvironment, List.NonEmpty, Thunk>) doSequence),
