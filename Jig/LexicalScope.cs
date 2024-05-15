@@ -47,12 +47,12 @@ internal class LexicalContext {
             (Expr.Symbol)Syntax.ToDatum(stx) :
             (Expr.Symbol) x;
         var candidates = Symbols.Where(tup => tup.Item1.Name==symbol.Name);
-        // if (symbol.Name == "u") {
-        //         Console.WriteLine($"$LookUp: found {candidates.Count()} candidate(s) for 'u'");
+        // if (symbol.Name == "z") {
+        //         Console.WriteLine($"\tLookUp: found {candidates.Count()} candidate(s) for 'z'");
         //         if (candidates.Count() > 0) {
         //             Binding? binding = candidates.ElementAt(0).Item1.Binding;
         //             if (binding is not null) {
-        //                 Console.WriteLine($"$LookUp: the first candidate has binding = {(binding is null ? "null" : binding.ToString())} and the symbol has binding = {(symbol.Binding == null ? "null" : symbol.Binding.ToString())}");
+        //                 Console.WriteLine($"\tLookUp: the first candidate has binding = {(binding is null ? "null" : binding.ToString())} and the symbol has binding = {(symbol.Binding == null ? "null" : symbol.Binding.ToString())}");
         //             }
 
         //         }
@@ -64,14 +64,17 @@ internal class LexicalContext {
         }
         if (pe is null) {
             if (EnclosingScope is null) {
+                // if (symbol.Name == "z") {
+                //     Console.WriteLine($"\tLookUp: couldn't find 'z'");
+                // }
                 return null;
             } else {
                 return EnclosingScope.LookUp(symbol);
             }
 
         } else {
-            // if (symbol.Name == "u") {
-            //     Console.WriteLine($"about to return {pe}");
+            // if (symbol.Name == "z") {
+            //     Console.WriteLine($"\tLookUp: about to return {pe}");
             // }
             return pe;
         }
