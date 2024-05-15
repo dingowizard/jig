@@ -95,6 +95,13 @@ public class Syntax : Expr {
                 return stx;
             case Symbol sym:
                 return new Identifier(sym, srcLoc);
+            case Expr.Boolean:
+            case Expr.Char:
+            case Expr.Double:
+            case Expr.Integer:
+            case Expr.String:
+            case Expr.Vector:
+                return new Literal(x, srcLoc);
             case List list:
                 return new Syntax(SyntaxList.FromIEnumerable(list.Select(x => Syntax.FromDatum(srcLoc, x))), srcLoc);
             case IPair pair:
@@ -113,7 +120,7 @@ public class Syntax : Expr {
     }
 
     public class Literal : Syntax {
-        internal Literal(Expr x, SrcLoc srcLoc) : base (x, srcLoc) {}
+        internal Literal(Expr x, SrcLoc? srcLoc = null) : base (x, srcLoc) {}
     }
 
     public class Identifier : Syntax {

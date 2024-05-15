@@ -58,9 +58,11 @@ public static class Program {
             env = Program.TopLevel;
         }
         if (ast is Syntax stx) {
-            // Console.Write($"{ast} => ");
-            ast = new MacroExpander().Expand(stx, ExEnv);
-            // Console.WriteLine($"{ast}.");
+            ParsedExpr program = new MacroExpander().Expand(stx, ExEnv);
+            var scope = new LexicalContext();
+            var c = ET.Analyze(scope, program).Compile();
+            Run(c, k, env);
+            return;
         }
         var compiled = Compiler.Compile(ast);
         Run(compiled, k, env);
@@ -71,6 +73,15 @@ public static class Program {
         Continuation.OneArgDelegate setResult = (x) => {expr = x; return null;};
         Eval(setResult, ast, Program.TopLevel);
 
+        if (expr is null) throw new Exception();
+        return expr;
+    }
+
+    public static Expr EvalNonCPSNoExpand(Expr ast, IEnvironment? env = null) {
+        Expr? expr = null;
+        Continuation.OneArgDelegate setResult = (x) => {expr = x; return null;};
+        var compiled = Compiler.Compile(ast);
+        Run(compiled, setResult, env ?? Program.TopLevel);
         if (expr is null) throw new Exception();
         return expr;
     }

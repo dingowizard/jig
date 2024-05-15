@@ -29,27 +29,42 @@ internal abstract class ET : Expression {
 
     public static ET Analyze(LexicalContext scope, ParsedExpr x) =>
         x switch {
-        LambdaExpr lambdaExpr => new LambdaExprET(scope, lambdaExpr),
-        IfExpr ifExpr => new IfET(scope, ifExpr),
-        DefineExpr defineExpr => new DefineET(scope, defineExpr),
-        SetExpr setExpr => new SetBangET(scope, setExpr),
+        ParsedLambda lambdaExpr => new LambdaExprET(scope, lambdaExpr),
+        ParsedIf ifExpr => new IfET(scope, ifExpr),
+        ParsedDefine defineExpr => new DefineET(scope, defineExpr),
+        ParsedSet setExpr => new SetBangET(scope, setExpr),
+        ParsedLiteral litExpr => new LiteralET(litExpr),
+        ParsedQuoteSyntax quoteSyntax => new SyntaxLiteralET(quoteSyntax),
+        ParsedVariable variable => new SymbolET(scope, variable),
+        ParsedList list => new ProcAppET(scope, list),
         _ => throw new NotImplementedException()
 
     };
 
     public static ET Analyze(LexicalContext scope, Expr ast) {
-        if (ast is IfExpr ifExpr) {
+        if (ast is ParsedIf ifExpr) {
             return new IfET(scope, ifExpr);
-
         }
-        if (ast is LambdaExpr lambdaExpr) {
+        if (ast is ParsedLambda lambdaExpr) {
             return new LambdaExprET(scope, lambdaExpr);
         }
-        if (ast is DefineExpr defineExpr) {
+        if (ast is ParsedDefine defineExpr) {
             return new DefineET(scope, defineExpr);
         }
-        if (ast is SetExpr setExpr) {
+        if (ast is ParsedSet setExpr) {
             return new SetBangET(scope, setExpr);
+        }
+        if (ast is ParsedLiteral litExpr) {
+            return new LiteralET(litExpr);
+        }
+        if (ast is ParsedQuoteSyntax quoteSyntaxExpr) {
+            return new SyntaxLiteralET(quoteSyntaxExpr);
+        }
+        if (ast is ParsedVariable parsedVariable) {
+            return new SymbolET(scope, parsedVariable);
+        }
+        if (ast is ParsedList parsedList) {
+            return new ProcAppET(scope, parsedList);
         }
         if (Expr.IsLiteral(ast) || ast is Expr.VoidType) {
             return new LiteralET(ast);
@@ -60,7 +75,7 @@ internal abstract class ET : Expression {
             if (Expr.IsKeyword("quote", ast)) {
                 // TODO: QuoteET
                 return new LiteralET(list.ElementAt(1));
-            } else if (Expr.IsKeyword("syntax", ast)) {
+            } else if (Expr.IsKeyword("quote-syntax", ast)) {
                 return new SyntaxLiteralET(ast);
             } else if (Expr.IsKeyword("if", ast)) {
                 return new IfET(scope, list);
@@ -74,7 +89,8 @@ internal abstract class ET : Expression {
                 return new ProcAppET(scope, list);
             }
         } else {
-            throw new Exception($"Analyze: doesn't know what to do with {ast}");
+            SrcLoc? srcLoc = ast is Syntax stx ? stx.SrcLoc : null;
+            throw new Exception($"Analyze: doesn't know what to do with {ast}" + (srcLoc is not null ? $" @ {srcLoc}" : ""));
         }
     }
 
@@ -99,11 +115,20 @@ internal abstract class ET : Expression {
             Body = Expression.Convert(DynInv(kParam, Expression.Constant(x)), typeof(Thunk));
         }
 
+        public LiteralET(ParsedLiteral lit) : base() {
+            Expr x = Syntax.ToDatum(lit.Quoted);
+            Body = Expression.Convert(DynInv(kParam, Expression.Constant(x)), typeof(Thunk));
+        }
+
         public override Expression Body {get;}
 
     }
 
     private class SyntaxLiteralET : ET {
+
+        public SyntaxLiteralET(ParsedQuoteSyntax parsedQuoteSyntax) {
+            Body = Expression.Convert(DynInv(kParam, Expression.Constant(parsedQuoteSyntax.Quoted)), typeof(Thunk));
+        }
 
         public SyntaxLiteralET(Expr x) : base() {
             if (x is Syntax stx) {
@@ -126,6 +151,27 @@ internal abstract class ET : Expression {
     private class SymbolET : ET {
 
         private static MethodInfo LookUp {get;} = typeof(IEnvironment).GetMethod("LookUp") ?? throw new Exception("in SymbolET: IEnvironment really should have a 'LookUp' method");
+
+        public SymbolET(LexicalContext scope, ParsedVariable variable) {
+            if (variable is ParsedVariable.TopLevel topLevel) {
+                var v = Expression.Parameter(typeof(Expr));
+                var k = Expression.Lambda<Continuation.OneArgDelegate>(Expression.Convert(DynInv(kParam, v), typeof(Thunk)), new ParameterExpression[] {v});
+                Body = Expression.Call(envParam,
+                                       LookUp,
+                                       new Expression [] {k, Expression.Constant(variable.Identifier)});
+            } else {
+                ParameterExpression? pe = scope.LookUp(variable.Identifier);
+                if (pe is null) {
+                    var v = Expression.Parameter(typeof(Expr));
+                    var k = Expression.Lambda<Continuation.OneArgDelegate>(Expression.Convert(DynInv(kParam, v), typeof(Thunk)), new ParameterExpression[] {v});
+                    Body = Expression.Call(envParam,
+                                        LookUp,
+                                        new Expression [] {k, Expression.Constant(variable.Identifier)});
+                } else {
+                    Body = Expression.Convert(DynInv(kParam, pe), typeof(Thunk));
+                }
+            }
+        }
 
         public SymbolET (LexicalContext scope, Expr x) {
             ParameterExpression? pe = scope.LookUp(x);
@@ -153,6 +199,33 @@ internal abstract class ET : Expression {
 
 
     private class ProcAppET : ET {
+
+        public ProcAppET(LexicalContext scope, ParsedList list) : base () {
+            IEnumerable<Expression<CompiledCode>> analyzed =
+                list.ParsedExprs.Select(x => (Expression<CompiledCode>)Analyze(scope, x).Reduce());
+            var vParam = Expression.Parameter(typeof(Expr));
+            var v = Expression.Parameter(typeof(Expr));
+            var contParam = Expression.Parameter(typeof(Continuation.OneArgDelegate));
+            var procParam = Expression.Parameter(typeof(LiteralExpr<CompiledCode>));
+            MakeListDelegate listProc = List.NewListFromObjects;
+            var k = Expression.Lambda<Continuation.OneArgDelegate>(
+                            Expression.Convert(DynInv(Expression.Constant((ApplyDelegate)Builtins.apply),
+                                   kParam,
+                                   Expression.Property(Expression.Convert(vParam, typeof(IPair)), carPropertyInfo),
+                                   Expression.Property(Expression.Convert(vParam, typeof(IPair)), cdrPropertyInfo)),
+                                               typeof(Thunk)),
+                           parameters: new ParameterExpression[] {vParam});
+            Body =
+                Expression.Convert(
+                    DynInv(Expression.Constant((MapInternalDelegate) Builtins.map_internal),
+                       k,
+                       Expression.Lambda<Func<Continuation.OneArgDelegate, LiteralExpr<CompiledCode>, Thunk>>( // (lambda (k code) (code k env))
+                           body: Expression.Convert(DynInv(Expression.Property(procParam, "Value"), contParam, envParam), typeof(Thunk)),
+                           parameters: new ParameterExpression[] {contParam, procParam}),
+                       Expression.Invoke(Expression.Constant(listProc), Expression.NewArrayInit(typeof(CompiledCode), analyzed))),
+                    typeof(Thunk));
+
+        }
 
         public ProcAppET(LexicalContext scope, List.NonEmpty list) : base () {
             // TODO: probably there is a more certain way of checking to see that we have syntax pair?
@@ -186,7 +259,7 @@ internal abstract class ET : Expression {
 
     private class IfET : ET {
 
-        public IfET(LexicalContext lexVars, IfExpr ifExpr) {
+        public IfET(LexicalContext lexVars, ParsedIf ifExpr) {
 
             Expr cond = ifExpr.Condition;
             Expression<CompiledCode> condCC = (Expression<CompiledCode>)Analyze(lexVars, cond).Reduce();
@@ -263,8 +336,8 @@ internal abstract class ET : Expression {
 
         private static MethodInfo _setMethod {get;} = typeof(IEnvironment).GetMethod("Set") ?? throw new Exception("while initializeing SetBangET, could not find 'Set' method on IEnvironment");
 
-        public SetBangET(LexicalContext lexVars, SetExpr setExpr) : base() {
-            Syntax.Identifier sym = setExpr.Variable;
+        public SetBangET(LexicalContext lexVars, ParsedSet setExpr) : base() {
+            Syntax.Identifier sym = setExpr.Variable.Identifier;
             // if (sym.Symbol.Name == "z") {
             //     Console.WriteLine("set!");
             // }
@@ -272,13 +345,19 @@ internal abstract class ET : Expression {
             Expression<CompiledCode> valCC = (Expression<CompiledCode>)Analyze(lexVars, valExpr).Reduce();
             ParameterExpression val = Expression.Parameter(typeof(Expr), "val");
             Expression contBody;
-            ParameterExpression? pe = lexVars.LookUp(sym);
-            if (pe is null) {
+            if (setExpr.Variable is ParsedVariable.TopLevel) {
                 contBody = Expression.Call(envParam,
                                        _setMethod,
                                        new Expression [] {kParam, Expression.Constant(sym), val});
             } else {
-                contBody = DynInv(kParam, Expression.Block(Expression.Assign(pe, val), Expression.Constant(Expr.Void)));
+                ParameterExpression? pe = lexVars.LookUp(sym);
+                if (pe is null) {
+                    contBody = Expression.Call(envParam,
+                                        _setMethod,
+                                        new Expression [] {kParam, Expression.Constant(sym), val});
+                } else {
+                    contBody = DynInv(kParam, Expression.Block(Expression.Assign(pe, val), Expression.Constant(Expr.Void)));
+                }
             }
             var k = Expression.Lambda(contBody, new ParameterExpression [] {val});
 
@@ -311,10 +390,10 @@ internal abstract class ET : Expression {
 
         private static MethodInfo _defineMethod {get;} = typeof(IEnvironment).GetMethod("Define") ?? throw new Exception("while initializing DefineET, could not find 'Define' method on IEnvironment");
 
-        public DefineET(LexicalContext lexVars, DefineExpr defineExpr) : base() {
+        public DefineET(LexicalContext lexVars, ParsedDefine defineExpr) : base() {
             // TODO: can't have recursive definitions inside blocks ,eg:
             // (begin (define loop (lambda (n) (if (= n 0) n (loop (- n 1))))) (loop 3))
-            Syntax.Identifier sym = defineExpr.Variable;
+            Syntax.Identifier sym = defineExpr.Variable.Identifier;
             Syntax valExpr = defineExpr.Value;
             // if (sym.Symbol.Name == "z") {
             //     Console.WriteLine("define");
@@ -331,6 +410,22 @@ internal abstract class ET : Expression {
                 ParameterExpression pe = lexVars.ParameterForDefine(sym);
                 contBody = DynInv(kParam, Expression.Assign(pe, val));
             }
+
+            // if (defineExpr.Variable is ParsedVariable.TopLevel) {
+            //     contBody = Expression.Call(envParam,
+            //                            _defineMethod,
+            //                            new Expression [] {kParam, Expression.Constant(sym), val});
+            // } else {
+            //     ParameterExpression pe = lexVars.ParameterForDefine(sym);
+            //     if (pe is null) {
+            //         // TODO: figure out why some top levels aren't toplevels
+            //         contBody = Expression.Call(envParam,
+            //                             _defineMethod,
+            //                             new Expression [] {kParam, Expression.Constant(sym), val});
+            //     } else {
+            //         contBody = DynInv(kParam, Expression.Block(Expression.Assign(pe, val), Expression.Constant(Expr.Void)));
+            //     }
+            // }
             Expression<CompiledCode> valCC = (Expression<CompiledCode>)Analyze(lexVars, valExpr).Reduce();
 
 
@@ -384,7 +479,7 @@ internal abstract class ET : Expression {
     private class LambdaExprET : ET {
         static ConstructorInfo procedureCstr = typeof(Procedure).GetConstructor(new Type[] {typeof(Delegate)}) ?? throw new Exception("could not find constructor for Procedure");
 
-        public LambdaExprET(LexicalContext scope, LambdaExpr lambdaExpr) {
+        public LambdaExprET(LexicalContext scope, ParsedLambda lambdaExpr) {
             Syntax lambdaParameters = lambdaExpr.Parameters;
             SyntaxList lambdaBody = lambdaExpr.Bodies;
 

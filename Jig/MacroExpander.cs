@@ -35,11 +35,11 @@ public class MacroExpander {
         return result;
     }
 
-    bool TryResolve(Syntax.Identifier id, [NotNullWhen(returnValue: true)] out Binding? binding) {
+    internal bool TryResolve(Syntax.Identifier id, [NotNullWhen(returnValue: true)] out Binding? binding) {
         var candidates = FindCandidateIdentifiers(id);
-        if (id.Symbol.Name == "u") {
-            Console.WriteLine($"TryResolve: found {candidates.Count()} candidates for 'u' at {id.SrcLoc}");
-        }
+        // if (id.Symbol.Name == "u") {
+        //     Console.WriteLine($"TryResolve: found {candidates.Count()} candidates for 'u' at {id.SrcLoc}");
+        // }
         if (candidates.Count() == 0) {
             binding = null;
             return false;
@@ -63,80 +63,80 @@ public class MacroExpander {
 
     }
 
-    public  Syntax Expand(Syntax stx, ExpansionEnvironment ee, bool once = false) {
+    public  ParsedExpr Expand(Syntax stx, ExpansionEnvironment ee, bool once = false) {
         // TODO: rewrite this in a way that we don't have to remember to change it everytime a keyword is added
-        switch (stx) {
-            case Syntax.Identifier id:
-                if(TryResolve(id, out Binding? binding)) {
-                    id.Symbol.Binding = binding;
-                    return id;
-                } else {
-                    return id;
-                }
-            case Syntax.Literal lit: return lit;
+        // switch (stx) {
+        //     case Syntax.Identifier id:
+        //         if(TryResolve(id, out Binding? binding)) {
+        //             id.Symbol.Binding = binding;
+        //             return id;
+        //         } else {
+        //             Console.WriteLine($"couldn't resolve binding for {id}");
+        //             return id;
+        //         }
+        //     case Syntax.Literal lit: return lit;
+        // }
+        if (ParsedVariable.TryParse(stx, this, out ParsedVariable? parsedVar)) {
+            return parsedVar;
         }
-        if (IfExpr.TryParse(stx, this, ee, out IfExpr? ifExpr)) {
-            return ifExpr;
-        } else if (LambdaExpr.TryParse(stx, this, ee, out LambdaExpr? lambdaExpr)) {
-            return lambdaExpr;
-        } else if (SetExpr.TryParse(stx, this, ee, out SetExpr? setExpr)) {
-            return setExpr;
-        } else if (DefineExpr.TryParse(stx, this, ee, out DefineExpr? defineExpr)) {
-            return defineExpr;
+        if (ParsedIf.TryParse(stx, this, ee, out ParsedIf? ifForm)) {
+            return ifForm;
+        } else if (ParsedLambda.TryParse(stx, this, ee, out ParsedLambda? lambdaForm)) {
+            return lambdaForm;
+        } else if (ParsedSet.TryParse(stx, this, ee, out ParsedSet? setForm)) {
+            return setForm;
+        } else if (ParsedDefine.TryParse(stx, this, ee, out ParsedDefine? defineForm)) {
+            return defineForm;
+        } else if (ParsedLiteral.TryParse(stx, out ParsedLiteral? literalExpr)) {
+            return literalExpr;
+        } else if (ParsedQuoteSyntax.TryParse(stx, out ParsedQuoteSyntax? quoteSyntaxExpr)) {
+            return quoteSyntaxExpr;
         }
         if (Syntax.E(stx) is SyntaxList stxList) {
-            if (Expr.IsKeyword("quote", stx)) {
-                return stx;
-            } else if (Expr.IsKeyword("lambda", stx)) {
-                return ExpandLambda(stx.SrcLoc, stxList, ee);
-            //  else if (Expr.IsKeyword("if", stx)) {
-            //     return ExpandIf(stx.SrcLoc, stxList, ee);
-            //
-            // else if (Expr.IsKeyword("define", stx)) {
-            //     return ExpandDefine(stx.SrcLoc, stxList, ee);
-            // } else if (Expr.IsKeyword("set!", stx)) {
-            //     return ExpandSet(stx.SrcLoc, stxList, ee);
-            } else if (Expr.IsKeyword("define-syntax", stx)) {
+            if (Expr.IsKeyword("define-syntax", stx)) {
                 return ExpandDefineSyntax(stx.SrcLoc, stxList, ee);
-            } else if (Expr.IsKeyword("syntax", stx)) {
-                return stx;
             } else {
                 return ExpandApplication(stx, stxList, ee, once);
             }
         } else {
-            return stx;
+            throw new Exception($"Expand: unhandled syntax {stx}, a {stx.GetType()} @ {stx.SrcLoc}");
         }
     }
 
 
-    private  Syntax ExpandDefineSyntax(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
+    private  ParsedExpr ExpandDefineSyntax(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
         Syntax.Identifier id = stxList.ElementAt<Syntax>(1) as Syntax.Identifier ?? throw new Exception() ;
+        // Console.WriteLine($"define-syntax: {id}");
         id.Symbol.Binding = new Binding();
         Bindings.Add(id, id.Symbol.Binding);
         Syntax shouldBeLambdaExpr = stxList.ElementAt<Syntax>(2);
         if (!Expr.IsKeyword("lambda", shouldBeLambdaExpr)) {
             throw new Exception($"define-syntax: expected 2nd argument to be a transformer. Got {stxList.ElementAt<Syntax>(2)}");
         }
-        Syntax expandedLambdaExpr = Expand(stxList.ElementAt<Syntax>(2), ee);
+        ParsedLambda expandedLambdaExpr = (ParsedLambda)Expand(stxList.ElementAt<Syntax>(2), ee);
         Transformer transformer = EvaluateTransformer(expandedLambdaExpr);
         ee.AddTransformer(id.Symbol, transformer);
-        return new Syntax(List.NewList(new Syntax.Identifier(new Expr.Symbol("quote")), id), srcLoc);
+        Syntax result = new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("quote")), id), srcLoc);
+        if (ParsedLiteral.TryParse(result, out ParsedLiteral? lit)) {
+            return lit;
+        } else {
+            throw new Exception($"ExpandDefineSyntax: result should be a quoted symbol. Got {result}");
+        }
 
     }
 
-    private Transformer EvaluateTransformer(Syntax lambdaExprSyntax) {
-        Procedure procedure = Program.EvalNonCPS(lambdaExprSyntax) as Procedure ??
+    private Transformer EvaluateTransformer(ParsedLambda lambdaExprSyntax) {
+        Procedure procedure = Program.EvalNonCPSNoExpand(lambdaExprSyntax) as Procedure ??
             throw new Exception($"define-syntax: second argument should be evaluate to a transformer.");
         return new Transformer(procedure.Value as Func<Delegate, Expr, Thunk> ??
             throw new Exception($"define-syntax: second argument should be a transformer (got {procedure.Value})"));
     }
 
 
-    private  Syntax ExpandApplication(Syntax stx, SyntaxList stxList, ExpansionEnvironment ee, bool once = false)
+    private  ParsedExpr ExpandApplication(Syntax stx, SyntaxList stxList, ExpansionEnvironment ee, bool once = false)
     {
         if (stxList.ElementAt<Syntax>(0) is Syntax.Identifier id && ee.TryFindTransformer(id.Symbol, out Transformer? transformer)) {
-
             List list = stxList.Rest;
             Scope macroExpansionScope = new Scope();
             Syntax.AddScope(stx, macroExpansionScope);
@@ -145,23 +145,27 @@ public class MacroExpander {
             Syntax.ToggleScope(output, macroExpansionScope);
             // Console.WriteLine($"{stx} => {output}");
             if (once) {
-                return output;
+                if (ParsedQuoteSyntax.TryParse(new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("quote-syntax")), output)),
+                                               out ParsedQuoteSyntax? quoteSyntax)) {
+                    return quoteSyntax;
+                } else {
+                    throw new Exception($"ExpandApplication: couldn't make quote-syntax form for result");
+                }
             } else {
                 return Expand(output, ee);
             }
         } else {
-            return ExpandSequence(stx.SrcLoc, stxList, ee);
+            return ExpandList(stx.SrcLoc, stxList, ee);
         }
     }
 
-    private  Syntax ExpandSequence(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
+    private  ParsedExpr ExpandList(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
                 List<Syntax> xs = new List<Syntax>();
                 foreach (var x in stxList) {
                     Syntax bodyExpr = Expand(x, ee);
                     xs.Add(bodyExpr);
                 }
-                return new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc);
-
+                return new ParsedList((SyntaxList)SyntaxList.FromIEnumerable(xs), srcLoc);
     }
 
     private  Syntax ExpandSet(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
@@ -255,7 +259,7 @@ public class ExpansionEnvironment {
         Syntax result;
         SyntaxList stxList = Syntax.E(stx) as SyntaxList ?? throw new Exception("and: syntax should expand to list");
         if (stxList.Count<Syntax>() == 1) { // E.g. (and)
-            result = new Syntax(new Expr.Boolean(true), null);
+            result = new Syntax.Literal(new Expr.Boolean(true), null);
             return Continuation.ApplyDelegate(k, result);
         }
         if (stxList.Count<Syntax>() == 2) { // Eg (and 1)
@@ -272,7 +276,7 @@ public class ExpansionEnvironment {
                                                                             }.Concat<Syntax>(stxList.Skip<Syntax>(2))),
 
                                     new SrcLoc()),
-                                    new Syntax(new Expr.Boolean(false))),
+                                    new Syntax.Literal(new Expr.Boolean(false))),
             stx.SrcLoc);
         return Continuation.ApplyDelegate(k, result);
 

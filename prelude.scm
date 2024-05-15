@@ -306,38 +306,38 @@
  (lambda (k)
    (define *current-exception-handlers*
      (list (lambda (condition)
-             (display "unandled exception ")
+             (display "unhandled exception ")
              (display condition)
              (newline)
              (k (void)))))
-    (define with-exception-handlers
-        (lambda (new-handlers thunk)
-            (let ((previous-handlers *current-exception-handlers*))
+   (define with-exception-handlers
+       (lambda (new-handlers thunk)
+           (let ((previous-handlers *current-exception-handlers*))
             (dynamic-wind
                 (lambda ()
-                (set! *current-exception-handlers* new-handlers))
+                 (set! *current-exception-handlers* new-handlers))
                 thunk
                 (lambda ()
-                (set! *current-exception-handlers* previous-handlers))))))
-    (set! with-exception-handler
-        (lambda (handler thunk)
-            (with-exception-handlers (cons handler *current-exception-handlers*)
-                                    thunk)))
-    (set! raise
-        (lambda (obj)
-            (let ((handlers *current-exception-handlers*))
+                 (set! *current-exception-handlers* previous-handlers))))))
+   (set! with-exception-handler
+       (lambda (handler thunk)
+           (with-exception-handlers (cons handler *current-exception-handlers*)
+                                   thunk)))
+   (set! raise
+       (lambda (obj)
+           (let ((handlers *current-exception-handlers*))
             (with-exception-handlers (cdr handlers)
                 (lambda ()
-                ((car handlers) obj)
-                (abort "user-defined handler returned on non-continuable exception"
-                        (car handlers)
-                        obj))))))
-    (set! raise-continuable
-        (lambda (obj)
-            (let ((handlers *current-exception-handlers*))
+                 ((car handlers) obj)
+                 (abort "user-defined handler returned on non-continuable exception"
+                         (car handlers)
+                         obj))))))
+   (set! raise-continuable
+       (lambda (obj)
+           (let ((handlers *current-exception-handlers*))
             (with-exception-handlers (cdr handlers)
                 (lambda ()
-                ((car handlers) obj))))))))
+                 ((car handlers) obj))))))))
 
 (define error #f)
 

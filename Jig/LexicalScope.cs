@@ -47,8 +47,8 @@ internal class LexicalContext {
             (Expr.Symbol)Syntax.ToDatum(stx) :
             (Expr.Symbol) x;
         var candidates = Symbols.Where(tup => tup.Item1.Name==symbol.Name);
-        // if (symbol.Name == "z") {
-        //         Console.WriteLine($"\tLookUp: found {candidates.Count()} candidate(s) for 'z'");
+        // if (symbol.Name == "xs") {
+        //         Console.WriteLine($"\tLookUp: found {candidates.Count()} candidate(s) for 'xs'");
         //         if (candidates.Count() > 0) {
         //             Binding? binding = candidates.ElementAt(0).Item1.Binding;
         //             if (binding is not null) {
@@ -64,8 +64,8 @@ internal class LexicalContext {
         }
         if (pe is null) {
             if (EnclosingScope is null) {
-                // if (symbol.Name == "z") {
-                //     Console.WriteLine($"\tLookUp: couldn't find 'z'");
+                // if (symbol.Name == "xs") {
+                //     Console.WriteLine($"\tLookUp: couldn't find 'xs'");
                 // }
                 return null;
             } else {
@@ -73,7 +73,7 @@ internal class LexicalContext {
             }
 
         } else {
-            // if (symbol.Name == "z") {
+            // if (symbol.Name == "xs") {
             //     Console.WriteLine($"\tLookUp: about to return {pe}");
             // }
             return pe;

@@ -371,6 +371,7 @@ public class LiteralExpr<T> : Expr where T : notnull {
 public interface IPair {
     Expr Car {get; set;}
     Expr Cdr {get; set;}
+    string Print();
 }
 
 public abstract class List : Expr, IEnumerable<Expr> {

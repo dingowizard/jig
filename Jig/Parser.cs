@@ -104,7 +104,7 @@ public class Parser {
         tokenStream.Read();
         var x = new Expr.String(str.Text.Substring(1, str.Text.Length - 2));
         if (syntax) {
-            return new Syntax(x, str.SrcLoc);
+            return new Syntax.Literal(x, str.SrcLoc);
         } else {
             return x;
         }
