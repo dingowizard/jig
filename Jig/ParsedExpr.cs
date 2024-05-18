@@ -132,9 +132,12 @@ public class ParsedDefine : ParsedExpr {
         // TODO: (define x) is legal too
         Syntax.Identifier id = stxList.ElementAt<Syntax>(1) as Syntax.Identifier
             ?? throw new Exception($"syntax error: malformed define: expected first argument to be an identifier. Got {stxList.ElementAt<Syntax>(1)}");
+        // Console.WriteLine($"parsing define {stx}: {id} has scope set {string.Join(", ", id.ScopeSet)}");
         if (!expander.Bindings.ContainsKey(id)) {
-            id.Symbol.Binding = new Binding();
-            expander.Bindings.Add(id, id.Symbol.Binding);
+            if (id.ScopeSet.Count != 0) {
+                id.Symbol.Binding = new Binding();
+                expander.Bindings.Add(id, id.Symbol.Binding);
+            }
         }
         var x = stxList.ElementAt<Syntax>(2);
         defineExpr = new ParsedDefine(stxList.ElementAt<Syntax>(0),

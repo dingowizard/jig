@@ -64,18 +64,6 @@ public class MacroExpander {
     }
 
     public  ParsedExpr Expand(Syntax stx, ExpansionEnvironment ee, bool once = false) {
-        // TODO: rewrite this in a way that we don't have to remember to change it everytime a keyword is added
-        // switch (stx) {
-        //     case Syntax.Identifier id:
-        //         if(TryResolve(id, out Binding? binding)) {
-        //             id.Symbol.Binding = binding;
-        //             return id;
-        //         } else {
-        //             Console.WriteLine($"couldn't resolve binding for {id}");
-        //             return id;
-        //         }
-        //     case Syntax.Literal lit: return lit;
-        // }
         if (ParsedVariable.TryParse(stx, this, out ParsedVariable? parsedVar)) {
             return parsedVar;
         }
@@ -128,7 +116,7 @@ public class MacroExpander {
 
     private Transformer EvaluateTransformer(ParsedLambda lambdaExprSyntax) {
         Procedure procedure = Program.EvalNonCPSNoExpand(lambdaExprSyntax) as Procedure ??
-            throw new Exception($"define-syntax: second argument should be evaluate to a transformer.");
+            throw new Exception($"define-syntax: second argument should evaluate to a transformer.");
         return new Transformer(procedure.Value as Func<Delegate, Expr, Thunk> ??
             throw new Exception($"define-syntax: second argument should be a transformer (got {procedure.Value})"));
     }
@@ -137,7 +125,6 @@ public class MacroExpander {
     private  ParsedExpr ExpandApplication(Syntax stx, SyntaxList stxList, ExpansionEnvironment ee, bool once = false)
     {
         if (stxList.ElementAt<Syntax>(0) is Syntax.Identifier id && ee.TryFindTransformer(id.Symbol, out Transformer? transformer)) {
-            List list = stxList.Rest;
             Scope macroExpansionScope = new Scope();
             Syntax.AddScope(stx, macroExpansionScope);
             Syntax output = transformer.Apply(stx);
