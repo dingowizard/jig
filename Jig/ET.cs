@@ -162,11 +162,12 @@ internal abstract class ET : Expression {
             } else {
                 ParameterExpression? pe = scope.LookUp(variable.Identifier);
                 if (pe is null) {
-                    var v = Expression.Parameter(typeof(Expr));
-                    var k = Expression.Lambda<Continuation.OneArgDelegate>(Expression.Convert(DynInv(kParam, v), typeof(Thunk)), new ParameterExpression[] {v});
-                    Body = Expression.Call(envParam,
-                                        LookUp,
-                                        new Expression [] {k, Expression.Constant(variable.Identifier)});
+                    throw new Exception($"free variable: {variable.Identifier.Symbol}");
+                    // var v = Expression.Parameter(typeof(Expr));
+                    // var k = Expression.Lambda<Continuation.OneArgDelegate>(Expression.Convert(DynInv(kParam, v), typeof(Thunk)), new ParameterExpression[] {v});
+                    // Body = Expression.Call(envParam,
+                    //                     LookUp,
+                    //                     new Expression [] {k, Expression.Constant(variable.Identifier)});
                 } else {
                     Body = Expression.Convert(DynInv(kParam, pe), typeof(Thunk));
                 }
@@ -288,7 +289,6 @@ internal abstract class ET : Expression {
 
         public IfET(LexicalContext lexVars, List.NonEmpty list) : base() {
 
-            // TODO: In scheme, an if form can have no else expr, like this: (if #t 1)
             List.NonEmpty listCdr = list.Cdr as List.NonEmpty ?? throw new Exception($"malformed if: {list}"); // TODO: should the parser be doing all this checking for malformed whatevers?
             Expr cond = listCdr.Car;
             Expression<CompiledCode> condCC = (Expression<CompiledCode>)Analyze(lexVars, cond).Reduce();
@@ -301,7 +301,6 @@ internal abstract class ET : Expression {
             Expression ifFalseExpr;
             ParameterExpression boolResult = Expression.Parameter(typeof(Expr), "boolResult");
             if (list.Count() == 4) {
-
                 listCdrCdrCdr = listCdrCdr.Cdr as List.NonEmpty ?? throw new Exception($"malformed if: {list}");
                 alt = listCdrCdrCdr.Car;
             } else if (list.Count() == 3) {
@@ -338,7 +337,7 @@ internal abstract class ET : Expression {
 
         public SetBangET(LexicalContext lexVars, ParsedSet setExpr) : base() {
             Syntax.Identifier sym = setExpr.Variable.Identifier;
-            // if (sym.Symbol.Name == "z") {
+            // if (id.Symbol.Name == "z") {
             //     Console.WriteLine("set!");
             // }
             Syntax valExpr = setExpr.Value;
@@ -352,9 +351,7 @@ internal abstract class ET : Expression {
             } else {
                 ParameterExpression? pe = lexVars.LookUp(sym);
                 if (pe is null) {
-                    contBody = Expression.Call(envParam,
-                                        _setMethod,
-                                        new Expression [] {kParam, Expression.Constant(sym), val});
+                    throw new Exception($"free-variable: {sym.Symbol} @ {(sym.SrcLoc?.ToString() ?? "" )}");
                 } else {
                     contBody = DynInv(kParam, Expression.Block(Expression.Assign(pe, val), Expression.Constant(Expr.Void)));
                 }
@@ -391,72 +388,39 @@ internal abstract class ET : Expression {
         private static MethodInfo _defineMethod {get;} = typeof(IEnvironment).GetMethod("Define") ?? throw new Exception("while initializing DefineET, could not find 'Define' method on IEnvironment");
 
         public DefineET(LexicalContext lexVars, ParsedDefine defineExpr) : base() {
-            // TODO: can't have recursive definitions inside blocks ,eg:
-            // (begin (define loop (lambda (n) (if (= n 0) n (loop (- n 1))))) (loop 3))
-            Syntax.Identifier sym = defineExpr.Variable.Identifier;
+            Syntax.Identifier id = defineExpr.Variable.Identifier;
             Syntax valExpr = defineExpr.Value;
-            // if (sym.Symbol.Name == "z") {
-            //     Console.WriteLine("define");
-            // }
             ParameterExpression val = Expression.Parameter(typeof(Expr), "val");
             Expression contBody;
             if (lexVars.AtTopLevel()) {
-                    // we're defining a variable at global scope
                     contBody = Expression.Call(envParam,
                                                _defineMethod,
-                                               new Expression[] {kParam, Expression.Constant(sym), val});
-
+                                               new Expression[] {kParam, Expression.Constant(id), val});
             } else {
-                ParameterExpression pe = lexVars.ParameterForDefine(sym);
+                ParameterExpression pe = lexVars.ParameterForDefine(id);
                 contBody = DynInv(kParam, Expression.Assign(pe, val));
             }
-
-            // if (defineExpr.Variable is ParsedVariable.TopLevel) {
-            //     contBody = Expression.Call(envParam,
-            //                            _defineMethod,
-            //                            new Expression [] {kParam, Expression.Constant(sym), val});
-            // } else {
-            //     ParameterExpression pe = lexVars.ParameterForDefine(sym);
-            //     if (pe is null) {
-            //         // TODO: figure out why some top levels aren't toplevels
-            //         contBody = Expression.Call(envParam,
-            //                             _defineMethod,
-            //                             new Expression [] {kParam, Expression.Constant(sym), val});
-            //     } else {
-            //         contBody = DynInv(kParam, Expression.Block(Expression.Assign(pe, val), Expression.Constant(Expr.Void)));
-            //     }
-            // }
             Expression<CompiledCode> valCC = (Expression<CompiledCode>)Analyze(lexVars, valExpr).Reduce();
-
-
             var k = Expression.Lambda(contBody, new ParameterExpression [] {val});
-
             Body = Expression.Invoke(valCC, new Expression[] {k, envParam});
 
         }
 
         public DefineET(LexicalContext lexVars, List.NonEmpty list) : base() {
-            // TODO: can't have recursive definitions inside blocks ,eg:
-            // (begin (define loop (lambda (n) (if (= n 0) n (loop (- n 1))))) (loop 3))
             Expr sym = list.ElementAt(1);
             Expr valExpr = list.ElementAt(2);
             ParameterExpression val = Expression.Parameter(typeof(Expr), "val");
             Expression contBody;
             if (lexVars.AtTopLevel()) {
-                    // we're defining a variable at global scope
                     contBody = Expression.Call(envParam,
                                                _defineMethod,
                                                new Expression[] {kParam, Expression.Constant(sym), val});
-
             } else {
                 ParameterExpression pe = lexVars.ParameterForDefine(sym);
                 contBody = DynInv(kParam, Expression.Assign(pe, val));
             }
             Expression<CompiledCode> valCC = (Expression<CompiledCode>)Analyze(lexVars, valExpr).Reduce();
-
-
             var k = Expression.Lambda(contBody, new ParameterExpression [] {val});
-
             Body = Expression.Invoke(valCC, new Expression[] {k, envParam});
 
         }
