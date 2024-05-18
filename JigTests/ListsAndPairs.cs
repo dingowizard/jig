@@ -2,7 +2,7 @@
 using Jig;
 using Jig.IO;
 
-namespace JigTests;
+namespace JigTests.Core;
 
 [TestClass]
 public class ListsAndPairs
@@ -39,7 +39,7 @@ public class ListsAndPairs
     [DataRow("(pair? (cons 1 (list)))", "#t")]
     [DataRow("(pair? (cons (list 1 2 3) '()))", "#t")]
     public void ConsMakesPairs(string input, string expected) {
-        var actual = new Interpreter().InterpretUsingReadSyntax(input);
+        var actual = Utilities.BareInterpret(input);
         Assert.AreEqual(expected, actual);
     }
 
@@ -50,7 +50,7 @@ public class ListsAndPairs
     [DataRow("(list? (cons (list 1 2 3) '(1 . 2)))", "#f")]
     [DataRow("(list? (list 1 2 3 4))", "#t")]
     public void ListMakesListAndConsMight(string input, string expected) {
-        var actual = new Interpreter().InterpretUsingReadSyntax(input);
+        var actual = Utilities.BareInterpretUsingReadSyntax(input);
         Assert.AreEqual(expected, actual);
     }
 

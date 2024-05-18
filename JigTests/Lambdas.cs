@@ -1,7 +1,7 @@
 using Jig;
 using Jig.IO;
 
-namespace JigTests;
+namespace JigTests.Core;
 
 [TestClass]
 public class Lambdas
@@ -19,7 +19,7 @@ public class Lambdas
     }
     [TestMethod]
     public void ApplySimpleLambdaExprToInt() {
-        string actual = Utilities.Interpret("((lambda (x) x) 1)");
+        string actual = Utilities.BareInterpret("((lambda (x) x) 1)");
         Assert.AreEqual("1", actual);
     }
 
@@ -38,7 +38,7 @@ public class Lambdas
     [DataRow("((lambda (x y . rest) (cons y (cons x rest))) 1 2 3 4)", "(2 1 3 4)")]
     public void ApplyLambdaExpr(string input, string expected)
     {
-        string actual = Utilities.Interpret(input);
+        string actual = Utilities.BareInterpret(input);
         Assert.AreEqual(expected, actual);
 
     }
@@ -58,7 +58,7 @@ public class Lambdas
     [DataRow("((lambda (x y . rest) (cons y (cons x rest))) 1 2 3 4)", "(2 1 3 4)")]
     public void ApplyLambdaExprSyntax(string input, string expected)
     {
-        var actual = Utilities.InterpretUsingReadSyntax(input);
+        var actual = Utilities.BareInterpretUsingReadSyntax(input);
         Assert.AreEqual(expected, actual);
 
     }

@@ -1,7 +1,7 @@
 using Jig;
 using Jig.IO;
 
-namespace JigTests;
+namespace JigTests.Core;
 
 [TestClass]
 public class Literals
@@ -13,7 +13,7 @@ public class Literals
     [DataRow("+1e2", "100")] // TODO: actualy this shouldn't pass. should make a double (need #e+1e2 for 100)
     public void EvalIntReturnsInt(string input, string expected)
     {
-        var actual = Utilities.Interpret(input);
+        var actual = Utilities.BareInterpret(input);
         Assert.AreEqual(expected, actual);
     }
 
@@ -22,7 +22,7 @@ public class Literals
     [DataRow("\"hello goodbye hello goodbye\"", "\"hello goodbye hello goodbye\"")]
     public void EvalStringReturnsString(string input, string expected)
     {
-        var actual = Utilities.Interpret(input);
+        var actual = Utilities.BareInterpret(input);
         Assert.AreEqual(expected, actual);
     }
 
@@ -31,7 +31,7 @@ public class Literals
     [DataRow("\"hello goodbye hello goodbye\"", "\"hello goodbye hello goodbye\"")]
     public void EvalStringReturnsStringUsingReadSyntax(string input, string expected)
     {
-        var actual = Utilities.InterpretUsingReadSyntax(input);
+        var actual = Utilities.BareInterpretUsingReadSyntax(input);
         Assert.AreEqual(expected, actual);
     }
 
@@ -40,7 +40,7 @@ public class Literals
     [DataRow("#\\1", "#\\1")]
     public void EvalCharReturnsCharReadSyntax(string input, string expected)
     {
-        var actual = Utilities.InterpretUsingReadSyntax(input);
+        var actual = Utilities.BareInterpretUsingReadSyntax(input);
         Assert.AreEqual(expected, actual);
     }
 
@@ -48,7 +48,7 @@ public class Literals
     [DataRow("1.2", "1.2")]
     public void EvalDoubleReturnsDouble(string input, string expected)
     {
-        var actual = Utilities.Interpret(input);
+        var actual = Utilities.BareInterpret(input);
         Assert.AreEqual(expected, actual);
 
     }
@@ -58,7 +58,7 @@ public class Literals
     [DataRow("#t", "#t")]
     public void EvalBools(string input, string expected)
     {
-        var actual = Utilities.InterpretUsingReadSyntax(input);
+        var actual = Utilities.BareInterpretUsingReadSyntax(input);
         Assert.AreEqual(expected, actual);
 
     }
@@ -67,7 +67,7 @@ public class Literals
     [DataRow(new string[]{"(define a 1)", "a"}, "1")]
     [DataRow(new string[]{"(define a #t)", "a"}, "#t")]
     public void EvalVars(string[] exprs, string expected) {
-        IInterpreter interp = new Interpreter();
+        IInterpreter interp = new Interpreter(withPrelude: false);
         string actual = "";
         foreach(string input in exprs) {
             actual = interp.Interpret(input);
@@ -84,7 +84,7 @@ public class Literals
     [DataRow("(quote (a b (c d)  e))", "(a b (c d) e)")]
     [DataRow("'(1 2 3)", "(1 2 3)")]
     public void QuotedListsSyntax(string input, string expected) {
-        var actual = Utilities.InterpretUsingReadSyntax(input);
+        var actual = Utilities.BareInterpretUsingReadSyntax(input);
         Assert.AreEqual(expected, actual);
     }
 

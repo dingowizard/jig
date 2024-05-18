@@ -5,6 +5,8 @@ namespace JigTests;
 
 public static class Utilities {
     static Interpreter _interp = new Interpreter();
+    static Interpreter _bareInterp = new Interpreter(withPrelude: false);
+
     public static string Interpret(string input) {
         return _interp.Interpret(input);
     }
@@ -20,13 +22,31 @@ public static class Utilities {
     public static string InterpretMultipleValues(string input) {
         return _interp.InterpretMultipleValues(input);
     }
+
+    public static string BareInterpret(string input) {
+        return _bareInterp.Interpret(input);
+    }
+
+    public static string BareInterpretUsingReadSyntax(string input) {
+        return _bareInterp.InterpretUsingReadSyntax(input);
+    }
+
+    public static string BareInterpretUsingReadSyntax(string[] inputs) {
+        return _bareInterp.InterpretSequenceReadSyntax(inputs);
+    }
+
+    public static string BareInterpretMultipleValues(string input) {
+        return _bareInterp.InterpretMultipleValues(input);
+    }
 }
 
 public class Interpreter : IInterpreter {
     IEnvironment Env {get;}
-    public Interpreter() {
+    public Interpreter(bool withPrelude = true) {
         Env = Program.TopLevel;
-        Program.ExecuteFile("prelude.scm", Env);
+        if (withPrelude) {
+            Program.ExecuteFile("prelude.scm", Env);
+        }
         SetResultAny = _setResultAny;
         SetResultOne = _setResultOne;
     }
