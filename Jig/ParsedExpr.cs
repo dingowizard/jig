@@ -151,14 +151,14 @@ public class ParsedDefine : ParsedExpr {
 
 public class ParsedLambda : ParsedExpr {
 
-    private ParsedLambda(Syntax keyword, Syntax parameters, SyntaxList bodies, SrcLoc? srcLoc = null)
+    private ParsedLambda(Syntax keyword, LambdaParameters parameters, SyntaxList bodies, SrcLoc? srcLoc = null)
       : base((Expr)Pair.Cons(keyword, (Expr)Pair.Cons(parameters, bodies)), srcLoc)
     {
         Parameters = parameters;
         Bodies = bodies;
     }
 
-    public Syntax Parameters {get;}
+    public LambdaParameters Parameters {get;}
     public SyntaxList Bodies {get;}
 
     public static bool TryParse(Syntax stx, MacroExpander expander, ExpansionEnvironment ee, [NotNullWhen(returnValue: true)] out ParsedLambda? lambdaExpr) {
@@ -175,43 +175,10 @@ public class ParsedLambda : ParsedExpr {
         xs.Add(stxList.ElementAt<Syntax>(0));
         var newScope = new Scope();
         var parameters = stxList.ElementAt<Syntax>(1);
-        Syntax.AddScope(parameters, newScope); // TODO: is this necessary? Seems so. deleting it breaks a lot of tests.
+        Syntax.AddScope(parameters, newScope);
         // create a new binding for each parameter
-        if (Syntax.E(parameters) is SyntaxList psStxList) {
-            foreach(var p in psStxList) {
-                Syntax.Identifier id = p as Syntax.Identifier ?? throw new Exception($"ExpandLambda: expected parameters to be identifiers, but got {p}");
-                Binding binding = new Binding();
-                id.Symbol.Binding = binding;
-                expander.Bindings.Add(id, binding);
-            }
-        } else if (Syntax.E(parameters) is IPair pair) {
-            Syntax.Identifier? id = pair.Car as Syntax.Identifier;
-            if (id is null) throw new Exception("lambda: expected all parameters to be identifiers");
-            Binding binding = new Binding();
-            id.Symbol.Binding = binding;
-            expander.Bindings.Add(id, binding);
-            while (pair.Cdr is IPair cdrPair) {
-                id = cdrPair.Car as Syntax.Identifier;
-                if (id is null) throw new Exception("lambda: expected all parameters to be identifiers");
-                binding = new Binding();
-                id.Symbol.Binding = binding;
-                expander.Bindings.Add(id, binding);
-                pair = cdrPair;
-            }
-            id = pair.Cdr as Syntax.Identifier;
-            if (id is null) throw new Exception("lambda: expected all parameters to be identifiers");
-            binding = new Binding();
-            id.Symbol.Binding = binding;
-            expander.Bindings.Add(id, binding);
-        } else if (parameters is Syntax.Identifier psId) {
-                Binding binding = new Binding();
-                psId.Symbol.Binding = binding;
-                expander.Bindings.Add(psId, binding);
-        } else if (Syntax.E(parameters) is List.NullType) {
+        LambdaParameters ps = LambdaParameters.Parse(parameters, expander, ee);
 
-        } else {
-            throw new Exception($"ExpandLambda: expected parameters to be list or identifier, got {Syntax.E(parameters)}");
-        }
         xs.Add(parameters);
         foreach (var x in stxList.Skip<Syntax>(2)) {
             Syntax.AddScope(x, newScope);
@@ -220,8 +187,88 @@ public class ParsedLambda : ParsedExpr {
         }
         // TODO: ensure that bodies is non-empty here or in constructor
         // return new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc);
-        lambdaExpr = new ParsedLambda(xs.ElementAt(0), xs.ElementAt(1), (SyntaxList)SyntaxList.FromIEnumerable(xs.Skip(2)), stx.SrcLoc);
+        lambdaExpr = new ParsedLambda(xs.ElementAt(0), ps, (SyntaxList)SyntaxList.FromIEnumerable(xs.Skip(2)), stx.SrcLoc);
         return true;
+    }
+
+    public class LambdaParameters : Syntax {
+        private LambdaParameters(Syntax stx, Syntax.Identifier[] required, Syntax.Identifier? rest)
+            : base(Syntax.E(stx), stx.SrcLoc)
+        {
+            Required = required;
+            Rest = rest;
+        }
+
+        public static LambdaParameters Parse(Syntax stx, MacroExpander expander, ExpansionEnvironment ee) {
+            var namesSeen = new List<string>();
+            var required = new List<Syntax.Identifier>();
+            Syntax.Identifier? rest = null;
+            if (Syntax.E(stx) is SyntaxList psStxList) {
+                foreach(var p in psStxList) {
+                    Syntax.Identifier id = p as Syntax.Identifier ??
+                        throw new Exception($"lambda: expected parameters to be identifiers, but got {p} @ {p.SrcLoc?.ToString() ?? "?"}");
+                    if (namesSeen.Contains(id.Symbol.Name)) {
+                        throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
+                    }
+                    Binding binding = new Binding();
+                    id.Symbol.Binding = binding;
+                    expander.Bindings.Add(id, binding);
+                    namesSeen.Add(id.Symbol.Name);
+                    required.Add(id);
+                }
+            } else if (Syntax.E(stx) is IPair pair) {
+                Syntax.Identifier? id = pair.Car as Syntax.Identifier;
+                if (id is null) throw new Exception($"lambda: expected parameters to be identifiers, but got {pair.Car}");
+                if (namesSeen.Contains(id.Symbol.Name)) {
+                    throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
+                }
+                namesSeen.Add(id.Symbol.Name);
+                required.Add(id);
+                Binding binding = new Binding();
+                id.Symbol.Binding = binding;
+                expander.Bindings.Add(id, binding);
+                while (pair.Cdr is IPair cdrPair) {
+                    id = cdrPair.Car as Syntax.Identifier;
+                    if (id is null) throw new Exception($"lambda: expected parameters to be identifiers, but got {pair.Car}");
+                    if (namesSeen.Contains(id.Symbol.Name)) {
+                        throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
+                    }
+                    binding = new Binding();
+                    id.Symbol.Binding = binding;
+                    expander.Bindings.Add(id, binding);
+                    pair = cdrPair;
+                    namesSeen.Add(id.Symbol.Name);
+                    required.Add(id);
+                }
+                id = pair.Cdr as Syntax.Identifier;
+                if (id is null) throw new Exception($"lambda: expected parameters to be identifiers, but got {pair.Cdr}");
+                if (namesSeen.Contains(id.Symbol.Name)) {
+                    throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
+                }
+                binding = new Binding();
+                id.Symbol.Binding = binding;
+                expander.Bindings.Add(id, binding);
+                namesSeen.Add(id.Symbol.Name);
+                rest = id;
+            } else if (stx is Syntax.Identifier psId) {
+                    Binding binding = new Binding();
+                    psId.Symbol.Binding = binding;
+                    expander.Bindings.Add(psId, binding);
+                    rest = psId;
+            } else if (Syntax.E(stx) is List.NullType) {
+
+            } else {
+                throw new Exception($"ExpandLambda: expected parameters to be list or identifier, got {Syntax.E(stx)}");
+            }
+            return new LambdaParameters(stx, required.ToArray(), rest);
+        }
+
+        public bool HasRequired => Required.Length != 0;
+
+        public bool HasRest => Rest is not null;
+
+        public Syntax.Identifier[] Required { get; }
+        public Syntax.Identifier? Rest { get; }
     }
 }
 

@@ -444,61 +444,57 @@ internal abstract class ET : Expression {
         static ConstructorInfo procedureCstr = typeof(Procedure).GetConstructor(new Type[] {typeof(Delegate)}) ?? throw new Exception("could not find constructor for Procedure");
 
         public LambdaExprET(LexicalContext scope, ParsedLambda lambdaExpr) {
-            Syntax lambdaParameters = lambdaExpr.Parameters;
             SyntaxList lambdaBody = lambdaExpr.Bodies;
 
             var k = Expression.Parameter(typeof(Delegate), "k in LambdaExprET"); // this is the continuation paramter for the proc we are making
             LexicalContext lambdaScope;
-            Expr lambdaParameters_E = Syntax.E(lambdaParameters);
-            switch (lambdaParameters_E) {
-                case List properList:
-                    IEnumerable<Syntax.Identifier> properListSymbols = properList.Cast<Syntax.Identifier>();
-                    if (properListSymbols is null) throw new Exception($"malformed lambda: expected parameters to be symbols but got {properList}");
-                    lambdaScope = scope.Extend(properListSymbols.Select(i => i.Symbol));
-                    LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
-                    LambdaExpressionParams = new ParameterExpression[] {k}.Concat(lambdaScope.Parameters).ToArray();
-                    Body =
-                        Expression.Convert(
-                            DynInv(kParam,
-                                   Expression.New(
-                                       procedureCstr,
-                                       new Expression[] {
-                                           Expression.Lambda(body: LambdaExpressionBody,
-                                                             parameters: LambdaExpressionParams)
-                                       })),
-                            typeof(Thunk));
-                    return;
-                case Expr.Symbol onlyRestSymbol: // cases like (lambda x x)
-                    lambdaScope = scope.Extend(new Expr.Symbol[]{onlyRestSymbol});
-                    LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
-                    LambdaExpressionParams = new ParameterExpression[] {k}.Concat(lambdaScope.Parameters).ToArray();
-
-                    Body = Expression.Convert(DynInv(kParam, // here kParam is the continuation when the lambda expression is being evaluated
-                                             Expression.New(procedureCstr,
-                                                            new Expression[] {
-                                                                Expression.Lambda(delegateType: typeof(ListFunction),
-                                                               body: LambdaExpressionBody,
-                                                               parameters: LambdaExpressionParams)
-                                                            })), typeof(Thunk));
-                    return;
-                case IPair andRest: // cases like (lambda (proc l . ls))
-                    IEnumerable<Expr.Symbol> symbols = ValidateAndConvertToSymbols(andRest);
+            var parameters = lambdaExpr.Parameters;
+            var rest = parameters.Rest;
+            if (rest is not null) {
+                if (parameters.HasRequired) {
+                    // parameters are something like (a b . c)
+                    IEnumerable<Expr.Symbol> symbols = parameters.Required.Select(id => id.Symbol).Append(rest.Symbol);
                     lambdaScope = scope.Extend(symbols);
                     LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
                     LambdaExpressionParams = new ParameterExpression[] {k}.Concat(lambdaScope.Parameters).ToArray();
                     Body = Expression.Convert(DynInv(kParam, // here kParam is the continuation when the lambda expression is being evaluated
-                                             Expression.New(procedureCstr,
+                                                Expression.New(procedureCstr,
                                                             new Expression[] {
-                                                                Expression.Lambda(delegateType: FunctionTypeFromParameters(andRest),
-                                                               body: LambdaExpressionBody,
-                                                               parameters: LambdaExpressionParams)
+                                                                Expression.Lambda(delegateType: FunctionTypeFromRequiredCount(parameters.Required.Length),
+                                                                body: LambdaExpressionBody,
+                                                                parameters: LambdaExpressionParams)
                                                             })), typeof(Thunk));
-                    return;
+                } else {
+                    // parameters are something like a
+                    lambdaScope = scope.Extend(new Expr.Symbol[]{rest.Symbol});
+                    LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
+                    LambdaExpressionParams = new ParameterExpression[] {k}.Concat(lambdaScope.Parameters).ToArray();
 
-                default:
-                    throw new Exception($"in LambdaExprET: can't handle parameters with type {lambdaParameters.GetType()} yet. (Got {lambdaParameters_E})");
+                    Body = Expression.Convert(DynInv(kParam, // here kParam is the continuation when the lambda expression is being evaluated
+                                                Expression.New(procedureCstr,
+                                                            new Expression[] {
+                                                                Expression.Lambda(delegateType: typeof(ListFunction),
+                                                                body: LambdaExpressionBody,
+                                                                parameters: LambdaExpressionParams)
+                                                            })), typeof(Thunk));
+                }
+
+            } else {
+                // parameters are like (a b c)
+                lambdaScope = scope.Extend(parameters.Required.Select(i => i.Symbol));
+                LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
+                LambdaExpressionParams = new ParameterExpression[] {k}.Concat(lambdaScope.Parameters).ToArray();
+                Body =
+                    Expression.Convert(
+                        DynInv(kParam,
+                                Expression.New(
+                                    procedureCstr,
+                                    new Expression[] {
+                                        Expression.Lambda(body: LambdaExpressionBody,
+                                                            parameters: LambdaExpressionParams)
+                                    })),
+                        typeof(Thunk));
             }
-
         }
 
         public LambdaExprET(LexicalContext scope, List.NonEmpty args) {
@@ -583,14 +579,7 @@ internal abstract class ET : Expression {
 
         }
 
-        private Type FunctionTypeFromParameters(IPair parameters) {
-            // how many parameters before rest parameter?
-            int num = 1;
-            object cdr = parameters.Cdr;
-            while (cdr is IPair pairCdr) {
-                num ++;
-                cdr = pairCdr.Cdr;
-            }
+        private Type FunctionTypeFromRequiredCount(int num) {
             switch (num) {
                 case 0:
                     throw new Exception("In FunctionTypeFromParameters: found 0 parameters before the rest paramter, but there should be at least one");
@@ -611,6 +600,17 @@ internal abstract class ET : Expression {
                 default:
                     throw new Exception("lambda: can't handle improper list parameters with more than 7 parameters before the rest paramter.");
             }
+        }
+
+        private Type FunctionTypeFromParameters(IPair parameters) {
+            // how many parameters before rest parameter?
+            int num = 1;
+            object cdr = parameters.Cdr;
+            while (cdr is IPair pairCdr) {
+                num ++;
+                cdr = pairCdr.Cdr;
+            }
+            return FunctionTypeFromRequiredCount(num);
         }
 
         private Expression LambdaBody(ParameterExpression k, LexicalContext scope, List.NonEmpty exprs) {

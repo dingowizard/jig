@@ -167,7 +167,7 @@ public class Syntax : Expr {
 
     public override string Print() => $"#<syntax: {ToDatum(this).Print()}>";
 
-    public override string ToString() => $"#<syntax: {ToDatum(this).ToString()}>";
+    public override string ToString() => $"#<syntax: {ToDatum(this).Print()}>";
 
     private static Expr SyntaxPairToDatum(IPair stxPair) {
             // Syntax car = stxPair.Car as Syntax ??
