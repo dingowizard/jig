@@ -11,3 +11,5 @@ Jig/obj/
 JigTests/obj/
 JigTests/bin/
 repl
+*nettrace*
+
