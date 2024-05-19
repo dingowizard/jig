@@ -402,6 +402,23 @@ public abstract class List : Expr, IEnumerable<Expr> {
         return result;
     }
 
+    public Expr Append(Expr x) {
+        switch (x) {
+            case List.NullType:
+                return this;
+            case List.NonEmpty properList:
+                return ListFromEnumerable(this.Concat(properList));
+            default:
+                Expr result = x;
+                var array = this.ToArray();
+                for (int i = array.Length - 1; i>=0; i--) {
+                    result = (Expr)Pair.Cons(array[i], result);
+                }
+                return result;
+
+        }
+    }
+
 
     public override string ToString() {
         return $"({string.Join(' ', this)})";
