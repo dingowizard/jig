@@ -1,4 +1,5 @@
 ﻿using Jig.IO;
+using Mono.Options;
 
 namespace Jig;
 
@@ -8,10 +9,45 @@ public static class Program {
     public static ExpansionEnvironment ExEnv = ExpansionEnvironment.Default;
 
     static void Main(string[] args) {
-        // IEnvironment topLevel = new Environment();
-        // Continuation id = (x) => Console.WriteLine(x.Print());
-        Continuation.ContinuationAny print = (Continuation.ContinuationAny)Print;
+        string scriptPath = "";
+        string expr = "";
+        bool showHelp = false;
+        var options = new OptionSet {
+            {"s|script=","run script and exit.", s => scriptPath = s},
+            {"e|expr=", "evaluate expression and exit", e => expr = e},
+            {"h|help", "show this message", h => showHelp = h is not null},
+        };
+        List<string> extraArgs;
+        try {
+            extraArgs = options.Parse(args);
+        } catch (OptionException x) {
+            Console.Error.Write("jig: ");
+            Console.Error.WriteLine(x.Message);
+            Console.Error.WriteLine("Try 'jig --help' for more information");
+            System.Environment.Exit(-1);
+        }
+        if (showHelp) {
+            Console.WriteLine("Options:");
+            options.WriteOptionDescriptions(Console.Out);
+            System.Environment.Exit(0);
+        }
+
         ExecuteFile("prelude.scm", TopLevel);
+
+        if (scriptPath != "") {
+            ExecuteFile(scriptPath, TopLevel);
+            System.Environment.Exit(0);
+
+        }
+
+        Continuation.ContinuationAny print = (Continuation.ContinuationAny)Print;
+        if (expr != "") {
+            using (InputPort port = InputPort.FromString(expr)) {
+                Eval(print, Jig.Reader.Reader.ReadSyntax(port), TopLevel);
+            }
+            System.Environment.Exit(0);
+
+        }
         // REPL
         Console.Write("> ");
         Syntax? input;
