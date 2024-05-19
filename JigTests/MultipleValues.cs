@@ -1,4 +1,4 @@
-namespace JigTests;
+namespace JigTests.Core;
 
 [TestClass]
 public class MultipleValues
@@ -16,7 +16,7 @@ public class MultipleValues
     public void CallWithValues(string producer, string consumer, string expected)
     {
         string input = "(call-with-values " + producer + " " + consumer + ")";
-        var actual = Utilities.Interpret(input);
+        var actual = Utilities.BareInterpret(input);
         Assert.AreEqual(expected, actual);
 
     }
@@ -32,14 +32,14 @@ public class MultipleValues
 
     [TestMethod]
     public void UseValuesToProvideSingleArgumentsToProcCall() {
-        var actual = Utilities.Interpret("(+ (values 1) (values 2) (values 3))");
+        var actual = Utilities.BareInterpret("(+ (values 1) (values 2) (values 3))");
         Assert.AreEqual("6", actual);
     }
 
     [TestMethod]
     [DataRow("(values 1 2 3)", "1, 2, 3")]
     public void TopLevelCallToValues(string input, string expected ) {
-        var actual = Utilities.InterpretMultipleValues(input);
+        var actual = Utilities.BareInterpretMultipleValues(input);
         Assert.AreEqual( expected, expected);
 
     }

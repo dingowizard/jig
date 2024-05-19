@@ -2,7 +2,7 @@ using System.Diagnostics;
 using Jig;
 using Jig.IO;
 
-namespace JigTests;
+namespace JigTests.Core;
 
 [TestClass]
 public class Continuations
@@ -11,7 +11,7 @@ public class Continuations
     [TestMethod]
     [DataRow("(+ 1 (call/cc (lambda (k) 2)) 3)", "6")]
     public void CallCCReturnsLastExprInLambda(string input, string expected) {
-        var actual = Utilities.Interpret(input);
+        var actual = Utilities.BareInterpret(input);
         Assert.AreEqual(expected, actual);
     }
 
@@ -39,7 +39,7 @@ public class Continuations
 
     [TestMethod]
     public void UsingApplyOnSavedContinuation() {
-        string actual = new Interpreter().InterpretSequenceReadSyntax(new string[] {
+        string actual = new Interpreter(withPrelude: false).InterpretSequenceReadSyntax(new string[] {
                 "(define cont #f)",
                 "(+ 1 (call/cc (lambda (cc) (set! cont cc) 0)))",
                 "(apply cont '(1))"
@@ -50,7 +50,7 @@ public class Continuations
 
     [TestMethod]
     public void UsingApplyOnSavedContinuationWithMultiArgumentContinuation() {
-        string actual = new Interpreter().InterpretSequenceReadSyntax(new string[] {
+        string actual = new Interpreter(withPrelude: false).InterpretSequenceReadSyntax(new string[] {
                 "(define cont #f)",
                 "(call-with-values (lambda () (call/cc (lambda (cc) (set! cont cc) (values 1 2)))) (lambda (n m) (+ (* n n) (* m m))))",
                 "(apply cont '(2 3))"
@@ -61,7 +61,7 @@ public class Continuations
 
     [TestMethod]
     public void UsingApplyOnSavedContinuationWithListArgumentContinuation() {
-        string actual = new Interpreter().InterpretSequenceReadSyntax(new string[] {
+        string actual = new Interpreter(withPrelude: false).InterpretSequenceReadSyntax(new string[] {
                 "(define cont #f)",
                 "(call-with-values (lambda () (call/cc (lambda (cc) (set! cont cc) (values 1 2 3)))) (lambda l (apply - l)))",
                 "(apply cont '(10 5 2))"
@@ -72,7 +72,7 @@ public class Continuations
 
     [TestMethod]
     public void ApplyingContinuationInIf() {
-        string actual = new Interpreter().InterpretSequenceReadSyntax(new string[] {
+        string actual = new Interpreter(withPrelude: false).InterpretSequenceReadSyntax(new string[] {
                 "(define cont #f)",
                 "(if (call/cc (lambda (k) (set! cont k) #f)) 1 0)",
                 "(cont (= 1 1))"

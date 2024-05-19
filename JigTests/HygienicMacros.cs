@@ -1,4 +1,4 @@
-namespace JigTests;
+namespace JigTests.Core;
 
 [TestClass]
 public class HygienicMacros {
@@ -6,15 +6,14 @@ public class HygienicMacros {
     [TestMethod]
     public void HygienicOr() {
         var actual =
-            Utilities.InterpretUsingReadSyntax(new string [] {
+            new Interpreter(withPrelude: false).InterpretSequenceReadSyntax(new string [] {
                     """
                     (define-syntax or2
                       (lambda (stx)
                        (datum->syntax
                          stx
-                         (list 'let
-                               (list (list 'x (cadr (syntax->list stx))))
-                               (list 'if 'x 'x (caddr (syntax->list stx)))))))
+                        `(let ((x ,(car (cdr (syntax->list stx)))))
+                           (if x x ,(car (cdr (cdr (syntax->list stx)))))))))
                     """,
                     "(let ((x #t)) (or2 #f x))"
                 });

@@ -8,7 +8,7 @@ public class ProcCalls
     [DataRow("(succ 0)", "1")]
     public void EvalProcCall(string input, string expected)
     {
-        var actual = Utilities.InterpretUsingReadSyntax(input);
+        var actual = Utilities.BareInterpretUsingReadSyntax(input);
         Assert.AreEqual(expected, actual);
 
     }

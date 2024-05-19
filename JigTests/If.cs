@@ -1,7 +1,7 @@
 using Jig;
 using Jig.IO;
 
-namespace JigTests;
+namespace JigTests.Core;
 
 [TestClass]
 public class If
@@ -13,20 +13,20 @@ public class If
     [DataRow("(if #f (car (cons #t #f)) (cdr (cons #t #f)))", "#f")]
     public void Ifs(string input, string expected)
     {
-        var actual = Utilities.Interpret(input);
+        var actual = Utilities.BareInterpret(input);
         Assert.AreEqual(actual, expected);
     }
 
     [TestMethod]
     public void IfWithoutElse() {
-        var actual = Utilities.Interpret("(if #t 1)");
+        var actual = Utilities.BareInterpret("(if #t 1)");
         Assert.AreEqual("1", actual);
     }
 
     [TestMethod]
     public void SimplestIf()
     {
-        var actual = Utilities.Interpret("(if #t 1 0)");
+        var actual = Utilities.BareInterpret("(if #t 1 0)");
         Assert.AreEqual("1", actual);
     }
 
@@ -41,7 +41,7 @@ public class If
     [DataRow("(if #f (car (cons #t #f)) (cdr (cons #t #f)))", "#f")]
     public void IfsSyntax(string input, string expected)
     {
-        var actual = Utilities.InterpretUsingReadSyntax(input);
+        var actual = Utilities.BareInterpretUsingReadSyntax(input);
         Assert.AreEqual(actual, expected);
 
     }

@@ -7,7 +7,7 @@ public class CharacterProcedures {
     [DataRow("(char? #\\c)", "#t")]
     [DataRow("(char? 1)", "#f")]
     public void Char_P_RecognizesChars(string input, string expected) {
-        var actual = Utilities.InterpretUsingReadSyntax(input);
+        var actual = Utilities.BareInterpretUsingReadSyntax(input);
         Assert.AreEqual(expected, actual);
     }
 }

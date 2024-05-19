@@ -4,24 +4,24 @@ using Jig.IO;
 namespace JigTests;
 
 public static class Utilities {
-    static Interpreter _interp = new Interpreter();
+    // static Interpreter _interp = new Interpreter();
     static Interpreter _bareInterp = new Interpreter(withPrelude: false);
 
-    public static string Interpret(string input) {
-        return _interp.Interpret(input);
-    }
+    // public static string Interpret(string input) {
+    //     return _interp.Interpret(input);
+    // }
 
-    public static string InterpretUsingReadSyntax(string input) {
-        return _interp.InterpretUsingReadSyntax(input);
-    }
+    // public static string InterpretUsingReadSyntax(string input) {
+    //     return _interp.InterpretUsingReadSyntax(input);
+    // }
 
-    public static string InterpretUsingReadSyntax(string[] inputs) {
-        return _interp.InterpretSequenceReadSyntax(inputs);
-    }
+    // public static string InterpretUsingReadSyntax(string[] inputs) {
+    //     return _interp.InterpretSequenceReadSyntax(inputs);
+    // }
 
-    public static string InterpretMultipleValues(string input) {
-        return _interp.InterpretMultipleValues(input);
-    }
+    // public static string InterpretMultipleValues(string input) {
+    //     return _interp.InterpretMultipleValues(input);
+    // }
 
     public static string BareInterpret(string input) {
         return _bareInterp.Interpret(input);

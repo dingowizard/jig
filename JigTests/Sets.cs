@@ -1,7 +1,4 @@
-using Jig;
-using Jig.IO;
-
-namespace JigTests;
+namespace JigTests.Core;
 
 [TestClass]
 public class Sets {
@@ -18,10 +15,10 @@ public class Sets {
     }
 
     [TestMethod]
-    [DataRow("(begin (define z 25) (set! z 26) z)", "26")]
-    [DataRow("(begin (define z 26) (set! z (car (cons 12 13))) z)", "12")]
+    [DataRow("((lambda () (define z 25) (set! z 26) z))", "26")]
+    [DataRow("((lambda () (define z 26) (set! z (car (cons 12 13))) z))", "12")]
     public void SetLexicalVar(string input, string expected) {
-        var actual = Utilities.InterpretUsingReadSyntax(input);
+        var actual = Utilities.BareInterpretUsingReadSyntax(input);
         Assert.AreEqual(expected, actual);
     }
 
@@ -37,10 +34,10 @@ public class Sets {
     }
 
     [TestMethod]
-    [DataRow("(begin (define z 25) (set! z 26) z)", "26")]
-    [DataRow("(begin (define z 26) (set! z (car (cons 12 13))) z)", "12")]
+    [DataRow("((lambda () (define z 25) (set! z 26) z))", "26")]
+    [DataRow("((lambda () (define z 26) (set! z (car (cons 12 13))) z))", "12")]
     public void SetLexicalVarSyntax(string input, string expected) {
-        var actual = Utilities.InterpretUsingReadSyntax(input);
+        var actual = Utilities.BareInterpretUsingReadSyntax(input);
         Assert.AreEqual(expected, actual);
     }
 

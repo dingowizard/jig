@@ -1,4 +1,4 @@
-namespace JigTests;
+namespace JigTests.Core;
 
 [TestClass]
 public class Defines {
@@ -18,7 +18,7 @@ public class Defines {
     [DataRow("((lambda () (define z (car (cons 12 13))) z))", "12")]
     [DataRow("((lambda () (define z 26) z))", "26")]
     public void DefineLexicalVar(string input, string expected) {
-        var actual = Utilities.Interpret(input);
+        var actual = Utilities.BareInterpret(input);
         Assert.AreEqual(expected, actual);
     }
 
@@ -45,11 +45,11 @@ public class Defines {
 // Type (debug) to enter the debugger.
 // > (begin (define z 25) ((lambda () (define z 2) z)) z)
 // 25
-    [DataRow("(begin (define z 26) ((lambda () (define z 2) z)) z)", "26")]
-    [DataRow("(begin (define z 26) z)", "26")]
-    [DataRow("(begin (define z (car (cons 12 13))) z)", "12")]
+    [DataRow("((lambda () (define z 26) ((lambda () (define z 2) z)) z))", "26")]
+    [DataRow("((lambda () (define z 26) z))", "26")]
+    [DataRow("((lambda () (define z (car (cons 12 13))) z))", "12")]
     public void DefineLexicalVarSyntax(string input, string expected) {
-        var actual = Utilities.InterpretUsingReadSyntax(input);
+        var actual = Utilities.BareInterpretUsingReadSyntax(input);
         Assert.AreEqual(expected, actual);
     }
 

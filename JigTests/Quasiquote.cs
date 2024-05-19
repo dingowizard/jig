@@ -1,4 +1,4 @@
-namespace JigTests;
+namespace JigTests.Core;
 
 [TestClass]
 public class Quasiquote {
@@ -10,7 +10,7 @@ public class Quasiquote {
     [DataRow("(quasiquote (a (+ 1 1) c))", "(a (+ 1 1) c)")]
     [DataRow("(quasiquote (a (unquote (+ 1 1)) c))", "(a 2 c)")]
     public void QuasiquoteEvaluated(string input, string expected) {
-        var actual = Utilities.InterpretUsingReadSyntax(input);
+        var actual = Utilities.BareInterpretUsingReadSyntax(input);
         Assert.AreEqual(expected, actual);
     }
 
@@ -18,7 +18,8 @@ public class Quasiquote {
     [DataRow("(quasiquote (unquote b))", "2")]
     [DataRow("(quasiquote (a (unquote b) c))", "(a 2 c)")]
     public void QuasiquoteUnquoteWithBEquals2Evaluated(string input, string expected) {
-        var actual = Utilities.InterpretUsingReadSyntax(new string [] {
+        IInterpreter interp = new Interpreter(withPrelude: false);
+        var actual = interp.InterpretSequenceReadSyntax(new string [] {
                 "(define b 2)",
                 input
             });
@@ -26,10 +27,11 @@ public class Quasiquote {
     }
 
     [TestMethod]
-    [DataRow("(quasiquote ((unquote-splicing (list a b)) 3 4))", "(1 2 3 4)")]
-    [DataRow("(quasiquote (-1 0 (unquote-splicing (list a b)) 3 4))", "(-1 0 1 2 3 4)")]
+    [DataRow("(quasiquote ((unquote-splicing (cons a (cons b '()))) 3 4))", "(1 2 3 4)")]
+    [DataRow("(quasiquote (-1 0 (unquote-splicing (cons a (cons b '()))) 3 4))", "(-1 0 1 2 3 4)")]
     public void QuasiquoteUnquoteSplicingWithA1B2Evaluated(string input, string expected) {
-        var actual = Utilities.InterpretUsingReadSyntax(new string [] {
+        IInterpreter interp = new Interpreter(withPrelude: false);
+        var actual = interp.InterpretSequenceReadSyntax(new string [] {
                 "(define a 1)",
                 "(define b 2)",
                 input

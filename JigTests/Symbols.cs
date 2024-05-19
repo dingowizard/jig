@@ -1,4 +1,4 @@
-namespace JigTests;
+namespace JigTests.Core;
 
 [TestClass]
 public class Symbols
@@ -9,7 +9,7 @@ public class Symbols
     [DataRow("(symbol? 12)", "#f")]
     public void SymbolP(string input, string expected)
     {
-        var actual = Utilities.InterpretUsingReadSyntax(input);
+        var actual = Utilities.BareInterpretUsingReadSyntax(input);
         Assert.AreEqual(actual, expected);
 
     }
@@ -18,7 +18,7 @@ public class Symbols
     [DataRow("(symbol->string 'boo)", "\"boo\"")]
     public void SymbolToString(string input, string expected)
     {
-        var actual = Utilities.InterpretUsingReadSyntax(input);
+        var actual = Utilities.BareInterpretUsingReadSyntax(input);
         Assert.AreEqual(actual, expected);
 
     }
@@ -28,7 +28,7 @@ public class Symbols
     [DataRow("(symbol=? 'boo 'bop)", "#f")]
     public void SymbolEquals(string input, string expected)
     {
-        var actual = Utilities.InterpretUsingReadSyntax(input);
+        var actual = Utilities.BareInterpretUsingReadSyntax(input);
         Assert.AreEqual(actual, expected);
 
     }

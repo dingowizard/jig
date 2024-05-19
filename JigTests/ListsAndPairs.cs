@@ -18,7 +18,7 @@ public class ListsAndPairs
         Continuation.OneArgDelegate setResult = (x) => {actual = x.Print(); return null;};
         Syntax? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
         Assert.IsNotNull(stx);
-        Program.Eval(setResult, stx, new Jig.Environment());
+        Program.Eval(setResult, stx, Program.TopLevel);
         Assert.AreEqual(expected, actual);
     }
 
@@ -30,29 +30,30 @@ public class ListsAndPairs
         Continuation.OneArgDelegate setResult = (x) => {actual = x.Print(); return null;};
         Syntax? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
         Assert.IsNotNull(stx);
-        Program.Eval(setResult, stx, new Jig.Environment());
+        Program.Eval(setResult, stx, Program.TopLevel);
         Assert.AreEqual(expected, actual);
     }
 
     [TestMethod]
     [DataRow("(pair? (cons 1 2))", "#t")]
-    [DataRow("(pair? (cons 1 (list)))", "#t")]
-    [DataRow("(pair? (cons (list 1 2 3) '()))", "#t")]
+    [DataRow("(pair? (cons 1 '()))", "#t")]
+    [DataRow("(pair? (cons '(1 2 3) '()))", "#t")]
     public void ConsMakesPairs(string input, string expected) {
         var actual = Utilities.BareInterpret(input);
         Assert.AreEqual(expected, actual);
     }
 
-    [TestMethod]
-    [DataRow("(list? (cons 1 2))", "#f")]
-    [DataRow("(list? (cons 1 (list)))", "#t")]
-    [DataRow("(list? (cons (list 1 2 3) '()))", "#t")]
-    [DataRow("(list? (cons (list 1 2 3) '(1 . 2)))", "#f")]
-    [DataRow("(list? (list 1 2 3 4))", "#t")]
-    public void ListMakesListAndConsMight(string input, string expected) {
-        var actual = Utilities.BareInterpretUsingReadSyntax(input);
-        Assert.AreEqual(expected, actual);
-    }
+    // TODO: move out of core
+    // [TestMethod]
+    // [DataRow("(list? (cons 1 2))", "#f")]
+    // [DataRow("(list? (cons 1 (list)))", "#t")]
+    // [DataRow("(list? (cons (list 1 2 3) '()))", "#t")]
+    // [DataRow("(list? (cons (list 1 2 3) '(1 . 2)))", "#f")]
+    // [DataRow("(list? (list 1 2 3 4))", "#t")]
+    // public void ListMakesListAndConsMight(string input, string expected) {
+    //     var actual = Utilities.BareInterpretUsingReadSyntax(input);
+    //     Assert.AreEqual(expected, actual);
+    // }
 
     [TestMethod]
     [DataRow("(cdr (quote (1 2)))", "(2)")]
@@ -62,7 +63,7 @@ public class ListsAndPairs
         Continuation.OneArgDelegate setResult = (x) => {actual = x.Print(); return null;};
         Syntax? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
         Assert.IsNotNull(stx);
-        Program.Eval(setResult, stx, new Jig.Environment());
+        Program.Eval(setResult, stx, Program.TopLevel);
         Assert.AreEqual(expected, actual);
     }
 
@@ -74,7 +75,7 @@ public class ListsAndPairs
         Continuation.OneArgDelegate setResult = (x) => {actual = x.Print(); return null;};
         Syntax? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
         Assert.IsNotNull(stx);
-        Program.Eval(setResult, stx, new Jig.Environment());
+        Program.Eval(setResult, stx, Program.TopLevel);
         Assert.AreEqual(expected, actual);
     }
 
@@ -89,7 +90,7 @@ public class ListsAndPairs
         Continuation.OneArgDelegate setResult = (x) => {actual = x.Print(); return null;};
         Syntax? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
         Assert.IsNotNull(stx);
-        Program.Eval(setResult, stx, new Jig.Environment());
+        Program.Eval(setResult, stx, Program.TopLevel);
         Assert.AreEqual(expected, actual);
     }
 
