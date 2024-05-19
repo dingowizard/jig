@@ -10,16 +10,14 @@ internal static class Builtins {
 // //       (k xs)
 // //       (fn (lambda (v0) (map/cps (lambda (v1) (k (cons v0 v1))) fn (cdr xs))) (car xs))))
         if (list is List.NonEmpty properList) {
-            List? args = properList.Cdr as List;
-            if (args is null) {
-                throw new Exception($"in Builtins.map_internal: tried to get cdr of {properList} as List but type was {properList.Cdr.GetType()}");
-            }
+            List args = properList.Rest;
             Continuation.OneArgDelegate k2 = (v0) => map_internal((Continuation.OneArgDelegate)((v1) => k((Expr)Expr.Pair.Cons(v0, (List) v1))), proc, args);
             return proc(k2, (LiteralExpr<CompiledCode>)properList.Car);
         } else {
             return k(list); // at this point , k is (lambda (l) (apply (car l) (cdr l)))
         }
     }
+
 
     public static Thunk car (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
@@ -334,6 +332,22 @@ internal static class Builtins {
         }
     }
 
+    public static Thunk append(Delegate k, List args) {
+        Expr acc = List.Empty;
+        List rest = args;
+        while (rest is List.NonEmpty lists) {
+            Expr first = lists.Car;
+            rest = lists.Rest;
+            if (acc is List list) {
+                acc = list.Append(first);
+            } else {
+                return Error(k, $"append: {acc} is not a proper list.");
+            }
+        }
+        return Continuation.ApplyDelegate(k, acc);
+
+    }
+
     public static Thunk symbol_equal_p (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             if (properList.Count() < 2) {
@@ -540,7 +554,7 @@ internal static class Builtins {
 
     internal static Thunk Error(Delegate k, string msg, params Expr[] rest) {
         // the reason we have to look up "error" in the global environment is that
-        // in prelude we redefine error so that it runs the 'out' thunks in winders.
+        // in prelude we redefine error so that it uses the redefined call/cc that unwinds winders
         // otherwise *current-exception-handlers* isn't restored properly
         //
         // TODO: should we use raise or raise-continuable in builtins instead?

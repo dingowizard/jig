@@ -64,11 +64,11 @@
                 (apply map (cons fn (map1 cdr ls)))))) (cons xs rest))))
 
 ;; TODO: support any number of list arguments, including no args
-(define append
-  (lambda (l1 l2)
-    (if (null? l1)
-        l2
-        (cons (car l1) (append (cdr l1) l2)))))
+;; (define append
+;;   (lambda (l1 l2)
+;;     (if (null? l1)
+;;         l2
+;;         (cons (car l1) (append (cdr l1) l2)))))
 
 (define caar (lambda (p) (car (car p))))
 
@@ -197,7 +197,7 @@
            (incrs (map caddr bs))
            (test (car (syntax->list (caddr stx-list))))
            (result (if (null? (cdr (syntax->list (caddr stx-list))))
-                       (syntax (void))
+                       (quote-syntax (void))
                        (cadr (syntax->list (caddr stx-list)))))
            (body (cdddr stx-list)))
       (datum->syntax
@@ -341,6 +341,7 @@
 
 (define error #f)
 
+; TODO: shouldn't this call raise or raise continuable?
 (call/cc
  (lambda (k)
    (set! error
