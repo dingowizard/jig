@@ -114,15 +114,15 @@ public class Parser {
         tokenStream.Read();
         if (Int32.TryParse(num.Text, out int i)) {
             if (syntax) {
-                return new Syntax.Literal(new Expr.Integer(i), num.SrcLoc);
+                return new Syntax.Literal(new Expr.IntegerNumber(i), num.SrcLoc);
             } else {
-                return new Expr.Integer(i);
+                return new Expr.IntegerNumber(i);
             }
         } else if (Double.TryParse(num.Text, out double d)) {
             if (syntax) {
-                return new Syntax.Literal(new Expr.Double(d), num.SrcLoc);
+                return new Syntax.Literal(new Expr.DoubleNumber(d), num.SrcLoc);
             } else {
-                return new Expr.Double(d);
+                return new Expr.DoubleNumber(d);
             }
         } else {
             throw new Exception($"ParseExpr: could not parse number token {num.Text} to number.");

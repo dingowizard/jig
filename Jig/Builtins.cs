@@ -75,8 +75,8 @@ internal static class Builtins {
     public static Thunk succ(Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             object arg = properList.Car;
-            if (arg is Expr.Integer intExpr) {
-                return Continuation.ApplyDelegate(k, new Expr.Integer(intExpr.Value + 1));
+            if (arg is Expr.IntegerNumber intExpr) {
+                return Continuation.ApplyDelegate(k, new Expr.IntegerNumber(intExpr.Value + 1));
             } else {
                 return Error(k, $"succ: expected single integer argument, but got {args}");
             }
@@ -87,13 +87,10 @@ internal static class Builtins {
 
     public static Thunk number_p(Delegate k, List args) {
         if (args is List.NonEmpty properList) {
-            object arg = properList.Car;
-            if (arg is Expr.Integer intExpr) {
-                return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
-            } else if (arg is Expr.Double) {
-                return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
+            if (properList.Count() == 1) {
+                return Continuation.ApplyDelegate(k, new Expr.Boolean(properList.Car is Expr.Number));
             } else {
-                return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+                return Error(k, $"number?: expected one argument and only one argument. Got {args}.");
             }
         } else {
             return Error(k, "number?: expected one argument but got none");
@@ -101,168 +98,67 @@ internal static class Builtins {
     }
 
     public static Thunk sum(Delegate k, List args) {
-        Expr.Integer intResult = new Expr.Integer(0);
-        bool resultIsInt = true;
-        Expr.Double doubleResult = new Expr.Double(0.0);
+        Expr.Number acc = Expr.Number.From(0);
         foreach (var arg in args) {
-            if (resultIsInt) {
-                if (arg is Expr.Integer i) {
-                    intResult += i;
-                    continue;
-                } else if (arg is Expr.Double d) {
-                    resultIsInt = false;
-                    doubleResult = intResult + d;
-                    continue;
-                } else {
-                    return Error(k, $"+: all args must be numbers. {arg} is not a number.");
-                }
+            if (arg is Expr.Number num) {
+                acc = acc + num;
             } else {
-                if (arg is Expr.Integer i) {
-                    doubleResult += i;
-                    continue;
-                } else if (arg is Expr.Double d) {
-                    doubleResult += d;
-                    continue;
-                } else {
-                    return Error(k, $"+: all args must be numbers. {arg} is not a number.");
-                }
-
+                return Error(k, $"+: all args must be numbers. got {arg}");
             }
         }
-        return Continuation.ApplyDelegate(k, resultIsInt ? intResult : doubleResult);
-
+        return Continuation.ApplyDelegate(k, acc);
     }
 
     public static Thunk diff(Delegate k, Expr first, List args) {
-        bool resultIsInt = true;
-        Expr.Integer intResult = new Expr.Integer(0);
-        Expr.Double doubleResult = new Expr.Double(0.0);
-        if (first is Expr.Integer i) {
-            intResult = i;
-        } else if (first is Expr.Double d) {
-            doubleResult = d;
-            resultIsInt = false;
+        if (first is Expr.Number acc) {
+            foreach (var arg in args) {
+                if (arg is Expr.Number num) {
+                    acc = acc - num;
+                } else {
+                    return Error(k, $"-: all args must be numbers. {first} is not a number.");
+                }
+            }
+            return Continuation.ApplyDelegate(k, acc);
         } else {
             return Error(k, $"-: all args must be numbers. {first} is not a number.");
         }
-        foreach (var arg in args) {
-            if (resultIsInt) {
-                if (arg is Expr.Integer x) {
-                    intResult -= x;
-                    continue;
-                } else if (arg is Expr.Double d) {
-                    resultIsInt = false;
-                    doubleResult = intResult - d;
-                    continue;
-                } else {
-                    return Error(k, $"-: all args must be numbers. {arg} is not a number.");
-                }
-            } else {
-                if (arg is Expr.Integer x) {
-                    doubleResult -= x;
-                    continue;
-                } else if (arg is Expr.Double d) {
-                    doubleResult -= d;
-                    continue;
-                } else {
-                    return Error(k, $"-: all args must be numbers. {arg} is not a number.");
-                }
-            }
-        }
-        return Continuation.ApplyDelegate(k, resultIsInt ? intResult : doubleResult);
     }
 
     public static Thunk numEq(Delegate k, Expr first, List args) {
-        // TODO: should 1 = 1.0? it does in chez. if so best way to implement
-        if (first is Expr.Integer i) {
-            Expr.Integer current = i;
-            foreach(var arg in args) {
-                if (arg is Expr.Integer nextInt) {
-                    if (current.Equals(nextInt)) {
+        if (first is Expr.Number n1) {
+            foreach (var arg in args) {
+                if (arg is Expr.Number n2) {
+                    Expr.Boolean b = n1 == n2;
+                    if (b.Value) {
                         continue;
-                    } else {
-                        return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
                     }
-                } else if (arg is Expr.Double) {
-                    return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+                    return Continuation.ApplyDelegate(k, b);
                 } else {
-                    return Error(k, $"=: expected numeric arguments, but got {arg}");
+                    return Error(k, $"=: expects only numeric arguments. Got {arg}");
                 }
             }
             return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
-        } else if (first is Expr.Double d) {
-            Expr.Double current = d;
-            foreach(var arg in args) {
-                if (arg is Expr.Double nextD) {
-                    if (current.Equals(nextD)) {
-                        continue;
-                    } else {
-                        return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
-                    }
-                } else if (arg is Expr.Integer) {
-                    return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
-                } else {
-                    return Error(k, $"=: expected numeric arguments, but got {arg}");
-                }
-            }
-            return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
-
         } else {
             return Error(k, $"=: expects only numeric arguments. Got {first}");
         }
+
     }
 
     public static Thunk gt(Delegate k, List args) {
-        // TODO: OMG this is hideous. Move some of this logic into a Number class
-        // TODO: write some tests
         if (args is List.NonEmpty nonEmpty) {
-            Expr first = nonEmpty.ElementAt(0);
+            Expr.Number? first = nonEmpty.Car as Expr.Number;
+            if (first is null) return Error(k, $">: expected arguments to be numbers but got {first}");
             args = nonEmpty.Rest;
             while (args is List.NonEmpty rest) {
-                Expr second = rest.ElementAt(0);
-                if (first is Expr.Double d1) {
-                    if (second is Expr.Integer i2) {
-                        if (d1.Value > i2.Value) {
-                            first = second;
-                            args = rest.Rest;
-                            continue;
-                        } else {
-                            return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
-                        }
-                    } else if (second is Expr.Double d2) {
-                        if (d1.Value > d2.Value) {
-                            first = second;
-                            args = rest.Rest;
-                            continue;
-                        } else {
-                            return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
-                        }
-                    } else {
-                        return Error(k, $">: expected arguments to be numbers but got {first}");
-                    }
-                } else if (first is Expr.Integer i1) {
-                    if (second is Expr.Integer i2) {
-                        if (i1.Value > i2.Value) {
-                            first = second;
-                            args = rest.Rest;
-                            continue;
-                        } else {
-                            return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
-                        }
-                    } else if (second is Expr.Double d2) {
-                        if (i1.Value > d2.Value) {
-                            first = second;
-                            args = rest.Rest;
-                            continue;
-                        } else {
-                            return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
-                        }
-
-                    } else {
-                        return Error(k, $">: expected arguments to be numbers but got {first}");
-                    }
+                Expr.Number? second = rest.Car as Expr.Number;
+                if (second is null) return Error(k, $">: expected arguments to be numbers but got {second}");
+                Expr.Boolean b = first > second;
+                if (b.Value) {
+                    first = second;
+                    args = rest.Rest;
+                    continue;
                 } else {
-                    return Error(k, $">: expected arguments to be numbers but got {first}");
+                    return Continuation.ApplyDelegate(k, b);
                 }
             }
             return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
@@ -286,36 +182,17 @@ internal static class Builtins {
         }
     }
 
-    public static Thunk product(Delegate k, List args) {
-        Expr.Integer intResult = new Expr.Integer(1);
-        bool resultIsInt = true;
-        Expr.Double doubleResult = new Expr.Double(1.0);
+    public static Thunk new_product(Delegate k, List args) {
+        Expr.Number acc = Expr.Number.From(1);
         foreach (var arg in args) {
-            if (resultIsInt) {
-                if (arg is Expr.Integer i) {
-                    intResult *= i;
-                    continue;
-                } else if (arg is Expr.Double d) {
-                    resultIsInt = false;
-                    doubleResult = intResult * d;
-                    continue;
-                } else {
-                    return Error(k, $"*: all args must be numbers. {arg} is not a number.");
-                }
+            if (arg is Expr.Number num) {
+                acc = acc * num;
             } else {
-                if (arg is Expr.Integer i) {
-                    doubleResult *= i;
-                    continue;
-                } else if (arg is Expr.Double d) {
-                    doubleResult *= d;
-                    continue;
-                } else {
-                    return Error(k, $"*: all args must be numbers. {arg} is not a number.");
-                }
-
+                return Error(k, $"*: all args must be numbers. {arg} is not a number.");
             }
         }
-        return Continuation.ApplyDelegate(k, resultIsInt ? intResult : doubleResult);
+        return Continuation.ApplyDelegate(k, acc);
+
     }
 
     public static Thunk cons (Delegate k, List args) {
@@ -606,7 +483,7 @@ internal static class Builtins {
     public static Thunk vector_ref(Delegate k, List args) {
         if (args.Count() != 2) return Error(k, $"vector-ref: expected two arguments but got {args.Count()}");
         if (args.ElementAt(0) is Expr.Vector v) {
-            if (args.ElementAt(1) is Expr.Integer i) {
+            if (args.ElementAt(1) is Expr.IntegerNumber i) {
                 if (v.TryGetAtIndex(i, out Expr? result)) {
                     return Continuation.ApplyDelegate(k, result);
                 } else {

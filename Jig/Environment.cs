@@ -10,9 +10,10 @@ public class Environment : IEnvironment {
         _dict.Add(new Expr.Symbol("succ"), new Procedure((Builtin) Builtins.succ));
         _dict.Add(new Expr.Symbol("number?"), new Procedure((Builtin) Builtins.number_p));
         _dict.Add(new Expr.Symbol("+"), new Procedure((Builtin) Builtins.sum));
-        _dict.Add(new Expr.Symbol("*"), new Procedure((Builtin) Builtins.product));
+        _dict.Add(new Expr.Symbol("*"), new Procedure((Builtin) Builtins.new_product));
         _dict.Add(new Expr.Symbol("-"), new Procedure((PairFunction) Builtins.diff));
         _dict.Add(new Expr.Symbol("="), new Procedure((PairFunction) Builtins.numEq));
+        _dict.Add(new Expr.Symbol(">"), new Procedure( (Builtin)Builtins.gt));
         _dict.Add(new Expr.Symbol("apply"), new Procedure( Builtins.apply));
         _dict.Add(new Expr.Symbol("call/cc"), new Procedure( (Builtin)Builtins.callcc));
         _dict.Add(new Expr.Symbol("call-with-current-continuation"), new Procedure( (Builtin)Builtins.callcc));
@@ -31,7 +32,6 @@ public class Environment : IEnvironment {
         _dict.Add(new Expr.Symbol("syntax-e"), new Procedure( (Builtin)Builtins.syntax_e));
         _dict.Add(new Expr.Symbol("char?"), new Procedure( (Builtin)Builtins.char_p));
         _dict.Add(new Expr.Symbol("eq?"), new Procedure( (Builtin)Builtins.eq_p));
-        _dict.Add(new Expr.Symbol(">"), new Procedure( (Builtin)Builtins.gt));
         _dict.Add(new Expr.Symbol("display"), new Procedure( (Builtin)Builtins.display));
         _dict.Add(new Expr.Symbol("newline"), new Procedure( (Builtin)Builtins.newline));
         _dict.Add(new Expr.Symbol("error"), new Procedure( (Builtin)Builtins.error));

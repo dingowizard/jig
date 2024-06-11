@@ -199,21 +199,21 @@ public class ParserTests {
     public void ParseDigitsToInt() {
         var lexer = new TokenStream(InputPort.FromString("1234"));
         var actual = Parser.ParseExpr(lexer);
-        Assert.AreEqual(new Expr.Integer(1234), actual);
+        Assert.AreEqual(new Expr.IntegerNumber(1234), actual);
     }
 
     [TestMethod]
     public void ParseDigitsDotMoreDigitsToDouble() {
         var lexer = new TokenStream(InputPort.FromString("1234.5678"));
         var actual = Parser.ParseExpr(lexer);
-        Assert.AreEqual(new Expr.Double(1234.5678), actual);
+        Assert.AreEqual(new Expr.DoubleNumber(1234.5678), actual);
     }
 
     [TestMethod]
     public void ParseListWithSymbolAndInt() {
         var lexer = new TokenStream(InputPort.FromString("(succ 0)"));
         var actual = Parser.ParseExpr(lexer);
-        Assert.AreEqual(List.NewList(new Expr.Symbol("succ"), new Expr.Integer(0)), actual);
+        Assert.AreEqual(List.NewList(new Expr.Symbol("succ"), new Expr.IntegerNumber(0)), actual);
 
     }
 

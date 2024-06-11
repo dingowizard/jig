@@ -35,7 +35,7 @@ public abstract class Expr {
             Elements = xs.ToArray();
         }
 
-        public bool TryGetAtIndex(Expr.Integer i, [NotNullWhen(returnValue: true)] out Expr? result) {
+        public bool TryGetAtIndex(Expr.IntegerNumber i, [NotNullWhen(returnValue: true)] out Expr? result) {
             if (i.Value >= Elements.Length) {
                 result = null;
                 return false;
@@ -46,9 +46,9 @@ public abstract class Expr {
 
         }
 
-        public Expr.Integer Length {
+        public Expr.IntegerNumber Length {
             get {
-                return new Expr.Integer(Elements.Length);
+                return new Expr.IntegerNumber(Elements.Length);
             }
         }
 
@@ -83,44 +83,262 @@ public abstract class Expr {
         }
     }
 
-    public class Integer : LiteralExpr<int> {
-        public Integer(int i) : base(i) {}
+    public abstract class Number : Expr {
+        public static Number From(int i) {
+            return new IntegerNumber(i);
+        }
 
-        public static Double operator +(Integer i, Double d) => new Double(i.Value + d.Value);
+        public static Number From(double d) {
+            return new DoubleNumber(d);
+        }
 
-        public static Integer operator +(Integer i1, Integer i2) => new Integer(i1.Value + i2.Value);
+        public static Expr.Boolean operator ==(Number n1, Number n2) {
+            switch (n1) {
+                case IntegerNumber in1: return in1 == n2;
+                case DoubleNumber d1: return d1 == n2;
+                default: throw new NotImplementedException();
+            }
+        }
 
-        public static Double operator -(Integer i, Double d) => new Double(i.Value - d.Value);
+        public static Expr.Boolean operator !=(Number n1, Number n2) {
+            switch (n1) {
+                case IntegerNumber in1: return in1 != n2;
+                case DoubleNumber d1: return d1 != n2;
+                default: throw new NotImplementedException();
+            }
+        }
 
-        public static Integer operator -(Integer i1, Integer i2) => new Integer(i1.Value - i2.Value);
+        public static Number operator +(Number n1, Number n2) {
+            switch (n1) {
+                case IntegerNumber in1: return in1 + n2;
+                case DoubleNumber d1: return d1 + n2;
+                default: throw new NotImplementedException();
+            }
+        }
 
-        public static Double operator *(Integer i, Double d) => new Double(i.Value * d.Value);
+        public static Number operator -(Number n1, Number n2) {
+            switch (n1) {
+                case IntegerNumber in1: return in1 - n2;
+                case DoubleNumber d1: return d1 - n2;
+                default: throw new NotImplementedException();
+            }
+        }
 
-        public static Integer operator *(Integer i1, Integer i2) => new Integer(i1.Value * i2.Value);
+        public static Number operator *(Number n1, Number n2) {
+            switch (n1) {
+                case IntegerNumber in1: return in1 * n2;
+                case DoubleNumber d1: return d1 * n2;
+                default: throw new NotImplementedException();
+            }
+        }
 
-        public static Double operator /(Integer i, Double d) => new Double(i.Value / d.Value);
+        public static Number operator /(Number n1, Number n2) {
+            switch (n1) {
+                case IntegerNumber in1: return in1 / n2;
+                case DoubleNumber d1: return d1 / n2;
+                default: throw new NotImplementedException();
+            }
+        }
 
-        public static Integer operator /(Integer i1, Integer i2) => new Integer(i1.Value / i2.Value);
+        public static Expr.Boolean operator >(Number n1, Number n2) {
+            switch (n1) {
+                case IntegerNumber in1: return in1 > n2;
+                case DoubleNumber d1: return d1 > n2;
+                default: throw new NotImplementedException();
+            }
+
+        }
+
+        public static Expr.Boolean operator <(Number n1, Number n2) {
+            switch (n1) {
+                case IntegerNumber in1: return in1 < n2;
+                case DoubleNumber d1: return d1 < n2;
+                default: throw new NotImplementedException();
+            }
+
+        }
     }
 
-    public class Double : LiteralExpr<double> {
-        public Double(double d) : base(d) {}
+    public class IntegerNumber : Number {
+        public int Value {get;}
+        public IntegerNumber(int i) {
+            Value = i;
+        }
+        public override string Print() => Value.ToString();
 
-        public static Double operator+(Double d1, Double d2) => new Double(d1.Value + d2.Value);
+        public override bool Equals(object? obj) {
+            if (obj is null) return false;
+            if (obj is IntegerNumber lit) {
+                return this.Value.Equals(lit.Value);
+            }
+            return false;
 
-        public static Double operator+(Double d, Expr.Integer i) => new Double(d.Value + i.Value);
+        }
 
-        public static Double operator-(Double d1, Double d2) => new Double(d1.Value - d2.Value);
+        public override int GetHashCode() {
+            return Value.GetHashCode();
+        }
 
-        public static Double operator-(Double d, Expr.Integer i) => new Double(d.Value - i.Value);
+        public static Expr.Boolean operator ==(IntegerNumber i1, Number n) {
+            switch (n) {
+                case IntegerNumber i2: return new Expr.Boolean(i1.Value == i2.Value);
+                case DoubleNumber d2: return new Expr.Boolean(i1.Value == d2.Value);
+                default: throw new NotImplementedException();
+            }
 
-        public static Double operator*(Double d1, Double d2) => new Double(d1.Value * d2.Value);
+        }
 
-        public static Double operator*(Double d, Expr.Integer i) => new Double(d.Value * i.Value);
+        public static Expr.Boolean operator !=(IntegerNumber i1, Number n) {
+            switch (n) {
+                case IntegerNumber i2: return new Expr.Boolean(i1.Value != i2.Value);
+                case DoubleNumber d2: return new Expr.Boolean(i1.Value != d2.Value);
+                default: throw new NotImplementedException();
+            }
+        }
 
-        public static Double operator/(Double d1, Double d2) => new Double(d1.Value / d2.Value);
+        public static Number operator +(IntegerNumber i1, Number n) {
+            switch (n) {
+                case IntegerNumber i2: return new IntegerNumber(i1.Value + i2.Value);
+                case DoubleNumber d2: return new DoubleNumber(i1.Value + d2.Value);
+                default: throw new NotImplementedException();
+            }
 
-        public static Double operator/(Double d, Expr.Integer i) => new Double(d.Value / i.Value);
+        }
+
+        public static Number operator -(IntegerNumber i1, Number n) {
+            switch (n) {
+                case IntegerNumber i2: return new IntegerNumber(i1.Value - i2.Value);
+                case DoubleNumber d2: return new DoubleNumber(i1.Value - d2.Value);
+                default: throw new NotImplementedException();
+            }
+
+        }
+
+        public static Number operator *(IntegerNumber i1, Number n) {
+            switch (n) {
+                case IntegerNumber i2: return new IntegerNumber(i1.Value * i2.Value);
+                case DoubleNumber d2: return new DoubleNumber(i1.Value * d2.Value);
+                default: throw new NotImplementedException();
+            }
+
+        }
+
+        public static Number operator /(IntegerNumber i1, Number n) {
+            switch (n) {
+                case IntegerNumber i2: return new IntegerNumber(i1.Value / i2.Value);
+                case DoubleNumber d2: return new DoubleNumber(i1.Value / d2.Value);
+                default: throw new NotImplementedException();
+            }
+
+        }
+
+        public static Expr.Boolean operator >(IntegerNumber i1, Number n) {
+            switch (n) {
+                case IntegerNumber i2: return new Expr.Boolean(i1.Value > i2.Value);
+                case DoubleNumber d2: return new Expr.Boolean(i1.Value > d2.Value);
+                default: throw new NotImplementedException();
+            }
+
+        }
+
+        public static Expr.Boolean operator <(IntegerNumber i1, Number n) {
+            switch (n) {
+                case IntegerNumber i2: return new Expr.Boolean(i1.Value < i2.Value);
+                case DoubleNumber d2: return new Expr.Boolean(i1.Value < d2.Value);
+                default: throw new NotImplementedException();
+            }
+        }
+
+    }
+
+    public class DoubleNumber : Number {
+
+        public double Value {get;}
+
+        public DoubleNumber(double d) {
+            Value = d;
+        }
+
+        public override string Print() => Value.ToString();
+
+        public override bool Equals(object? obj) {
+            if (obj is null) return false;
+            if (obj is DoubleNumber lit) {
+                return this.Value.Equals(lit.Value);
+            }
+            return false;
+
+        }
+
+        public override int GetHashCode() {
+            return Value.GetHashCode();
+        }
+
+
+        public static Expr.Boolean operator ==(DoubleNumber d1, Number n) {
+            switch (n) {
+                case IntegerNumber i2: return new Expr.Boolean(d1.Value == i2.Value);
+                case DoubleNumber d2: return new Expr.Boolean(d1.Value == d2.Value);
+                default: throw new NotImplementedException();
+            }
+
+        }
+
+        public static Expr.Boolean operator !=(DoubleNumber d1, Number n) {
+            switch (n) {
+                case IntegerNumber i2: return new Expr.Boolean(d1.Value != i2.Value);
+                case DoubleNumber d2: return new Expr.Boolean(d1.Value != d2.Value);
+                default: throw new NotImplementedException();
+            }
+        }
+        public static Number operator +(DoubleNumber d1, Number n) {
+            // TODO: is it  better to use overrides rather than switch statements?
+            switch (n) {
+                case IntegerNumber i2: return new DoubleNumber(d1.Value + i2.Value);
+                case DoubleNumber d2: return new DoubleNumber(d1.Value + d2.Value);
+                default: throw new NotImplementedException();
+            }
+        }
+
+        public static Number operator -(DoubleNumber d1, Number n) {
+            switch (n) {
+                case IntegerNumber i2: return new DoubleNumber(d1.Value - i2.Value);
+                case DoubleNumber d2: return new DoubleNumber(d1.Value - d2.Value);
+                default: throw new NotImplementedException();
+            }
+        }
+
+        public static Number operator *(DoubleNumber d1, Number n) {
+            switch (n) {
+                case IntegerNumber i2: return new DoubleNumber(d1.Value * i2.Value);
+                case DoubleNumber d2: return new DoubleNumber(d1.Value * d2.Value);
+                default: throw new NotImplementedException();
+            }
+        }
+
+        public static Number operator /(DoubleNumber d1, Number n) {
+            switch (n) {
+                case IntegerNumber i2: return new DoubleNumber(d1.Value / i2.Value);
+                case DoubleNumber d2: return new DoubleNumber(d1.Value / d2.Value);
+                default: throw new NotImplementedException();
+            }
+        }
+
+        public static Expr.Boolean operator >(DoubleNumber d1, Number n) {
+            switch (n) {
+                case IntegerNumber i2: return new Expr.Boolean(d1.Value > i2.Value);
+                case DoubleNumber d2: return new Expr.Boolean(d1.Value > d2.Value);
+                default: throw new NotImplementedException();
+            }
+        }
+
+        public static Expr.Boolean operator <(DoubleNumber d1, Number n) {
+            switch (n) {
+                case IntegerNumber i2: return new Expr.Boolean(d1.Value < i2.Value);
+                case DoubleNumber d2: return new Expr.Boolean(d1.Value < d2.Value);
+                default: throw new NotImplementedException();
+            }
+        }
 
     }
 
@@ -245,9 +463,9 @@ public abstract class Expr {
         switch (x) {
             case Expr.Char: return true;
             case Expr.Boolean: return true;
-            case Expr.Integer: return true;
-            case Expr.Double: return true;
             case Expr.String: return true;
+            case Expr.IntegerNumber: return true;
+            case Expr.DoubleNumber: return true;
             default: return false;
         }
 
@@ -349,6 +567,7 @@ public class LiteralExpr<T> : Expr where T : notnull {
         Value = val;
     }
     public T Value {get;}
+
     public override bool Equals(object? obj) {
         if (obj is null) return false;
         if (obj is LiteralExpr<T> lit) {

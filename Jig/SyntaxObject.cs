@@ -97,8 +97,8 @@ public class Syntax : Expr {
                 return new Identifier(sym, srcLoc);
             case Expr.Boolean:
             case Expr.Char:
-            case Expr.Double:
-            case Expr.Integer:
+            case Expr.DoubleNumber:
+            case Expr.IntegerNumber:
             case Expr.String:
             case Expr.Vector:
                 return new Literal(x, srcLoc);
