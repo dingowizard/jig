@@ -32,7 +32,7 @@ public static class Program {
             System.Environment.Exit(0);
         }
 
-        ExecuteFile("prelude.scm", TopLevel);
+        // ExecuteFile("prelude.scm", TopLevel);
 
         if (scriptPath != "") {
             ExecuteFile(scriptPath, TopLevel);

@@ -3,9 +3,17 @@ using Jig.IO;
 
 namespace JigTests;
 
+[TestClass]
 public static class Utilities {
     // static Interpreter _interp = new Interpreter();
     static Interpreter _bareInterp = new Interpreter(withPrelude: false);
+    public static IInterpreter PreludeInterp = null!;
+
+    [AssemblyInitialize]
+    public static void AssemblyInitialize(TestContext tc) {
+        PreludeInterp = new Interpreter(withPrelude: true);
+
+    }
 
     // public static string Interpret(string input) {
     //     return _interp.Interpret(input);

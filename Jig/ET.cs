@@ -190,13 +190,12 @@ internal abstract class ET : Expression {
         public override Expression Body {get;}
     }
 
-    internal delegate List MakeListDelegate(params CompiledCode[] args);
 
-    delegate Thunk? MapInternalDelegate(Continuation.OneArgDelegate continuation, Func<Continuation.OneArgDelegate, LiteralExpr<CompiledCode>, Thunk> proc, List list );
+    delegate Thunk? MapInternalDelegate(Continuation.OneArgDelegate continuation, IEnvironment env, CompiledCode[] list, int index);
 
-    delegate Thunk? ApplyDelegate(Delegate k, Procedure proc, List args);
+    delegate Thunk? ApplyDelegate(Delegate k, Expr proc, List args);
     static PropertyInfo carPropertyInfo = typeof(IPair).GetProperty("Car") ?? throw new Exception("in ProcAppET: ProperLists should have one property named 'Car'");
-    static PropertyInfo cdrPropertyInfo = typeof(IPair).GetProperty("Cdr") ?? throw new Exception("in ProcAppET: ProperLists should have one property named 'Cdr'");
+    static PropertyInfo restPropertyInfo = typeof(List.NonEmpty).GetProperty("Rest") ?? throw new Exception("in ProcAppET: ProperLists should have one property named 'Cdr'");
 
 
     private class ProcAppET : ET {
@@ -207,23 +206,22 @@ internal abstract class ET : Expression {
             var vParam = Expression.Parameter(typeof(Expr));
             var v = Expression.Parameter(typeof(Expr));
             var contParam = Expression.Parameter(typeof(Continuation.OneArgDelegate));
-            var procParam = Expression.Parameter(typeof(LiteralExpr<CompiledCode>));
-            MakeListDelegate listProc = List.NewListFromObjects;
+            var procParam = Expression.Parameter(typeof(CompiledCode));
             var k = Expression.Lambda<Continuation.OneArgDelegate>(
-                            Expression.Convert(DynInv(Expression.Constant((ApplyDelegate)Builtins.apply),
-                                   kParam,
-                                   Expression.Property(Expression.Convert(vParam, typeof(IPair)), carPropertyInfo),
-                                   Expression.Property(Expression.Convert(vParam, typeof(IPair)), cdrPropertyInfo)),
-                                               typeof(Thunk)),
+                            Expression.Convert(
+                                Expression.Invoke(Expression.Constant((ApplyDelegate)Builtins.apply),
+                                                  kParam,
+                                                  Expression.Property(Expression.Convert(vParam, typeof(IPair)), carPropertyInfo),
+                                                  Expression.Property(Expression.Convert(vParam, typeof(List.NonEmpty)), restPropertyInfo)),
+                                typeof(Thunk)),
                            parameters: new ParameterExpression[] {vParam});
             Body =
                 Expression.Convert(
-                    DynInv(Expression.Constant((MapInternalDelegate) Builtins.map_internal),
-                       k,
-                       Expression.Lambda<Func<Continuation.OneArgDelegate, LiteralExpr<CompiledCode>, Thunk>>( // (lambda (k code) (code k env))
-                           body: Expression.Convert(DynInv(Expression.Property(procParam, "Value"), contParam, envParam), typeof(Thunk)),
-                           parameters: new ParameterExpression[] {contParam, procParam}),
-                       Expression.Invoke(Expression.Constant(listProc), Expression.NewArrayInit(typeof(CompiledCode), analyzed))),
+                    Expression.Invoke(Expression.Constant((MapInternalDelegate) Builtins.map_internal),
+                                      k,
+                                      envParam,
+                                      Expression.NewArrayInit(typeof(CompiledCode), analyzed),
+                                      Expression.Constant(0)),
                     typeof(Thunk));
 
         }
@@ -235,23 +233,21 @@ internal abstract class ET : Expression {
             var vParam = Expression.Parameter(typeof(Expr));
             var v = Expression.Parameter(typeof(Expr));
             var contParam = Expression.Parameter(typeof(Continuation.OneArgDelegate));
-            var procParam = Expression.Parameter(typeof(LiteralExpr<CompiledCode>));
-            MakeListDelegate listProc = List.NewListFromObjects;
+            var procParam = Expression.Parameter(typeof(CompiledCode));
             var k = Expression.Lambda<Continuation.OneArgDelegate>(
                             Expression.Convert(DynInv(Expression.Constant((ApplyDelegate)Builtins.apply),
                                    kParam,
                                    Expression.Property(Expression.Convert(vParam, typeof(IPair)), carPropertyInfo),
-                                   Expression.Property(Expression.Convert(vParam, typeof(IPair)), cdrPropertyInfo)),
+                                   Expression.Property(Expression.Convert(vParam, typeof(List.NonEmpty)), restPropertyInfo)),
                                                typeof(Thunk)),
                            parameters: new ParameterExpression[] {vParam});
             Body =
                 Expression.Convert(
-                    DynInv(Expression.Constant((MapInternalDelegate) Builtins.map_internal),
-                       k,
-                       Expression.Lambda<Func<Continuation.OneArgDelegate, LiteralExpr<CompiledCode>, Thunk>>( // (lambda (k code) (code k env))
-                           body: Expression.Convert(DynInv(Expression.Property(procParam, "Value"), contParam, envParam), typeof(Thunk)),
-                           parameters: new ParameterExpression[] {contParam, procParam}),
-                       Expression.Invoke(Expression.Constant(listProc), Expression.NewArrayInit(typeof(CompiledCode), analyzed))),
+                    Expression.Invoke(Expression.Constant((MapInternalDelegate) Builtins.map_internal),
+                           k,
+                           envParam,
+                           Expression.NewArrayInit(typeof(CompiledCode), analyzed),
+                           Expression.Constant(0)),
                     typeof(Thunk));
         }
 
@@ -598,7 +594,7 @@ internal abstract class ET : Expression {
                 case 7:
                     return typeof(ImproperListFunction7);
                 default:
-                    throw new Exception("lambda: can't handle improper list parameters with more than 7 parameters before the rest paramter.");
+                    throw new Exception("lambda: can't handle improper codes parameters with more than 7 parameters before the rest paramter.");
             }
         }
 
@@ -660,42 +656,32 @@ internal abstract class ET : Expression {
 
         public BlockET(LexicalContext scope, List.NonEmpty exprs)
         {
-            MakeListDelegate listProc = List.NewListFromObjects;
             LexicalContext blockScope = scope.Extend();
             // analyze and reduce all but last expr
             Expression<CompiledCode>[] analyzed = exprs
                 .Take(exprs.Count() - 1)
                 .Select(x => (Expression<CompiledCode>)Analyze(blockScope, x).Reduce()).ToArray();
             // forcing to array to deal with weird bug where things were done out of order when handled as IEnumerable
-            // the last expr in the list has to return a MaybeThunk for trampoline
             Expression<CompiledCode> lastExprCC = (Expression<CompiledCode>)Analyze(blockScope, exprs.Last()).Reduce();
-            Expression thunkExpr = Expression.Lambda<Thunk>(Expression.Convert(DynInv(lastExprCC, kParam, envParam), typeof(Thunk)));
-
-                // NewMaybeThunkExpression(DynInv(lastExprCC, kParam, envParam));
-            // have to 'Reduce' by hand because newMaybeThunk is not an ET
+            Expression thunkExpr = Expression.Lambda<Thunk>(Expression.Convert(Expression.Invoke(lastExprCC, kParam, envParam), typeof(Thunk)));
             Expression<CompiledCode> last = Expression.Lambda<CompiledCode>(thunkExpr, new ParameterExpression[] {kParam, envParam});
             analyzed = analyzed.ToList().Append(last).ToArray();
-            var listExpr = Expression.Convert(Expression.Invoke(Expression.Constant(listProc), Expression.NewArrayInit(typeof(CompiledCode), analyzed)), typeof(List.NonEmpty));
             Body = Expression.Block(blockScope.Parameters,
-                new Expression[] {Expression.Invoke(
-                Expression.Constant((Func<Delegate, IEnvironment, List.NonEmpty, Thunk>) doSequence),
                 new Expression[] {
-                    kParam,
-                    envParam,
-                    listExpr
-                }
-                    )});
+                    Expression.Invoke(
+                        Expression.Constant((Func<Delegate, IEnvironment, CompiledCode[], int, Thunk>) doSequence),
+                        kParam,
+                        envParam,
+                        Expression.NewArrayInit(typeof(CompiledCode), analyzed),
+                        Expression.Constant(0))
+                });
         }
 
-        private Thunk doSequence(Delegate k, IEnvironment env, List list) {
-            // TODO: make caller guarantee properlist
-            List.NonEmpty? exprs = list as List.NonEmpty;
-            if (exprs == null) throw new Exception("doSequence: should not be called with empty list");
-            var code = exprs.Car as LiteralExpr<CompiledCode> ?? throw new Exception($"BlockET.doSequence: expected a CompiledCode but got {exprs.Car.GetType()}");
-            List cdr = (List)exprs.Cdr;
-            Continuation.OneArgDelegate k0 = (v) => doSequence(k,env,(List.NonEmpty)cdr);
-            Delegate cont = cdr is Expr.NullType ? k : k0;
-            return code.Value(cont, env);
+        private Thunk doSequence(Delegate k, IEnvironment env, CompiledCode[] codes, int index) {
+            var code = codes[index];
+            Continuation.ContinuationAny k0 = (v) => doSequence(k, env, codes, index + 1);
+            Delegate cont = index == codes.Length - 1 ? k : k0;
+            return code(cont, env);
         }
 
         public override Expression Body {get;}

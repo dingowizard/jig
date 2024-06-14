@@ -631,14 +631,6 @@ public abstract class List : Expr, IEnumerable<Expr> {
         return result;
     }
 
-    public static List NewListFromObjects(params CompiledCode[] args) {
-        List result = Empty;
-        for (int index = args.Length - 1; index >= 0; index--) {
-            result = new NonEmpty(new LiteralExpr<CompiledCode>(args[index]), result);
-        }
-        return result;
-    }
-
     public Expr Append(Expr x) {
         switch (x) {
             case List.NullType:

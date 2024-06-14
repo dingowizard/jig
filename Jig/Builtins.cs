@@ -4,17 +4,19 @@ public delegate Thunk? Builtin(Delegate k, List args);
 
 internal static class Builtins {
 
-    internal static Thunk? map_internal(Continuation.OneArgDelegate k, Func<Continuation.OneArgDelegate, LiteralExpr<CompiledCode>, Thunk> proc, List list) {
+
+    internal static Thunk? map_internal(Continuation.OneArgDelegate k, IEnvironment env, CompiledCode[] codes, int index) {
 // // (define (map/cps k fn xs)
 // //   (if (null? xs)
 // //       (k xs)
-// //       (fn (lambda (v0) (map/cps (lambda (v1) (k (cons v0 v1))) fn (cdr xs))) (car xs))))
-        if (list is List.NonEmpty properList) {
-            List args = properList.Rest;
-            Continuation.OneArgDelegate k2 = (v0) => map_internal((Continuation.OneArgDelegate)((v1) => k((Expr)Expr.Pair.Cons(v0, (List) v1))), proc, args);
-            return proc(k2, (LiteralExpr<CompiledCode>)properList.Car);
+// //       (fn (lambda (arg) (map/cps (lambda (rest) (k (cons arg rest))) fn (cdr xs))) (car xs))))
+
+
+        if (index < codes.Length) {
+            Continuation.OneArgDelegate k2 = (arg) => map_internal((Continuation.OneArgDelegate)((rest) => k((Expr)Expr.Pair.Cons(arg, (List) rest))), env, codes, index + 1);
+            return codes[index](k2, env);
         } else {
-            return k(list); // at this point , k is (lambda (l) (apply (car l) (cdr l)))
+            return k(List.Empty); // at this point , k is (lambda (l) (apply (car l) (cdr l)))
         }
     }
 
@@ -218,7 +220,7 @@ internal static class Builtins {
             if (acc is List list) {
                 acc = list.Append(first);
             } else {
-                return Error(k, $"append: {acc} is not a proper list.");
+                return Error(k, $"append: {acc} is not a proper codes.");
             }
         }
         return Continuation.ApplyDelegate(k, acc);
@@ -370,9 +372,9 @@ internal static class Builtins {
     }
 
     public static Thunk? syntax_to_list(Delegate k, List args) {
-        if (args.Count() != 1) return Error(k, $"syntax->list: expected one argument.");
+        if (args.Count() != 1) return Error(k, $"syntax->codes: expected one argument.");
         Syntax? stx = args.ElementAt(0) as Syntax;
-        if (stx is null) return Error(k, $"syntax->list: expected a syntax argument, got got {args.ElementAt(0)}");
+        if (stx is null) return Error(k, $"syntax->codes: expected a syntax argument, got got {args.ElementAt(0)}");
         if (Syntax.ToList(stx, out List? result)) {
             return Continuation.ApplyDelegate(k, result);
         } else {

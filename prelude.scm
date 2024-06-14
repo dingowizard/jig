@@ -44,14 +44,20 @@
     (fold cons (list) xs)))
 
 ;; TODO: why do we need to define map1? we get infinite loop otherwise
-;; TODO: more efficient any-null? (short circuit with call/cc?)
 (define map
   (lambda (fn xs . rest)
     (define any-null?
       (lambda (xs)
-        (fold (lambda (l acc) (if acc acc (if (null? l) #t #f)))
-              #f
-              xs)))
+        (call/cc
+         (lambda (return)
+           (define loop
+             (lambda (xs)
+               (if (null? xs)
+                   #f
+                   (if (null? (car xs))
+                       (return #t)
+                       (loop (cdr xs))))))
+           (loop xs)))))
     (define map1
       (lambda (fn xs)
         (if (null? xs)
@@ -62,13 +68,6 @@
           '()
           (cons (apply fn (map1 car ls))
                 (apply map (cons fn (map1 cdr ls)))))) (cons xs rest))))
-
-;; TODO: support any number of list arguments, including no args
-;; (define append
-;;   (lambda (l1 l2)
-;;     (if (null? l1)
-;;         l2
-;;         (cons (car l1) (append (cdr l1) l2)))))
 
 (define caar (lambda (p) (car (car p))))
 
@@ -168,6 +167,7 @@
 ;;           ,@(map (lambda (p v) `(set! ,p ,v)) ps vs)
 ;;           ,@body) ,@(map (lambda (p) `(if #f #f)) ps))))))
 
+; TODO: support 'else'
 (define-syntax cond
   (lambda (stx)
     (let ((clauses (cdr (syntax->list stx))))

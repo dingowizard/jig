@@ -1,4 +1,4 @@
-namespace JigTests.Core;
+namespace JigTests;
 
 [TestClass]
 public class HygienicMacros {
@@ -6,7 +6,7 @@ public class HygienicMacros {
     [TestMethod]
     public void HygienicOr() {
         var actual =
-            new Interpreter(withPrelude: false).InterpretSequenceReadSyntax(new string [] {
+            Utilities.PreludeInterp.InterpretSequenceReadSyntax(new string [] {
                     """
                     (define-syntax or2
                       (lambda (stx)
