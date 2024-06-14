@@ -83,7 +83,32 @@ public abstract class Expr {
         }
     }
 
+    public abstract class Number<T> : Number where T: notnull {
+
+        public Number(T item) {
+            Value = item;
+        }
+        public T Value {get;}
+
+        public override string Print() => Value.ToString() ?? "";
+
+        public override bool Equals(object? obj) {
+            if (obj is null) return false;
+            if (obj is Number<T> lit) {
+                return this.Value.Equals(lit.Value);
+            }
+            return false;
+        }
+
+        public override int GetHashCode() {
+            return Value.GetHashCode();
+        }
+
+
+    }
+
     public abstract class Number : Expr {
+
         public static Number From(int i) {
             return new IntegerNumber(i);
         }
@@ -91,6 +116,10 @@ public abstract class Expr {
         public static Number From(double d) {
             return new DoubleNumber(d);
         }
+
+        public abstract override int GetHashCode();
+
+        public abstract override bool Equals(object? obj);
 
         public static Expr.Boolean operator ==(Number n1, Number n2) {
             switch (n1) {
@@ -159,12 +188,9 @@ public abstract class Expr {
         }
     }
 
-    public class IntegerNumber : Number {
-        public int Value {get;}
-        public IntegerNumber(int i) {
-            Value = i;
-        }
-        public override string Print() => Value.ToString();
+    public class IntegerNumber : Number<int> {
+
+        public IntegerNumber(int i) : base(i) {}
 
         public override bool Equals(object? obj) {
             if (obj is null) return false;
@@ -172,7 +198,6 @@ public abstract class Expr {
                 return this.Value.Equals(lit.Value);
             }
             return false;
-
         }
 
         public override int GetHashCode() {
@@ -251,15 +276,10 @@ public abstract class Expr {
 
     }
 
-    public class DoubleNumber : Number {
+    public class DoubleNumber : Number<double> {
 
-        public double Value {get;}
 
-        public DoubleNumber(double d) {
-            Value = d;
-        }
-
-        public override string Print() => Value.ToString();
+        public DoubleNumber(double d) : base(d) {}
 
         public override bool Equals(object? obj) {
             if (obj is null) return false;
@@ -267,13 +287,11 @@ public abstract class Expr {
                 return this.Value.Equals(lit.Value);
             }
             return false;
-
         }
 
         public override int GetHashCode() {
             return Value.GetHashCode();
         }
-
 
         public static Expr.Boolean operator ==(DoubleNumber d1, Number n) {
             switch (n) {

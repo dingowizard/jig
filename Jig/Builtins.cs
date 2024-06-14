@@ -1,10 +1,10 @@
 namespace Jig;
 
-public delegate Thunk Builtin(Delegate k, List args);
+public delegate Thunk? Builtin(Delegate k, List args);
 
 internal static class Builtins {
 
-    internal static Thunk map_internal(Continuation.OneArgDelegate k, Func<Continuation.OneArgDelegate, LiteralExpr<CompiledCode>, Thunk> proc, List list) {
+    internal static Thunk? map_internal(Continuation.OneArgDelegate k, Func<Continuation.OneArgDelegate, LiteralExpr<CompiledCode>, Thunk> proc, List list) {
 // // (define (map/cps k fn xs)
 // //   (if (null? xs)
 // //       (k xs)
@@ -19,7 +19,7 @@ internal static class Builtins {
     }
 
 
-    public static Thunk car (Delegate k, List args) {
+    public static Thunk? car (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             switch (properList.Car) {
                 case IPair pair:
@@ -32,7 +32,7 @@ internal static class Builtins {
         }
     }
 
-    public static  Thunk nullP (Delegate k, List args) {
+    public static  Thunk? nullP (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             Expr arg = properList.Car;
             if (arg is Expr.NullType) {
@@ -45,7 +45,7 @@ internal static class Builtins {
         }
     }
 
-    public static Thunk cdr (Delegate k, List args) {
+    public static Thunk? cdr (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             switch (properList.Car) {
                 case IPair pair:
@@ -58,7 +58,7 @@ internal static class Builtins {
         }
     }
 
-    public static Thunk char_p(Delegate k, List args) {
+    public static Thunk? char_p(Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             if (args.Count() != 1) return Error(k, "char?: expected one argument but got {args.Count()}");
             Expr arg = properList.Car;
@@ -72,7 +72,7 @@ internal static class Builtins {
         }
     }
 
-    public static Thunk succ(Delegate k, List args) {
+    public static Thunk? succ(Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             object arg = properList.Car;
             if (arg is Expr.IntegerNumber intExpr) {
@@ -85,7 +85,7 @@ internal static class Builtins {
         }
     }
 
-    public static Thunk number_p(Delegate k, List args) {
+    public static Thunk? number_p(Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             if (properList.Count() == 1) {
                 return Continuation.ApplyDelegate(k, new Expr.Boolean(properList.Car is Expr.Number));
@@ -97,7 +97,7 @@ internal static class Builtins {
         }
     }
 
-    public static Thunk sum(Delegate k, List args) {
+    public static Thunk? sum(Delegate k, List args) {
         Expr.Number acc = Expr.Number.From(0);
         foreach (var arg in args) {
             if (arg is Expr.Number num) {
@@ -109,7 +109,7 @@ internal static class Builtins {
         return Continuation.ApplyDelegate(k, acc);
     }
 
-    public static Thunk diff(Delegate k, Expr first, List args) {
+    public static Thunk? diff(Delegate k, Expr first, List args) {
         if (first is Expr.Number acc) {
             foreach (var arg in args) {
                 if (arg is Expr.Number num) {
@@ -124,7 +124,7 @@ internal static class Builtins {
         }
     }
 
-    public static Thunk numEq(Delegate k, Expr first, List args) {
+    public static Thunk? numEq(Delegate k, Expr first, List args) {
         if (first is Expr.Number n1) {
             foreach (var arg in args) {
                 if (arg is Expr.Number n2) {
@@ -144,7 +144,7 @@ internal static class Builtins {
 
     }
 
-    public static Thunk gt(Delegate k, List args) {
+    public static Thunk? gt(Delegate k, List args) {
         if (args is List.NonEmpty nonEmpty) {
             Expr.Number? first = nonEmpty.Car as Expr.Number;
             if (first is null) return Error(k, $">: expected arguments to be numbers but got {first}");
@@ -167,7 +167,7 @@ internal static class Builtins {
         }
     }
 
-    public static Thunk eq_p(Delegate k, List args) {
+    public static Thunk? eq_p(Delegate k, List args) {
         // TODO: write some tests for eq?
         if (args is List.NonEmpty properList) {
             if (properList.Count() != 2) {
@@ -182,7 +182,7 @@ internal static class Builtins {
         }
     }
 
-    public static Thunk new_product(Delegate k, List args) {
+    public static Thunk? new_product(Delegate k, List args) {
         Expr.Number acc = Expr.Number.From(1);
         foreach (var arg in args) {
             if (arg is Expr.Number num) {
@@ -195,7 +195,7 @@ internal static class Builtins {
 
     }
 
-    public static Thunk cons (Delegate k, List args) {
+    public static Thunk? cons (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             if (properList.Count() != 2) {
                 return Error(k, "cons: expected two arguments");
@@ -209,7 +209,7 @@ internal static class Builtins {
         }
     }
 
-    public static Thunk append(Delegate k, List args) {
+    public static Thunk? append(Delegate k, List args) {
         Expr acc = List.Empty;
         List rest = args;
         while (rest is List.NonEmpty lists) {
@@ -225,7 +225,7 @@ internal static class Builtins {
 
     }
 
-    public static Thunk symbol_equal_p (Delegate k, List args) {
+    public static Thunk? symbol_equal_p (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             if (properList.Count() < 2) {
                 return Error(k, "symbol=?: expected two or more arguments.");
@@ -255,7 +255,7 @@ internal static class Builtins {
 
     }
 
-    public static Thunk symbol_p (Delegate k, List args) {
+    public static Thunk? symbol_p (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             if (properList.Count() != 1) {
                 return Error(k, "symbol?: expected one argument.");
@@ -267,7 +267,7 @@ internal static class Builtins {
 
     }
 
-    public static Thunk syntax_e (Delegate k, List args) {
+    public static Thunk? syntax_e (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             if (properList.Count() != 1) {
                 return Error(k, "syntax-e: expected one argument.");
@@ -281,7 +281,7 @@ internal static class Builtins {
 
     }
 
-    public static Thunk symbol_to_string (Delegate k, List args) {
+    public static Thunk? symbol_to_string (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             if (properList.Count() != 1) {
                 return Error(k, "symbol->string: expected one argument.");
@@ -297,7 +297,7 @@ internal static class Builtins {
 
     }
 
-    public static Thunk string_to_symbol (Delegate k, List args) {
+    public static Thunk? string_to_symbol (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             if (properList.Count() != 1) {
                 return Error(k, "string->symbol: expected one argument.");
@@ -313,7 +313,7 @@ internal static class Builtins {
 
     }
 
-    public static Thunk display(Delegate k, List args) {
+    public static Thunk? display(Delegate k, List args) {
         // TODO: should take argument for port but use current port parameter when no arg
         // TODO: should write strings like 'write-string' : no quotes for one thing
         if (args is List.NonEmpty properList) {
@@ -327,7 +327,7 @@ internal static class Builtins {
         }
     }
 
-    public static Thunk newline(Delegate k, List args) {
+    public static Thunk? newline(Delegate k, List args) {
         // TODO: should take argument for port but use current port parameter when no arg
         if (args is List.NonEmpty properList) {
             if (properList.Count() > 1) {
@@ -341,11 +341,11 @@ internal static class Builtins {
         }
     }
 
-    public static Thunk values(Delegate k, List args) {
+    public static Thunk? values(Delegate k, List args) {
         return new Continuation(k).Apply(args);
     }
 
-    public static Thunk callcc(Delegate k, List args) {
+    public static Thunk? callcc(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"call/cc: expected one argument.");
         Procedure? proc = args.ElementAt(0) as Procedure;
         if (proc is null) return Error(k, "call/cc: expected procedure argument but got {args.ElementAt(0)}");
@@ -358,7 +358,7 @@ internal static class Builtins {
 
     // public static void dynamic_wind(Delegate k, List args) {}
 
-    public static Thunk apply (Delegate k, Expr x, List args) {
+    public static Thunk? apply (Delegate k, Expr x, List args) {
         // Console.WriteLine($"in Builtins.apply: applying {x} to {args}");
         if (x is Continuation cont) {
             return cont.Apply(args);
@@ -369,7 +369,7 @@ internal static class Builtins {
         }
     }
 
-    public static Thunk syntax_to_list(Delegate k, List args) {
+    public static Thunk? syntax_to_list(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"syntax->list: expected one argument.");
         Syntax? stx = args.ElementAt(0) as Syntax;
         if (stx is null) return Error(k, $"syntax->list: expected a syntax argument, got got {args.ElementAt(0)}");
@@ -380,7 +380,7 @@ internal static class Builtins {
         }
     }
 
-    public static Thunk syntax_p(Delegate k, List args) {
+    public static Thunk? syntax_p(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"syntax?: expected one argument.");
         if (args.ElementAt(0) is Syntax) {
             return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
@@ -389,12 +389,12 @@ internal static class Builtins {
         }
     }
 
-    public static Thunk pair_p(Delegate k, List args) {
+    public static Thunk? pair_p(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"pair?: expected one argument.");
         return Continuation.ApplyDelegate(k, new Expr.Boolean(args.ElementAt(0) is IPair));
     }
 
-    public static Thunk datum_to_syntax(Delegate k, List args) {
+    public static Thunk? datum_to_syntax(Delegate k, List args) {
         if (args.Count() != 2) return Error(k, $"datum->syntax: expected two arguments but got {args.Count()}.");
         if (args.ElementAt(0) is Syntax stx) {
             return Continuation.ApplyDelegate(k, Syntax.FromDatum(stx.SrcLoc, args.ElementAt(1)));
@@ -403,7 +403,7 @@ internal static class Builtins {
         }
     }
 
-    public static Thunk expand(Delegate k, List args) {
+    public static Thunk? expand(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"expand: expected a single argument but got {args.Count()}");
         if (args.ElementAt(0) is Syntax stx) {
             // TODO: what should expansion environment be?
@@ -416,7 +416,7 @@ internal static class Builtins {
         }
     }
 
-    public static Thunk expand_once(Delegate k, List args) {
+    public static Thunk? expand_once(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"expand-once: expected a single argument but got {args.Count()}");
         if (args.ElementAt(0) is Syntax stx) {
             // TODO: what should expansion environment be?
@@ -429,7 +429,7 @@ internal static class Builtins {
         }
     }
 
-    internal static Thunk Error(Delegate k, string msg, params Expr[] rest) {
+    internal static Thunk? Error(Delegate k, string msg, params Expr[] rest) {
         // the reason we have to look up "error" in the global environment is that
         // in prelude we redefine error so that it uses the redefined call/cc that unwinds winders
         // otherwise *current-exception-handlers* isn't restored properly
@@ -444,7 +444,7 @@ internal static class Builtins {
         }
     }
 
-    public static Thunk error(Delegate k, List args) {
+    public static Thunk? error(Delegate k, List args) {
         // TODO: should probably be possible to use a different continuation than id
         // for example if we are reading in a whole script rather than an expr at REPL
         // TODO: print other args
@@ -464,12 +464,12 @@ internal static class Builtins {
         return Continuation.ApplyDelegate(end, Expr.Void);
     }
 
-    public static Thunk vector(Delegate k, List args) {
+    public static Thunk? vector(Delegate k, List args) {
         return Continuation.ApplyDelegate(k, new Expr.Vector(args));
 
     }
 
-    public static Thunk vector_length(Delegate k, List args) {
+    public static Thunk? vector_length(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"vector-length: expected a single argument but got {args.Count()}");
         if (args.ElementAt(0) is Expr.Vector v) {
             return Continuation.ApplyDelegate(k, v.Length);
@@ -480,7 +480,7 @@ internal static class Builtins {
 
     }
 
-    public static Thunk vector_ref(Delegate k, List args) {
+    public static Thunk? vector_ref(Delegate k, List args) {
         if (args.Count() != 2) return Error(k, $"vector-ref: expected two arguments but got {args.Count()}");
         if (args.ElementAt(0) is Expr.Vector v) {
             if (args.ElementAt(1) is Expr.IntegerNumber i) {
@@ -495,9 +495,7 @@ internal static class Builtins {
             }
         } else {
             return Error(k, "vector-ref: expected first argument to be vector");
-
         }
 
     }
-
 }

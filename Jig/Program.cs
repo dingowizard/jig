@@ -43,7 +43,12 @@ public static class Program {
         Continuation.ContinuationAny print = (Continuation.ContinuationAny)Print;
         if (expr != "") {
             using (InputPort port = InputPort.FromString(expr)) {
-                Eval(print, Jig.Reader.Reader.ReadSyntax(port), TopLevel);
+                Syntax? stx = Jig.Reader.Reader.ReadSyntax(port);
+                if (stx is null) {
+                    Console.Error.WriteLine($"failed to read {expr}.");
+                    System.Environment.Exit(-1);
+                }
+                Eval(print, stx, TopLevel);
             }
             System.Environment.Exit(0);
 

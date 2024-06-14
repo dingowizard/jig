@@ -6,7 +6,7 @@ public class Continuation : Procedure {
 
     public Continuation(Delegate d) : base (d) {}
 
-    public Thunk Apply(List args) {
+    public Thunk? Apply(List args) {
         switch (Value) {
             case ContinuationAny cany:
                 return cany(args.ToArray());
@@ -27,13 +27,13 @@ public class Continuation : Procedure {
             case ImproperListContinuation7 ic7:
                 return ic7(args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), args.ElementAt(4), args.ElementAt(5), args.ElementAt(6), List.NewList(args.Skip(7).ToArray()));
             default:
-                return  (Thunk) Value.DynamicInvoke(args.ToArray());
+                return  (Thunk?) Value.DynamicInvoke(args.ToArray());
         }
 
     }
 
 
-    internal static Thunk ApplyDelegate(Delegate k, Expr arg) {
+    internal static Thunk? ApplyDelegate(Delegate k, Expr arg) {
         // TODO: should we handle more continuation types here?
             if (k is Continuation.ContinuationAny cany) {
                 return cany(arg);
@@ -41,7 +41,7 @@ public class Continuation : Procedure {
             if (k is Continuation.OneArgDelegate c1) {
                 return c1(arg);
             }
-            return (Thunk)k.DynamicInvoke(arg);
+            return (Thunk?)k.DynamicInvoke(arg);
     }
 
 

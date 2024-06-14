@@ -57,7 +57,7 @@ public class Environment : IEnvironment {
         }
     }
 
-    public Thunk Set(Delegate k, Expr sym, Expr v) {
+    public Thunk? Set(Delegate k, Expr sym, Expr v) {
         Syntax.Identifier? id = sym as Syntax.Identifier;
         Expr.Symbol s = id is not null ? id.Symbol : (Expr.Symbol) sym;
         if (!_dict.ContainsKey(s)) {
@@ -68,7 +68,7 @@ public class Environment : IEnvironment {
 
     }
 
-    public Thunk Define (Delegate k, Expr sym, Expr v) {
+    public Thunk? Define (Delegate k, Expr sym, Expr v) {
         Expr.Symbol s = sym is Syntax.Identifier i ? i.Symbol : ((Expr.Symbol) sym);
         if (_dict.ContainsKey(s)) {
             _dict[s] = v;
@@ -78,7 +78,7 @@ public class Environment : IEnvironment {
         return Continuation.ApplyDelegate(k, Expr.Void);
     }
 
-    public Thunk LookUp (Delegate k, Expr expr) {
+    public Thunk? LookUp (Delegate k, Expr expr) {
         Syntax.Identifier? id = expr as Syntax.Identifier;
         Expr.Symbol symbol = id is not null ? id.Symbol : (Expr.Symbol) expr;
         if (_dict.TryGetValue(symbol, out Expr? result)) {

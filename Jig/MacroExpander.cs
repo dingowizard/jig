@@ -241,7 +241,7 @@ public class ExpansionEnvironment {
         _dict = dict;
     }
 
-    private static Thunk and_macro(Delegate k, Expr x) {
+    private static Thunk? and_macro(Delegate k, Expr x) {
         Syntax stx = x as Syntax ?? throw new Exception($"and: expected syntax, got {x.GetType()}");
         Syntax result;
         SyntaxList stxList = Syntax.E(stx) as SyntaxList ?? throw new Exception("and: syntax should expand to list");
@@ -269,7 +269,7 @@ public class ExpansionEnvironment {
 
     }
 
-    private static Thunk quasiquote_macro(Delegate k, Expr x) {
+    private static Thunk? quasiquote_macro(Delegate k, Expr x) {
         Syntax stx = x as Syntax ?? throw new Exception($"quasiquote: expected syntax, got {x.GetType()}");
         SyntaxList stxList = Syntax.E(stx) as SyntaxList ?? throw new Exception("quasiquote: syntax should expand to list");
         Syntax result;
@@ -342,10 +342,11 @@ public class ExpansionEnvironment {
 
     }
 
+
     public static ExpansionEnvironment Default {get;} =
         new ExpansionEnvironment(new Dictionary<Expr.Symbol, Transformer>{
-            {new Expr.Symbol("and"), new Transformer((Func<Delegate, Expr, Thunk>) and_macro)},
-            {new Expr.Symbol("quasiquote"), new Transformer((Func<Delegate, Expr, Thunk>) quasiquote_macro)},
+            {new Expr.Symbol("and"), new Transformer((Func<Delegate, Expr, Thunk?>) and_macro)},
+            {new Expr.Symbol("quasiquote"), new Transformer((Func<Delegate, Expr, Thunk?>) quasiquote_macro)},
             }
         );
 

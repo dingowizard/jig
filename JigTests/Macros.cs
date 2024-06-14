@@ -3,7 +3,7 @@ namespace JigTests;
 [TestClass]
 public class Macros {
 
-    static IInterpreter _interp;
+    static IInterpreter _interp = null!;
 
     [ClassInitialize]
     public static void MakeInterp() {

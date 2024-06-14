@@ -7,14 +7,14 @@ using Microsoft.Scripting.Actions;
 
 namespace Jig;
 
-internal delegate Thunk ListFunction(Delegate k, List rest);
-internal delegate Thunk PairFunction(Delegate k, Expr arg0, List rest);
-internal delegate Thunk ImproperListFunction2(Delegate k, Expr arg0, Expr arg1, List rest);
-internal delegate Thunk ImproperListFunction3(Delegate k, Expr arg0, Expr arg1, Expr arg2, List rest);
-internal delegate Thunk ImproperListFunction4(Delegate k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, List rest);
-internal delegate Thunk ImproperListFunction5(Delegate k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, List rest);
-internal delegate Thunk ImproperListFunction6(Delegate k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, Expr arg5, List rest);
-internal delegate Thunk ImproperListFunction7(Delegate k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, Expr arg5, Expr arg6, List rest);
+internal delegate Thunk? ListFunction(Delegate k, List rest);
+internal delegate Thunk? PairFunction(Delegate k, Expr arg0, List rest);
+internal delegate Thunk? ImproperListFunction2(Delegate k, Expr arg0, Expr arg1, List rest);
+internal delegate Thunk? ImproperListFunction3(Delegate k, Expr arg0, Expr arg1, Expr arg2, List rest);
+internal delegate Thunk? ImproperListFunction4(Delegate k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, List rest);
+internal delegate Thunk? ImproperListFunction5(Delegate k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, List rest);
+internal delegate Thunk? ImproperListFunction6(Delegate k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, Expr arg5, List rest);
+internal delegate Thunk? ImproperListFunction7(Delegate k, Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, Expr arg5, Expr arg6, List rest);
 
 internal abstract class ET : Expression {
 
@@ -192,9 +192,9 @@ internal abstract class ET : Expression {
 
     internal delegate List MakeListDelegate(params CompiledCode[] args);
 
-    delegate Thunk MapInternalDelegate(Continuation.OneArgDelegate continuation, Func<Continuation.OneArgDelegate, LiteralExpr<CompiledCode>, Thunk> proc, List list );
+    delegate Thunk? MapInternalDelegate(Continuation.OneArgDelegate continuation, Func<Continuation.OneArgDelegate, LiteralExpr<CompiledCode>, Thunk> proc, List list );
 
-    delegate Thunk ApplyDelegate(Delegate k, Procedure proc, List args);
+    delegate Thunk? ApplyDelegate(Delegate k, Procedure proc, List args);
     static PropertyInfo carPropertyInfo = typeof(IPair).GetProperty("Car") ?? throw new Exception("in ProcAppET: ProperLists should have one property named 'Car'");
     static PropertyInfo cdrPropertyInfo = typeof(IPair).GetProperty("Cdr") ?? throw new Exception("in ProcAppET: ProperLists should have one property named 'Cdr'");
 
