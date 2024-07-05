@@ -24,13 +24,15 @@ public class ParsedSet : ParsedExpr {
         Variable = id;
         Value = val;
 
+        
+    
+
     }
 
     public ParsedVariable Variable {get;}
     public Syntax Value {get;}
     public static bool TryParse(Syntax stx, MacroExpander expander, ExpansionEnvironment ee, [NotNullWhen(returnValue: true)] out ParsedSet? setExpr) {
-        SyntaxList? stxList = Syntax.E(stx) as SyntaxList;
-        if (stxList is null) {
+        if (Syntax.E(stx) is not SyntaxList stxList) {
             setExpr = null;
             return false;
         }
@@ -48,6 +50,19 @@ public class ParsedSet : ParsedExpr {
                               expander.Expand(x, ee),
                               stx.SrcLoc);
         return true;
+    }
+
+}
+
+public class ParsedBegin(Expr x, ParsedExpr[] forms, SrcLoc? srcLoc = null) : ParsedExpr(x, srcLoc) {
+    public ParsedExpr[] Forms {get;} = forms;
+
+    public static bool TryParse(Syntax stx,
+                                MacroExpander expander,
+                                ExpansionEnvironment ee,
+                                [NotNullWhen(returnValue: true)] out ParsedLambda? lambdaExpr)
+    {
+        throw new NotImplementedException();
     }
 
 }

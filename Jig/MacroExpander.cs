@@ -10,14 +10,6 @@ public class MacroExpander {
     public MacroExpander() {
 
         Bindings = new Dictionary<Syntax.Identifier, Binding>();
-        // TODO: we shouldn't do this every time the macro expander runs
-        // foreach (var sym in Program.TopLevel.Symbols) {
-        //     // add all top level symbols to bindings
-        //     var id = new Syntax.Identifier(sym); // TODO: srcloc should refer to prelude file or wherever
-        //     Syntax.AddScope(id, TopLevelScope);
-        //     id.Symbol.Binding = Binding.TopLevel;
-        //     Bindings.Add(id, Binding.TopLevel);
-        // }
     }
 
     internal Dictionary<Syntax.Identifier, Binding> Bindings {get;}
