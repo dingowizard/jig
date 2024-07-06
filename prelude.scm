@@ -81,13 +81,13 @@
 
 (define cdddr (lambda (p) (cdr (cdr (cdr p)))))
 
-(define-syntax begin
-  (lambda (stx)
-    (datum->syntax
-     stx
-     (list
-      (append (list 'lambda (list))
-              (cdr (syntax->list stx)))))))
+; (define-syntax begin
+;   (lambda (stx)
+;     (datum->syntax
+;      stx
+;      (list
+;       (append (list 'lambda (list))
+;               (cdr (syntax->list stx)))))))
 
 (define-syntax let
   (lambda (stx)
@@ -137,35 +137,35 @@
        stx
        `((lambda () ,@(map (lambda (p v) `(define ,p ,v)) ps vs) ,@body))))))
 
-;; TODO: figure out why these two definitions of letrec, which work in racket, fail in Jig
-;; (letrec ((x 1)) x) => error: unbound x
-;; the x in the body can't find its binding because its only scope is the toplevel scope
-;;
-;; (define-syntax letrec
-;;   (lambda (stx)
-;;     (let* ((stx-list (syntax->list stx))
-;;            (bs (map syntax->list (syntax->list (cadr stx-list))))
-;;            (ps (map car bs))
-;;            (vs (map cadr bs))
-;;            (body (cddr stx-list)))
-;;       (datum->syntax
-;;        stx
-;;        `(let ,(map (lambda (p) `(,p (void))) ps)
-;;           ,@(map (lambda (p v) `(set! ,p ,v)) ps vs)
-;;           ,@body)))))
+; ;; TODO: figure out why these two definitions of letrec, which work in racket, fail in Jig
+; ;; (letrec ((x 1)) x) => error: unbound x
+; ;; the x in the body can't find its binding because its only scope is the toplevel scope
+; ;;
+; ;; (define-syntax letrec
+; ;;   (lambda (stx)
+; ;;     (let* ((stx-list (syntax->list stx))
+; ;;            (bs (map syntax->list (syntax->list (cadr stx-list))))
+; ;;            (ps (map car bs))
+; ;;            (vs (map cadr bs))
+; ;;            (body (cddr stx-list)))
+; ;;       (datum->syntax
+; ;;        stx
+; ;;        `(let ,(map (lambda (p) `(,p (void))) ps)
+; ;;           ,@(map (lambda (p v) `(set! ,p ,v)) ps vs)
+; ;;           ,@body)))))
 
-;; (define-syntax letrec
-;;   (lambda (stx)
-;;     (let* ((stx-list (syntax->list stx))
-;;            (bs (map syntax->list (syntax->list (cadr stx-list))))
-;;            (ps (map car bs))
-;;            (vs (map cadr bs))
-;;            (body (cddr stx-list)))
-;;       (datum->syntax
-;;        stx
-;;        `((lambda (,@ps)
-;;           ,@(map (lambda (p v) `(set! ,p ,v)) ps vs)
-;;           ,@body) ,@(map (lambda (p) `(if #f #f)) ps))))))
+; ;; (define-syntax letrec
+; ;;   (lambda (stx)
+; ;;     (let* ((stx-list (syntax->list stx))
+; ;;            (bs (map syntax->list (syntax->list (cadr stx-list))))
+; ;;            (ps (map car bs))
+; ;;            (vs (map cadr bs))
+; ;;            (body (cddr stx-list)))
+; ;;       (datum->syntax
+; ;;        stx
+; ;;        `((lambda (,@ps)
+; ;;           ,@(map (lambda (p v) `(set! ,p ,v)) ps vs)
+; ;;           ,@body) ,@(map (lambda (p) `(if #f #f)) ps))))))
 
 ; TODO: support 'else'
 (define-syntax cond

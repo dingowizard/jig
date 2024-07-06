@@ -66,7 +66,9 @@ public class Macros {
 
     [TestMethod]
     [DataRow("(when #t 2)", "2")]
-    [DataRow("(when (null? (list)) (define z 25) (set! z (+ 1 z)) z)", "26")]
+    // TODO: the following test will fail in chez because the define is in an invalid context
+    // seems a bit strange though
+    // [DataRow("(when (null? (list)) (define z 25) (set! z (+ 1 z)) z)", "26")]
     public void When(string input, string expected) {
         var actual = Utilities.PreludeInterp.InterpretUsingReadSyntax(input);
         Assert.AreEqual(expected, actual);

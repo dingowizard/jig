@@ -47,22 +47,38 @@ public class ParsedSet : ParsedExpr {
 
         setExpr = new ParsedSet(stxList.ElementAt<Syntax>(0),
                               (ParsedVariable)expander.Expand(id, ee),
-                              expander.Expand(x, ee),
+                              expander.Expand(x, ee, definesAllowed: false),
                               stx.SrcLoc);
         return true;
     }
 
 }
 
-public class ParsedBegin(Expr x, ParsedExpr[] forms, SrcLoc? srcLoc = null) : ParsedExpr(x, srcLoc) {
+public class ParsedBegin(Syntax keyword, ParsedExpr[] forms, SrcLoc? srcLoc = null) :
+ParsedExpr((Expr)Pair.Cons(keyword, SyntaxList.FromIEnumerable(forms)), srcLoc) {
     public ParsedExpr[] Forms {get;} = forms;
 
     public static bool TryParse(Syntax stx,
                                 MacroExpander expander,
                                 ExpansionEnvironment ee,
-                                [NotNullWhen(returnValue: true)] out ParsedLambda? lambdaExpr)
+                                bool definesAllowed,
+                                [NotNullWhen(returnValue: true)] out ParsedBegin? beginExpr)
     {
-        throw new NotImplementedException();
+        if (Syntax.E(stx) is not SyntaxList stxList)
+        {
+            beginExpr = null;
+            return false;
+        }
+        if (!Expr.IsKeyword("begin", stx)) {
+            beginExpr = null;
+            return false;
+        }
+        List<ParsedExpr> forms = [];
+        foreach (var x in stxList.Skip<Syntax>(1)) {
+            forms.Add(expander.Expand(x, ee, definesAllowed));
+        }
+        beginExpr = new ParsedBegin(stxList.ElementAt<Syntax>(0), forms.ToArray(), stx.SrcLoc);
+        return true;
     }
 
 }
@@ -79,6 +95,9 @@ public class ParsedLiteral : ParsedExpr {
     public static bool TryParse(Syntax stx, [NotNullWhen(returnValue: true)] out ParsedLiteral? parsedLiteral) {
         if (stx is Literal literal) {
             parsedLiteral = new ParsedLiteral(new Syntax.Identifier(new Symbol("quote")), literal, stx.SrcLoc);
+            return true;
+        } else if (Syntax.E(stx) is Expr.VoidType) {
+            parsedLiteral = new ParsedLiteral(new Syntax.Identifier(new Symbol("quote")), new Syntax(Expr.Void), stx.SrcLoc);
             return true;
         } else if (IsQuote(stx)) {
             SyntaxList stxList = (SyntaxList)Syntax.E(stx);
@@ -133,9 +152,7 @@ public class ParsedDefine : ParsedExpr {
     public Syntax Value {get;}
 
     public static bool TryParse(Syntax stx, MacroExpander expander, ExpansionEnvironment ee, [NotNullWhen(returnValue: true)] out ParsedDefine? defineExpr) {
-
-        SyntaxList? stxList = Syntax.E(stx) as SyntaxList;
-        if (stxList is null) {
+        if (Syntax.E(stx) is not SyntaxList stxList) {
             defineExpr = null;
             return false;
         }
@@ -157,7 +174,7 @@ public class ParsedDefine : ParsedExpr {
         var x = stxList.ElementAt<Syntax>(2);
         defineExpr = new ParsedDefine(stxList.ElementAt<Syntax>(0),
                                     (ParsedVariable)expander.Expand(id, ee),
-                                    expander.Expand(x, ee),
+                                    expander.Expand(x, ee, definesAllowed: false),
                                     stx.SrcLoc);
         return true;
     }
@@ -177,8 +194,8 @@ public class ParsedLambda : ParsedExpr {
     public SyntaxList Bodies {get;}
 
     public static bool TryParse(Syntax stx, MacroExpander expander, ExpansionEnvironment ee, [NotNullWhen(returnValue: true)] out ParsedLambda? lambdaExpr) {
-        SyntaxList? stxList = Syntax.E(stx) as SyntaxList;
-        if (stxList is null) {
+        if (Syntax.E(stx) is not SyntaxList stxList)
+        {
             lambdaExpr = null;
             return false;
         }
@@ -186,7 +203,7 @@ public class ParsedLambda : ParsedExpr {
             lambdaExpr = null;
             return false;
         }
-        List<Syntax> xs = new List<Syntax>();
+        List<Syntax> xs = [];
         xs.Add(stxList.ElementAt<Syntax>(0));
         var newScope = new Scope();
         var parameters = stxList.ElementAt<Syntax>(1);
@@ -336,40 +353,39 @@ public class ParsedVariable : ParsedExpr {
 public class ParsedIf : ParsedExpr {
 
     public static bool TryParse(Syntax stx, MacroExpander expander, ExpansionEnvironment ee, [NotNullWhen(returnValue: true)] out ParsedIf? ifExpr) {
-        SyntaxList? stxList = Syntax.E(stx) as SyntaxList;
-        if (stxList is null) {
+        if (Syntax.E(stx) is not SyntaxList stxList)
+        {
             ifExpr = null;
             return false;
         }
-        List<Syntax> xs = new List<Syntax>();
+        List<ParsedExpr> xs = [];
         if (!Expr.IsKeyword("if", stx)) {
             ifExpr = null;
             return false;
         }
-        xs.Add(stxList.ElementAt<Syntax>(0));
         foreach (var x in stxList.Skip<Syntax>(1)) {
-            Syntax bodyExpr = expander.Expand(x, ee);
+            ParsedExpr bodyExpr = expander.Expand(x, ee, definesAllowed: false);
             xs.Add(bodyExpr);
         }
-        if (xs.Count == 3) {
-            ifExpr = new ParsedIf(xs.ElementAt(0), xs.ElementAt(1), xs.ElementAt(2), stx.SrcLoc);
+        if (xs.Count == 2) {
+            ifExpr = new ParsedIf(stxList.ElementAt<Syntax>(0), xs.ElementAt(0), xs.ElementAt(1), stx.SrcLoc);
             return true;
-        } else if (xs.Count == 4) {
-            ifExpr = new ParsedIf(xs.ElementAt(0), xs.ElementAt(1), xs.ElementAt(2), xs.ElementAt(3), stx.SrcLoc);
+        } else if (xs.Count == 3) {
+            ifExpr = new ParsedIf(stxList.ElementAt<Syntax>(0), xs.ElementAt(0), xs.ElementAt(1), xs.ElementAt(2), stx.SrcLoc);
             return true;
         } else {
             throw new Exception($"syntax error: malformed 'if' @{stx.SrcLoc}: {stxList}");
         }
     }
 
-    public Syntax Condition {get; private set;}
+    public ParsedExpr Condition {get; private set;}
 
-    public Syntax Then {get; private set;}
+    public ParsedExpr Then {get; private set;}
 
-    public Syntax? Else {get; private set;}
+    public ParsedExpr? Else {get; private set;}
 
 
-    private ParsedIf(Syntax kywd, Syntax cond, Syntax then, Syntax @else, SrcLoc? srcLoc = null) :
+    private ParsedIf(Syntax kywd, ParsedExpr cond, ParsedExpr then, ParsedExpr @else, SrcLoc? srcLoc = null) :
         base(SyntaxList.FromParams(kywd, cond, then, @else), srcLoc)
     {
         Condition = cond;
@@ -379,7 +395,7 @@ public class ParsedIf : ParsedExpr {
 
     }
 
-    private ParsedIf(Syntax kywd, Syntax cond, Syntax then, SrcLoc? srcLoc = null) :
+    private ParsedIf(Syntax kywd, ParsedExpr cond, ParsedExpr then, SrcLoc? srcLoc = null) :
         base(SyntaxList.FromParams(kywd, cond, then), srcLoc)
     {
         Condition = cond;

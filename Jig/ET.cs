@@ -29,6 +29,7 @@ internal abstract class ET : Expression {
 
     public static ET Analyze(LexicalContext scope, ParsedExpr x) =>
         x switch {
+        ParsedBegin parsedBegin => new BeginET(scope, parsedBegin),
         ParsedLambda lambdaExpr => new LambdaExprET(scope, lambdaExpr),
         ParsedIf ifExpr => new IfET(scope, ifExpr),
         ParsedDefine defineExpr => new DefineET(scope, defineExpr),
@@ -258,16 +259,20 @@ internal abstract class ET : Expression {
 
         public IfET(LexicalContext lexVars, ParsedIf ifExpr) {
 
-            Expr cond = ifExpr.Condition;
+            ParsedExpr cond = ifExpr.Condition;
             Expression<CompiledCode> condCC = (Expression<CompiledCode>)Analyze(lexVars, cond).Reduce();
-            Expr consq = ifExpr.Then;
+            ParsedExpr consq = ifExpr.Then;
             Expression<CompiledCode> consqCC = (Expression<CompiledCode>)Analyze(lexVars, consq).Reduce();
-            Expr alt;
+            ParsedExpr alt;
             Expression ifFalseExpr;
             if (ifExpr.Else is not null) {
                 alt = ifExpr.Else;
             } else {
-                alt = Expr.Void;
+                if(ParsedLiteral.TryParse(new Syntax(Expr.Void), out ParsedLiteral? voidLiteral)) {
+                    alt = voidLiteral;
+                } else {
+                    throw new Exception("omg! couldn't parse void in IfET ");
+                }
             }
             ifFalseExpr = Expression.Lambda<Thunk>(
                     Expression.Convert(DynInv((Expression<CompiledCode>)Analyze(lexVars, alt).Reduce(), kParam, envParam),
@@ -325,6 +330,20 @@ internal abstract class ET : Expression {
             }
             else return true;
         }
+    }
+
+    private class BeginET : ET {
+        public BeginET(LexicalContext scope, ParsedBegin parsedBegin) : base() {
+            Expression<CompiledCode>[] analyzed = parsedBegin.Forms
+                .Select(x => (Expression<CompiledCode>)Analyze(scope, x).Reduce()).ToArray();
+            Body = Expression.Invoke(
+                        Expression.Constant((Func<Delegate, IEnvironment, CompiledCode[], int, Thunk>) BlockET.doSequence),
+                        kParam,
+                        envParam,
+                        Expression.NewArrayInit(typeof(CompiledCode), analyzed),
+                        Expression.Constant(0));
+        }
+        public override Expression Body {get;}
     }
 
     private class SetBangET : ET {
@@ -666,7 +685,8 @@ internal abstract class ET : Expression {
             Expression thunkExpr = Expression.Lambda<Thunk>(Expression.Convert(Expression.Invoke(lastExprCC, kParam, envParam), typeof(Thunk)));
             Expression<CompiledCode> last = Expression.Lambda<CompiledCode>(thunkExpr, new ParameterExpression[] {kParam, envParam});
             analyzed = analyzed.ToList().Append(last).ToArray();
-            Body = Expression.Block(blockScope.Parameters,
+            Body = Expression.Block(
+                blockScope.Parameters,
                 new Expression[] {
                     Expression.Invoke(
                         Expression.Constant((Func<Delegate, IEnvironment, CompiledCode[], int, Thunk>) doSequence),
@@ -677,7 +697,7 @@ internal abstract class ET : Expression {
                 });
         }
 
-        private Thunk doSequence(Delegate k, IEnvironment env, CompiledCode[] codes, int index) {
+        internal static Thunk doSequence(Delegate k, IEnvironment env, CompiledCode[] codes, int index) {
             var code = codes[index];
             Continuation.ContinuationAny k0 = (v) => doSequence(k, env, codes, index + 1);
             Delegate cont = index == codes.Length - 1 ? k : k0;

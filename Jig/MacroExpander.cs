@@ -32,20 +32,20 @@ public class MacroExpander {
         // if (id.Symbol.Name == "u") {
         //     Console.WriteLine($"TryResolve: found {candidates.Count()} candidates for 'u' at {id.SrcLoc}");
         // }
-        if (candidates.Count() == 0) {
+        if (!candidates.Any()) {
             binding = null;
             return false;
         }
         #pragma warning disable CS8600
         Syntax.Identifier maxID = candidates.MaxBy<Syntax.Identifier, int>(i => i.ScopeSet.Count);// ?? throw new Exception("impossible");
         Debug.Assert(maxID is not null);
-        #pragma warning restore CS8600
+#pragma warning restore CS8600
         CheckUnambiguous(maxID, candidates);
         binding = Bindings[maxID];
         return true;
     }
 
-    void CheckUnambiguous(Syntax.Identifier maxID, IEnumerable<Syntax.Identifier> candidates) {
+    static void CheckUnambiguous(Syntax.Identifier maxID, IEnumerable<Syntax.Identifier> candidates) {
         // TODO: understand this better
         foreach (var candidate in candidates) {
             if (!candidate.ScopeSet.IsSubsetOf(maxID.ScopeSet)) {
@@ -55,9 +55,12 @@ public class MacroExpander {
 
     }
 
-    public  ParsedExpr Expand(Syntax stx, ExpansionEnvironment ee, bool once = false) {
+    public  ParsedExpr Expand(Syntax stx, ExpansionEnvironment ee, bool definesAllowed = true, bool once = false) {
         if (ParsedVariable.TryParse(stx, this, out ParsedVariable? parsedVar)) {
             return parsedVar;
+        }
+        if (ParsedBegin.TryParse(stx, this, ee, definesAllowed, out ParsedBegin? parsedBegin)) {
+            return parsedBegin;
         }
         if (ParsedIf.TryParse(stx, this, ee, out ParsedIf? ifForm)) {
             return ifForm;
@@ -66,7 +69,11 @@ public class MacroExpander {
         } else if (ParsedSet.TryParse(stx, this, ee, out ParsedSet? setForm)) {
             return setForm;
         } else if (ParsedDefine.TryParse(stx, this, ee, out ParsedDefine? defineForm)) {
-            return defineForm;
+            if (definesAllowed) {
+                return defineForm;
+            } else {
+                throw new Exception("syntax error: invalid context for definition.");
+            }
         } else if (ParsedLiteral.TryParse(stx, out ParsedLiteral? literalExpr)) {
             return literalExpr;
         } else if (ParsedQuoteSyntax.TryParse(stx, out ParsedQuoteSyntax? quoteSyntaxExpr)) {
@@ -94,6 +101,8 @@ public class MacroExpander {
         if (!Expr.IsKeyword("lambda", shouldBeLambdaExpr)) {
             throw new Exception($"define-syntax: expected 2nd argument to be a transformer. Got {stxList.ElementAt<Syntax>(2)}");
         }
+
+        // TODO: use ParsedLambda.TryParse? (for vars in set! and define as well?)
         ParsedLambda expandedLambdaExpr = (ParsedLambda)Expand(stxList.ElementAt<Syntax>(2), ee);
         Transformer transformer = EvaluateTransformer(expandedLambdaExpr);
         ee.AddTransformer(id.Symbol, transformer);
@@ -106,7 +115,7 @@ public class MacroExpander {
 
     }
 
-    private Transformer EvaluateTransformer(ParsedLambda lambdaExprSyntax) {
+    private static Transformer EvaluateTransformer(ParsedLambda lambdaExprSyntax) {
         Procedure procedure = Program.EvalNonCPSNoExpand(lambdaExprSyntax) as Procedure ??
             throw new Exception($"define-syntax: second argument should evaluate to a transformer.");
         return new Transformer(procedure.Value as Func<Delegate, Expr, Thunk> ??
@@ -119,6 +128,7 @@ public class MacroExpander {
         if (stxList.ElementAt<Syntax>(0) is Syntax.Identifier id && ee.TryFindTransformer(id.Symbol, out Transformer? transformer)) {
             Scope macroExpansionScope = new Scope();
             Syntax.AddScope(stx, macroExpansionScope);
+            // Console.WriteLine($"macro application: {stx}");
             Syntax output = transformer.Apply(stx);
             // var result = output;
             Syntax.ToggleScope(output, macroExpansionScope);
@@ -138,10 +148,10 @@ public class MacroExpander {
         }
     }
 
-    private  ParsedExpr ExpandList(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
-                List<Syntax> xs = new List<Syntax>();
+    private  ParsedList ExpandList(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
+                List<Syntax> xs = [];
                 foreach (var x in stxList) {
-                    Syntax bodyExpr = Expand(x, ee);
+                    Syntax bodyExpr = Expand(x, ee, definesAllowed: false);
                     xs.Add(bodyExpr);
                 }
                 return new ParsedList((SyntaxList)SyntaxList.FromIEnumerable(xs), srcLoc);
