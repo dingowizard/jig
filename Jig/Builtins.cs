@@ -470,6 +470,65 @@ internal static class Builtins {
         return Continuation.ApplyDelegate(k, new Expr.Vector(args));
 
     }
+    public static Thunk? make_record_type_descriptor(Delegate k, List args) {
+        return Continuation.ApplyDelegate(k, new Expr.Record.TypeDescriptor(args));
+
+    }
+    public static Thunk? make_record_constructor_descriptor(Delegate k, List args) {
+        return Continuation.ApplyDelegate(k, new Expr.Record.ConstructorDescriptor(args));
+    }
+
+    public static Thunk? vector_p(Delegate k, List args) {
+        if (args.Count() != 1) return Error(k, $"vector?: expected a single argument but got {args.Count()}");
+        var arg = args.ElementAt(0);
+        if (arg is Expr.Record) {
+            return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+        }
+        if (arg is Expr.Vector) {
+            return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
+        }
+        return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+
+    }
+    public static Thunk? record_p(Delegate k, List args) {
+        if (args.Count() != 1) return Error(k, $"record?: expected a single argument but got {args.Count()}");
+        var arg = args.ElementAt(0);
+        if (arg is Expr.Record) {
+            return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
+        }
+        return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+
+    }
+    public static Thunk? record_predicate(Delegate k, List args) {
+        if (args.Count() != 1) return Error(k, $"record-predicate: expected a single argument but got {args.Count()}");
+        var arg = args.ElementAt(0);
+        if (arg is not Expr.Record.TypeDescriptor rtd) {
+            return Error(k, $"record-predicate: expected argument to be a record type descriptor but got {args.Count()}");
+        }
+        return Continuation.ApplyDelegate(k, rtd.Predicate());
+
+    }
+
+    public static Thunk? record_accessor(Delegate k, List args) {
+        if (args.Count() != 2) return Error(k, $"record-accessor: expected two arguments but got {args.Count()}");
+        if (args.ElementAt(0) is not Expr.Record.TypeDescriptor rtd) {
+            return Error(k, $"record-predicate: expected argument to be a record type descriptor but got {args.ElementAt(0)}");
+        }
+        if (args.ElementAt(1) is not Expr.IntegerNumber i) {
+            return Error(k, $"record-predicate: expected second argument to be an integer but got {args.ElementAt(1)}");
+        }
+        return Continuation.ApplyDelegate(k, rtd.Accessor(i));
+
+    }
+    public static Thunk? record_constructor(Delegate k, List args) {
+        if (args.Count() != 1) return Error(k, $"record-constructor: expected a single argument but got {args.Count()}");
+        var arg = args.ElementAt(0);
+        if (arg is not Expr.Record.ConstructorDescriptor rcd) {
+            return Error(k, $"record-constructor: expected argument to be a record constructor descriptor but got {args.Count()}");
+        }
+        return Continuation.ApplyDelegate(k, rcd.Constructor());
+
+    }
 
     public static Thunk? vector_length(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"vector-length: expected a single argument but got {args.Count()}");

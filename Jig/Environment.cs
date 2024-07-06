@@ -36,9 +36,16 @@ public class Environment : IEnvironment {
         _dict.Add(new Expr.Symbol("newline"), new Procedure( (Builtin)Builtins.newline));
         _dict.Add(new Expr.Symbol("error"), new Procedure( (Builtin)Builtins.error));
         _dict.Add(new Expr.Symbol("vector"), new Procedure( (Builtin)Builtins.vector));
+        _dict.Add(new Expr.Symbol("vector?"), new Procedure( (Builtin)Builtins.vector_p));
         _dict.Add(new Expr.Symbol("vector-length"), new Procedure( (Builtin)Builtins.vector_length));
         _dict.Add(new Expr.Symbol("vector-ref"), new Procedure( (Builtin)Builtins.vector_ref));
         _dict.Add(new Expr.Symbol("append"), new Procedure( (Builtin)Builtins.append));
+        _dict.Add(new Expr.Symbol("make-record-type-descriptor"), new Procedure( (Builtin)Builtins.make_record_type_descriptor));
+        _dict.Add(new Expr.Symbol("make-record-constructor-descriptor"), new Procedure( (Builtin)Builtins.make_record_constructor_descriptor));
+        _dict.Add(new Expr.Symbol("record?"), new Procedure( (Builtin)Builtins.record_p));
+        _dict.Add(new Expr.Symbol("record-predicate"), new Procedure( (Builtin)Builtins.record_predicate));
+        _dict.Add(new Expr.Symbol("record-accessor"), new Procedure( (Builtin)Builtins.record_accessor));
+        _dict.Add(new Expr.Symbol("record-constructor"), new Procedure( (Builtin)Builtins.record_constructor));
         // _dict.Add(new Expr.Symbol("dynamic-wind"), new Procedure( (Builtin)Builtins.dynamic_wind));
         // _dict.Add(new Expr.Symbol("error"), new Procedure( (Builtin)Builtins.error));
     }

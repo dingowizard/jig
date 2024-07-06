@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Jig;
@@ -52,9 +53,9 @@ public abstract class Expr {
             }
         }
 
-        private Expr[] Elements {get;}
+        protected Expr[] Elements {get;}
 
-        public override string Print() => $"#({string.Join(' ', this)})";
+        public override string Print() => $"#({string.Join(' ', this.Select(x => x.Print()))})";
 
         public IEnumerator<Expr> GetEnumerator() {
             foreach (var x in Elements) {
@@ -67,6 +68,138 @@ public abstract class Expr {
             return this.GetEnumerator();
         }
 
+    } // class Vector
+
+    public class Record : Vector {
+        public Record(TypeDescriptor rtd, List fields) : base(fields) {
+            RecordTypeDescriptor = rtd;
+        }
+        protected Record() {
+        }
+
+        public TypeDescriptor? RecordTypeDescriptor {get; private set;}
+
+        public class TypeDescriptor : Record {
+
+            public TypeDescriptor(List fields) : base(Base, fields) {
+                if (fields.Count() != 2) {
+                    throw new Exception($"make-record-type-descriptor: expected two args, got {fields.Print()}");
+                }
+                if (fields.ElementAt(0) is not Expr.Symbol sym) {
+                    throw new Exception("in TypeDescriptor cstor: expected first field to be a symbol");
+                }
+                Name = sym;
+                if (fields.ElementAt(1) is not Expr.Vector fs) {
+                    throw new Exception("in TypeDescriptor cstor: expected second field to be a Vector");
+                }
+                List<Tuple<Expr.Symbol, bool>> listFields = [];
+                foreach (var f in fs) {
+                    if (f is not List.NonEmpty listField) {
+                        throw new Exception();
+                    }
+                    if (listField.Count() != 2) {
+                        throw new Exception("field spec should have two members");
+                    }
+                    if (listField.ElementAt(0) is not Expr.Symbol mutability) {
+                        throw new Exception("expected a symbol value for field mutability");
+                    }
+                    if (listField.ElementAt(1) is not Expr.Symbol fieldName) {
+                        throw new Exception("expected a symbol value for field mutability");
+                    }
+                    bool mut = mutability.Equals(new Expr.Symbol("mutable")) || (mutability.Equals(new Expr.Symbol("immutable")) ? false : throw new Exception());
+                    listFields.Add(new Tuple<Symbol, bool>(fieldName, mut));
+                }
+                Fields = listFields.ToArray();
+            }
+            public Tuple<Expr.Symbol, bool>[] Fields {get;}
+
+
+
+            public Procedure Predicate() {
+                Builtin predicate = (k, args) => {
+                    if (args.Count() != 1) return Builtins.Error(k, $"{this.Name}?: expected exactly one argument but got {args.Count()}");
+                    Expr arg = args.ElementAt(0);
+                    if (arg is not Record record) {
+                        return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+                    }
+                    if (object.ReferenceEquals(this, record.RecordTypeDescriptor)) {
+                        return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
+                        
+                    }
+                    return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+                };
+                return new Procedure(predicate);
+
+            }
+
+            public Procedure Accessor(Expr.IntegerNumber i) {
+                if (i.Value >= Fields.Length) {
+                    // a record with two fields has a rtd with three fields (first is name of rtd)
+                    // so an index of two would be point to the last field
+                    // TODO: the specs for the record fields should probably be in a single field
+                    throw new Exception("record-accessor: index out of range");
+
+                }
+                Builtin accessor = (k, args) => {
+                    // TODO: better error message by getting field name from spec in rtd
+                    if (args.Count() != 1) return Builtins.Error(k, $"record access: expected a single argument but got {args.Count()}");
+                    var arg = args.ElementAt(0);
+                    if (arg is not Record record) {
+                        return Builtins.Error(k, $"record access: expected argument to be a record but got {arg}");
+                    }
+                    if (!object.ReferenceEquals(this, record.RecordTypeDescriptor)) {
+                        return Builtins.Error(k, $"record access: expected record of type {this.Name} but got {arg}");
+                    }
+                    return Continuation.ApplyDelegate(k, record.Elements[i.Value]);
+                };
+                return new Procedure(accessor);
+                
+
+            }
+
+            public Expr.Symbol Name {get;}
+            public readonly static TypeDescriptor Base = new BaseType();
+
+
+            private class BaseType : TypeDescriptor  {
+                public BaseType() : base(List.NewList(new Expr.Symbol("base-rtd"), new Vector())) {
+                    RecordTypeDescriptor = this;
+                }
+
+                public override string Print() => "#!base-rtd";
+
+            }
+
+            public override string Print() => $"#<record type {Name}>";
+        }
+
+        public class ConstructorDescriptor : Record {
+
+            public ConstructorDescriptor(List fields) : base(TypeDescriptorForConstructor, fields) {
+                if (fields.ElementAt(0) is not Record.TypeDescriptor rtd) {
+                    throw new Exception("in ConstructorDescriptor cstor: expected first field to be a symbol");
+                }
+                RTD = rtd; // note: the ConstructorDescriptor is a record that has two rtds: its own and
+                           // a field that contains the RTD for the record it is the constructor of (RTD)
+
+            }
+
+            public Procedure Constructor() {
+                Builtin constructor = (k, args) => {
+                    if (args.Count() != RTD.Fields.Length) {
+                        return Builtins.Error(k, $"{RTD.Name} constructor: expected {RTD.Fields.Length} arguments but got {args.Count()}");
+                    }
+                    // return Continuation.ApplyDelegate(k, new Record(RTD, List.ListFromEnumerable(args.Skip(1))));
+                    return Continuation.ApplyDelegate(k, new Record(RTD, args));
+                };
+                return new Procedure(constructor);
+
+            }
+
+            public TypeDescriptor RTD {get;}
+            public readonly static TypeDescriptor TypeDescriptorForConstructor =
+                new TypeDescriptor(List.NewList(new Expr.Symbol("rcd"), new Vector()));
+        }
     }
 
     public class Char : LiteralExpr<char> {
@@ -712,4 +845,3 @@ public abstract class List : Expr, IEnumerable<Expr> {
         return hash;
     }
 }
-
