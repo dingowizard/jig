@@ -56,7 +56,7 @@ public class Continuation : Procedure {
         return action(cont);
     }
 
-    private static MethodInfo _listFromEnumerableMethod = typeof(List).GetMethod("ListFromEnumerable") ?? throw new Exception("couldn't find ListFromEnumerable");
+    private static readonly MethodInfo _listFromEnumerableMethod = typeof(List).GetMethod("ListFromEnumerable") ?? throw new Exception("couldn't find ListFromEnumerable");
 
     private static Delegate ContinuationFromProc(Delegate k, Delegate consumerDel) {
         MethodInfo method = consumerDel.GetType().GetMethod("Invoke") ?? throw new Exception($"ContinuationFromProc: could not find 'Invoke' method on type of proc (proc.GetType())");
@@ -100,26 +100,18 @@ public class Continuation : Procedure {
 
     private static Type? GetTypeForContinuation(Delegate proc)
     {
-        switch (proc) {
-            case ListFunction _:
-                return typeof(ContinuationAny);
-            case PairFunction _:
-                return typeof(PairContinuation);
-            case ImproperListFunction2 _:
-                return typeof(ImproperListContinuation2);
-            case ImproperListFunction3 _:
-                return typeof(ImproperListContinuation3);
-            case ImproperListFunction4 _:
-                return typeof(ImproperListContinuation4);
-            case ImproperListFunction5 _:
-                return typeof(ImproperListContinuation5);
-            case ImproperListFunction6 _:
-                return typeof(ImproperListContinuation6);
-            case ImproperListFunction7 _:
-                return typeof(ImproperListContinuation7);
-            default:
-                return null;
-        }
+        return proc switch
+        {
+            ListFunction _ => typeof(ContinuationAny),
+            PairFunction _ => typeof(PairContinuation),
+            ImproperListFunction2 _ => typeof(ImproperListContinuation2),
+            ImproperListFunction3 _ => typeof(ImproperListContinuation3),
+            ImproperListFunction4 _ => typeof(ImproperListContinuation4),
+            ImproperListFunction5 _ => typeof(ImproperListContinuation5),
+            ImproperListFunction6 _ => typeof(ImproperListContinuation6),
+            ImproperListFunction7 _ => typeof(ImproperListContinuation7),
+            _ => null,
+        };
     }
 
 

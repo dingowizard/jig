@@ -59,7 +59,7 @@ internal class LexicalContext {
         // }
         var candidates2 = candidates.Where(tup => tup.Item1.Binding==symbol.Binding);
         ParameterExpression? pe = null;
-        if (candidates2.Count() > 0) {
+        if (candidates2.Any()) {
             pe = candidates2.ElementAt(0)?.Item2;
         }
         if (pe is null) {
@@ -83,7 +83,7 @@ internal class LexicalContext {
 
     public ParameterExpression[] Parameters => Symbols.Select(tup => tup.Item2).ToArray();
 
-    List<Tuple<Expr.Symbol, ParameterExpression>> Symbols {get;} = new List<Tuple<Expr.Symbol, ParameterExpression>>();
+    List<Tuple<Expr.Symbol, ParameterExpression>> Symbols {get;} = [];
 
     LexicalContext? EnclosingScope {get;}
 

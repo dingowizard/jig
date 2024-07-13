@@ -41,6 +41,8 @@ public class Environment : IEnvironment {
         _dict.Add(new Expr.Symbol("vector-ref"), new Procedure( (Builtin)Builtins.vector_ref));
         _dict.Add(new Expr.Symbol("append"), new Procedure( (Builtin)Builtins.append));
         _dict.Add(new Expr.Symbol("make-record-type-descriptor"), new Procedure( (Builtin)Builtins.make_record_type_descriptor));
+        _dict.Add(new Expr.Symbol("record-type-descriptor?"), new Procedure( (Builtin)Builtins.record_type_descriptor_p));
+        _dict.Add(new Expr.Symbol("record-constructor-descriptor?"), new Procedure( (Builtin)Builtins.record_constructor_descriptor_p));
         _dict.Add(new Expr.Symbol("make-record-constructor-descriptor"), new Procedure( (Builtin)Builtins.make_record_constructor_descriptor));
         _dict.Add(new Expr.Symbol("record?"), new Procedure( (Builtin)Builtins.record_p));
         _dict.Add(new Expr.Symbol("record-predicate"), new Procedure( (Builtin)Builtins.record_predicate));
@@ -95,6 +97,6 @@ public class Environment : IEnvironment {
         }
     }
 
-    Dictionary<Expr.Symbol, Expr> _dict = new Dictionary<Expr.Symbol,Expr>();
+    readonly Dictionary<Expr.Symbol, Expr> _dict = [];
 
 }

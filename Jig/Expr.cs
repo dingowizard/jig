@@ -1,5 +1,7 @@
 using System.Collections;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -21,8 +23,7 @@ public abstract class Expr {
 
     public static bool IsNull(Expr x) => x is NullType;
 
-    public class Boolean : LiteralExpr<bool> {
-        public Boolean(bool b) : base(b) {}
+    public class Boolean(bool b) : LiteralExpr<bool>(b) {
         public override string Print() => Value ? "#t" : "#f";
     }
 
@@ -32,7 +33,8 @@ public abstract class Expr {
 
         }
 
-        public Vector(List xs) {
+        public Vector(List xs)
+        {
             Elements = xs.ToArray();
         }
 
@@ -74,22 +76,40 @@ public abstract class Expr {
         public Record(TypeDescriptor rtd, List fields) : base(fields) {
             RecordTypeDescriptor = rtd;
         }
+        public Record(TypeDescriptor rtd, Record parent, List fields) : base(fields) {
+            RecordTypeDescriptor = rtd;
+            Parent = parent;
+        }
         protected Record() {
         }
 
         public TypeDescriptor? RecordTypeDescriptor {get; private set;}
 
+        protected Record? Parent {get;}
+
         public class TypeDescriptor : Record {
 
             public TypeDescriptor(List fields) : base(Base, fields) {
-                if (fields.Count() != 2) {
-                    throw new Exception($"make-record-type-descriptor: expected two args, got {fields.Print()}");
+                if (fields.Count() != 6) {
+                    throw new Exception($"make-record-type-descriptor: expected six arguments, got {fields.Print()}");
                 }
-                if (fields.ElementAt(0) is not Expr.Symbol sym) {
-                    throw new Exception("in TypeDescriptor cstor: expected first field to be a symbol");
+
+                if (fields.ElementAt(0) is not Expr.Symbol name) {
+                    throw new Exception("make-record-type-descriptor: expected first argument to be a symbol");
                 }
-                Name = sym;
-                if (fields.ElementAt(1) is not Expr.Vector fs) {
+                Name = name;
+
+                if (fields.ElementAt(1) is Expr.Boolean b) {
+                    if (b == new Expr.Boolean(true)) {
+                        throw new Exception($"make-record-type-descriptor: expected second argument to be #f or a record type descriptor. Got: {fields.ElementAt(1)}");
+                    }
+                } else if (fields.ElementAt(1) is TypeDescriptor parent) {
+                    Parent = parent;
+                } else {
+                    throw new Exception($"make-record-type-descriptor: expected second argument to be #f or a record type descriptor. Got: {fields.ElementAt(1)}");
+                }
+
+                if (fields.ElementAt(5) is not Expr.Vector fs) {
                     throw new Exception("in TypeDescriptor cstor: expected second field to be a Vector");
                 }
                 List<Tuple<Expr.Symbol, bool>> listFields = [];
@@ -112,6 +132,18 @@ public abstract class Expr {
                 Fields = listFields.ToArray();
             }
             public Tuple<Expr.Symbol, bool>[] Fields {get;}
+            public new TypeDescriptor? Parent {get;} = null;
+
+            private Thunk? IsOfMe(Delegate k, Record record) {
+                if (object.ReferenceEquals(this, record.RecordTypeDescriptor)) {
+                    return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
+                } else {
+                    if (record.Parent is not null) {
+                        return IsOfMe(k, record.Parent);
+                    }
+                    return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+                }
+            }
 
 
 
@@ -122,11 +154,7 @@ public abstract class Expr {
                     if (arg is not Record record) {
                         return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
                     }
-                    if (object.ReferenceEquals(this, record.RecordTypeDescriptor)) {
-                        return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
-                        
-                    }
-                    return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+                    return IsOfMe(k, record);
                 };
                 return new Procedure(predicate);
 
@@ -162,7 +190,14 @@ public abstract class Expr {
 
 
             private class BaseType : TypeDescriptor  {
-                public BaseType() : base(List.NewList(new Expr.Symbol("base-rtd"), new Vector())) {
+                public BaseType() : base(List.NewList(
+                    new Expr.Symbol("base-rtd"),
+                    new Expr.Boolean(false),
+                    new Expr.Boolean(false),
+                    new Expr.Boolean(false),
+                    new Expr.Boolean(false),
+                    new Vector()))
+                {
                     RecordTypeDescriptor = this;
                 }
 
@@ -177,51 +212,92 @@ public abstract class Expr {
 
             public ConstructorDescriptor(List fields) : base(TypeDescriptorForConstructor, fields) {
                 if (fields.ElementAt(0) is not Record.TypeDescriptor rtd) {
-                    throw new Exception("in ConstructorDescriptor cstor: expected first field to be a symbol");
+                    throw new Exception("in ConstructorDescriptor cstor: expected first field to be a record type descriptor");
                 }
+
                 RTD = rtd; // note: the ConstructorDescriptor is a record that has two rtds: its own and
                            // a field that contains the RTD for the record it is the constructor of (RTD)
+                if (fields.ElementAt(1) is Expr.Boolean b) {
+                    if (b == new Expr.Boolean(true)) {
+                        throw new Exception($"make-record-constructor-descriptor: expected second argument to be #f or a record constructor descriptor. Got: {fields.ElementAt(1)}");
+                    }
+                } else if (fields.ElementAt(1) is ConstructorDescriptor parent) {
+                    Parent = parent;
+                } else {
+                    throw new Exception($"make-record-constructor-descriptor: expected second argument to be #f or a record constructor descriptor. Got: {fields.ElementAt(1)}");
+                }
 
+            }
+
+            private int ParameterCount {
+                get
+                {
+                    int result = RTD.Fields.Length;
+                    ConstructorDescriptor? parent = Parent;
+                    while (parent is not null)
+                    {
+                        result += parent.RTD.Fields.Length;
+                        parent = parent.Parent;
+                    }
+                    return result;
+                }
             }
 
             public Procedure Constructor() {
                 Builtin constructor = (k, args) => {
-                    if (args.Count() != RTD.Fields.Length) {
-                        return Builtins.Error(k, $"{RTD.Name} constructor: expected {RTD.Fields.Length} arguments but got {args.Count()}");
+                    if (args.Count() != ParameterCount) {
+                        return Builtins.Error(k, $"{RTD.Name} constructor: expected {ParameterCount} arguments but got {args.Count()}");
                     }
                     // return Continuation.ApplyDelegate(k, new Record(RTD, List.ListFromEnumerable(args.Skip(1))));
-                    return Continuation.ApplyDelegate(k, new Record(RTD, args));
+                    if (Parent is null) {
+                        return Continuation.ApplyDelegate(k, new Record(RTD, args));
+                    } else {
+                        int ownArgNum = RTD.Fields.Length;
+                        int parentArgNum = ParameterCount - ownArgNum;
+                        Record parentRecord = 
+                                new Record(
+                                    Parent.RTD,
+                                    List.ListFromEnumerable(args.Take(parentArgNum)));
+                        return Continuation.ApplyDelegate(
+                            k,
+                            new Record(
+                                RTD,
+                                parentRecord,
+                                List.ListFromEnumerable(args.Skip(parentArgNum))));
+                    }
                 };
                 return new Procedure(constructor);
 
             }
 
             public TypeDescriptor RTD {get;}
+
+            public new ConstructorDescriptor? Parent {get;} = null;
             public readonly static TypeDescriptor TypeDescriptorForConstructor =
-                new TypeDescriptor(List.NewList(new Expr.Symbol("rcd"), new Vector()));
+                new TypeDescriptor(
+                    List.NewList(
+                        new Expr.Symbol("rcd"),
+                        new Expr.Boolean(false),
+                        new Expr.Boolean(false),
+                        new Expr.Boolean(false),
+                        new Expr.Boolean(false),
+                        new Vector()));
         }
     }
 
-    public class Char : LiteralExpr<char> {
-        public Char(char c) : base(c) {}
+    public class Char(char c) : LiteralExpr<char>(c) {
         public override string Print() => $"#\\{Value}";
     }
 
-    public class String : LiteralExpr<string> {
-        public String(string s) : base(s) {}
-
+    public class String(string s) : LiteralExpr<string>(s) {
         public override string Print() {
             // TODO: handle special chars like \n
             return "\"" + Value + "\"";
         }
     }
 
-    public abstract class Number<T> : Number where T: notnull {
-
-        public Number(T item) {
-            Value = item;
-        }
-        public T Value {get;}
+    public abstract class Number<T>(T item) : Number where T: notnull {
+        public T Value { get; } = item;
 
         public override string Print() => Value.ToString() ?? "";
 
@@ -255,76 +331,79 @@ public abstract class Expr {
         public abstract override bool Equals(object? obj);
 
         public static Expr.Boolean operator ==(Number n1, Number n2) {
-            switch (n1) {
-                case IntegerNumber in1: return in1 == n2;
-                case DoubleNumber d1: return d1 == n2;
-                default: throw new NotImplementedException();
-            }
+            return n1 switch
+            {
+                IntegerNumber in1 => in1 == n2,
+                DoubleNumber d1 => d1 == n2,
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static Expr.Boolean operator !=(Number n1, Number n2) {
-            switch (n1) {
-                case IntegerNumber in1: return in1 != n2;
-                case DoubleNumber d1: return d1 != n2;
-                default: throw new NotImplementedException();
-            }
+            return n1 switch
+            {
+                IntegerNumber in1 => in1 != n2,
+                DoubleNumber d1 => d1 != n2,
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static Number operator +(Number n1, Number n2) {
-            switch (n1) {
-                case IntegerNumber in1: return in1 + n2;
-                case DoubleNumber d1: return d1 + n2;
-                default: throw new NotImplementedException();
-            }
+            return n1 switch
+            {
+                IntegerNumber in1 => in1 + n2,
+                DoubleNumber d1 => d1 + n2,
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static Number operator -(Number n1, Number n2) {
-            switch (n1) {
-                case IntegerNumber in1: return in1 - n2;
-                case DoubleNumber d1: return d1 - n2;
-                default: throw new NotImplementedException();
-            }
+            return n1 switch
+            {
+                IntegerNumber in1 => in1 - n2,
+                DoubleNumber d1 => d1 - n2,
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static Number operator *(Number n1, Number n2) {
-            switch (n1) {
-                case IntegerNumber in1: return in1 * n2;
-                case DoubleNumber d1: return d1 * n2;
-                default: throw new NotImplementedException();
-            }
+            return n1 switch
+            {
+                IntegerNumber in1 => in1 * n2,
+                DoubleNumber d1 => d1 * n2,
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static Number operator /(Number n1, Number n2) {
-            switch (n1) {
-                case IntegerNumber in1: return in1 / n2;
-                case DoubleNumber d1: return d1 / n2;
-                default: throw new NotImplementedException();
-            }
+            return n1 switch
+            {
+                IntegerNumber in1 => in1 / n2,
+                DoubleNumber d1 => d1 / n2,
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static Expr.Boolean operator >(Number n1, Number n2) {
-            switch (n1) {
-                case IntegerNumber in1: return in1 > n2;
-                case DoubleNumber d1: return d1 > n2;
-                default: throw new NotImplementedException();
-            }
-
+            return n1 switch
+            {
+                IntegerNumber in1 => in1 > n2,
+                DoubleNumber d1 => d1 > n2,
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static Expr.Boolean operator <(Number n1, Number n2) {
-            switch (n1) {
-                case IntegerNumber in1: return in1 < n2;
-                case DoubleNumber d1: return d1 < n2;
-                default: throw new NotImplementedException();
-            }
-
+            return n1 switch
+            {
+                IntegerNumber in1 => in1 < n2,
+                DoubleNumber d1 => d1 < n2,
+                _ => throw new NotImplementedException(),
+            };
         }
     }
 
-    public class IntegerNumber : Number<int> {
-
-        public IntegerNumber(int i) : base(i) {}
-
+    public class IntegerNumber(int i) : Number<int>(i) {
         public override bool Equals(object? obj) {
             if (obj is null) return false;
             if (obj is IntegerNumber lit) {
@@ -338,82 +417,80 @@ public abstract class Expr {
         }
 
         public static Expr.Boolean operator ==(IntegerNumber i1, Number n) {
-            switch (n) {
-                case IntegerNumber i2: return new Expr.Boolean(i1.Value == i2.Value);
-                case DoubleNumber d2: return new Expr.Boolean(i1.Value == d2.Value);
-                default: throw new NotImplementedException();
-            }
-
+            return n switch
+            {
+                IntegerNumber i2 => new Expr.Boolean(i1.Value == i2.Value),
+                DoubleNumber d2 => new Expr.Boolean(i1.Value == d2.Value),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static Expr.Boolean operator !=(IntegerNumber i1, Number n) {
-            switch (n) {
-                case IntegerNumber i2: return new Expr.Boolean(i1.Value != i2.Value);
-                case DoubleNumber d2: return new Expr.Boolean(i1.Value != d2.Value);
-                default: throw new NotImplementedException();
-            }
+            return n switch
+            {
+                IntegerNumber i2 => new Expr.Boolean(i1.Value != i2.Value),
+                DoubleNumber d2 => new Expr.Boolean(i1.Value != d2.Value),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static Number operator +(IntegerNumber i1, Number n) {
-            switch (n) {
-                case IntegerNumber i2: return new IntegerNumber(i1.Value + i2.Value);
-                case DoubleNumber d2: return new DoubleNumber(i1.Value + d2.Value);
-                default: throw new NotImplementedException();
-            }
-
+            return n switch
+            {
+                IntegerNumber i2 => new IntegerNumber(i1.Value + i2.Value),
+                DoubleNumber d2 => new DoubleNumber(i1.Value + d2.Value),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static Number operator -(IntegerNumber i1, Number n) {
-            switch (n) {
-                case IntegerNumber i2: return new IntegerNumber(i1.Value - i2.Value);
-                case DoubleNumber d2: return new DoubleNumber(i1.Value - d2.Value);
-                default: throw new NotImplementedException();
-            }
-
+            return n switch
+            {
+                IntegerNumber i2 => new IntegerNumber(i1.Value - i2.Value),
+                DoubleNumber d2 => new DoubleNumber(i1.Value - d2.Value),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static Number operator *(IntegerNumber i1, Number n) {
-            switch (n) {
-                case IntegerNumber i2: return new IntegerNumber(i1.Value * i2.Value);
-                case DoubleNumber d2: return new DoubleNumber(i1.Value * d2.Value);
-                default: throw new NotImplementedException();
-            }
-
+            return n switch
+            {
+                IntegerNumber i2 => new IntegerNumber(i1.Value * i2.Value),
+                DoubleNumber d2 => new DoubleNumber(i1.Value * d2.Value),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static Number operator /(IntegerNumber i1, Number n) {
-            switch (n) {
-                case IntegerNumber i2: return new IntegerNumber(i1.Value / i2.Value);
-                case DoubleNumber d2: return new DoubleNumber(i1.Value / d2.Value);
-                default: throw new NotImplementedException();
-            }
-
+            return n switch
+            {
+                IntegerNumber i2 => new IntegerNumber(i1.Value / i2.Value),
+                DoubleNumber d2 => new DoubleNumber(i1.Value / d2.Value),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static Expr.Boolean operator >(IntegerNumber i1, Number n) {
-            switch (n) {
-                case IntegerNumber i2: return new Expr.Boolean(i1.Value > i2.Value);
-                case DoubleNumber d2: return new Expr.Boolean(i1.Value > d2.Value);
-                default: throw new NotImplementedException();
-            }
-
+            return n switch
+            {
+                IntegerNumber i2 => new Expr.Boolean(i1.Value > i2.Value),
+                DoubleNumber d2 => new Expr.Boolean(i1.Value > d2.Value),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static Expr.Boolean operator <(IntegerNumber i1, Number n) {
-            switch (n) {
-                case IntegerNumber i2: return new Expr.Boolean(i1.Value < i2.Value);
-                case DoubleNumber d2: return new Expr.Boolean(i1.Value < d2.Value);
-                default: throw new NotImplementedException();
-            }
+            return n switch
+            {
+                IntegerNumber i2 => new Expr.Boolean(i1.Value < i2.Value),
+                DoubleNumber d2 => new Expr.Boolean(i1.Value < d2.Value),
+                _ => throw new NotImplementedException(),
+            };
         }
 
     }
 
-    public class DoubleNumber : Number<double> {
-
-
-        public DoubleNumber(double d) : base(d) {}
-
+    public class DoubleNumber(double d) : Number<double>(d) {
         public override bool Equals(object? obj) {
             if (obj is null) return false;
             if (obj is DoubleNumber lit) {
@@ -427,68 +504,75 @@ public abstract class Expr {
         }
 
         public static Expr.Boolean operator ==(DoubleNumber d1, Number n) {
-            switch (n) {
-                case IntegerNumber i2: return new Expr.Boolean(d1.Value == i2.Value);
-                case DoubleNumber d2: return new Expr.Boolean(d1.Value == d2.Value);
-                default: throw new NotImplementedException();
-            }
-
+            return n switch
+            {
+                IntegerNumber i2 => new Expr.Boolean(d1.Value == i2.Value),
+                DoubleNumber d2 => new Expr.Boolean(d1.Value == d2.Value),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static Expr.Boolean operator !=(DoubleNumber d1, Number n) {
-            switch (n) {
-                case IntegerNumber i2: return new Expr.Boolean(d1.Value != i2.Value);
-                case DoubleNumber d2: return new Expr.Boolean(d1.Value != d2.Value);
-                default: throw new NotImplementedException();
-            }
+            return n switch
+            {
+                IntegerNumber i2 => new Expr.Boolean(d1.Value != i2.Value),
+                DoubleNumber d2 => new Expr.Boolean(d1.Value != d2.Value),
+                _ => throw new NotImplementedException(),
+            };
         }
         public static Number operator +(DoubleNumber d1, Number n) {
             // TODO: is it  better to use overrides rather than switch statements?
-            switch (n) {
-                case IntegerNumber i2: return new DoubleNumber(d1.Value + i2.Value);
-                case DoubleNumber d2: return new DoubleNumber(d1.Value + d2.Value);
-                default: throw new NotImplementedException();
-            }
+            return n switch
+            {
+                IntegerNumber i2 => new DoubleNumber(d1.Value + i2.Value),
+                DoubleNumber d2 => new DoubleNumber(d1.Value + d2.Value),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static Number operator -(DoubleNumber d1, Number n) {
-            switch (n) {
-                case IntegerNumber i2: return new DoubleNumber(d1.Value - i2.Value);
-                case DoubleNumber d2: return new DoubleNumber(d1.Value - d2.Value);
-                default: throw new NotImplementedException();
-            }
+            return n switch
+            {
+                IntegerNumber i2 => new DoubleNumber(d1.Value - i2.Value),
+                DoubleNumber d2 => new DoubleNumber(d1.Value - d2.Value),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static Number operator *(DoubleNumber d1, Number n) {
-            switch (n) {
-                case IntegerNumber i2: return new DoubleNumber(d1.Value * i2.Value);
-                case DoubleNumber d2: return new DoubleNumber(d1.Value * d2.Value);
-                default: throw new NotImplementedException();
-            }
+            return n switch
+            {
+                IntegerNumber i2 => new DoubleNumber(d1.Value * i2.Value),
+                DoubleNumber d2 => new DoubleNumber(d1.Value * d2.Value),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static Number operator /(DoubleNumber d1, Number n) {
-            switch (n) {
-                case IntegerNumber i2: return new DoubleNumber(d1.Value / i2.Value);
-                case DoubleNumber d2: return new DoubleNumber(d1.Value / d2.Value);
-                default: throw new NotImplementedException();
-            }
+            return n switch
+            {
+                IntegerNumber i2 => new DoubleNumber(d1.Value / i2.Value),
+                DoubleNumber d2 => new DoubleNumber(d1.Value / d2.Value),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static Expr.Boolean operator >(DoubleNumber d1, Number n) {
-            switch (n) {
-                case IntegerNumber i2: return new Expr.Boolean(d1.Value > i2.Value);
-                case DoubleNumber d2: return new Expr.Boolean(d1.Value > d2.Value);
-                default: throw new NotImplementedException();
-            }
+            return n switch
+            {
+                IntegerNumber i2 => new Expr.Boolean(d1.Value > i2.Value),
+                DoubleNumber d2 => new Expr.Boolean(d1.Value > d2.Value),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         public static Expr.Boolean operator <(DoubleNumber d1, Number n) {
-            switch (n) {
-                case IntegerNumber i2: return new Expr.Boolean(d1.Value < i2.Value);
-                case DoubleNumber d2: return new Expr.Boolean(d1.Value < d2.Value);
-                default: throw new NotImplementedException();
-            }
+            return n switch
+            {
+                IntegerNumber i2 => new Expr.Boolean(d1.Value < i2.Value),
+                DoubleNumber d2 => new Expr.Boolean(d1.Value < d2.Value),
+                _ => throw new NotImplementedException(),
+            };
         }
 
     }
@@ -605,21 +689,16 @@ public abstract class Expr {
 
     internal static bool IsLiteral(Expr ast)
     {
-        Expr x;
-        if (ast is Syntax stx) {
-            x = Syntax.E(stx);
-        } else {
-            x = ast;
-        }
-        switch (x) {
-            case Expr.Char: return true;
-            case Expr.Boolean: return true;
-            case Expr.String: return true;
-            case Expr.IntegerNumber: return true;
-            case Expr.DoubleNumber: return true;
-            default: return false;
-        }
-
+        Expr x = ast is Syntax stx ? Syntax.E(stx) : ast;
+        return x switch
+        {
+            Expr.Char => true,
+            Expr.Boolean => true,
+            Expr.String => true,
+            Expr.IntegerNumber => true,
+            Expr.DoubleNumber => true,
+            _ => false,
+        };
     }
 
     internal static bool IsSymbol(Expr ast)
@@ -633,7 +712,7 @@ public abstract class Expr {
     {
         if (ast is Syntax stx) {
             if (Syntax.E(stx) is List list) {
-                return list.Count() != 0;
+                return list.Any();
             }
         }
         return ast is List.NonEmpty;

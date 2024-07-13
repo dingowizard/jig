@@ -18,6 +18,8 @@ public class Transformer : LiteralExpr<Delegate> {
         while (thunk is not null) {
             thunk = thunk();
         }
+        // TODO: if Error is called somewhere in execution of transformer, we get null result
+        // TODO: When the assertion fails, stdin is all fucked up
         Debug.Assert(result is not null);
         return result as Syntax ?? throw new Exception($"transformer must return a syntax object. (got '{result}')");
 

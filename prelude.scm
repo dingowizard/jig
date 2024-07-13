@@ -204,6 +204,19 @@
        stx
        `((lambda () (define loop (lambda ,ps (if ,test ,result (begin ,@body (loop ,@incrs))))) (loop ,@inits)))))))
 
+;; (define-syntax define-record-type
+;;   (lambda (stx)
+;;     (let* ((args (cdr (syntax->list stx)))
+;;            (name (car args))
+;;            (fields (cdr (syntax->list (car (cdr args)))))
+;;            (rtd (make-record-type-descriptor name (vector ...)))
+;;            (rcd (make-record-constructor-descriptor rtd)))
+;;       (datum->syntax
+;;        stx
+;;        `(begin
+;;           (define-syntax ,name
+;;             (lambda (stx)))
+;;           (define ,cstor ',fields) (newline))))))
 
 (define dynamic-wind #f)
 

@@ -154,7 +154,7 @@ internal abstract class ET : Expression {
         private static MethodInfo LookUp {get;} = typeof(IEnvironment).GetMethod("LookUp") ?? throw new Exception("in SymbolET: IEnvironment really should have a 'LookUp' method");
 
         public SymbolET(LexicalContext scope, ParsedVariable variable) {
-            if (variable is ParsedVariable.TopLevel topLevel) {
+            if (variable is ParsedVariable.TopLevel) {
                 var v = Expression.Parameter(typeof(Expr));
                 var k = Expression.Lambda<Continuation.OneArgDelegate>(Expression.Convert(DynInv(kParam, v), typeof(Thunk)), new ParameterExpression[] {v});
                 Body = Expression.Call(envParam,
@@ -195,8 +195,8 @@ internal abstract class ET : Expression {
     delegate Thunk? MapInternalDelegate(Continuation.OneArgDelegate continuation, IEnvironment env, CompiledCode[] list, int index);
 
     delegate Thunk? ApplyDelegate(Delegate k, Expr proc, List args);
-    static PropertyInfo carPropertyInfo = typeof(IPair).GetProperty("Car") ?? throw new Exception("in ProcAppET: ProperLists should have one property named 'Car'");
-    static PropertyInfo restPropertyInfo = typeof(List.NonEmpty).GetProperty("Rest") ?? throw new Exception("in ProcAppET: ProperLists should have one property named 'Cdr'");
+    static readonly PropertyInfo carPropertyInfo = typeof(IPair).GetProperty("Car") ?? throw new Exception("in ProcAppET: ProperLists should have one property named 'Car'");
+    static readonly PropertyInfo restPropertyInfo = typeof(List.NonEmpty).GetProperty("Rest") ?? throw new Exception("in ProcAppET: ProperLists should have one property named 'Cdr'");
 
 
     private class ProcAppET : ET {
@@ -362,7 +362,7 @@ internal abstract class ET : Expression {
             if (setExpr.Variable is ParsedVariable.TopLevel) {
                 contBody = Expression.Call(envParam,
                                        _setMethod,
-                                       new Expression [] {kParam, Expression.Constant(sym), val});
+                                       [kParam, Expression.Constant(sym), val]);
             } else {
                 ParameterExpression? pe = lexVars.LookUp(sym);
                 if (pe is null) {
@@ -371,9 +371,9 @@ internal abstract class ET : Expression {
                     contBody = DynInv(kParam, Expression.Block(Expression.Assign(pe, val), Expression.Constant(Expr.Void)));
                 }
             }
-            var k = Expression.Lambda(contBody, new ParameterExpression [] {val});
+            var k = Expression.Lambda(contBody, [val]);
 
-            Body = Expression.Invoke(valCC, new Expression[] {k, envParam});
+            Body = Expression.Invoke(valCC, [k, envParam]);
         }
 
         public SetBangET(LexicalContext lexVars, List.NonEmpty list) : base() {
@@ -386,13 +386,13 @@ internal abstract class ET : Expression {
             if (pe is null) {
                 contBody = Expression.Call(envParam,
                                        _setMethod,
-                                       new Expression [] {kParam, Expression.Constant(sym), val});
+                                       [kParam, Expression.Constant(sym), val]);
             } else {
                 contBody = DynInv(kParam, Expression.Block(Expression.Assign(pe, val), Expression.Constant(Expr.Void)));
             }
-            var k = Expression.Lambda(contBody, new ParameterExpression [] {val});
+            var k = Expression.Lambda(contBody, [val]);
 
-            Body = Expression.Invoke(valCC, new Expression[] {k, envParam});
+            Body = Expression.Invoke(valCC, [k, envParam]);
         }
 
         public override Expression Body {get;}
@@ -410,14 +410,14 @@ internal abstract class ET : Expression {
             if (lexVars.AtTopLevel()) {
                     contBody = Expression.Call(envParam,
                                                _defineMethod,
-                                               new Expression[] {kParam, Expression.Constant(id), val});
+                                               [kParam, Expression.Constant(id), val]);
             } else {
                 ParameterExpression pe = lexVars.ParameterForDefine(id);
                 contBody = DynInv(kParam, Expression.Assign(pe, val));
             }
             Expression<CompiledCode> valCC = (Expression<CompiledCode>)Analyze(lexVars, valExpr).Reduce();
-            var k = Expression.Lambda(contBody, new ParameterExpression [] {val});
-            Body = Expression.Invoke(valCC, new Expression[] {k, envParam});
+            var k = Expression.Lambda(contBody, [val]);
+            Body = Expression.Invoke(valCC, [k, envParam]);
 
         }
 
@@ -429,14 +429,14 @@ internal abstract class ET : Expression {
             if (lexVars.AtTopLevel()) {
                     contBody = Expression.Call(envParam,
                                                _defineMethod,
-                                               new Expression[] {kParam, Expression.Constant(sym), val});
+                                               [kParam, Expression.Constant(sym), val]);
             } else {
                 ParameterExpression pe = lexVars.ParameterForDefine(sym);
                 contBody = DynInv(kParam, Expression.Assign(pe, val));
             }
             Expression<CompiledCode> valCC = (Expression<CompiledCode>)Analyze(lexVars, valExpr).Reduce();
-            var k = Expression.Lambda(contBody, new ParameterExpression [] {val});
-            Body = Expression.Invoke(valCC, new Expression[] {k, envParam});
+            var k = Expression.Lambda(contBody, [val]);
+            Body = Expression.Invoke(valCC, [k, envParam]);
 
         }
 
@@ -444,8 +444,6 @@ internal abstract class ET : Expression {
         public override Expression Body {get;}
     }
 
-    private Expression<CompiledCode> LE(Expression body, ParameterExpression[] ps) => Expression.Lambda<CompiledCode> (body, ps);
-    private Expression<Continuation.OneArgDelegate> K(Expression body, ParameterExpression[] ps) => Expression.Lambda<Continuation.OneArgDelegate> (body, ps);
     internal static Expression DynInv(params Expression[] xs) {
         return Expression.Dynamic(
             binder: new MyInvokeBinder(new CallInfo(xs.Length -1)),
@@ -456,7 +454,7 @@ internal abstract class ET : Expression {
 
 
     private class LambdaExprET : ET {
-        static ConstructorInfo procedureCstr = typeof(Procedure).GetConstructor(new Type[] {typeof(Delegate)}) ?? throw new Exception("could not find constructor for Procedure");
+        static readonly ConstructorInfo procedureCstr = typeof(Procedure).GetConstructor([typeof(Delegate)]) ?? throw new Exception("could not find constructor for Procedure");
 
         public LambdaExprET(LexicalContext scope, ParsedLambda lambdaExpr) {
             SyntaxList lambdaBody = lambdaExpr.Bodies;
@@ -471,19 +469,20 @@ internal abstract class ET : Expression {
                     IEnumerable<Expr.Symbol> symbols = parameters.Required.Select(id => id.Symbol).Append(rest.Symbol);
                     lambdaScope = scope.Extend(symbols);
                     LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
-                    LambdaExpressionParams = new ParameterExpression[] {k}.Concat(lambdaScope.Parameters).ToArray();
+                    LambdaExpressionParams = [k, .. lambdaScope.Parameters];
                     Body = Expression.Convert(DynInv(kParam, // here kParam is the continuation when the lambda expression is being evaluated
                                                 Expression.New(procedureCstr,
-                                                            new Expression[] {
-                                                                Expression.Lambda(delegateType: FunctionTypeFromRequiredCount(parameters.Required.Length),
-                                                                body: LambdaExpressionBody,
-                                                                parameters: LambdaExpressionParams)
-                                                            })), typeof(Thunk));
+                                                            [
+                                                                Expression.Lambda(
+                                                                    delegateType: FunctionTypeFromRequiredCount(parameters.Required.Length),
+                                                                    body: LambdaExpressionBody,
+                                                                    parameters: LambdaExpressionParams)
+                                                            ])), typeof(Thunk));
                 } else {
                     // parameters are something like a
                     lambdaScope = scope.Extend(new Expr.Symbol[]{rest.Symbol});
                     LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
-                    LambdaExpressionParams = new ParameterExpression[] {k}.Concat(lambdaScope.Parameters).ToArray();
+                    LambdaExpressionParams = [k, .. lambdaScope.Parameters];
 
                     Body = Expression.Convert(DynInv(kParam, // here kParam is the continuation when the lambda expression is being evaluated
                                                 Expression.New(procedureCstr,
@@ -521,8 +520,7 @@ internal abstract class ET : Expression {
             LexicalContext lambdaScope;
             switch (lambdaParameters) {
                 case List properList:
-                    IEnumerable<Expr.Symbol> properListSymbols = properList.Cast<Expr.Symbol>();
-                    if (properListSymbols is null) throw new Exception($"malformed lambda: expected parameters to be symbols but got {properList}");
+                    IEnumerable<Expr.Symbol> properListSymbols = properList.Cast<Expr.Symbol>() ?? throw new Exception($"malformed lambda: expected parameters to be symbols but got {properList}");
                     lambdaScope = scope.Extend(properListSymbols);
                     LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
                     LambdaExpressionParams = new ParameterExpression[] {k}.Concat(lambdaScope.Parameters).ToArray();
@@ -576,7 +574,7 @@ internal abstract class ET : Expression {
 
         public override Expression Body {get;}
 
-        private IEnumerable<Expr.Symbol> ValidateAndConvertToSymbols(IPair parameters) {
+        private static List<Expr.Symbol> ValidateAndConvertToSymbols(IPair parameters) {
             var result = new List<Expr.Symbol>();
             Expr car = parameters.Car;
             Expr.Symbol sym = car is Syntax.Identifier id ? id.Symbol : car is Expr.Symbol s ? s : throw new Exception($"lambda: all parameters must be symbols (given {car}");
@@ -594,30 +592,22 @@ internal abstract class ET : Expression {
 
         }
 
-        private Type FunctionTypeFromRequiredCount(int num) {
-            switch (num) {
-                case 0:
-                    throw new Exception("In FunctionTypeFromParameters: found 0 parameters before the rest paramter, but there should be at least one");
-                case 1:
-                    return typeof(PairFunction);
-                case 2:
-                    return typeof(ImproperListFunction2);
-                case 3:
-                    return typeof(ImproperListFunction3);
-                case 4:
-                    return typeof(ImproperListFunction4);
-                case 5:
-                    return typeof(ImproperListFunction5);
-                case 6:
-                    return typeof(ImproperListFunction6);
-                case 7:
-                    return typeof(ImproperListFunction7);
-                default:
-                    throw new Exception("lambda: can't handle improper codes parameters with more than 7 parameters before the rest paramter.");
-            }
+        private static Type FunctionTypeFromRequiredCount(int num) {
+            return num switch
+            {
+                0 => throw new Exception("In FunctionTypeFromParameters: found 0 parameters before the rest paramter, but there should be at least one"),
+                1 => typeof(PairFunction),
+                2 => typeof(ImproperListFunction2),
+                3 => typeof(ImproperListFunction3),
+                4 => typeof(ImproperListFunction4),
+                5 => typeof(ImproperListFunction5),
+                6 => typeof(ImproperListFunction6),
+                7 => typeof(ImproperListFunction7),
+                _ => throw new Exception("lambda: can't handle improper codes parameters with more than 7 parameters before the rest paramter."),
+            };
         }
 
-        private Type FunctionTypeFromParameters(IPair parameters) {
+        private static Type FunctionTypeFromParameters(IPair parameters) {
             // how many parameters before rest parameter?
             int num = 1;
             object cdr = parameters.Cdr;
@@ -628,8 +618,9 @@ internal abstract class ET : Expression {
             return FunctionTypeFromRequiredCount(num);
         }
 
-        private Expression LambdaBody(ParameterExpression k, LexicalContext scope, List.NonEmpty exprs) {
+        private InvocationExpression LambdaBody(ParameterExpression k, LexicalContext scope, List.NonEmpty exprs) {
             // TODO: why is this so much more complicated than just returning a block expr?
+            // TODO: shouldn't this create a Block?
 
             // k is the paramter continuation for the procedure that is being made (the continuation when that proc is applied)
             var block = new BlockET(scope.Extend(), exprs);
@@ -646,28 +637,6 @@ internal abstract class ET : Expression {
                     parameters: new ParameterExpression[] {cont}),
                 new Expression[] {k}
             );
-        }
-
-        private static Type GetImproperListFunctionType(int v) {
-            switch (v) {
-                case 0:
-                case 1:
-                    throw new Exception("In GetImproperListFunctionType: number of required parameters should be more than 1");
-                case 2:
-                    return typeof(ImproperListFunction2);
-                case 3:
-                    return typeof(ImproperListFunction3);
-                case 4:
-                    return typeof(ImproperListFunction4);
-                case 5:
-                    return typeof(ImproperListFunction5);
-                case 6:
-                    return typeof(ImproperListFunction6);
-                case 7:
-                    return typeof(ImproperListFunction7);
-                default:
-                    throw new NotImplementedException("Improper parameter lists are limited to 8 parameters");
-            }
         }
     }
 

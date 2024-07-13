@@ -177,7 +177,7 @@ internal static class Builtins {
             }
             Expr first = args.ElementAt(0);
             Expr second = args.ElementAt(1);
-            bool result = first is IPair pair ? Object.ReferenceEquals(first,second) : first.Equals(second);
+            bool result = first is IPair ? Object.ReferenceEquals(first,second) : first.Equals(second);
             return Continuation.ApplyDelegate(k, new Expr.Boolean(result));
         } else {
             return Error(k, "eq?: expected two arguments but got none");
@@ -232,8 +232,9 @@ internal static class Builtins {
             if (properList.Count() < 2) {
                 return Error(k, "symbol=?: expected two or more arguments.");
             }
-            Expr.Symbol? sym1 = properList.Car as Expr.Symbol;
-            if (sym1 is null) return Error(k, $"symbol=?: expected all arguments to be symbols, but got {properList.Car}");
+            if (properList.Car is not Expr.Symbol sym1){
+                return Error(k, $"symbol=?: expected all arguments to be symbols, but got {properList.Car}");
+            }
             List rest = properList.Rest;
             Expr.Symbol? sym2 = rest.ElementAt(0) as Expr.Symbol;
             if (sym2 is null) return Error(k, $"symbol=?: expected all arguments to be symbols, but got {rest.ElementAt(0)}");
@@ -274,8 +275,9 @@ internal static class Builtins {
             if (properList.Count() != 1) {
                 return Error(k, "syntax-e: expected one argument.");
             }
-            Syntax? stx = properList.Car as Syntax;
-            if (stx is null) return Error(k, $"syntax-e: expected syntax argument but got {properList.Car}");
+            if (properList.Car is not Syntax stx) {
+                return Error(k, $"syntax-e: expected syntax argument but got {properList.Car}");
+            }
             return Continuation.ApplyDelegate(k, Syntax.E(stx));
         } else {
             return Error(k, "syntax-e: expected one argument.");
@@ -349,8 +351,9 @@ internal static class Builtins {
 
     public static Thunk? callcc(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"call/cc: expected one argument.");
-        Procedure? proc = args.ElementAt(0) as Procedure;
-        if (proc is null) return Error(k, "call/cc: expected procedure argument but got {args.ElementAt(0)}");
+        if (args.ElementAt(0) is not Procedure proc){
+            return Error(k, "call/cc: expected procedure argument but got {args.ElementAt(0)}");
+        }
         if (proc.Value is Func<Delegate, Expr, Thunk> del) {
             return del(k, new Continuation(k));
         } else {
@@ -372,9 +375,10 @@ internal static class Builtins {
     }
 
     public static Thunk? syntax_to_list(Delegate k, List args) {
-        if (args.Count() != 1) return Error(k, $"syntax->codes: expected one argument.");
-        Syntax? stx = args.ElementAt(0) as Syntax;
-        if (stx is null) return Error(k, $"syntax->codes: expected a syntax argument, got got {args.ElementAt(0)}");
+        if (args.Count() != 1) return Error(k, $"syntax->list: expected one argument.");
+        if (args.ElementAt(0) is not Syntax stx){
+            return Error(k, $"syntax->list: expected a syntax argument, got got {args.ElementAt(0)}");
+        }
         if (Syntax.ToList(stx, out List? result)) {
             return Continuation.ApplyDelegate(k, result);
         } else {
@@ -453,14 +457,16 @@ internal static class Builtins {
         // TODO: stack trace
         Console.Error.Write("*** ERROR: ");
         Continuation.OneArgDelegate end = (x) => null;
-        if (args.Count() < 1) {
+        if (!args.Any()) {
             Console.Error.WriteLine("error: expected at least one argument");
             return Continuation.ApplyDelegate(end, Expr.Void);
         }
-        Expr.String? msg = args.ElementAt(0) as Expr.String;
-        if (msg is null) {
+        if (args.ElementAt(0) is not Expr.String msg)
+        {
             Console.Error.WriteLine($"error: expected first argument to be a string message but got {args.ElementAt(0)}.");
-        } else {
+        }
+        else
+        {
             Console.Error.WriteLine(msg);
         }
         return Continuation.ApplyDelegate(end, Expr.Void);
@@ -474,6 +480,24 @@ internal static class Builtins {
         return Continuation.ApplyDelegate(k, new Expr.Record.TypeDescriptor(args));
 
     }
+
+    public static Thunk? record_type_descriptor_p(Delegate k, List args) {
+        if (args.Count() != 1) return Error(k, $"record-type-descriptor?: expected a single argument but got {args.Count()}");
+        if (args.ElementAt(0) is Expr.Record.TypeDescriptor) {
+            return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
+        }
+        return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+
+    }
+    public static Thunk? record_constructor_descriptor_p(Delegate k, List args) {
+        if (args.Count() != 1) return Error(k, $"record-constructor-descriptor?: expected a single argument but got {args.Count()}");
+        if (args.ElementAt(0) is Expr.Record.ConstructorDescriptor) {
+            return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
+        }
+        return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+
+    }
+
     public static Thunk? make_record_constructor_descriptor(Delegate k, List args) {
         return Continuation.ApplyDelegate(k, new Expr.Record.ConstructorDescriptor(args));
     }
