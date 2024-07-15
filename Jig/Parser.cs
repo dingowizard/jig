@@ -18,8 +18,7 @@ public class Parser {
         switch (peeked) {
             case Token.Quote quoteToken:
                 tokenStream.Read();
-                Expr? arg = ParseExpr(tokenStream, syntax);
-                if (arg is null) throw new Exception("unexpected EOF");
+                Expr? arg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
                    return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Expr.Symbol.FromName("quote"), quoteToken.SrcLoc),
                                                            (Syntax)arg),
@@ -29,8 +28,7 @@ public class Parser {
                 }
             case Token.QuasiQuote quasiquoteToken:
                 tokenStream.Read();
-                Expr? quasiArg = ParseExpr(tokenStream, syntax);
-                if (quasiArg is null) throw new Exception("unexpected EOF");
+                Expr? quasiArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
                    return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Expr.Symbol.FromName("quasiquote"), quasiquoteToken.SrcLoc),
                                                            (Syntax)quasiArg),
@@ -40,8 +38,7 @@ public class Parser {
                 }
             case Token.UnQuote unquoteToken:
                 tokenStream.Read();
-                Expr? unquoteArg = ParseExpr(tokenStream, syntax);
-                if (unquoteArg is null) throw new Exception("unexpected EOF");
+                Expr? unquoteArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
                    return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Expr.Symbol.FromName("unquote"), unquoteToken.SrcLoc),
                                                            (Syntax)unquoteArg),
@@ -51,8 +48,7 @@ public class Parser {
                 }
             case Token.UnQuoteSplicing unquoteSplicingToken:
                 tokenStream.Read();
-                Expr? unquoteSplicingArg = ParseExpr(tokenStream, syntax);
-                if (unquoteSplicingArg is null) throw new Exception("unexpected EOF");
+                Expr? unquoteSplicingArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
                    return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Expr.Symbol.FromName("unquote-splicing"), unquoteSplicingToken.SrcLoc),
                                                            (Syntax)unquoteSplicingArg),
@@ -102,7 +98,7 @@ public class Parser {
 
     private static Expr ParseString(Token.String str, TokenStream tokenStream, bool syntax) {
         tokenStream.Read();
-        var x = new Expr.String(str.Text.Substring(1, str.Text.Length - 2));
+        var x = new Expr.String(str.Text[1..^1]);
         if (syntax) {
             return new Syntax.Literal(x, str.SrcLoc);
         } else {
@@ -173,8 +169,7 @@ public class Parser {
     }
 
     static Expr ParsePair(TokenStream tokenStream, bool syntax) {
-        Expr? car = ParseExpr(tokenStream, syntax);
-        if (car is null) throw new Exception("unexpected EOF");
+        Expr car = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
         if (syntax && car is not Syntax) {
             Console.WriteLine($"ParsePair: expected car to be syntax but got {car}, a {car.GetType()}");
         }
@@ -182,14 +177,15 @@ public class Parser {
         //     return ParseSpecialForm(car, tokenStream, syntax);
         // }
         // next token could be dot, closeparen or something else, in which case the rest will be another pair
-        Expr? cdr = null;
+        Expr? cdr;
         if (tokenStream.Peek() is Token.Dot) {
             tokenStream.Read();
             cdr = ParseExpr(tokenStream, syntax);
             if (cdr is null) throw new Exception("unexpected EOF");
             return (Expr)Expr.Pair.Cons(car, cdr);
         }
-        if (tokenStream.Peek() is Token.CloseParen close) {
+
+        if (tokenStream.Peek() is Token.CloseParen) {
             cdr = List.Empty;
             return (Expr)Expr.Pair.Cons(car, cdr);
 

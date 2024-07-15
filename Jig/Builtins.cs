@@ -23,12 +23,11 @@ internal static class Builtins {
 
     public static Thunk? car (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
-            switch (properList.Car) {
-                case IPair pair:
-                    return Continuation.ApplyDelegate(k, pair.Car);
-                default:
-                    return Error(k, $"car: expected pair but got {properList.Car}");
-            }
+            return properList.Car switch
+            {
+                IPair pair => Continuation.ApplyDelegate(k, pair.Car),
+                _ => Error(k, $"car: expected pair but got {properList.Car}"),
+            };
         } else {
             return Error(k, "car: expected one argument but got none");
         }
@@ -49,12 +48,11 @@ internal static class Builtins {
 
     public static Thunk? cdr (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
-            switch (properList.Car) {
-                case IPair pair:
-                    return Continuation.ApplyDelegate(k, pair.Cdr);
-                default:
-                    return Error(k, $"cdr: expected pair but got {properList.Cdr}");
-            }
+            return properList.Car switch
+            {
+                IPair pair => Continuation.ApplyDelegate(k, pair.Cdr),
+                _ => Error(k, $"cdr: expected pair but got {properList.Cdr}"),
+            };
         } else {
             return Error(k, "cdr: expected one argument but got none");
         }
@@ -103,7 +101,7 @@ internal static class Builtins {
         Expr.Number acc = Expr.Number.From(0);
         foreach (var arg in args) {
             if (arg is Expr.Number num) {
-                acc = acc + num;
+                acc += num;
             } else {
                 return Error(k, $"+: all args must be numbers. got {arg}");
             }

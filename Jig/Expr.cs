@@ -35,7 +35,7 @@ public abstract class Expr {
 
         public Vector(List xs)
         {
-            Elements = xs.ToArray();
+            Elements = [.. xs];
         }
 
         public bool TryGetAtIndex(Expr.IntegerNumber i, [NotNullWhen(returnValue: true)] out Expr? result) {
@@ -129,7 +129,7 @@ public abstract class Expr {
                     bool mut = mutability.Equals(new Expr.Symbol("mutable")) || (mutability.Equals(new Expr.Symbol("immutable")) ? false : throw new Exception());
                     listFields.Add(new Tuple<Symbol, bool>(fieldName, mut));
                 }
-                Fields = listFields.ToArray();
+                Fields = [.. listFields];
             }
             public Tuple<Expr.Symbol, bool>[] Fields {get;}
             public new TypeDescriptor? Parent {get;} = null;

@@ -12,7 +12,7 @@ public class Procedure(Delegate d) : LiteralExpr<Delegate>(d) {
         ImproperListFunction5 improper5 => improper5(k, args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), args.ElementAt(4), List.NewList(args.Skip(5).ToArray())),
         ImproperListFunction6 improper6 => improper6(k, args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), args.ElementAt(4), args.ElementAt(5), List.NewList(args.Skip(6).ToArray())),
         ImproperListFunction7 improper7 => improper7(k, args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), args.ElementAt(4), args.ElementAt(5), args.ElementAt(6), List.NewList(args.Skip(7).ToArray())),
-        _ => (Thunk?)Value.DynamicInvoke(new List<object> { k }.Concat(args).ToArray()),
+        _ => Value.DynamicInvoke([k, .. args]) as Thunk,
     };
 
     public override string Print() => "#<procedure>";
