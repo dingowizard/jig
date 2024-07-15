@@ -248,7 +248,7 @@ public class ExpansionEnvironment {
         Syntax result;
         SyntaxList stxList = Syntax.E(stx) as SyntaxList ?? throw new Exception("and: syntax should expand to list");
         if (stxList.Count<Syntax>() == 1) { // E.g. (and)
-            result = new Syntax.Literal(new Expr.Boolean(true), null);
+            result = new Syntax.Literal(Expr.Bool.True, null);
             return Continuation.ApplyDelegate(k, result);
         }
         if (stxList.Count<Syntax>() == 2) { // Eg (and 1)
@@ -265,7 +265,7 @@ public class ExpansionEnvironment {
                                                                             }.Concat<Syntax>(stxList.Skip<Syntax>(2))),
 
                                     new SrcLoc()),
-                                    new Syntax.Literal(new Expr.Boolean(false))),
+                                    new Syntax.Literal(Expr.Bool.False)),
             stx.SrcLoc);
         return Continuation.ApplyDelegate(k, result);
 

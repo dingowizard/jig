@@ -325,7 +325,7 @@ internal abstract class ET : Expression {
 
         public override Expression Body {get;}
         private static bool IsNotFalse(Expr x) {
-            if (x is Expr.Boolean boolExpr) {
+            if (x is Expr.Bool boolExpr) {
                 return boolExpr.Value != false;
             }
             else return true;

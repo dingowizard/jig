@@ -142,15 +142,15 @@ public class Parser {
                 // tokenStream.Read();
                 if (b.Text == "#t" || b.Text == "#true") {
                     if (syntax) {
-                        return new Syntax.Literal(new Expr.Boolean(true), b.SrcLoc);
+                        return new Syntax.Literal(Expr.Bool.True, b.SrcLoc);
                     } else {
-                        return new Expr.Boolean(true);
+                        return Expr.Bool.True;
                     }
                 } else if (b.Text == "#f" || b.Text == "#false") {
                     if (syntax) {
-                        return new Syntax.Literal(new Expr.Boolean(false), b.SrcLoc);
+                        return new Syntax.Literal(Expr.Bool.False, b.SrcLoc);
                     } else {
-                        return new Expr.Boolean(false);
+                        return Expr.Bool.False;
                     }
                 } else {
                     throw new Exception($"ParseLiteral: couldn't match boolean token {b}");

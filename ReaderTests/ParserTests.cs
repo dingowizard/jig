@@ -185,14 +185,14 @@ public class ParserTests {
     public void ParseHashFToFalse() {
         var lexer = new TokenStream(InputPort.FromString("#f"));
         var actual = Parser.ParseExpr(lexer);
-        Assert.AreEqual(new Expr.Boolean(false), actual);
+        Assert.AreEqual(Expr.Bool.False, actual);
     }
 
     [TestMethod]
     public void ParseHashTToFalse() {
         var lexer = new TokenStream(InputPort.FromString("#t"));
         var actual = Parser.ParseExpr(lexer);
-        Assert.AreEqual(new Expr.Boolean(true), actual);
+        Assert.AreEqual(Expr.Bool.True, actual);
     }
 
     [TestMethod]
@@ -228,7 +228,7 @@ public class ParserTests {
     public void ParseListWithSymbolAndBool() {
         var lexer = new TokenStream(InputPort.FromString("(not #f)"));
         var actual = Parser.ParseExpr(lexer);
-        Assert.AreEqual(List.NewList(new Expr.Symbol("not"), new Expr.Boolean(false)), actual);
+        Assert.AreEqual(List.NewList(new Expr.Symbol("not"), Expr.Bool.False), actual);
 
     }
 

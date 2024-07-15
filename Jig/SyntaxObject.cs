@@ -95,7 +95,7 @@ public class Syntax : Expr {
                 return stx;
             case Symbol sym:
                 return new Identifier(sym, srcLoc);
-            case Expr.Boolean:
+            case Expr.Bool:
             case Expr.Char:
             case Expr.DoubleNumber:
             case Expr.IntegerNumber:

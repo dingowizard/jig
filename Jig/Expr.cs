@@ -23,7 +23,11 @@ public abstract class Expr {
 
     public static bool IsNull(Expr x) => x is NullType;
 
-    public class Boolean(bool b) : LiteralExpr<bool>(b) {
+    public class Bool : LiteralExpr<bool> {
+
+        private Bool(bool b) : base(b) {}
+        public readonly static Bool True = new (true);
+        public readonly static Bool False = new (false);
         public override string Print() => Value ? "#t" : "#f";
     }
 
@@ -99,8 +103,8 @@ public abstract class Expr {
                 }
                 Name = name;
 
-                if (fields.ElementAt(1) is Expr.Boolean b) {
-                    if (b == new Expr.Boolean(true)) {
+                if (fields.ElementAt(1) is Expr.Bool b) {
+                    if (b == Expr.Bool.True) {
                         throw new Exception($"make-record-type-descriptor: expected second argument to be #f or a record type descriptor. Got: {fields.ElementAt(1)}");
                     }
                 } else if (fields.ElementAt(1) is TypeDescriptor parent) {
@@ -136,12 +140,12 @@ public abstract class Expr {
 
             private Thunk? IsOfMe(Delegate k, Record record) {
                 if (object.ReferenceEquals(this, record.RecordTypeDescriptor)) {
-                    return Continuation.ApplyDelegate(k, new Expr.Boolean(true));
+                    return Continuation.ApplyDelegate(k, Expr.Bool.True);
                 } else {
                     if (record.Parent is not null) {
                         return IsOfMe(k, record.Parent);
                     }
-                    return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+                    return Continuation.ApplyDelegate(k, Expr.Bool.False);
                 }
             }
 
@@ -152,7 +156,7 @@ public abstract class Expr {
                     if (args.Count() != 1) return Builtins.Error(k, $"{this.Name}?: expected exactly one argument but got {args.Count()}");
                     Expr arg = args.ElementAt(0);
                     if (arg is not Record record) {
-                        return Continuation.ApplyDelegate(k, new Expr.Boolean(false));
+                        return Continuation.ApplyDelegate(k, Expr.Bool.False);
                     }
                     return IsOfMe(k, record);
                 };
@@ -192,10 +196,10 @@ public abstract class Expr {
             private class BaseType : TypeDescriptor  {
                 public BaseType() : base(List.NewList(
                     new Expr.Symbol("base-rtd"),
-                    new Expr.Boolean(false),
-                    new Expr.Boolean(false),
-                    new Expr.Boolean(false),
-                    new Expr.Boolean(false),
+                    Expr.Bool.False,
+                    Expr.Bool.False,
+                    Expr.Bool.False,
+                    Expr.Bool.False,
                     new Vector()))
                 {
                     RecordTypeDescriptor = this;
@@ -217,8 +221,8 @@ public abstract class Expr {
 
                 RTD = rtd; // note: the ConstructorDescriptor is a record that has two rtds: its own and
                            // a field that contains the RTD for the record it is the constructor of (RTD)
-                if (fields.ElementAt(1) is Expr.Boolean b) {
-                    if (b == new Expr.Boolean(true)) {
+                if (fields.ElementAt(1) is Expr.Bool b) {
+                    if (b == Expr.Bool.True) {
                         throw new Exception($"make-record-constructor-descriptor: expected second argument to be #f or a record constructor descriptor. Got: {fields.ElementAt(1)}");
                     }
                 } else if (fields.ElementAt(1) is ConstructorDescriptor parent) {
@@ -277,10 +281,10 @@ public abstract class Expr {
                 new TypeDescriptor(
                     List.NewList(
                         new Expr.Symbol("rcd"),
-                        new Expr.Boolean(false),
-                        new Expr.Boolean(false),
-                        new Expr.Boolean(false),
-                        new Expr.Boolean(false),
+                        Expr.Bool.False,
+                        Expr.Bool.False,
+                        Expr.Bool.False,
+                        Expr.Bool.False,
                         new Vector()));
         }
     }
@@ -330,7 +334,7 @@ public abstract class Expr {
 
         public abstract override bool Equals(object? obj);
 
-        public static Expr.Boolean operator ==(Number n1, Number n2) {
+        public static Expr.Bool operator ==(Number n1, Number n2) {
             return n1 switch
             {
                 IntegerNumber in1 => in1 == n2,
@@ -339,7 +343,7 @@ public abstract class Expr {
             };
         }
 
-        public static Expr.Boolean operator !=(Number n1, Number n2) {
+        public static Expr.Bool operator !=(Number n1, Number n2) {
             return n1 switch
             {
                 IntegerNumber in1 => in1 != n2,
@@ -384,7 +388,7 @@ public abstract class Expr {
             };
         }
 
-        public static Expr.Boolean operator >(Number n1, Number n2) {
+        public static Expr.Bool operator >(Number n1, Number n2) {
             return n1 switch
             {
                 IntegerNumber in1 => in1 > n2,
@@ -393,7 +397,7 @@ public abstract class Expr {
             };
         }
 
-        public static Expr.Boolean operator <(Number n1, Number n2) {
+        public static Expr.Bool operator <(Number n1, Number n2) {
             return n1 switch
             {
                 IntegerNumber in1 => in1 < n2,
@@ -416,20 +420,20 @@ public abstract class Expr {
             return Value.GetHashCode();
         }
 
-        public static Expr.Boolean operator ==(IntegerNumber i1, Number n) {
+        public static Expr.Bool operator ==(IntegerNumber i1, Number n) {
             return n switch
             {
-                IntegerNumber i2 => new Expr.Boolean(i1.Value == i2.Value),
-                DoubleNumber d2 => new Expr.Boolean(i1.Value == d2.Value),
+                IntegerNumber i2 => i1.Value == i2.Value ? Expr.Bool.True : Expr.Bool.False,
+                DoubleNumber d2 => i1.Value == d2.Value ? Expr.Bool.True : Expr.Bool.False,
                 _ => throw new NotImplementedException(),
             };
         }
 
-        public static Expr.Boolean operator !=(IntegerNumber i1, Number n) {
+        public static Expr.Bool operator !=(IntegerNumber i1, Number n) {
             return n switch
             {
-                IntegerNumber i2 => new Expr.Boolean(i1.Value != i2.Value),
-                DoubleNumber d2 => new Expr.Boolean(i1.Value != d2.Value),
+                IntegerNumber i2 => i1.Value != i2.Value ? Expr.Bool.True : Expr.Bool.False,
+                DoubleNumber d2 => i1.Value != d2.Value ? Expr.Bool.True : Expr.Bool.False,
                 _ => throw new NotImplementedException(),
             };
         }
@@ -470,20 +474,20 @@ public abstract class Expr {
             };
         }
 
-        public static Expr.Boolean operator >(IntegerNumber i1, Number n) {
+        public static Expr.Bool operator >(IntegerNumber i1, Number n) {
             return n switch
             {
-                IntegerNumber i2 => new Expr.Boolean(i1.Value > i2.Value),
-                DoubleNumber d2 => new Expr.Boolean(i1.Value > d2.Value),
+                IntegerNumber i2 => i1.Value > i2.Value ? Expr.Bool.True : Expr.Bool.False,
+                DoubleNumber d2 => i1.Value > d2.Value ? Expr.Bool.True : Expr.Bool.False,
                 _ => throw new NotImplementedException(),
             };
         }
 
-        public static Expr.Boolean operator <(IntegerNumber i1, Number n) {
+        public static Expr.Bool operator <(IntegerNumber i1, Number n) {
             return n switch
             {
-                IntegerNumber i2 => new Expr.Boolean(i1.Value < i2.Value),
-                DoubleNumber d2 => new Expr.Boolean(i1.Value < d2.Value),
+                IntegerNumber i2 => i1.Value < i2.Value ? Expr.Bool.True : Expr.Bool.False,
+                DoubleNumber d2 => i1.Value < d2.Value ? Expr.Bool.True : Expr.Bool.False,
                 _ => throw new NotImplementedException(),
             };
         }
@@ -503,20 +507,20 @@ public abstract class Expr {
             return Value.GetHashCode();
         }
 
-        public static Expr.Boolean operator ==(DoubleNumber d1, Number n) {
+        public static Expr.Bool operator ==(DoubleNumber d1, Number n) {
             return n switch
             {
-                IntegerNumber i2 => new Expr.Boolean(d1.Value == i2.Value),
-                DoubleNumber d2 => new Expr.Boolean(d1.Value == d2.Value),
+                IntegerNumber i2 => d1.Value == i2.Value ? Expr.Bool.True : Expr.Bool.False,
+                DoubleNumber d2 => d1.Value == d2.Value ? Expr.Bool.True : Expr.Bool.False,
                 _ => throw new NotImplementedException(),
             };
         }
 
-        public static Expr.Boolean operator !=(DoubleNumber d1, Number n) {
+        public static Expr.Bool operator !=(DoubleNumber d1, Number n) {
             return n switch
             {
-                IntegerNumber i2 => new Expr.Boolean(d1.Value != i2.Value),
-                DoubleNumber d2 => new Expr.Boolean(d1.Value != d2.Value),
+                IntegerNumber i2 => d1.Value != i2.Value ? Expr.Bool.True : Expr.Bool.False,
+                DoubleNumber d2 => d1.Value != d2.Value ? Expr.Bool.True : Expr.Bool.False,
                 _ => throw new NotImplementedException(),
             };
         }
@@ -557,20 +561,20 @@ public abstract class Expr {
             };
         }
 
-        public static Expr.Boolean operator >(DoubleNumber d1, Number n) {
+        public static Expr.Bool operator >(DoubleNumber d1, Number n) {
             return n switch
             {
-                IntegerNumber i2 => new Expr.Boolean(d1.Value > i2.Value),
-                DoubleNumber d2 => new Expr.Boolean(d1.Value > d2.Value),
+                IntegerNumber i2 => d1.Value > i2.Value ? Expr.Bool.True : Expr.Bool.False,
+                DoubleNumber d2 => d1.Value > d2.Value ? Expr.Bool.True : Expr.Bool.False,
                 _ => throw new NotImplementedException(),
             };
         }
 
-        public static Expr.Boolean operator <(DoubleNumber d1, Number n) {
+        public static Expr.Bool operator <(DoubleNumber d1, Number n) {
             return n switch
             {
-                IntegerNumber i2 => new Expr.Boolean(d1.Value < i2.Value),
-                DoubleNumber d2 => new Expr.Boolean(d1.Value < d2.Value),
+                IntegerNumber i2 => d1.Value < i2.Value ? Expr.Bool.True : Expr.Bool.False,
+                DoubleNumber d2 => d1.Value < d2.Value ? Expr.Bool.True : Expr.Bool.False,
                 _ => throw new NotImplementedException(),
             };
         }
@@ -693,7 +697,7 @@ public abstract class Expr {
         return x switch
         {
             Expr.Char => true,
-            Expr.Boolean => true,
+            Expr.Bool => true,
             Expr.String => true,
             Expr.IntegerNumber => true,
             Expr.DoubleNumber => true,
