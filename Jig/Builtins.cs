@@ -475,13 +475,13 @@ internal static class Builtins {
 
     }
     public static Thunk? make_record_type_descriptor(Delegate k, List args) {
-        return Continuation.ApplyDelegate(k, new Expr.Record.TypeDescriptor(args));
+        return Continuation.ApplyDelegate(k, new Record.TypeDescriptor(args));
 
     }
 
     public static Thunk? record_type_descriptor_p(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"record-type-descriptor?: expected a single argument but got {args.Count()}");
-        if (args.ElementAt(0) is Expr.Record.TypeDescriptor) {
+        if (args.ElementAt(0) is Record.TypeDescriptor) {
             return Continuation.ApplyDelegate(k, Expr.Bool.True);
         }
         return Continuation.ApplyDelegate(k, Expr.Bool.False);
@@ -489,7 +489,7 @@ internal static class Builtins {
     }
     public static Thunk? record_constructor_descriptor_p(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"record-constructor-descriptor?: expected a single argument but got {args.Count()}");
-        if (args.ElementAt(0) is Expr.Record.ConstructorDescriptor) {
+        if (args.ElementAt(0) is Record.ConstructorDescriptor) {
             return Continuation.ApplyDelegate(k, Expr.Bool.True);
         }
         return Continuation.ApplyDelegate(k, Expr.Bool.False);
@@ -497,13 +497,13 @@ internal static class Builtins {
     }
 
     public static Thunk? make_record_constructor_descriptor(Delegate k, List args) {
-        return Continuation.ApplyDelegate(k, new Expr.Record.ConstructorDescriptor(args));
+        return Continuation.ApplyDelegate(k, new Record.ConstructorDescriptor(args));
     }
 
     public static Thunk? vector_p(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"vector?: expected a single argument but got {args.Count()}");
         var arg = args.ElementAt(0);
-        if (arg is Expr.Record) {
+        if (arg is Record) {
             return Continuation.ApplyDelegate(k, Expr.Bool.False);
         }
         if (arg is Expr.Vector) {
@@ -515,7 +515,7 @@ internal static class Builtins {
     public static Thunk? record_p(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"record?: expected a single argument but got {args.Count()}");
         var arg = args.ElementAt(0);
-        if (arg is Expr.Record) {
+        if (arg is Record) {
             return Continuation.ApplyDelegate(k, Expr.Bool.True);
         }
         return Continuation.ApplyDelegate(k, Expr.Bool.False);
@@ -524,7 +524,7 @@ internal static class Builtins {
     public static Thunk? record_predicate(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"record-predicate: expected a single argument but got {args.Count()}");
         var arg = args.ElementAt(0);
-        if (arg is not Expr.Record.TypeDescriptor rtd) {
+        if (arg is not Record.TypeDescriptor rtd) {
             return Error(k, $"record-predicate: expected argument to be a record type descriptor but got {args.Count()}");
         }
         return Continuation.ApplyDelegate(k, rtd.Predicate());
@@ -533,7 +533,7 @@ internal static class Builtins {
 
     public static Thunk? record_accessor(Delegate k, List args) {
         if (args.Count() != 2) return Error(k, $"record-accessor: expected two arguments but got {args.Count()}");
-        if (args.ElementAt(0) is not Expr.Record.TypeDescriptor rtd) {
+        if (args.ElementAt(0) is not Record.TypeDescriptor rtd) {
             return Error(k, $"record-predicate: expected argument to be a record type descriptor but got {args.ElementAt(0)}");
         }
         if (args.ElementAt(1) is not Expr.IntegerNumber i) {
@@ -545,7 +545,7 @@ internal static class Builtins {
     public static Thunk? record_constructor(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"record-constructor: expected a single argument but got {args.Count()}");
         var arg = args.ElementAt(0);
-        if (arg is not Expr.Record.ConstructorDescriptor rcd) {
+        if (arg is not Record.ConstructorDescriptor rcd) {
             return Error(k, $"record-constructor: expected argument to be a record constructor descriptor but got {args.Count()}");
         }
         return Continuation.ApplyDelegate(k, rcd.Constructor());

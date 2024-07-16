@@ -1,0 +1,215 @@
+namespace Jig;
+
+public class Record : Expr.Vector {
+    public Record(TypeDescriptor rtd, List fields) : base(fields) {
+        RecordTypeDescriptor = rtd;
+    }
+    public Record(TypeDescriptor rtd, Record parent, List fields) : base(fields) {
+        RecordTypeDescriptor = rtd;
+        Parent = parent;
+    }
+    protected Record() {
+    }
+
+    public TypeDescriptor? RecordTypeDescriptor {get; private set;}
+
+    protected Record? Parent {get;}
+
+    public class TypeDescriptor : Record {
+
+        public TypeDescriptor(List fields) : base(Base, fields) {
+            if (fields.Count() != 6) {
+                throw new Exception($"make-record-type-descriptor: expected six arguments, got {fields.Print()}");
+            }
+
+            if (fields.ElementAt(0) is not Expr.Symbol name) {
+                throw new Exception("make-record-type-descriptor: expected first argument to be a symbol");
+            }
+            Name = name;
+
+            if (fields.ElementAt(1) is Expr.Bool b) {
+                if (b == Expr.Bool.True) {
+                    throw new Exception($"make-record-type-descriptor: expected second argument to be #f or a record type descriptor. Got: {fields.ElementAt(1)}");
+                }
+            } else if (fields.ElementAt(1) is TypeDescriptor parent) {
+                Parent = parent;
+            } else {
+                throw new Exception($"make-record-type-descriptor: expected second argument to be #f or a record type descriptor. Got: {fields.ElementAt(1)}");
+            }
+
+            if (fields.ElementAt(5) is not Expr.Vector fs) {
+                throw new Exception("in TypeDescriptor cstor: expected second field to be a Vector");
+            }
+            List<Tuple<Expr.Symbol, bool>> listFields = [];
+            foreach (var f in fs) {
+                if (f is not List.NonEmpty listField) {
+                    throw new Exception();
+                }
+                if (listField.Count() != 2) {
+                    throw new Exception("field spec should have two members");
+                }
+                if (listField.ElementAt(0) is not Expr.Symbol mutability) {
+                    throw new Exception("expected a symbol value for field mutability");
+                }
+                if (listField.ElementAt(1) is not Expr.Symbol fieldName) {
+                    throw new Exception("expected a symbol value for field mutability");
+                }
+                bool mut = mutability.Equals(new Expr.Symbol("mutable")) || (mutability.Equals(new Expr.Symbol("immutable")) ? false : throw new Exception());
+                listFields.Add(new Tuple<Symbol, bool>(fieldName, mut));
+            }
+            Fields = [.. listFields];
+        }
+        public Tuple<Expr.Symbol, bool>[] Fields {get;}
+        public new TypeDescriptor? Parent {get;} = null;
+
+        private Thunk? IsOfMe(Delegate k, Record record) {
+            if (object.ReferenceEquals(this, record.RecordTypeDescriptor)) {
+                return Continuation.ApplyDelegate(k, Expr.Bool.True);
+            } else {
+                if (record.Parent is not null) {
+                    return IsOfMe(k, record.Parent);
+                }
+                return Continuation.ApplyDelegate(k, Expr.Bool.False);
+            }
+        }
+
+
+
+        public Procedure Predicate() {
+            Builtin predicate = (k, args) => {
+                if (args.Count() != 1) return Builtins.Error(k, $"{this.Name}?: expected exactly one argument but got {args.Count()}");
+                Expr arg = args.ElementAt(0);
+                if (arg is not Record record) {
+                    return Continuation.ApplyDelegate(k, Expr.Bool.False);
+                }
+                return IsOfMe(k, record);
+            };
+            return new Procedure(predicate);
+
+        }
+
+        public Procedure Accessor(Expr.IntegerNumber i) {
+            if (i.Value >= Fields.Length) {
+                // a record with two fields has a rtd with three fields (first is name of rtd)
+                // so an index of two would be point to the last field
+                // TODO: the specs for the record fields should probably be in a single field
+                throw new Exception("record-accessor: index out of range");
+
+            }
+            Builtin accessor = (k, args) => {
+                // TODO: better error message by getting field name from spec in rtd
+                if (args.Count() != 1) return Builtins.Error(k, $"record access: expected a single argument but got {args.Count()}");
+                var arg = args.ElementAt(0);
+                if (arg is not Record record) {
+                    return Builtins.Error(k, $"record access: expected argument to be a record but got {arg}");
+                }
+                if (!object.ReferenceEquals(this, record.RecordTypeDescriptor)) {
+                    return Builtins.Error(k, $"record access: expected record of type {this.Name} but got {arg}");
+                }
+                return Continuation.ApplyDelegate(k, record.Elements[i.Value]);
+            };
+            return new Procedure(accessor);
+            
+
+        }
+
+        public Expr.Symbol Name {get;}
+        public readonly static TypeDescriptor Base = new BaseType();
+
+
+        private class BaseType : TypeDescriptor  {
+            public BaseType() : base(List.NewList(
+                new Expr.Symbol("base-rtd"),
+                Expr.Bool.False,
+                Expr.Bool.False,
+                Expr.Bool.False,
+                Expr.Bool.False,
+                new Vector()))
+            {
+                RecordTypeDescriptor = this;
+            }
+
+            public override string Print() => "#!base-rtd";
+
+        }
+
+        public override string Print() => $"#<record type {Name}>";
+    }
+
+    public class ConstructorDescriptor : Record {
+
+        public ConstructorDescriptor(List fields) : base(TypeDescriptorForConstructor, fields) {
+            if (fields.ElementAt(0) is not Record.TypeDescriptor rtd) {
+                throw new Exception("in ConstructorDescriptor cstor: expected first field to be a record type descriptor");
+            }
+
+            RTD = rtd; // note: the ConstructorDescriptor is a record that has two rtds: its own and
+                        // a field that contains the RTD for the record it is the constructor of (RTD)
+            if (fields.ElementAt(1) is Expr.Bool b) {
+                if (b == Expr.Bool.True) {
+                    throw new Exception($"make-record-constructor-descriptor: expected second argument to be #f or a record constructor descriptor. Got: {fields.ElementAt(1)}");
+                }
+            } else if (fields.ElementAt(1) is ConstructorDescriptor parent) {
+                Parent = parent;
+            } else {
+                throw new Exception($"make-record-constructor-descriptor: expected second argument to be #f or a record constructor descriptor. Got: {fields.ElementAt(1)}");
+            }
+
+        }
+
+        private int ParameterCount {
+            get
+            {
+                int result = RTD.Fields.Length;
+                ConstructorDescriptor? parent = Parent;
+                while (parent is not null)
+                {
+                    result += parent.RTD.Fields.Length;
+                    parent = parent.Parent;
+                }
+                return result;
+            }
+        }
+
+        public Procedure Constructor() {
+            Builtin constructor = (k, args) => {
+                if (args.Count() != ParameterCount) {
+                    return Builtins.Error(k, $"{RTD.Name} constructor: expected {ParameterCount} arguments but got {args.Count()}");
+                }
+                // return Continuation.ApplyDelegate(k, new Record(RTD, List.ListFromEnumerable(args.Skip(1))));
+                if (Parent is null) {
+                    return Continuation.ApplyDelegate(k, new Record(RTD, args));
+                } else {
+                    int ownArgNum = RTD.Fields.Length;
+                    int parentArgNum = ParameterCount - ownArgNum;
+                    Record parentRecord = 
+                            new Record(
+                                Parent.RTD,
+                                List.ListFromEnumerable(args.Take(parentArgNum)));
+                    return Continuation.ApplyDelegate(
+                        k,
+                        new Record(
+                            RTD,
+                            parentRecord,
+                            List.ListFromEnumerable(args.Skip(parentArgNum))));
+                }
+            };
+            return new Procedure(constructor);
+
+        }
+
+        public TypeDescriptor RTD {get;}
+
+        public new ConstructorDescriptor? Parent {get;} = null;
+        public readonly static TypeDescriptor TypeDescriptorForConstructor =
+            new TypeDescriptor(
+                List.NewList(
+                    new Expr.Symbol("rcd"),
+                    Expr.Bool.False,
+                    Expr.Bool.False,
+                    Expr.Bool.False,
+                    Expr.Bool.False,
+                    new Vector()));
+    }
+}
+
