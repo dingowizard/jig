@@ -108,7 +108,10 @@ public class Records {
     }
 
     [TestMethod]
-    public void RecordAccessorCanGetGrandparentField() {
+    [DataRow("(point-x pt)", "1")]
+    [DataRow("(point-y pt)", "2")]
+    [DataRow("(point-z pt)", "3")]
+    public void RecordAccessorCanGetGrandparentField(string last, string expected) {
         string actual = new Interpreter(withPrelude: false).InterpretSequenceReadSyntax(new string[] {
             "(define pt-rtd (make-record-type-descriptor 'point #f #f #f #f (vector '(mutable x))))",
             "(define pt-rcd (make-record-constructor-descriptor pt-rtd #f #f))",
@@ -119,9 +122,11 @@ public class Records {
             "(define make-point3d (record-constructor pt3-rcd))",
             "(define pt (make-point3d 1 2 3))",
             "(define point-x (record-accessor pt-rtd 0))",
-            "(point-x pt)"
+            "(define point-y (record-accessor pt2-rtd 0))",
+            "(define point-z (record-accessor pt3-rtd 0))",
+            last
             });
-        Assert.AreEqual("1", actual);
+        Assert.AreEqual(expected, actual);
 
     }
 
