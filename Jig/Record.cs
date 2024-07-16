@@ -1,6 +1,31 @@
 namespace Jig;
 
 public class Record : Expr.Vector {
+
+    public static Record Make(TypeDescriptor rtd, ConstructorDescriptor rcd, List args) {
+        // Maybe this should be on ConstructorDescriptor. ParameterCount logic is repeated there
+        if (rcd.ParentRCD is null) {
+            return new Record(rtd, args);
+        }
+        int ownArgNum = rtd.Fields.Length;
+        int parentArgNum = ParameterCount(rcd.ParentRCD, rtd) - ownArgNum;
+        return new Record(
+                rtd,
+                Make(rcd.ParentRCD.RTD, rcd.ParentRCD, List.ListFromEnumerable(args.Take(parentArgNum))),
+                List.ListFromEnumerable(args.Skip(parentArgNum)));
+            
+    }
+        private static int ParameterCount(ConstructorDescriptor ParentRCD, TypeDescriptor rtd) {
+            int result = rtd.Fields.Length;
+            ConstructorDescriptor? parent = ParentRCD;
+            while (parent is not null)
+            {
+                result += parent.RTD.Fields.Length;
+                parent = parent.ParentRCD;
+            }
+            return result;
+        }
+
     public Record(TypeDescriptor rtd, List fields) : base(fields) {
         RecordTypeDescriptor = rtd;
     }
@@ -150,22 +175,22 @@ public class Record : Expr.Vector {
                     throw new Exception($"make-record-constructor-descriptor: expected second argument to be #f or a record constructor descriptor. Got: {fields.ElementAt(1)}");
                 }
             } else if (fields.ElementAt(1) is ConstructorDescriptor parent) {
-                Parent = parent;
+                ParentRCD = parent;
             } else {
                 throw new Exception($"make-record-constructor-descriptor: expected second argument to be #f or a record constructor descriptor. Got: {fields.ElementAt(1)}");
             }
 
         }
 
-        private int ParameterCount {
+        private new int ParameterCount {
             get
             {
                 int result = RTD.Fields.Length;
-                ConstructorDescriptor? parent = Parent;
+                ConstructorDescriptor? parent = ParentRCD;
                 while (parent is not null)
                 {
                     result += parent.RTD.Fields.Length;
-                    parent = parent.Parent;
+                    parent = parent.ParentRCD;
                 }
                 return result;
             }
@@ -176,23 +201,12 @@ public class Record : Expr.Vector {
                 if (args.Count() != ParameterCount) {
                     return Builtins.Error(k, $"{RTD.Name} constructor: expected {ParameterCount} arguments but got {args.Count()}");
                 }
-                // return Continuation.ApplyDelegate(k, new Record(RTD, List.ListFromEnumerable(args.Skip(1))));
-                if (Parent is null) {
-                    return Continuation.ApplyDelegate(k, new Record(RTD, args));
-                } else {
-                    int ownArgNum = RTD.Fields.Length;
-                    int parentArgNum = ParameterCount - ownArgNum;
-                    Record parentRecord = 
-                            new Record(
-                                Parent.RTD,
-                                List.ListFromEnumerable(args.Take(parentArgNum)));
-                    return Continuation.ApplyDelegate(
-                        k,
-                        new Record(
-                            RTD,
-                            parentRecord,
-                            List.ListFromEnumerable(args.Skip(parentArgNum))));
-                }
+                return Continuation.ApplyDelegate(
+                    k,
+                    Record.Make(
+                        RTD,
+                        this,
+                        args));
             };
             return new Procedure(constructor);
 
@@ -200,7 +214,7 @@ public class Record : Expr.Vector {
 
         public TypeDescriptor RTD {get;}
 
-        public new ConstructorDescriptor? Parent {get;} = null;
+        public ConstructorDescriptor? ParentRCD {get;} = null;
         public readonly static TypeDescriptor TypeDescriptorForConstructor =
             new TypeDescriptor(
                 List.NewList(
