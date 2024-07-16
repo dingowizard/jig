@@ -75,6 +75,22 @@ public class Records {
     }
 
     [TestMethod]
+    public void ChildCanAccessParentFields() {
+        string actual = new Interpreter(withPrelude: false).InterpretSequenceReadSyntax(new string[] {
+            "(define pt2-rtd (make-record-type-descriptor 'point2d #f #f #f #f (vector '(mutable x) '(mutable y))))",
+            "(define pt2-rcd (make-record-constructor-descriptor pt2-rtd #f #f))",
+            "(define point2d-x (record-accessor pt2-rtd 0))",
+            "(define pt3-rtd (make-record-type-descriptor 'point3d pt2-rtd #f #f #f (vector '(mutable z))))",
+            "(define pt3-rcd (make-record-constructor-descriptor pt3-rtd pt2-rcd #f))",
+            "(define make-point3d (record-constructor pt3-rcd))",
+            "(define pt (make-point3d 1 2 3))",
+            "(point2d-x pt)"
+            });
+        Assert.AreEqual("1", actual);
+
+    }
+
+    [TestMethod]
     public void ParentPredicateIsTrueForChildChildRecord() {
         string actual = new Interpreter(withPrelude: false).InterpretSequenceReadSyntax(new string[] {
             "(define pt-rtd (make-record-type-descriptor 'point #f #f #f #f (vector '(mutable x))))",
@@ -88,6 +104,24 @@ public class Records {
             "(point? (make-point3d 1 2 3))",
             });
         Assert.AreEqual("#t", actual);
+
+    }
+
+    [TestMethod]
+    public void RecordAccessorCanGetGrandparentField() {
+        string actual = new Interpreter(withPrelude: false).InterpretSequenceReadSyntax(new string[] {
+            "(define pt-rtd (make-record-type-descriptor 'point #f #f #f #f (vector '(mutable x))))",
+            "(define pt-rcd (make-record-constructor-descriptor pt-rtd #f #f))",
+            "(define pt2-rtd (make-record-type-descriptor 'point2d pt-rtd #f #f #f (vector '(mutable y))))",
+            "(define pt2-rcd (make-record-constructor-descriptor pt2-rtd pt-rcd #f))",
+            "(define pt3-rtd (make-record-type-descriptor 'point3d pt2-rtd #f #f #f (vector '(mutable z))))",
+            "(define pt3-rcd (make-record-constructor-descriptor pt3-rtd pt2-rcd #f))",
+            "(define make-point3d (record-constructor pt3-rcd))",
+            "(define pt (make-point3d 1 2 3))",
+            "(define point-x (record-accessor pt-rtd 0))",
+            "(point-x pt)"
+            });
+        Assert.AreEqual("1", actual);
 
     }
 

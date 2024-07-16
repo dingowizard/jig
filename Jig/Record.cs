@@ -98,6 +98,19 @@ public class Record : Expr.Vector {
             }
         }
 
+        private Thunk? GetField(Delegate k, Record record, int i) {
+            if (object.ReferenceEquals(this, record.RecordTypeDescriptor)) {
+                return Continuation.ApplyDelegate(k, record.Elements[i]);
+            } else {
+                if (record.Parent is not null) {
+                    return GetField(k, record.Parent, i);
+                }
+                    return Builtins.Error(k, $"record access: expected record of type {this.Name}");
+
+            }
+
+        }
+
 
 
         public Procedure Predicate() {
@@ -128,10 +141,7 @@ public class Record : Expr.Vector {
                 if (arg is not Record record) {
                     return Builtins.Error(k, $"record access: expected argument to be a record but got {arg}");
                 }
-                if (!object.ReferenceEquals(this, record.RecordTypeDescriptor)) {
-                    return Builtins.Error(k, $"record access: expected record of type {this.Name} but got {arg}");
-                }
-                return Continuation.ApplyDelegate(k, record.Elements[i.Value]);
+                return GetField(k, record, i.Value);
             };
             return new Procedure(accessor);
             
