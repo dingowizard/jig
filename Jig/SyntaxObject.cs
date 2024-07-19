@@ -13,6 +13,10 @@ public class Syntax : Expr {
         return stx.Expression;
     }
 
+    public static Syntax Cons(Syntax car, Expr cdr) {
+        return new Syntax((Expr)Expr.Pair.Cons(car, cdr));
+    }
+
     public static Expr ToDatum(Syntax stx) {
         Expr x = Syntax.E(stx);
         if (x is IPair stxPair) {
@@ -25,18 +29,28 @@ public class Syntax : Expr {
     internal static void AddScope(Syntax stx, Scope scope) {
         if (stx is Syntax.Identifier id) {
             bool added = id.ScopeSet.Add(scope);
-            // if (added) {
-            //     Console.WriteLine($"AddScope: {scope} was added.");
-            //     Console.WriteLine($"AddScope: ScopeSet contains {id.ScopeSet.Count}");
-            //     foreach (var sc in id.ScopeSet) {
-            //         Console.WriteLine ($"{sc} in ScopeSet Equals scope to add: {sc.Equals(scope)}");
-            //         Console.WriteLine ($"sc.GetHashCode == scope.GetHashCode() : {sc.GetHashCode() == scope.GetHashCode()}");
-            //     }
+            // if (added && id.Symbol.Name == "a") {
+            //     Console.WriteLine($"AddScope: {scope} was added to {stx}.");
+            //         Console.WriteLine($"\tat {id.SrcLoc.ToString() ?? "null"}");
+                // Console.WriteLine($"AddScope: ScopeSet contains {id.ScopeSet.Count}");
+                // foreach (var sc in id.ScopeSet) {
+                //     Console.WriteLine ($"{sc} in ScopeSet Equals scope to add: {sc.Equals(scope)}");
+                //     Console.WriteLine ($"sc.GetHashCode == scope.GetHashCode() : {sc.GetHashCode() == scope.GetHashCode()}");
+                // }
             // }
             return;
         }
         if (Syntax.E(stx) is SyntaxList stxList) {
             stxList.ToList<Syntax>().ForEach(s => AddScope(s, scope));
+            return;
+        }
+        if (Syntax.E(stx) is IPair pair) {
+            if (pair.Car is Syntax syntax && pair.Cdr is Syntax syntax1) {
+                AddScope(syntax, scope);
+                AddScope(syntax1, scope);
+                return;
+            }
+            // TODO: need to handle the case where car or cdr is SyntaxPair. In general, figure out SyntaxPairs
             return;
         }
         return;
@@ -51,6 +65,11 @@ public class Syntax : Expr {
             stxList.ToList<Syntax>().ForEach(s => RemoveScope(s, scope));
             return;
         }
+        if (Syntax.E(stx) is IPair pair) {
+            RemoveScope((Syntax)pair.Car, scope);
+            RemoveScope((Syntax)pair.Cdr, scope);
+            return;
+        }
         return;
     }
 
@@ -58,13 +77,29 @@ public class Syntax : Expr {
         if (stx is Syntax.Identifier id) {
             if (!id.ScopeSet.Remove(scope)) {
                 // NOTE: HashSet.Remove returns false if it does not find the item
+                // if (id.Symbol.Name == "a") {
+                //     Console.WriteLine($"in Toggle: scope {scope} was added to {id}");
+                //     Console.WriteLine($"\tat {id.SrcLoc.ToString() ?? "null"}");
+                // }
                 id.ScopeSet.Add(scope);
-            }
+            } // else {
+            //     if (id.Symbol.Name == "a") {
+            //         Console.WriteLine($"in Toggle: scope {scope} was removed from {id}");
+            //         Console.WriteLine($"\tat {id.SrcLoc.ToString() ?? "null"}");
+            //     }
+            // }
+            return;
 
         }
         if (Syntax.E(stx) is SyntaxList stxList) {
             stxList.ToList<Syntax>().ForEach(s => ToggleScope(s, scope));
             return;
+        }
+        if (Syntax.E(stx) is IPair pair) {
+            ToggleScope((Syntax)pair.Car, scope);
+            ToggleScope((Syntax)pair.Cdr, scope);
+            return;
+
         }
         return;
     }
