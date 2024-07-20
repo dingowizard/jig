@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 
 namespace Jig;
 
@@ -16,7 +17,7 @@ public class MacroExpander {
 
     IEnumerable<Syntax.Identifier> FindCandidateIdentifiers(Syntax.Identifier id) {
         IEnumerable<Syntax.Identifier> sameName = Bindings.Keys.Where(i => i.Symbol.Name == id.Symbol.Name);
-        // if (id.Symbol.Name == "u") {
+        // if (id.Symbol.Name == "a") {
         //     Console.WriteLine($"The search id -- {id} -- has the following scope sets: {string.Join(',', id.ScopeSet)}");
         //     Console.WriteLine($"Found {sameName.Count()} bindings with same name.");
         //     foreach (var b in sameName) {
@@ -29,8 +30,8 @@ public class MacroExpander {
 
     internal bool TryResolve(Syntax.Identifier id, [NotNullWhen(returnValue: true)] out Binding? binding) {
         var candidates = FindCandidateIdentifiers(id);
-        // if (id.Symbol.Name == "u") {
-        //     Console.WriteLine($"TryResolve: found {candidates.Count()} candidates for 'u' at {id.SrcLoc}");
+        // if (id.Symbol.Name == "a") {
+        //     Console.WriteLine($"TryResolve: found {candidates.Count()} candidates for 'a' at {id.SrcLoc} in {this.GetHashCode()}");
         // }
         if (!candidates.Any()) {
             binding = null;
@@ -131,6 +132,7 @@ public class MacroExpander {
             // Console.WriteLine($"macro application: {stx}");
             Syntax output = transformer.Apply(stx);
             // var result = output;
+            // Console.WriteLine($"toggling scope on {output}");
             Syntax.ToggleScope(output, macroExpansionScope);
             // Console.WriteLine($"{stx} => {output}");
             if (once) {
@@ -149,12 +151,12 @@ public class MacroExpander {
     }
 
     private  ParsedList ExpandList(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
-                List<Syntax> xs = [];
-                foreach (var x in stxList) {
-                    Syntax bodyExpr = Expand(x, ee, definesAllowed: false);
-                    xs.Add(bodyExpr);
-                }
-                return new ParsedList((SyntaxList)SyntaxList.FromIEnumerable(xs), srcLoc);
+        List<Syntax> xs = [];
+        foreach (var x in stxList) {
+            Syntax bodyExpr = Expand(x, ee, definesAllowed: false);
+            xs.Add(bodyExpr);
+        }
+        return new ParsedList((SyntaxList)SyntaxList.FromIEnumerable(xs), srcLoc);
     }
 
     private  Syntax ExpandSet(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
@@ -241,6 +243,164 @@ public class ExpansionEnvironment {
 
     public ExpansionEnvironment(Dictionary<Expr.Symbol, Transformer> dict) {
         _dict = dict;
+    }
+
+    private static Thunk? match_macro(Delegate k, Expr arg) {
+        // TODO: we need to make a local variable to hold the result of evaluating the expression to match
+        // but how to do this hygienically?
+        // is it sufficient just to create a binding form and variable?
+        Syntax stx = arg as Syntax ?? throw new Exception($"match: expected syntax, got {arg.GetType()}");
+        SyntaxList stxList = Syntax.E(stx) as SyntaxList ?? throw new Exception("match: syntax should expand to list");
+        if (stxList.Count<Syntax>() < 2) throw new Exception(); // TODO: this should be a syntax error
+        Syntax expr = stxList.ElementAt<Syntax>(1);
+        Syntax.Identifier x = new (new Expr.Symbol("x"));
+        Syntax result = new Syntax(
+            SyntaxList.FromParams(
+                new Syntax(
+                    SyntaxList.FromParams(
+                        new Syntax.Identifier(new Expr.Symbol("lambda")),
+                        new Syntax(SyntaxList.FromParams(x)),
+                        LambdaBodyForMatch(x, stxList.Skip<Syntax>(2))
+                    )),
+                expr
+            )
+        );
+        return Continuation.ApplyDelegate(k, result);
+
+    }
+
+    private static Syntax LambdaBodyForMatch(Syntax x, IEnumerable<Syntax> clauses)
+    {
+        return new Syntax(MakeIfs(x, clauses));
+
+    }
+
+    private static SyntaxList MakeIfs (Syntax x, IEnumerable<Syntax> clauses) {
+        // TODO: clean this up
+        Debug.Assert(clauses.Count() > 0);
+        Syntax elseBranch =
+            clauses.Count() == 1 ?
+            new Syntax(SyntaxList.FromParams(
+                new Syntax.Identifier(new Expr.Symbol("error")),
+                new Syntax.Literal(new Expr.String("match: couldn't find a match."))
+            )) : 
+            new Syntax(MakeIfs(x, clauses.Skip(1)));
+          
+        SyntaxList thisClause = Syntax.E(clauses.ElementAt(0)) as SyntaxList ?? throw new Exception();
+        return (SyntaxList)SyntaxList.FromParams(
+            new Syntax.Identifier(new Expr.Symbol("if")),
+            MakeConditionForMatchClause(x, thisClause.First),
+            MakeThenForMatchClause(x, thisClause.First, thisClause.Rest),
+            elseBranch
+        );
+
+    }
+
+    private static Syntax MakeThenForMatchClause(Syntax x, Syntax pattern, List bodies) {
+        // TODO: UGH!!
+        SyntaxList result = 
+            (SyntaxList)SyntaxList.FromIEnumerable(
+            new List<Syntax> {
+                new Syntax(
+                    SyntaxList.FromIEnumerable(
+                        new List<Syntax> {
+                        new Syntax.Identifier(new Expr.Symbol("lambda")),
+                        ParamsForLambdaForMatchClauseThen(pattern)}.
+                        Concat<Syntax>(bodies.Cast<Syntax>())
+                    ))
+            });
+        List args = ArgsForLambdaForMatchClauseThen(x, pattern);
+        if (args is SyntaxList properArgs) {
+            result = (SyntaxList)SyntaxList.FromIEnumerable(result.Concat<Syntax>(properArgs));
+        }
+        return new Syntax(result);
+    }
+
+    private static List ArgsForLambdaForMatchClauseThen(Syntax x, Syntax pattern)
+    {
+        return Syntax.E(pattern) switch
+        {
+            List.NullType => SyntaxList.FromParams(),
+            Expr.Number => SyntaxList.FromParams(),
+            Expr.Symbol => (SyntaxList)SyntaxList.FromParams(x),
+            SyntaxList stxList => throw new NotImplementedException(),
+            Expr.Pair pair => (SyntaxList)SyntaxList.FromParams(
+                new Syntax(SyntaxList.FromParams(
+                    new Syntax.Identifier(new Expr.Symbol("car")),
+                    x
+                )),
+                new Syntax(SyntaxList.FromParams(
+                    new Syntax.Identifier(new Expr.Symbol("cdr")),
+                    x
+                ))),
+            _ => throw new NotImplementedException(),
+        };
+    }
+
+    private static Syntax ParamsForLambdaForMatchClauseThen(Syntax pattern) {
+        switch (Syntax.E(pattern)) {
+            case Expr.Number: return new Syntax(SyntaxList.FromParams());
+            case List.NullType: return new Syntax(SyntaxList.FromParams());
+            case Expr.Symbol: return new Syntax(SyntaxList.FromParams(pattern));
+            case Expr.Pair pair:
+                if (pair.Car is Syntax.Identifier x && pair.Cdr is Syntax.Identifier y ) {
+                    return new Syntax(SyntaxList.FromParams(x, y));
+                }
+                throw new NotImplementedException();
+            default:
+                throw new NotImplementedException();
+        }
+
+    }
+
+    private static Syntax MakeConditionForMatchClause(Syntax x, SyntaxList syntaxList) {
+        throw new NotImplementedException();
+    }
+
+    private static Syntax MakeConditionForMatchClause(Syntax x, Expr car, Expr cdr) {
+        // TODO: Pair<Syntax> type?
+        Syntax carSyntax = car as Syntax ?? throw new Exception();
+        Syntax cdrSyntax = cdr as Syntax ?? throw new Exception();
+        return new Syntax(
+            SyntaxList.FromParams(
+                new Syntax.Identifier(new Expr.Symbol("and")),
+                new Syntax(SyntaxList.FromParams(
+                    new Syntax.Identifier(new Expr.Symbol("pair?")),
+                    x
+                )),
+                MakeConditionForMatchClause(x, carSyntax),
+                MakeConditionForMatchClause(x, cdrSyntax))
+        );
+    }
+
+    private static Syntax MakeNullTest(Syntax x) {
+        return new Syntax(
+            SyntaxList.FromParams(
+                new Syntax.Identifier(new Expr.Symbol("null?")),
+                x
+        ));
+    }
+
+    private static Syntax MakeConditionForMatchClause(Syntax x, Syntax pattern) {
+        return Syntax.E(pattern) switch
+        {
+            Expr.Number n => MakeNumEqTest(pattern, x),
+            List.NullType => MakeNullTest(x),
+            Expr.Symbol => new Syntax.Literal(Expr.Bool.True),
+            SyntaxList syntaxList => MakeConditionForMatchClause(x, syntaxList),
+            Expr.Pair pair => MakeConditionForMatchClause(x, pair.Car, pair.Cdr),
+            _ => throw new NotImplementedException(),
+        };
+    }
+
+    private static Syntax MakeNumEqTest(Syntax n, Syntax x)
+    {
+        return new Syntax(
+            SyntaxList.FromParams(
+                new Syntax.Identifier(new Expr.Symbol("=")),
+                x,
+                n
+        ));
     }
 
     private static Thunk? and_macro(Delegate k, Expr x) {
@@ -348,6 +508,7 @@ public class ExpansionEnvironment {
     public static ExpansionEnvironment Default {get;} =
         new ExpansionEnvironment(new Dictionary<Expr.Symbol, Transformer>{
             {new Expr.Symbol("and"), new Transformer((Func<Delegate, Expr, Thunk?>) and_macro)},
+            {new Expr.Symbol("match"), new Transformer((Func<Delegate, Expr, Thunk?>) match_macro)},
             {new Expr.Symbol("quasiquote"), new Transformer((Func<Delegate, Expr, Thunk?>) quasiquote_macro)},
             }
         );

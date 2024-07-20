@@ -141,18 +141,18 @@
 ; ;; (letrec ((x 1)) x) => error: unbound x
 ; ;; the x in the body can't find its binding because its only scope is the toplevel scope
 ; ;;
-; ;; (define-syntax letrec
-; ;;   (lambda (stx)
-; ;;     (let* ((stx-list (syntax->list stx))
-; ;;            (bs (map syntax->list (syntax->list (cadr stx-list))))
-; ;;            (ps (map car bs))
-; ;;            (vs (map cadr bs))
-; ;;            (body (cddr stx-list)))
-; ;;       (datum->syntax
-; ;;        stx
-; ;;        `(let ,(map (lambda (p) `(,p (void))) ps)
-; ;;           ,@(map (lambda (p v) `(set! ,p ,v)) ps vs)
-; ;;           ,@body)))))
+; (define-syntax letrec
+;   (lambda (stx)
+;     (let* ((stx-list (syntax->list stx))
+;            (bs (map syntax->list (syntax->list (cadr stx-list))))
+;            (ps (map car bs))
+;            (vs (map cadr bs))
+;            (body (cddr stx-list)))
+;       (datum->syntax
+;        stx
+;        `(let ,(map (lambda (p) `(,p (void))) ps)
+;           ,@(map (lambda (p v) `(set! ,p ,v)) ps vs)
+;           ,@body)))))
 
 ; ;; (define-syntax letrec
 ; ;;   (lambda (stx)
@@ -362,3 +362,13 @@
            (display msg)
            (newline)
            (k (void))))))
+
+(define flatten
+  (lambda (l)
+    (cond ((null? l) '())
+          ((pair? l)
+           (cond ((null? (car l)) (flatten (cdr l))) 
+                 ((pair? (car l))
+                  (append (flatten (car l)) (flatten (cdr l))))
+                 (#t (cons (car l) (flatten (cdr l))))))
+          (#t (list l)))))

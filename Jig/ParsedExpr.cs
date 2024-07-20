@@ -193,7 +193,11 @@ public class ParsedLambda : ParsedExpr {
     public LambdaParameters Parameters {get;}
     public SyntaxList Bodies {get;}
 
-    public static bool TryParse(Syntax stx, MacroExpander expander, ExpansionEnvironment ee, [NotNullWhen(returnValue: true)] out ParsedLambda? lambdaExpr) {
+    public static bool TryParse(Syntax stx,
+                                MacroExpander expander,
+                                ExpansionEnvironment ee,
+                                [NotNullWhen(returnValue: true)] out ParsedLambda? lambdaExpr)
+    {
         if (Syntax.E(stx) is not SyntaxList stxList)
         {
             lambdaExpr = null;
@@ -324,6 +328,9 @@ public class ParsedVariable : ParsedExpr {
                 parsedVariable = new ParsedVariable.Lexical(id, stx.SrcLoc);
                 return true;
             } else {
+                if (id.Symbol.Name == "a") {
+                    Console.WriteLine("couldn't resolve a");
+                }
                 parsedVariable = new ParsedVariable.TopLevel(id, stx.SrcLoc);
                 return true;
             }

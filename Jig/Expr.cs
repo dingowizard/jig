@@ -546,7 +546,14 @@ public abstract partial class Expr {
 }
 
 public class SyntaxPair : Expr.Pair {
-    public SyntaxPair(Syntax car, Syntax cdr) : base(car,cdr) {}
+    public SyntaxPair(Syntax car, Syntax cdr) : base(car,cdr) {
+        Car = car;
+        Cdr = cdr;
+
+    }
+
+    public new Syntax Car {get;}
+    public new Syntax Cdr {get;}
 }
 
 public abstract class Keyword : Expr.Symbol {
