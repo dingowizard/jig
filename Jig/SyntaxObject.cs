@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 
 namespace Jig;
 
@@ -76,18 +78,8 @@ public class Syntax : Expr {
     internal static void ToggleScope(Syntax stx, Scope scope) {
         if (stx is Syntax.Identifier id) {
             if (!id.ScopeSet.Remove(scope)) {
-                // NOTE: HashSet.Remove returns false if it does not find the item
-                // if (id.Symbol.Name == "a") {
-                //     Console.WriteLine($"in Toggle: scope {scope} was added to {id}");
-                //     Console.WriteLine($"\tat {id.SrcLoc.ToString() ?? "null"}");
-                // }
                 id.ScopeSet.Add(scope);
-            } // else {
-            //     if (id.Symbol.Name == "a") {
-            //         Console.WriteLine($"in Toggle: scope {scope} was removed from {id}");
-            //         Console.WriteLine($"\tat {id.SrcLoc.ToString() ?? "null"}");
-            //     }
-            // }
+            } 
             return;
 
         }
@@ -122,6 +114,56 @@ public class Syntax : Expr {
         stxList = null;
         return false;
 
+    }
+
+    private static List FlattenPair(Syntax car, SyntaxList cdr) {
+        switch (Syntax.E(car)) {
+            case List.NullType: return FlattenPair(cdr.First, cdr.Cdr);
+            case IPair pair:
+                Syntax pairCar = pair.Car as Syntax ?? throw new Exception($"FlattenPair: expected pair.Car to be Syntax but got {pair.Car.Print()}, a {pair.Car.GetType()}");
+                return (List)FlattenPair(pairCar, pair.Cdr).Append(Flatten(new Syntax(cdr)));
+            default: return (List)Expr.Pair.Cons(car, Flatten(new Syntax(cdr)));
+        }
+
+    }
+
+    private static List FlattenPair(Syntax car, Expr cdr) {
+        if (cdr is SyntaxList stxList) {
+            return FlattenPair(car, stxList);
+        }
+        if (cdr is List.NullType){
+            return Flatten(car);
+        }
+        Syntax stxCdr = cdr is Syntax stx ? stx : cdr is SyntaxList slist ? new(slist) : throw new Exception($"{cdr}");
+        return Syntax.E(car) switch
+        {
+            List.NullType => Flatten(stxCdr),
+            IPair pair => (List)FlattenPair((Syntax)pair.Car, pair.Cdr).Append(Flatten(stxCdr)),
+            _ => (SyntaxList)Expr.Pair.Cons(car, Flatten(stxCdr)),
+        };
+    }
+
+    public static List Flatten(Syntax stx) {
+        Console.WriteLine($"flatten: stx = {stx}");
+        switch(Syntax.E(stx)) {
+            case IPair pair:
+                Syntax car = pair.Car as Syntax ?? throw new Exception();
+                return FlattenPair(car, pair.Cdr);
+            case List.NullType: return List.Empty;
+            default:
+                // this should catch any non null atoms
+                return SyntaxList.FromParams(stx);
+        }
+
+    }
+
+    public static Thunk? syntax_flatten(Delegate k, List args) {
+        if (args.Count() != 1) return Builtins.Error(k, $"syntax-flatten: expected one argument.");
+        if (args.ElementAt(0) is Syntax stx) {
+            return Continuation.ApplyDelegate(k, Flatten(stx));
+        } else {
+            return Builtins.Error(k, $"syntax-flatten: expected syntax argument.");
+        }
     }
 
     public static Syntax FromDatum(SrcLoc? srcLoc, Expr x) {

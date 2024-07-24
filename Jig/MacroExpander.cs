@@ -316,6 +316,66 @@ public class ExpansionEnvironment {
         return new Syntax(result);
     }
 
+    private static Syntax Arg(Syntax x, Syntax pattern) {
+        return Syntax.E(pattern) switch
+        {
+            List.NullType => new Syntax(List.Empty),
+            Expr.Number => new Syntax(List.Empty),
+            Expr.Symbol => x,
+            SyntaxList stxList => throw new NotImplementedException(),
+            Expr.Pair pair => new Syntax(
+                (Expr)Expr.Pair.Cons(
+                    Arg(
+                        x: new Syntax(
+                            SyntaxList.FromParams(
+                                new Syntax.Identifier(new Expr.Symbol("car")),
+                                x)),
+                        pattern: (Syntax)pair.Car),
+                    Arg(
+                        x: new Syntax(
+                            SyntaxList.FromParams(
+                                new Syntax.Identifier(new Expr.Symbol("cdr")),
+                                x)),
+                        pattern: (Syntax)pair.Cdr))),
+            
+            _ => throw new NotImplementedException(),
+        };
+
+    }
+
+    private static List FlattenPair(Expr car, Syntax cdr) {
+        // if this gets called, cdr is not a list
+        switch (car) {
+            case List.NullType: return Flatten(cdr);
+            case IPair pair: return (List)Flatten(pair.Car).Append(Flatten(cdr));
+            case Syntax stxCar: return (List)Expr.Pair.Cons(stxCar, Flatten(cdr));
+            default: throw new Exception();
+
+        }
+
+    }
+    private static List FlattenPair(Expr first, List rest) {
+        switch (first) {
+            case List.NullType: return Flatten(rest);
+            case IPair pair: return (List)Flatten(pair.Car).Append(Flatten(rest));
+            case Syntax stxCar: return (List)Expr.Pair.Cons(stxCar, Flatten(rest));
+            default: throw new Exception();
+        }
+
+    }
+
+    private static List Flatten(Expr x) {
+
+        switch (x) {
+            case List.NullType: return List.Empty;
+            case Syntax stx: return SyntaxList.FromParams(stx);
+            case List.NonEmpty list: return FlattenPair(list.Car, list.Rest);
+            case IPair pair: return FlattenPair(pair.Car, (Syntax)pair.Cdr);
+            default: throw new Exception();
+        }
+
+    }
+
     private static List ArgsForLambdaForMatchClauseThen(Syntax x, Syntax pattern)
     {
         return Syntax.E(pattern) switch

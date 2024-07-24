@@ -16,6 +16,9 @@ public class Syntaxes
 
     }
 
+    // [TestMethod]
+    // [DataRow("(syntax-flatten (quote-syntax 1))", "(1)")]
+
     [TestMethod]
     [DataRow("(syntax? (syntax-e (quote-syntax boo)))", "#f")]
     [DataRow("(symbol? (syntax-e (quote-syntax boo)))", "#t")]
