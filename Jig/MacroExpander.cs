@@ -309,39 +309,13 @@ public class ExpansionEnvironment {
                         Concat<Syntax>(bodies.Cast<Syntax>())
                     ))
             });
-        List args = ArgsForLambdaForMatchClauseThen(x, pattern);
+        List args = Flatten(ArgsForLambdaForMatchClauseThen(x, pattern));
         if (args is SyntaxList properArgs) {
             result = (SyntaxList)SyntaxList.FromIEnumerable(result.Concat<Syntax>(properArgs));
         }
         return new Syntax(result);
     }
 
-    private static Syntax Arg(Syntax x, Syntax pattern) {
-        return Syntax.E(pattern) switch
-        {
-            List.NullType => new Syntax(List.Empty),
-            Expr.Number => new Syntax(List.Empty),
-            Expr.Symbol => x,
-            SyntaxList stxList => throw new NotImplementedException(),
-            Expr.Pair pair => new Syntax(
-                (Expr)Expr.Pair.Cons(
-                    Arg(
-                        x: new Syntax(
-                            SyntaxList.FromParams(
-                                new Syntax.Identifier(new Expr.Symbol("car")),
-                                x)),
-                        pattern: (Syntax)pair.Car),
-                    Arg(
-                        x: new Syntax(
-                            SyntaxList.FromParams(
-                                new Syntax.Identifier(new Expr.Symbol("cdr")),
-                                x)),
-                        pattern: (Syntax)pair.Cdr))),
-            
-            _ => throw new NotImplementedException(),
-        };
-
-    }
 
     private static List FlattenPair(Expr car, Syntax cdr) {
         // if this gets called, cdr is not a list
@@ -363,6 +337,15 @@ public class ExpansionEnvironment {
         }
 
     }
+    private static List FlattenPair(Expr first, SyntaxPair rest) {
+        switch (first) {
+            case List.NullType: return Flatten(rest);
+            case IPair pair: return (List)Flatten(pair.Car).Append(Flatten(rest));
+            case Syntax stxCar: return (List)Expr.Pair.Cons(stxCar, Flatten(rest));
+            default: throw new Exception();
+        }
+
+    }
 
     private static List Flatten(Expr x) {
 
@@ -370,41 +353,69 @@ public class ExpansionEnvironment {
             case List.NullType: return List.Empty;
             case Syntax stx: return SyntaxList.FromParams(stx);
             case List.NonEmpty list: return FlattenPair(list.Car, list.Rest);
-            case IPair pair: return FlattenPair(pair.Car, (Syntax)pair.Cdr);
+            case IPair pair:
+                if (pair.Cdr is Syntax stxCdr) {
+                    return FlattenPair(pair.Car, stxCdr);
+                } else if (pair.Cdr is List l) {
+                    return FlattenPair(pair.Car, l);
+                } else if (pair.Cdr is SyntaxPair stxPairCdr) {
+                    // TODO: sigh
+                    return FlattenPair(pair.Car, stxPairCdr);
+                } else {
+                    throw new Exception($"In ExpansionEnvironment.Flatten: pair.Cdr is {pair.Cdr.Print()}, a {pair.Cdr.GetType()}");
+                }
             default: throw new Exception();
         }
 
     }
 
-    private static List ArgsForLambdaForMatchClauseThen(Syntax x, Syntax pattern)
+    private static List ArgsForLambdaForMatchClauseThen(Syntax x, SyntaxList patterns) {
+        List<Expr> result = [];
+        for (int i = 0; i < patterns.Count<Syntax>(); i++){
+            result.Add(ArgsForLambdaForMatchClauseThen(NthElementOfList(i, x), patterns.ElementAt<Syntax>(i)));
+        }
+        return List.NonEmpty.ListFromEnumerable(result);
+
+    }
+
+    private static Expr ArgsForLambdaForMatchClauseThen(Syntax x, Syntax pattern)
     {
         return Syntax.E(pattern) switch
         {
             List.NullType => SyntaxList.FromParams(),
             Expr.Number => SyntaxList.FromParams(),
-            Expr.Symbol => (SyntaxList)SyntaxList.FromParams(x),
-            SyntaxList stxList => throw new NotImplementedException(),
-            Expr.Pair pair => (SyntaxList)SyntaxList.FromParams(
-                new Syntax(SyntaxList.FromParams(
-                    new Syntax.Identifier(new Expr.Symbol("car")),
-                    x
-                )),
-                new Syntax(SyntaxList.FromParams(
-                    new Syntax.Identifier(new Expr.Symbol("cdr")),
-                    x
-                ))),
+            Expr.Symbol => x,
+            SyntaxList stxList => ArgsForLambdaForMatchClauseThen(x, stxList),
+            Expr.Pair pair => (Expr)Expr.Pair.Cons(
+                ArgsForLambdaForMatchClauseThen(
+                    x: new Syntax(SyntaxList.FromParams(
+                        new Syntax.Identifier(new Expr.Symbol("car")),
+                        x)),
+                    pattern: (Syntax) pair.Car),
+                ArgsForLambdaForMatchClauseThen(
+                    x: new Syntax(SyntaxList.FromParams(
+                        new Syntax.Identifier(new Expr.Symbol("cdr")),
+                        x)),
+                    pattern: (Syntax)pair.Cdr)),
             _ => throw new NotImplementedException(),
         };
     }
 
-    private static Syntax ParamsForLambdaForMatchClauseThen(Syntax pattern) {
+    private static Expr ParamsFromPattern(Syntax pattern) {
         switch (Syntax.E(pattern)) {
-            case Expr.Number: return new Syntax(SyntaxList.FromParams());
-            case List.NullType: return new Syntax(SyntaxList.FromParams());
-            case Expr.Symbol: return new Syntax(SyntaxList.FromParams(pattern));
+            case Expr.Number: return List.Empty;
+            case List.NullType: return List.Empty;
+            case Expr.Symbol: return pattern;
+            case SyntaxList stxList:
+                List<Expr> res = [];
+                foreach (var s in stxList) {
+                    res.Add(ParamsFromPattern(s));
+                }
+                return List.ListFromEnumerable(res);
             case Expr.Pair pair:
-                if (pair.Car is Syntax.Identifier x && pair.Cdr is Syntax.Identifier y ) {
-                    return new Syntax(SyntaxList.FromParams(x, y));
+                if (pair.Car is Syntax x && pair.Cdr is Syntax y ) {
+                    return (Expr) Expr.Pair.Cons(ParamsFromPattern(x),
+                                                 ParamsFromPattern(y));
                 }
                 throw new NotImplementedException();
             default:
@@ -413,8 +424,38 @@ public class ExpansionEnvironment {
 
     }
 
-    private static Syntax MakeConditionForMatchClause(Syntax x, SyntaxList syntaxList) {
-        throw new NotImplementedException();
+    private static Syntax ParamsForLambdaForMatchClauseThen(Syntax pattern) {
+        return new Syntax(Flatten(ParamsFromPattern(pattern)));
+    }
+
+    private static Syntax MakeConditionForMatchClause(Syntax x, SyntaxList pattern) {
+        List<Syntax> firstPart = [
+            new Syntax.Identifier(new Expr.Symbol("and")),
+            new Syntax(SyntaxList.FromParams(
+                new Syntax.Identifier(new Expr.Symbol("list?")),
+                x
+            )),
+            new Syntax(SyntaxList.FromParams(
+                new Syntax.Identifier(new Expr.Symbol("=")),
+                    new Syntax(SyntaxList.FromParams(
+                        new Syntax.Identifier(new Expr.Symbol("length")),
+                        x
+                    )),
+                    new Syntax.Literal(new Expr.IntegerNumber(pattern.Count<Syntax>()))))
+        ];
+        var secondPart = new List<Syntax>();
+        for(int i = 0; i < pattern.Count<Syntax>(); i++) {
+            secondPart.Add(MakeConditionForMatchClause(NthElementOfList(i, x), pattern.ElementAt<Syntax>(i)));
+        }
+        return new Syntax(SyntaxList.FromIEnumerable(firstPart.Concat<Syntax>(secondPart)));
+    }
+
+    private static Syntax NthElementOfList(int i, Syntax x) {
+        while (i > 0) {
+            x = new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("cdr")), x));
+            i--;
+        }
+        return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Expr.Symbol("car")), x));
     }
 
     private static Syntax MakeConditionForMatchClause(Syntax x, Expr car, Expr cdr) {
@@ -448,8 +489,8 @@ public class ExpansionEnvironment {
             List.NullType => MakeNullTest(x),
             Expr.Symbol => new Syntax.Literal(Expr.Bool.True),
             SyntaxList syntaxList => MakeConditionForMatchClause(x, syntaxList),
-            Expr.Pair pair => MakeConditionForMatchClause(x, pair.Car, pair.Cdr),
-            _ => throw new NotImplementedException(),
+            IPair pair => MakeConditionForMatchClause(x, pair.Car, pair.Cdr),
+            _ => throw new NotImplementedException($"x = {x.Print()} and pattern = {pattern.Print()}"),
         };
     }
 

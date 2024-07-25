@@ -76,6 +76,7 @@ public class Syntax : Expr {
     }
 
     internal static void ToggleScope(Syntax stx, Scope scope) {
+        // TODO: AAAAARRRGGH!
         if (stx is Syntax.Identifier id) {
             if (!id.ScopeSet.Remove(scope)) {
                 id.ScopeSet.Add(scope);
@@ -89,7 +90,20 @@ public class Syntax : Expr {
         }
         if (Syntax.E(stx) is IPair pair) {
             ToggleScope((Syntax)pair.Car, scope);
-            ToggleScope((Syntax)pair.Cdr, scope);
+            if (pair.Cdr is Syntax stxCdr) {
+                ToggleScope(stxCdr, scope);
+
+            } else if (pair.Cdr is SyntaxPair stxPairCdr) {
+                ToggleScope(stxPairCdr.Car, scope);
+                ToggleScope(stxPairCdr.Cdr, scope);
+            } else if (pair.Cdr is List.NonEmpty l) {
+                foreach(var x in l) {
+                    ToggleScope((Syntax)x, scope);
+                }
+                return;
+            } else {
+                throw new Exception($"In ToggleScope: unhandled IPair cdr: {pair.Cdr}, a {pair.Cdr.GetType()}");
+            }
             return;
 
         }
