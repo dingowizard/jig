@@ -182,6 +182,21 @@ internal static class Builtins {
         }
     }
 
+    public static Thunk? eqv_p(Delegate k, List args) {
+        // TODO: write some tests for eqv?
+        if (args is List.NonEmpty properList) {
+            if (properList.Count() != 2) {
+                return Error(k, "eqv?: expected two arguments");
+            }
+            Expr first = args.ElementAt(0);
+            Expr second = args.ElementAt(1);
+            bool result = first.Equals(second);
+            return Continuation.ApplyDelegate(k, result ? Expr.Bool.True : Expr.Bool.False);
+        } else {
+            return Error(k, "eqv?: expected two arguments but got none");
+        }
+    }
+
     public static Thunk? new_product(Delegate k, List args) {
         Expr.Number acc = Expr.Number.From(1);
         foreach (var arg in args) {

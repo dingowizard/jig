@@ -33,6 +33,7 @@ public class Environment : IEnvironment {
         _dict.Add(new Expr.Symbol("syntax-flatten"), new Procedure( (Builtin)Syntax.syntax_flatten));
         _dict.Add(new Expr.Symbol("char?"), new Procedure( (Builtin)Builtins.char_p));
         _dict.Add(new Expr.Symbol("eq?"), new Procedure( (Builtin)Builtins.eq_p));
+        _dict.Add(new Expr.Symbol("eqv?"), new Procedure( (Builtin)Builtins.eqv_p));
         _dict.Add(new Expr.Symbol("display"), new Procedure( (Builtin)Builtins.display));
         _dict.Add(new Expr.Symbol("newline"), new Procedure( (Builtin)Builtins.newline));
         _dict.Add(new Expr.Symbol("error"), new Procedure( (Builtin)Builtins.error));
