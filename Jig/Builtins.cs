@@ -16,7 +16,7 @@ internal static class Builtins {
             Continuation.OneArgDelegate k2 = (arg) => map_internal((Continuation.OneArgDelegate)((rest) => k((Form)Form.Pair.Cons(arg, (List) rest))), env, codes, index + 1);
             return codes[index](k2, env);
         } else {
-            return k(List.Empty); // at this point , k is (lambda (l) (apply (car l) (cdr l)))
+            return k(List.Null); // at this point , k is (lambda (l) (apply (car l) (cdr l)))
         }
     }
 
@@ -36,7 +36,7 @@ internal static class Builtins {
     public static  Thunk? nullP (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             Form arg = properList.Car;
-            if (arg is Form.NullType) {
+            if (arg is List.Empty) {
                 return Continuation.ApplyDelegate(k, Form.Bool.True);
             }
             return Continuation.ApplyDelegate(k, Form.Bool.False);
@@ -225,7 +225,7 @@ internal static class Builtins {
     }
 
     public static Thunk? append(Delegate k, List args) {
-        Form acc = List.Empty;
+        Form acc = List.Null;
         List rest = args;
         while (rest is List.NonEmpty lists) {
             Form first = lists.Car;

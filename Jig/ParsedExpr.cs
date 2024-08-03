@@ -291,7 +291,7 @@ public class ParsedLambda : ParsedExpr {
                     psId.Symbol.Binding = binding;
                     expander.Bindings.Add(psId, binding);
                     rest = psId;
-            } else if (Syntax.E(stx) is List.NullType) {
+            } else if (Syntax.E(stx) is List.Empty) {
 
             } else {
                 throw new Exception($"ExpandLambda: expected parameters to be list or identifier, got {Syntax.E(stx)}");

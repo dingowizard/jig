@@ -63,9 +63,9 @@ public class Parser {
                     // this is an empty list
                     tokenStream.Read();
                     if (syntax) {
-                        return new Syntax(List.Empty, SrcLoc.Combine(openToken.SrcLoc, closeToken.SrcLoc));
+                        return new Syntax(List.Null, SrcLoc.Combine(openToken.SrcLoc, closeToken.SrcLoc));
                     } else {
-                        return List.Empty;
+                        return List.Null;
                     }
                 }
                 Form pair =  ParsePair(tokenStream, syntax);
@@ -186,7 +186,7 @@ public class Parser {
         }
 
         if (tokenStream.Peek() is Token.CloseParen) {
-            cdr = List.Empty;
+            cdr = List.Null;
             return (Form)Form.Pair.Cons(car, cdr);
 
         }

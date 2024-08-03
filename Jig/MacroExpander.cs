@@ -223,7 +223,7 @@ public class MacroExpander {
                 Binding binding = new Binding();
                 psId.Symbol.Binding = binding;
                 Bindings.Add(psId, binding);
-        } else if (Syntax.E(parameters) is List.NullType) {
+        } else if (Syntax.E(parameters) is List.Empty) {
             
         } else {
             throw new Exception($"ExpandLambda: expected parameters to be list or identifier, got {Syntax.E(parameters)}");
@@ -320,7 +320,7 @@ public class ExpansionEnvironment {
     private static List FlattenPair(Form car, Syntax cdr) {
         // if this gets called, cdr is not a list
         switch (car) {
-            case List.NullType: return Flatten(cdr);
+            case List.Empty: return Flatten(cdr);
             case IPair pair: return (List)Flatten(pair.Car).Append(Flatten(cdr));
             case Syntax stxCar: return (List)Form.Pair.Cons(stxCar, Flatten(cdr));
             default: throw new Exception();
@@ -330,7 +330,7 @@ public class ExpansionEnvironment {
     }
     private static List FlattenPair(Form first, List rest) {
         switch (first) {
-            case List.NullType: return Flatten(rest);
+            case List.Empty: return Flatten(rest);
             case IPair pair: return (List)Flatten(pair.Car).Append(Flatten(rest));
             case Syntax stxCar: return (List)Form.Pair.Cons(stxCar, Flatten(rest));
             default: throw new Exception();
@@ -339,7 +339,7 @@ public class ExpansionEnvironment {
     }
     private static List FlattenPair(Form first, SyntaxPair rest) {
         switch (first) {
-            case List.NullType: return Flatten(rest);
+            case List.Empty: return Flatten(rest);
             case IPair pair: return (List)Flatten(pair.Car).Append(Flatten(rest));
             case Syntax stxCar: return (List)Form.Pair.Cons(stxCar, Flatten(rest));
             default: throw new Exception();
@@ -350,7 +350,7 @@ public class ExpansionEnvironment {
     private static List Flatten(Form x) {
 
         switch (x) {
-            case List.NullType: return List.Empty;
+            case List.Empty: return List.Null;
             case Syntax stx: return SyntaxList.FromParams(stx);
             case List.NonEmpty list: return FlattenPair(list.Car, list.Rest);
             case IPair pair:
@@ -382,7 +382,7 @@ public class ExpansionEnvironment {
     {
         return Syntax.E(pattern) switch
         {
-            List.NullType => SyntaxList.FromParams(),
+            List.Empty => SyntaxList.FromParams(),
             Form.Number => SyntaxList.FromParams(),
             Form.Symbol => x,
             SyntaxList stxList => ArgsForLambdaForMatchClauseThen(x, stxList),
@@ -403,8 +403,8 @@ public class ExpansionEnvironment {
 
     private static Form ParamsFromPattern(Syntax pattern) {
         switch (Syntax.E(pattern)) {
-            case Form.Number: return List.Empty;
-            case List.NullType: return List.Empty;
+            case Form.Number: return List.Null;
+            case List.Empty: return List.Null;
             case Form.Symbol: return pattern;
             case SyntaxList stxList:
                 List<Form> res = [];
@@ -486,7 +486,7 @@ public class ExpansionEnvironment {
         return Syntax.E(pattern) switch
         {
             Form.Number n => MakeNumEqTest(pattern, x),
-            List.NullType => MakeNullTest(x),
+            List.Empty => MakeNullTest(x),
             Form.Symbol => new Syntax.Literal(Form.Bool.True),
             SyntaxList syntaxList => MakeConditionForMatchClause(x, syntaxList),
             IPair pair => MakeConditionForMatchClause(x, pair.Car, pair.Cdr),
@@ -541,7 +541,7 @@ public class ExpansionEnvironment {
         }
         Syntax arg = stxList.ElementAt<Syntax>(1);
         Form argE = Syntax.E(arg);
-        if (argE is List.NullType ||
+        if (argE is List.Empty ||
             argE is not IPair) {
             result = new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Form.Symbol("quote")),
                                                       arg),

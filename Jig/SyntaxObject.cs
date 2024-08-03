@@ -116,8 +116,8 @@ public class Syntax : Form {
             stxList = slist;
             return true;
         } else if (e is List l) {
-            if (l is List.NullType) {
-                stxList = List.Empty;
+            if (l is List.Empty) {
+                stxList = List.Null;
                 return true;
 
             }
@@ -132,7 +132,7 @@ public class Syntax : Form {
 
     private static List FlattenPair(Syntax car, SyntaxList cdr) {
         switch (Syntax.E(car)) {
-            case List.NullType: return FlattenPair(cdr.First, cdr.Cdr);
+            case List.Empty: return FlattenPair(cdr.First, cdr.Cdr);
             case IPair pair:
                 Syntax pairCar = pair.Car as Syntax ?? throw new Exception($"FlattenPair: expected pair.Car to be Syntax but got {pair.Car.Print()}, a {pair.Car.GetType()}");
                 return (List)FlattenPair(pairCar, pair.Cdr).Append(Flatten(new Syntax(cdr)));
@@ -145,13 +145,13 @@ public class Syntax : Form {
         if (cdr is SyntaxList stxList) {
             return FlattenPair(car, stxList);
         }
-        if (cdr is List.NullType){
+        if (cdr is List.Empty){
             return Flatten(car);
         }
         Syntax stxCdr = cdr is Syntax stx ? stx : cdr is SyntaxList slist ? new(slist) : throw new Exception($"{cdr}");
         return Syntax.E(car) switch
         {
-            List.NullType => Flatten(stxCdr),
+            List.Empty => Flatten(stxCdr),
             IPair pair => (List)FlattenPair((Syntax)pair.Car, pair.Cdr).Append(Flatten(stxCdr)),
             _ => (SyntaxList)Form.Pair.Cons(car, Flatten(stxCdr)),
         };
@@ -163,7 +163,7 @@ public class Syntax : Form {
             case IPair pair:
                 Syntax car = pair.Car as Syntax ?? throw new Exception();
                 return FlattenPair(car, pair.Cdr);
-            case List.NullType: return List.Empty;
+            case List.Empty: return List.Null;
             default:
                 // this should catch any non null atoms
                 return SyntaxList.FromParams(stx);
@@ -264,8 +264,8 @@ public class Syntax : Form {
             // Syntax car = stxPair.Car as Syntax ??
             //     throw new Exception($"SyntaxObject.SyntaxPairToDatum: expected syntax pair, but car -- {stxPair.Car} -- is not a syntax object");
             Form car = stxPair.Car is Syntax stxCar ? ToDatum(stxCar) : stxPair.Car;
-            if (stxPair.Cdr is Form.NullType) {
-                return (Form)Form.Pair.Cons(car, (Form)List.Empty);
+            if (stxPair.Cdr is List.Empty) {
+                return (Form)Form.Pair.Cons(car, (Form)List.Null);
             } else if (stxPair.Cdr is Syntax soCdr) {
                 return (Form)Form.Pair.Cons(car, ToDatum(soCdr));
             } else if (stxPair.Cdr is IPair cdrPair) {
@@ -318,7 +318,7 @@ public class SyntaxList : List.NonEmpty, IEnumerable<Syntax> {
     }
 
     public static List FromIEnumerable(IEnumerable<Syntax> stxs) {
-        List result = List.Empty;
+        List result = List.Null;
         for (int index = stxs.Count() - 1; index >= 0; index--) {
             result = new SyntaxList(stxs.ElementAt(index), result);
         }
@@ -326,7 +326,7 @@ public class SyntaxList : List.NonEmpty, IEnumerable<Syntax> {
     }
 
     public static List FromParams(params Syntax[] stxs) {
-        List result = List.Empty;
+        List result = List.Null;
         for (int index = stxs.Count() - 1; index >= 0; index--) {
             result = new SyntaxList(stxs.ElementAt(index), result);
         }

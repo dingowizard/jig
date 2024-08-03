@@ -9,7 +9,7 @@ public class ParserTests {
     public void ParseOpenCloseParensReturnsNull() {
         var tokenStream = new TokenStream(InputPort.FromString("()"));
         var actual = Parser.ParseExpr(tokenStream);
-        Assert.AreEqual(List.Empty, actual);
+        Assert.AreEqual(List.Null, actual);
     }
 
     [TestMethod]
@@ -19,7 +19,7 @@ public class ParserTests {
         Assert.IsNotNull(actual);
         SrcLoc? srcLoc = actual.SrcLoc;
         Assert.IsNotNull(srcLoc);
-        Assert.AreEqual(List.Empty, Syntax.ToDatum(actual));
+        Assert.AreEqual(List.Null, Syntax.ToDatum(actual));
         Assert.AreEqual(1, srcLoc?.Line);
         Assert.AreEqual(1, srcLoc?.Position);
         Assert.AreEqual(0, srcLoc?.Column);
@@ -54,7 +54,7 @@ public class ParserTests {
         Assert.IsNotNull(stx);
         Form x = Syntax.E(stx);
         Form cdr = ((IPair) x).Cdr;
-        Assert.AreEqual(List.Empty, cdr);
+        Assert.AreEqual(List.Null, cdr);
     }
 
 

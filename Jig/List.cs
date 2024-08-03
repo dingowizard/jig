@@ -4,10 +4,13 @@ namespace Jig;
 
 public abstract class List : Form, IEnumerable<Form> {
 
-    public static List Empty {get;} = new NullType();
+    public static Empty Null {get;} = new Empty();
 
+    public class Empty : List {
+        public override string Print() => "()";
+    }
     public static List ListFromEnumerable(IEnumerable<Form> elements) {
-        List result = Empty;
+        List result = Null;
         for (int index = elements.Count() - 1; index >= 0; index--) {
             result = new NonEmpty(elements.ElementAt(index), result);
         }
@@ -15,7 +18,7 @@ public abstract class List : Form, IEnumerable<Form> {
     }
 
     public static List NewList(params Form[] args) {
-        List result = Empty;
+        List result = Null;
         for (int index = args.Length - 1; index >= 0; index--) {
             result = new NonEmpty(args[index], result);
         }
@@ -24,7 +27,7 @@ public abstract class List : Form, IEnumerable<Form> {
 
     public Form Append(Form x) {
         switch (x) {
-            case List.NullType:
+            case List.Empty:
                 return this;
             case List.NonEmpty properList:
                 return ListFromEnumerable(this.Concat(properList));

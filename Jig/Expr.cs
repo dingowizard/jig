@@ -17,11 +17,8 @@ public abstract partial class Form {
         internal VoidType() {}
         public override string Print() => "#<void>";
     }
-    internal class NullType : List {
-        public override string Print() => "()";
-    }
 
-    public static bool IsNull(Form x) => x is NullType;
+    public static bool IsNull(Form x) => x is List.Empty;
 
     public class Bool : LiteralExpr<bool> {
 
@@ -414,8 +411,8 @@ public abstract partial class Form {
 
         public static IPair Cons(Form car, Form cdr) {
             if (car is Syntax stxCar) {
-                if (cdr == List.Empty) {
-                    return new SyntaxList(stxCar, List.Empty);
+                if (cdr == List.Null) {
+                    return new SyntaxList(stxCar, List.Null);
                 } else if (cdr is SyntaxList stxListCdr) {
                     return new SyntaxList(stxCar, stxListCdr);
                 } else if (cdr is Syntax stxCdr) {

@@ -9,7 +9,7 @@ public class Lambdas
     [TestMethod]
     public void IDEvaluatesToProcedure()
     {
-        Form result = List.Empty;
+        Form result = List.Null;
         Continuation.OneArgDelegate setResult = (x) => {result = x; return null;};
         Form? expr = Jig.Reader.Reader.Read(InputPort.FromString("(lambda (x) x)"));
         Assert.IsNotNull(expr);
