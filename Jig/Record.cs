@@ -1,6 +1,6 @@
 namespace Jig;
 
-public class Record : Expr.Vector {
+public class Record : Form.Vector {
 
     public static Record Make(TypeDescriptor rtd, ConstructorDescriptor rcd, List args) {
         // Maybe this should be on ConstructorDescriptor. ParameterCount logic is repeated there
@@ -47,13 +47,13 @@ public class Record : Expr.Vector {
                 throw new Exception($"make-record-type-descriptor: expected six arguments, got {fields.Print()}");
             }
 
-            if (fields.ElementAt(0) is not Expr.Symbol name) {
+            if (fields.ElementAt(0) is not Form.Symbol name) {
                 throw new Exception("make-record-type-descriptor: expected first argument to be a symbol");
             }
             Name = name;
 
-            if (fields.ElementAt(1) is Expr.Bool b) {
-                if (b == Expr.Bool.True) {
+            if (fields.ElementAt(1) is Form.Bool b) {
+                if (b == Form.Bool.True) {
                     throw new Exception($"make-record-type-descriptor: expected second argument to be #f or a record type descriptor. Got: {fields.ElementAt(1)}");
                 }
             } else if (fields.ElementAt(1) is TypeDescriptor parent) {
@@ -62,10 +62,10 @@ public class Record : Expr.Vector {
                 throw new Exception($"make-record-type-descriptor: expected second argument to be #f or a record type descriptor. Got: {fields.ElementAt(1)}");
             }
 
-            if (fields.ElementAt(5) is not Expr.Vector fs) {
+            if (fields.ElementAt(5) is not Form.Vector fs) {
                 throw new Exception("in TypeDescriptor cstor: expected second field to be a Vector");
             }
-            List<Tuple<Expr.Symbol, bool>> listFields = [];
+            List<Tuple<Form.Symbol, bool>> listFields = [];
             foreach (var f in fs) {
                 if (f is not List.NonEmpty listField) {
                     throw new Exception();
@@ -73,28 +73,28 @@ public class Record : Expr.Vector {
                 if (listField.Count() != 2) {
                     throw new Exception("field spec should have two members");
                 }
-                if (listField.ElementAt(0) is not Expr.Symbol mutability) {
+                if (listField.ElementAt(0) is not Form.Symbol mutability) {
                     throw new Exception("expected a symbol value for field mutability");
                 }
-                if (listField.ElementAt(1) is not Expr.Symbol fieldName) {
+                if (listField.ElementAt(1) is not Form.Symbol fieldName) {
                     throw new Exception("expected a symbol value for field mutability");
                 }
-                bool mut = mutability.Equals(new Expr.Symbol("mutable")) || (mutability.Equals(new Expr.Symbol("immutable")) ? false : throw new Exception());
+                bool mut = mutability.Equals(new Form.Symbol("mutable")) || (mutability.Equals(new Form.Symbol("immutable")) ? false : throw new Exception());
                 listFields.Add(new Tuple<Symbol, bool>(fieldName, mut));
             }
             Fields = [.. listFields];
         }
-        public Tuple<Expr.Symbol, bool>[] Fields {get;}
+        public Tuple<Form.Symbol, bool>[] Fields {get;}
         public new TypeDescriptor? Parent {get;} = null;
 
         private Thunk? IsOfMe(Delegate k, Record record) {
             if (object.ReferenceEquals(this, record.RecordTypeDescriptor)) {
-                return Continuation.ApplyDelegate(k, Expr.Bool.True);
+                return Continuation.ApplyDelegate(k, Form.Bool.True);
             } else {
                 if (record.Parent is not null) {
                     return IsOfMe(k, record.Parent);
                 }
-                return Continuation.ApplyDelegate(k, Expr.Bool.False);
+                return Continuation.ApplyDelegate(k, Form.Bool.False);
             }
         }
 
@@ -116,9 +116,9 @@ public class Record : Expr.Vector {
         public Procedure Predicate() {
             Builtin predicate = (k, args) => {
                 if (args.Count() != 1) return Builtins.Error(k, $"{this.Name}?: expected exactly one argument but got {args.Count()}");
-                Expr arg = args.ElementAt(0);
+                Form arg = args.ElementAt(0);
                 if (arg is not Record record) {
-                    return Continuation.ApplyDelegate(k, Expr.Bool.False);
+                    return Continuation.ApplyDelegate(k, Form.Bool.False);
                 }
                 return IsOfMe(k, record);
             };
@@ -126,7 +126,7 @@ public class Record : Expr.Vector {
 
         }
 
-        public Procedure Accessor(Expr.IntegerNumber i) {
+        public Procedure Accessor(Form.IntegerNumber i) {
             if (i.Value >= Fields.Length) {
                 // a record with two fields has a rtd with three fields (first is name of rtd)
                 // so an index of two would be point to the last field
@@ -148,17 +148,17 @@ public class Record : Expr.Vector {
 
         }
 
-        public Expr.Symbol Name {get;}
+        public Form.Symbol Name {get;}
         public readonly static TypeDescriptor Base = new BaseType();
 
 
         private class BaseType : TypeDescriptor  {
             public BaseType() : base(List.NewList(
-                new Expr.Symbol("base-rtd"),
-                Expr.Bool.False,
-                Expr.Bool.False,
-                Expr.Bool.False,
-                Expr.Bool.False,
+                new Form.Symbol("base-rtd"),
+                Form.Bool.False,
+                Form.Bool.False,
+                Form.Bool.False,
+                Form.Bool.False,
                 new Vector()))
             {
                 RecordTypeDescriptor = this;
@@ -180,8 +180,8 @@ public class Record : Expr.Vector {
 
             RTD = rtd; // note: the ConstructorDescriptor is a record that has two rtds: its own and
                         // a field that contains the RTD for the record it is the constructor of (RTD)
-            if (fields.ElementAt(1) is Expr.Bool b) {
-                if (b == Expr.Bool.True) {
+            if (fields.ElementAt(1) is Form.Bool b) {
+                if (b == Form.Bool.True) {
                     throw new Exception($"make-record-constructor-descriptor: expected second argument to be #f or a record constructor descriptor. Got: {fields.ElementAt(1)}");
                 }
             } else if (fields.ElementAt(1) is ConstructorDescriptor parent) {
@@ -228,11 +228,11 @@ public class Record : Expr.Vector {
         public readonly static TypeDescriptor TypeDescriptorForConstructor =
             new TypeDescriptor(
                 List.NewList(
-                    new Expr.Symbol("rcd"),
-                    Expr.Bool.False,
-                    Expr.Bool.False,
-                    Expr.Bool.False,
-                    Expr.Bool.False,
+                    new Form.Symbol("rcd"),
+                    Form.Bool.False,
+                    Form.Bool.False,
+                    Form.Bool.False,
+                    Form.Bool.False,
                     new Vector()));
     }
 }

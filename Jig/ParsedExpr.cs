@@ -5,7 +5,7 @@ namespace Jig;
 
 public abstract class ParsedExpr : Syntax {
 
-    protected ParsedExpr(Expr x, SrcLoc? srcLoc = null) : base(x, srcLoc) {}
+    protected ParsedExpr(Form x, SrcLoc? srcLoc = null) : base(x, srcLoc) {}
 
 }
 
@@ -36,7 +36,7 @@ public class ParsedSet : ParsedExpr {
             setExpr = null;
             return false;
         }
-        if (!Expr.IsKeyword("set!", stx)) {
+        if (!Form.IsKeyword("set!", stx)) {
             setExpr = null;
             return false;
         }
@@ -55,7 +55,7 @@ public class ParsedSet : ParsedExpr {
 }
 
 public class ParsedBegin(Syntax keyword, ParsedExpr[] forms, SrcLoc? srcLoc = null) :
-ParsedExpr((Expr)Pair.Cons(keyword, SyntaxList.FromIEnumerable(forms)), srcLoc) {
+ParsedExpr((Form)Pair.Cons(keyword, SyntaxList.FromIEnumerable(forms)), srcLoc) {
     public ParsedExpr[] Forms {get;} = forms;
 
     public static bool TryParse(Syntax stx,
@@ -69,7 +69,7 @@ ParsedExpr((Expr)Pair.Cons(keyword, SyntaxList.FromIEnumerable(forms)), srcLoc) 
             beginExpr = null;
             return false;
         }
-        if (!Expr.IsKeyword("begin", stx)) {
+        if (!Form.IsKeyword("begin", stx)) {
             beginExpr = null;
             return false;
         }
@@ -96,8 +96,8 @@ public class ParsedLiteral : ParsedExpr {
         if (stx is Literal literal) {
             parsedLiteral = new ParsedLiteral(new Syntax.Identifier(new Symbol("quote")), literal, stx.SrcLoc);
             return true;
-        } else if (Syntax.E(stx) is Expr.VoidType) {
-            parsedLiteral = new ParsedLiteral(new Syntax.Identifier(new Symbol("quote")), new Syntax(Expr.Void), stx.SrcLoc);
+        } else if (Syntax.E(stx) is Form.VoidType) {
+            parsedLiteral = new ParsedLiteral(new Syntax.Identifier(new Symbol("quote")), new Syntax(Form.Void), stx.SrcLoc);
             return true;
         } else if (IsQuote(stx)) {
             SyntaxList stxList = (SyntaxList)Syntax.E(stx);
@@ -111,7 +111,7 @@ public class ParsedLiteral : ParsedExpr {
 
     private static bool QuoteIsMalformed(SyntaxList stxList) => !(stxList.Count<Syntax>() == 2);
 
-    private static bool IsQuote(Syntax stx) => Expr.IsKeyword("quote", stx);
+    private static bool IsQuote(Syntax stx) => Form.IsKeyword("quote", stx);
 
 }
 
@@ -136,7 +136,7 @@ public class ParsedQuoteSyntax : ParsedExpr {
 
     private static bool QuoteIsMalformed(SyntaxList stxList) => !(stxList.Count<Syntax>() == 2);
 
-    private static bool IsQuote(Syntax stx) => Expr.IsKeyword("quote-syntax", stx);
+    private static bool IsQuote(Syntax stx) => Form.IsKeyword("quote-syntax", stx);
 
 }
 
@@ -156,7 +156,7 @@ public class ParsedDefine : ParsedExpr {
             defineExpr = null;
             return false;
         }
-        if (!Expr.IsKeyword("define", stx)) {
+        if (!Form.IsKeyword("define", stx)) {
             defineExpr = null;
             return false;
         }
@@ -184,7 +184,7 @@ public class ParsedDefine : ParsedExpr {
 public class ParsedLambda : ParsedExpr {
 
     private ParsedLambda(Syntax keyword, LambdaParameters parameters, SyntaxList bodies, SrcLoc? srcLoc = null)
-      : base((Expr)Pair.Cons(keyword, (Expr)Pair.Cons(parameters, bodies)), srcLoc)
+      : base((Form)Pair.Cons(keyword, (Form)Pair.Cons(parameters, bodies)), srcLoc)
     {
         Parameters = parameters;
         Bodies = bodies;
@@ -203,7 +203,7 @@ public class ParsedLambda : ParsedExpr {
             lambdaExpr = null;
             return false;
         }
-        if (!Expr.IsKeyword("lambda", stx)) {
+        if (!Form.IsKeyword("lambda", stx)) {
             lambdaExpr = null;
             return false;
         }
@@ -366,7 +366,7 @@ public class ParsedIf : ParsedExpr {
             return false;
         }
         List<ParsedExpr> xs = [];
-        if (!Expr.IsKeyword("if", stx)) {
+        if (!Form.IsKeyword("if", stx)) {
             ifExpr = null;
             return false;
         }

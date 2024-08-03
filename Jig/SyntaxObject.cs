@@ -5,22 +5,22 @@ using System.Numerics;
 
 namespace Jig;
 
-public class Syntax : Expr {
+public class Syntax : Form {
     // TODO: should this be an interface rather than a class? then e.g. Identifier : Symbol, ISyntaxObject
     //
     // NOTE:
     // in racket, syntax-objects do not have to have srclocs. a syntx-object could return #f for syntax-line or syntax-source
 
-    public static Expr E(Syntax stx) {
+    public static Form E(Syntax stx) {
         return stx.Expression;
     }
 
-    public static Syntax Cons(Syntax car, Expr cdr) {
-        return new Syntax((Expr)Expr.Pair.Cons(car, cdr));
+    public static Syntax Cons(Syntax car, Form cdr) {
+        return new Syntax((Form)Form.Pair.Cons(car, cdr));
     }
 
-    public static Expr ToDatum(Syntax stx) {
-        Expr x = Syntax.E(stx);
+    public static Form ToDatum(Syntax stx) {
+        Form x = Syntax.E(stx);
         if (x is IPair stxPair) {
             // Console.WriteLine($"Syntax.ToDatum: {stx}");
             return SyntaxPairToDatum(stxPair);
@@ -111,7 +111,7 @@ public class Syntax : Expr {
     }
 
     public static bool ToList(Syntax stx, [NotNullWhen(returnValue: true)] out List? stxList) {
-        Expr e = Syntax.E(stx);
+        Form e = Syntax.E(stx);
         if (e is SyntaxList slist) {
             stxList = slist;
             return true;
@@ -136,12 +136,12 @@ public class Syntax : Expr {
             case IPair pair:
                 Syntax pairCar = pair.Car as Syntax ?? throw new Exception($"FlattenPair: expected pair.Car to be Syntax but got {pair.Car.Print()}, a {pair.Car.GetType()}");
                 return (List)FlattenPair(pairCar, pair.Cdr).Append(Flatten(new Syntax(cdr)));
-            default: return (List)Expr.Pair.Cons(car, Flatten(new Syntax(cdr)));
+            default: return (List)Form.Pair.Cons(car, Flatten(new Syntax(cdr)));
         }
 
     }
 
-    private static List FlattenPair(Syntax car, Expr cdr) {
+    private static List FlattenPair(Syntax car, Form cdr) {
         if (cdr is SyntaxList stxList) {
             return FlattenPair(car, stxList);
         }
@@ -153,7 +153,7 @@ public class Syntax : Expr {
         {
             List.NullType => Flatten(stxCdr),
             IPair pair => (List)FlattenPair((Syntax)pair.Car, pair.Cdr).Append(Flatten(stxCdr)),
-            _ => (SyntaxList)Expr.Pair.Cons(car, Flatten(stxCdr)),
+            _ => (SyntaxList)Form.Pair.Cons(car, Flatten(stxCdr)),
         };
     }
 
@@ -180,23 +180,23 @@ public class Syntax : Expr {
         }
     }
 
-    public static Syntax FromDatum(SrcLoc? srcLoc, Expr x) {
+    public static Syntax FromDatum(SrcLoc? srcLoc, Form x) {
         switch (x) {
             case Syntax stx:
                 return stx;
             case Symbol sym:
                 return new Identifier(sym, srcLoc);
-            case Expr.Bool:
-            case Expr.Char:
-            case Expr.DoubleNumber:
-            case Expr.IntegerNumber:
-            case Expr.String:
-            case Expr.Vector:
+            case Form.Bool:
+            case Form.Char:
+            case Form.DoubleNumber:
+            case Form.IntegerNumber:
+            case Form.String:
+            case Form.Vector:
                 return new Literal(x, srcLoc);
             case List list:
                 return new Syntax(SyntaxList.FromIEnumerable(list.Select(x => Syntax.FromDatum(srcLoc, x))), srcLoc);
             case IPair pair:
-                return new Syntax((Expr)Expr.Pair.Cons(FromDatum(srcLoc, pair.Car),
+                return new Syntax((Form)Form.Pair.Cons(FromDatum(srcLoc, pair.Car),
                                                  FromDatum(srcLoc, pair.Cdr)),
                                   srcLoc);
             default:
@@ -205,23 +205,23 @@ public class Syntax : Expr {
     }
 
 
-    public Syntax(Expr expr, SrcLoc? srcLoc = null) {
+    public Syntax(Form expr, SrcLoc? srcLoc = null) {
         Expression = expr;
         SrcLoc = srcLoc;
     }
 
     public class Literal : Syntax {
-        internal Literal(Expr x, SrcLoc? srcLoc = null) : base (x, srcLoc) {}
+        internal Literal(Form x, SrcLoc? srcLoc = null) : base (x, srcLoc) {}
     }
 
     public class Identifier : Syntax {
-        internal Identifier(Expr.Symbol symbol, SrcLoc? srcLoc = null) : base (symbol, srcLoc) {
+        internal Identifier(Form.Symbol symbol, SrcLoc? srcLoc = null) : base (symbol, srcLoc) {
             ScopeSet = new HashSet<Scope>();
         }
 
         // public static implicit operator Expr.Symbol(Identifier i) => i.Symbol;
 
-        public new Expr.Symbol Symbol {
+        public new Form.Symbol Symbol {
             get {
                 return (Symbol)Expression;
             }
@@ -260,22 +260,22 @@ public class Syntax : Expr {
 
     public override string ToString() => $"#<syntax: {ToDatum(this).Print()}>";
 
-    private static Expr SyntaxPairToDatum(IPair stxPair) {
+    private static Form SyntaxPairToDatum(IPair stxPair) {
             // Syntax car = stxPair.Car as Syntax ??
             //     throw new Exception($"SyntaxObject.SyntaxPairToDatum: expected syntax pair, but car -- {stxPair.Car} -- is not a syntax object");
-            Expr car = stxPair.Car is Syntax stxCar ? ToDatum(stxCar) : stxPair.Car;
-            if (stxPair.Cdr is Expr.NullType) {
-                return (Expr)Expr.Pair.Cons(car, (Expr)List.Empty);
+            Form car = stxPair.Car is Syntax stxCar ? ToDatum(stxCar) : stxPair.Car;
+            if (stxPair.Cdr is Form.NullType) {
+                return (Form)Form.Pair.Cons(car, (Form)List.Empty);
             } else if (stxPair.Cdr is Syntax soCdr) {
-                return (Expr)Expr.Pair.Cons(car, ToDatum(soCdr));
+                return (Form)Form.Pair.Cons(car, ToDatum(soCdr));
             } else if (stxPair.Cdr is IPair cdrPair) {
-                return (Expr)Expr.Pair.Cons(car, SyntaxPairToDatum(cdrPair));
+                return (Form)Form.Pair.Cons(car, SyntaxPairToDatum(cdrPair));
             } else {
                 throw new Exception($"SyntaxPairToDatum: cdr of a syntax pair should be a syntax object, null or a pair. {stxPair.Cdr} is none of these)");
             }
     }
 
-    protected virtual Expr Expression {get;}
+    protected virtual Form Expression {get;}
 
     public SrcLoc? SrcLoc {get;}
     // public LexicalContext LexicalContext {get;}

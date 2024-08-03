@@ -12,27 +12,27 @@ internal class LexicalContext {
         return EnclosingScope is null;
     }
 
-    public LexicalContext Extend(IEnumerable<Expr.Symbol> symbols) {
+    public LexicalContext Extend(IEnumerable<Form.Symbol> symbols) {
         return new LexicalContext(this, symbols);
     }
 
     public LexicalContext Extend() {
-        return new LexicalContext(this, new List<Expr.Symbol>());
+        return new LexicalContext(this, new List<Form.Symbol>());
     }
 
-    private LexicalContext(LexicalContext enclosing, IEnumerable<Expr.Symbol> symbols) {
+    private LexicalContext(LexicalContext enclosing, IEnumerable<Form.Symbol> symbols) {
         EnclosingScope = enclosing;
         foreach (var symbol in symbols) {
-            Symbols.Add(new Tuple<Expr.Symbol, ParameterExpression>(symbol, Expression.Parameter(typeof(Expr), symbol.Name)));
+            Symbols.Add(new Tuple<Form.Symbol, ParameterExpression>(symbol, Expression.Parameter(typeof(Form), symbol.Name)));
         }
     }
 
-    public ParameterExpression ParameterForDefine(Expr x) {
-        Expr.Symbol sym = x is Syntax.Identifier id ? id.Symbol : (Expr.Symbol)x;
+    public ParameterExpression ParameterForDefine(Form x) {
+        Form.Symbol sym = x is Syntax.Identifier id ? id.Symbol : (Form.Symbol)x;
         ParameterExpression? pe = Symbols.Find(tup => tup.Item1.Equals(sym))?.Item2;
         if (pe is null) {
-            pe = Expression.Parameter(typeof(Expr), sym.Name);
-            Symbols.Add(new Tuple<Expr.Symbol, ParameterExpression>(sym, pe));
+            pe = Expression.Parameter(typeof(Form), sym.Name);
+            Symbols.Add(new Tuple<Form.Symbol, ParameterExpression>(sym, pe));
             return pe;
         } else {
             return pe;
@@ -40,12 +40,12 @@ internal class LexicalContext {
     }
 
 
-    public ParameterExpression? LookUp(Expr x) {
+    public ParameterExpression? LookUp(Form x) {
 
-        Expr.Symbol symbol =
+        Form.Symbol symbol =
             x is Syntax stx ?
-            (Expr.Symbol)Syntax.ToDatum(stx) :
-            (Expr.Symbol) x;
+            (Form.Symbol)Syntax.ToDatum(stx) :
+            (Form.Symbol) x;
         var candidates = Symbols.Where(tup => tup.Item1.Name==symbol.Name);
         // if (symbol.Name == "a") {
         //         Console.WriteLine($"\tLookUp: found {candidates.Count()} candidate(s) for 'a'");
@@ -83,7 +83,7 @@ internal class LexicalContext {
 
     public ParameterExpression[] Parameters => Symbols.Select(tup => tup.Item2).ToArray();
 
-    List<Tuple<Expr.Symbol, ParameterExpression>> Symbols {get;} = [];
+    List<Tuple<Form.Symbol, ParameterExpression>> Symbols {get;} = [];
 
     LexicalContext? EnclosingScope {get;}
 

@@ -61,7 +61,7 @@ public class Interpreter : IInterpreter {
 
     public string InterpretSequence(string[] inputs) {
         foreach (string input in inputs) {
-            Expr? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
+            Form? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
             Assert.IsNotNull(x);
             Program.Eval(SetResultOne, x, Env);
         }
@@ -74,20 +74,20 @@ public class Interpreter : IInterpreter {
 
     static string _result = "";
 
-    static Thunk? _setResultAny (params Expr[] xs) {
-        Expr? first = xs[0];
+    static Thunk? _setResultAny (params Form[] xs) {
+        Form? first = xs[0];
         _result = first is null ? "" : first.Print();
         return null;
     }
 
-    static Thunk? _setResultOne (Expr x) {
+    static Thunk? _setResultOne (Form x) {
         _result = x.Print();
         return null;
     }
 
     public string InterpretSequenceReadSyntax(string[] inputs) {
         foreach (string input in inputs) {
-            Expr? x = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
+            Form? x = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
             Assert.IsNotNull(x);
             Program.Eval(SetResultAny, x, Env);
         }
@@ -96,14 +96,14 @@ public class Interpreter : IInterpreter {
 
     public string Interpret(string input) {
         // Continuation setResult = (x) => result = x.Print();
-        Expr? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
+        Form? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
         Assert.IsNotNull(x);
         Program.Eval(SetResultAny, x, Env);
         return _result;
     }
 
     public string InterpretMultipleValues(string input) {
-        Expr? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
+        Form? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
         Assert.IsNotNull(x);
         Program.Eval(SetResultAny, x, Env);
         return _result;

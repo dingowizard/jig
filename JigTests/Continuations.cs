@@ -20,7 +20,7 @@ public class Continuations
         IEnvironment env = new Jig.Environment();
         string result1 = "";
         Continuation.OneArgDelegate setResult1 = (x) => {result1 = x.Print(); return null;};
-        Expr? x = Jig.Reader.Reader.ReadSyntax(InputPort.FromString("(define cont #f)"));
+        Form? x = Jig.Reader.Reader.ReadSyntax(InputPort.FromString("(define cont #f)"));
         Assert.IsNotNull(x);
         Program.Eval(setResult1, x, env);
         string result2 = "";

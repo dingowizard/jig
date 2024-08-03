@@ -7,13 +7,13 @@ using System.Text;
 
 namespace Jig;
 
-public abstract partial class Expr {
+public abstract partial class Form {
 
     // TODO: decide whether it makes sense to have all of these as nested classes
 
     public readonly static VoidType Void = new();
 
-    public class VoidType : Expr {
+    public class VoidType : Form {
         internal VoidType() {}
         public override string Print() => "#<void>";
     }
@@ -21,7 +21,7 @@ public abstract partial class Expr {
         public override string Print() => "()";
     }
 
-    public static bool IsNull(Expr x) => x is NullType;
+    public static bool IsNull(Form x) => x is NullType;
 
     public class Bool : LiteralExpr<bool> {
 
@@ -31,8 +31,8 @@ public abstract partial class Expr {
         public override string Print() => Value ? "#t" : "#f";
     }
 
-    public class Vector : Expr, IEnumerable<Expr> {
-        public Vector(params Expr[] xs) {
+    public class Vector : Form, IEnumerable<Form> {
+        public Vector(params Form[] xs) {
             Elements = xs;
 
         }
@@ -42,7 +42,7 @@ public abstract partial class Expr {
             Elements = [.. xs];
         }
 
-        public bool TryGetAtIndex(Expr.IntegerNumber i, [NotNullWhen(returnValue: true)] out Expr? result) {
+        public bool TryGetAtIndex(Form.IntegerNumber i, [NotNullWhen(returnValue: true)] out Form? result) {
             if (i.Value >= Elements.Length) {
                 result = null;
                 return false;
@@ -53,17 +53,17 @@ public abstract partial class Expr {
 
         }
 
-        public Expr.IntegerNumber Length {
+        public Form.IntegerNumber Length {
             get {
-                return new Expr.IntegerNumber(Elements.Length);
+                return new Form.IntegerNumber(Elements.Length);
             }
         }
 
-        protected Expr[] Elements {get;}
+        protected Form[] Elements {get;}
 
         public override string Print() => $"#({string.Join(' ', this.Select(x => x.Print()))})";
 
-        public IEnumerator<Expr> GetEnumerator() {
+        public IEnumerator<Form> GetEnumerator() {
             foreach (var x in Elements) {
                 yield return x;
             }
@@ -107,7 +107,7 @@ public abstract partial class Expr {
 
     }
 
-    public abstract class Number : Expr {
+    public abstract class Number : Form {
 
         public static Number From(int i) {
             return new IntegerNumber(i);
@@ -121,7 +121,7 @@ public abstract partial class Expr {
 
         public abstract override bool Equals(object? obj);
 
-        public static Expr.Bool operator ==(Number n1, Number n2) {
+        public static Form.Bool operator ==(Number n1, Number n2) {
             return n1 switch
             {
                 IntegerNumber in1 => in1 == n2,
@@ -130,7 +130,7 @@ public abstract partial class Expr {
             };
         }
 
-        public static Expr.Bool operator !=(Number n1, Number n2) {
+        public static Form.Bool operator !=(Number n1, Number n2) {
             return n1 switch
             {
                 IntegerNumber in1 => in1 != n2,
@@ -175,7 +175,7 @@ public abstract partial class Expr {
             };
         }
 
-        public static Expr.Bool operator >(Number n1, Number n2) {
+        public static Form.Bool operator >(Number n1, Number n2) {
             return n1 switch
             {
                 IntegerNumber in1 => in1 > n2,
@@ -184,7 +184,7 @@ public abstract partial class Expr {
             };
         }
 
-        public static Expr.Bool operator <(Number n1, Number n2) {
+        public static Form.Bool operator <(Number n1, Number n2) {
             return n1 switch
             {
                 IntegerNumber in1 => in1 < n2,
@@ -207,20 +207,20 @@ public abstract partial class Expr {
             return Value.GetHashCode();
         }
 
-        public static Expr.Bool operator ==(IntegerNumber i1, Number n) {
+        public static Form.Bool operator ==(IntegerNumber i1, Number n) {
             return n switch
             {
-                IntegerNumber i2 => i1.Value == i2.Value ? Expr.Bool.True : Expr.Bool.False,
-                DoubleNumber d2 => i1.Value == d2.Value ? Expr.Bool.True : Expr.Bool.False,
+                IntegerNumber i2 => i1.Value == i2.Value ? Form.Bool.True : Form.Bool.False,
+                DoubleNumber d2 => i1.Value == d2.Value ? Form.Bool.True : Form.Bool.False,
                 _ => throw new NotImplementedException(),
             };
         }
 
-        public static Expr.Bool operator !=(IntegerNumber i1, Number n) {
+        public static Form.Bool operator !=(IntegerNumber i1, Number n) {
             return n switch
             {
-                IntegerNumber i2 => i1.Value != i2.Value ? Expr.Bool.True : Expr.Bool.False,
-                DoubleNumber d2 => i1.Value != d2.Value ? Expr.Bool.True : Expr.Bool.False,
+                IntegerNumber i2 => i1.Value != i2.Value ? Form.Bool.True : Form.Bool.False,
+                DoubleNumber d2 => i1.Value != d2.Value ? Form.Bool.True : Form.Bool.False,
                 _ => throw new NotImplementedException(),
             };
         }
@@ -261,20 +261,20 @@ public abstract partial class Expr {
             };
         }
 
-        public static Expr.Bool operator >(IntegerNumber i1, Number n) {
+        public static Form.Bool operator >(IntegerNumber i1, Number n) {
             return n switch
             {
-                IntegerNumber i2 => i1.Value > i2.Value ? Expr.Bool.True : Expr.Bool.False,
-                DoubleNumber d2 => i1.Value > d2.Value ? Expr.Bool.True : Expr.Bool.False,
+                IntegerNumber i2 => i1.Value > i2.Value ? Form.Bool.True : Form.Bool.False,
+                DoubleNumber d2 => i1.Value > d2.Value ? Form.Bool.True : Form.Bool.False,
                 _ => throw new NotImplementedException(),
             };
         }
 
-        public static Expr.Bool operator <(IntegerNumber i1, Number n) {
+        public static Form.Bool operator <(IntegerNumber i1, Number n) {
             return n switch
             {
-                IntegerNumber i2 => i1.Value < i2.Value ? Expr.Bool.True : Expr.Bool.False,
-                DoubleNumber d2 => i1.Value < d2.Value ? Expr.Bool.True : Expr.Bool.False,
+                IntegerNumber i2 => i1.Value < i2.Value ? Form.Bool.True : Form.Bool.False,
+                DoubleNumber d2 => i1.Value < d2.Value ? Form.Bool.True : Form.Bool.False,
                 _ => throw new NotImplementedException(),
             };
         }
@@ -294,20 +294,20 @@ public abstract partial class Expr {
             return Value.GetHashCode();
         }
 
-        public static Expr.Bool operator ==(DoubleNumber d1, Number n) {
+        public static Form.Bool operator ==(DoubleNumber d1, Number n) {
             return n switch
             {
-                IntegerNumber i2 => d1.Value == i2.Value ? Expr.Bool.True : Expr.Bool.False,
-                DoubleNumber d2 => d1.Value == d2.Value ? Expr.Bool.True : Expr.Bool.False,
+                IntegerNumber i2 => d1.Value == i2.Value ? Form.Bool.True : Form.Bool.False,
+                DoubleNumber d2 => d1.Value == d2.Value ? Form.Bool.True : Form.Bool.False,
                 _ => throw new NotImplementedException(),
             };
         }
 
-        public static Expr.Bool operator !=(DoubleNumber d1, Number n) {
+        public static Form.Bool operator !=(DoubleNumber d1, Number n) {
             return n switch
             {
-                IntegerNumber i2 => d1.Value != i2.Value ? Expr.Bool.True : Expr.Bool.False,
-                DoubleNumber d2 => d1.Value != d2.Value ? Expr.Bool.True : Expr.Bool.False,
+                IntegerNumber i2 => d1.Value != i2.Value ? Form.Bool.True : Form.Bool.False,
+                DoubleNumber d2 => d1.Value != d2.Value ? Form.Bool.True : Form.Bool.False,
                 _ => throw new NotImplementedException(),
             };
         }
@@ -348,27 +348,27 @@ public abstract partial class Expr {
             };
         }
 
-        public static Expr.Bool operator >(DoubleNumber d1, Number n) {
+        public static Form.Bool operator >(DoubleNumber d1, Number n) {
             return n switch
             {
-                IntegerNumber i2 => d1.Value > i2.Value ? Expr.Bool.True : Expr.Bool.False,
-                DoubleNumber d2 => d1.Value > d2.Value ? Expr.Bool.True : Expr.Bool.False,
+                IntegerNumber i2 => d1.Value > i2.Value ? Form.Bool.True : Form.Bool.False,
+                DoubleNumber d2 => d1.Value > d2.Value ? Form.Bool.True : Form.Bool.False,
                 _ => throw new NotImplementedException(),
             };
         }
 
-        public static Expr.Bool operator <(DoubleNumber d1, Number n) {
+        public static Form.Bool operator <(DoubleNumber d1, Number n) {
             return n switch
             {
-                IntegerNumber i2 => d1.Value < i2.Value ? Expr.Bool.True : Expr.Bool.False,
-                DoubleNumber d2 => d1.Value < d2.Value ? Expr.Bool.True : Expr.Bool.False,
+                IntegerNumber i2 => d1.Value < i2.Value ? Form.Bool.True : Form.Bool.False,
+                DoubleNumber d2 => d1.Value < d2.Value ? Form.Bool.True : Form.Bool.False,
                 _ => throw new NotImplementedException(),
             };
         }
 
     }
 
-    public class Symbol : Expr {
+    public class Symbol : Form {
         public static Symbol FromName(string name) => name switch {
             "lambda" => new Keyword.Lambda(),
             "if" => new Keyword.If(),
@@ -393,7 +393,7 @@ public abstract partial class Expr {
 
         public override bool Equals(object? obj) {
             if (obj is null) return false;
-            if (obj is Expr.Symbol sym2) {
+            if (obj is Form.Symbol sym2) {
                 return this.Name == sym2.Name;
             }
             return false;
@@ -410,9 +410,9 @@ public abstract partial class Expr {
         public override string Print() => Name;
     }
 
-    public class Pair : Expr, IPair {
+    public class Pair : Form, IPair {
 
-        public static IPair Cons(Expr car, Expr cdr) {
+        public static IPair Cons(Form car, Form cdr) {
             if (car is Syntax stxCar) {
                 if (cdr == List.Empty) {
                     return new SyntaxList(stxCar, List.Empty);
@@ -435,7 +435,7 @@ public abstract partial class Expr {
             }
         }
 
-        protected Pair(Expr car, Expr cdr) {
+        protected Pair(Form car, Form cdr) {
             Car = car;
             Cdr = cdr;
         }
@@ -458,8 +458,8 @@ public abstract partial class Expr {
         }
 
 
-        public Expr Car {get; set;}
-        public Expr Cdr {get; set;}
+        public Form Car {get; set;}
+        public Form Cdr {get; set;}
 
         public override string Print() {
             StringBuilder sb = new StringBuilder("(");
@@ -478,28 +478,28 @@ public abstract partial class Expr {
 
     public abstract string Print();
 
-    internal static bool IsLiteral(Expr ast)
+    internal static bool IsLiteral(Form ast)
     {
-        Expr x = ast is Syntax stx ? Syntax.E(stx) : ast;
+        Form x = ast is Syntax stx ? Syntax.E(stx) : ast;
         return x switch
         {
-            Expr.Char => true,
-            Expr.Bool => true,
-            Expr.String => true,
-            Expr.IntegerNumber => true,
-            Expr.DoubleNumber => true,
+            Form.Char => true,
+            Form.Bool => true,
+            Form.String => true,
+            Form.IntegerNumber => true,
+            Form.DoubleNumber => true,
             _ => false,
         };
     }
 
-    internal static bool IsSymbol(Expr ast)
+    internal static bool IsSymbol(Form ast)
     {
-        if (ast is Expr.Symbol) return true;
+        if (ast is Form.Symbol) return true;
         if (ast is Syntax.Identifier) return true;
         return false;
     }
 
-    internal static bool IsNonEmptyList(Expr ast)
+    internal static bool IsNonEmptyList(Form ast)
     {
         if (ast is Syntax stx) {
             if (Syntax.E(stx) is List list) {
@@ -509,7 +509,7 @@ public abstract partial class Expr {
         return ast is List.NonEmpty;
     }
 
-    internal static bool IsNonEmptyList(Expr ast, [NotNullWhen(returnValue: true)]out List.NonEmpty? list)
+    internal static bool IsNonEmptyList(Form ast, [NotNullWhen(returnValue: true)]out List.NonEmpty? list)
     {
 
         if (ast is Syntax stx) {
@@ -530,7 +530,7 @@ public abstract partial class Expr {
         return false;
     }
 
-    internal static bool IsKeyword(string name, Expr ast) {
+    internal static bool IsKeyword(string name, Form ast) {
         if (ast is Syntax stx) {
             if (Syntax.E(stx) is List list) {
                 if (list.ElementAt(0) is Syntax.Identifier id) {
@@ -539,13 +539,13 @@ public abstract partial class Expr {
             } return false;
         }
         if (ast is List.NonEmpty l) {
-            return l.Car is Expr.Symbol sym && sym.Name == name;
+            return l.Car is Form.Symbol sym && sym.Name == name;
         } return false;
     }
 
 }
 
-public class SyntaxPair : Expr.Pair {
+public class SyntaxPair : Form.Pair {
     public SyntaxPair(Syntax car, Syntax cdr) : base(car,cdr) {
         Car = car;
         Cdr = cdr;
@@ -556,7 +556,7 @@ public class SyntaxPair : Expr.Pair {
     public new Syntax Cdr {get;}
 }
 
-public abstract class Keyword : Expr.Symbol {
+public abstract class Keyword : Form.Symbol {
 
     public Keyword(string name) : base (name) {}
 
@@ -579,9 +579,9 @@ public abstract class Keyword : Expr.Symbol {
     public class Quote : Keyword {
         public Quote() : base("quote") {}
     }
-    public static bool Is<T>(Expr car) where T : Keyword => car switch {
+    public static bool Is<T>(Form car) where T : Keyword => car switch {
             Syntax.Identifier id => id.Symbol is T,
-            Expr.Symbol symbol => symbol is T,
+            Form.Symbol symbol => symbol is T,
             _ => false,
         };
 }
@@ -589,7 +589,7 @@ public abstract class Keyword : Expr.Symbol {
 
 
 
-public class LiteralExpr<T> : Expr where T : notnull {
+public class LiteralExpr<T> : Form where T : notnull {
     // TODO: make abstract?
     public LiteralExpr(T val) {
         Value = val;
@@ -616,109 +616,7 @@ public class LiteralExpr<T> : Expr where T : notnull {
 }
 
 public interface IPair {
-    Expr Car {get; set;}
-    Expr Cdr {get; set;}
+    Form Car {get; set;}
+    Form Cdr {get; set;}
     string Print();
-}
-
-public abstract class List : Expr, IEnumerable<Expr> {
-
-    public static List Empty {get;} = new NullType();
-
-    public static List ListFromEnumerable(IEnumerable<Expr> elements) {
-        List result = Empty;
-        for (int index = elements.Count() - 1; index >= 0; index--) {
-            result = new NonEmpty(elements.ElementAt(index), result);
-        }
-        return result;
-    }
-
-    public static List NewList(params Expr[] args) {
-        List result = Empty;
-        for (int index = args.Length - 1; index >= 0; index--) {
-            result = new NonEmpty(args[index], result);
-        }
-        return result;
-    }
-
-    public Expr Append(Expr x) {
-        switch (x) {
-            case List.NullType:
-                return this;
-            case List.NonEmpty properList:
-                return ListFromEnumerable(this.Concat(properList));
-            default:
-                Expr result = x;
-                var array = this.ToArray();
-                for (int i = array.Length - 1; i>=0; i--) {
-                    result = (Expr)Pair.Cons(array[i], result);
-                }
-                return result;
-
-        }
-    }
-
-
-    public override string ToString() {
-        return $"({string.Join(' ', this)})";
-    }
-
-    public class NonEmpty : List, IPair {
-
-        public NonEmpty(Expr car, List cdr) {
-            Car = car;
-            Cdr = cdr;
-            Rest = cdr;
-        }
-
-        public override bool Equals(object? obj) {
-            if (obj is null) return false;
-            if (obj is NonEmpty list) {
-                return this.Car.Equals(list.Car) && this.Cdr.Equals(list.Cdr);
-            }
-            return false;
-        }
-
-        public Expr Car {get; set;}
-        public Expr Cdr {get; set;}
-
-        public List Rest {get;}
-        public override int GetHashCode() {
-            return base.GetHashCode();
-        }
-
-        public override string ToString() {
-            return Print();
-        }
-
-        public override string Print() {
-            return "(" + string.Join(" ", this.Select(el => el.Print())) + ")";
-        }
-
-    }
-
-
-    public IEnumerator<Expr> GetEnumerator() {
-        List theList = this;
-        while (theList is NonEmpty nonEmptyList) {
-            yield return nonEmptyList.Car;
-            theList = nonEmptyList.Rest;
-        }
-
-    }
-
-    IEnumerator IEnumerable.GetEnumerator() {
-        return this.GetEnumerator();
-    }
-
-    public override int GetHashCode() {
-        int hash = 19;
-        unchecked {
-            foreach (var expr in this) {
-                hash = hash * 31 + expr.GetHashCode();
-
-            }
-        }
-        return hash;
-    }
 }

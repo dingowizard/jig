@@ -85,16 +85,16 @@ public static class Program {
         }
     }
 
-    public static Thunk? Print(params Expr[] exprs) {
+    public static Thunk? Print(params Form[] exprs) {
         foreach (var expr in exprs) {
-            if (expr is not Expr.VoidType) {
+            if (expr is not Form.VoidType) {
                 Console.WriteLine(expr.Print());
             }
         }
         return null;
     }
 
-    public static void Eval(Delegate k, Expr ast, IEnvironment? env = null) {
+    public static void Eval(Delegate k, Form ast, IEnvironment? env = null) {
         if (env is null) {
             env = Program.TopLevel;
         }
@@ -109,8 +109,8 @@ public static class Program {
         Run(compiled, k, env);
     }
 
-    public static Expr EvalNonCPS(Expr ast, IEnvironment? env = null) {
-        Expr? expr = null;
+    public static Form EvalNonCPS(Form ast, IEnvironment? env = null) {
+        Form? expr = null;
         Continuation.OneArgDelegate setResult = (x) => {expr = x; return null;};
         Eval(setResult, ast, Program.TopLevel);
 
@@ -118,8 +118,8 @@ public static class Program {
         return expr;
     }
 
-    public static Expr EvalNonCPSNoExpand(Expr ast, IEnvironment? env = null) {
-        Expr? expr = null;
+    public static Form EvalNonCPSNoExpand(Form ast, IEnvironment? env = null) {
+        Form? expr = null;
         Continuation.OneArgDelegate setResult = (x) => {expr = x; return null;};
         var compiled = Compiler.Compile(ast);
         Run(compiled, setResult, env ?? Program.TopLevel);

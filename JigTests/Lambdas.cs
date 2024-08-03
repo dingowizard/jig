@@ -9,9 +9,9 @@ public class Lambdas
     [TestMethod]
     public void IDEvaluatesToProcedure()
     {
-        Expr result = List.Empty;
+        Form result = List.Empty;
         Continuation.OneArgDelegate setResult = (x) => {result = x; return null;};
-        Expr? expr = Jig.Reader.Reader.Read(InputPort.FromString("(lambda (x) x)"));
+        Form? expr = Jig.Reader.Reader.Read(InputPort.FromString("(lambda (x) x)"));
         Assert.IsNotNull(expr);
         Program.Eval(setResult, expr, new Jig.Environment());
         Assert.IsInstanceOfType(result, typeof(Procedure));

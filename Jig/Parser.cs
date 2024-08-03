@@ -8,7 +8,7 @@ public class Parser {
         return (Syntax?)ParseExpr(tokenStream, syntax: true);
     }
 
-    public static Expr? ParseExpr(TokenStream tokenStream, bool syntax = false) {
+    public static Form? ParseExpr(TokenStream tokenStream, bool syntax = false) {
         // TODO: handle comments!
         var peeked = tokenStream.Peek();
         while (peeked is Token.Comment) {
@@ -18,43 +18,43 @@ public class Parser {
         switch (peeked) {
             case Token.Quote quoteToken:
                 tokenStream.Read();
-                Expr? arg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
+                Form? arg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
-                   return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Expr.Symbol.FromName("quote"), quoteToken.SrcLoc),
+                   return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Form.Symbol.FromName("quote"), quoteToken.SrcLoc),
                                                            (Syntax)arg),
                        ((Syntax)arg).SrcLoc);
                 } else {
-                    return List.NewList(Expr.Symbol.FromName("quote"), arg);
+                    return List.NewList(Form.Symbol.FromName("quote"), arg);
                 }
             case Token.QuasiQuote quasiquoteToken:
                 tokenStream.Read();
-                Expr? quasiArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
+                Form? quasiArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
-                   return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Expr.Symbol.FromName("quasiquote"), quasiquoteToken.SrcLoc),
+                   return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Form.Symbol.FromName("quasiquote"), quasiquoteToken.SrcLoc),
                                                            (Syntax)quasiArg),
                        ((Syntax)quasiArg).SrcLoc);
                 } else {
-                    return List.NewList(Expr.Symbol.FromName("quasiquote"), quasiArg);
+                    return List.NewList(Form.Symbol.FromName("quasiquote"), quasiArg);
                 }
             case Token.UnQuote unquoteToken:
                 tokenStream.Read();
-                Expr? unquoteArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
+                Form? unquoteArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
-                   return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Expr.Symbol.FromName("unquote"), unquoteToken.SrcLoc),
+                   return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Form.Symbol.FromName("unquote"), unquoteToken.SrcLoc),
                                                            (Syntax)unquoteArg),
                        ((Syntax)unquoteArg).SrcLoc);
                 } else {
-                    return List.NewList(Expr.Symbol.FromName("unquote"), unquoteArg);
+                    return List.NewList(Form.Symbol.FromName("unquote"), unquoteArg);
                 }
             case Token.UnQuoteSplicing unquoteSplicingToken:
                 tokenStream.Read();
-                Expr? unquoteSplicingArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
+                Form? unquoteSplicingArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
-                   return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Expr.Symbol.FromName("unquote-splicing"), unquoteSplicingToken.SrcLoc),
+                   return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Form.Symbol.FromName("unquote-splicing"), unquoteSplicingToken.SrcLoc),
                                                            (Syntax)unquoteSplicingArg),
                        ((Syntax)unquoteSplicingArg).SrcLoc);
                 } else {
-                    return List.NewList(Expr.Symbol.FromName("unquote-splicing"), unquoteSplicingArg);
+                    return List.NewList(Form.Symbol.FromName("unquote-splicing"), unquoteSplicingArg);
                 }
             case Token.OpenParen openToken:
                 tokenStream.Read();
@@ -68,7 +68,7 @@ public class Parser {
                         return List.Empty;
                     }
                 }
-                Expr pair =  ParsePair(tokenStream, syntax);
+                Form pair =  ParsePair(tokenStream, syntax);
                 if (tokenStream.Peek() is Token.CloseParen close) {
                     tokenStream.Read();
                     if (syntax) {
@@ -96,9 +96,9 @@ public class Parser {
         }
     }
 
-    private static Expr ParseString(Token.String str, TokenStream tokenStream, bool syntax) {
+    private static Form ParseString(Token.String str, TokenStream tokenStream, bool syntax) {
         tokenStream.Read();
-        var x = new Expr.String(str.Text[1..^1]);
+        var x = new Form.String(str.Text[1..^1]);
         if (syntax) {
             return new Syntax.Literal(x, str.SrcLoc);
         } else {
@@ -106,28 +106,28 @@ public class Parser {
         }
     }
 
-    private static Expr ParseNumber(Token.Number num, TokenStream tokenStream, bool syntax) {
+    private static Form ParseNumber(Token.Number num, TokenStream tokenStream, bool syntax) {
         tokenStream.Read();
         if (Int32.TryParse(num.Text, out int i)) {
             if (syntax) {
-                return new Syntax.Literal(new Expr.IntegerNumber(i), num.SrcLoc);
+                return new Syntax.Literal(new Form.IntegerNumber(i), num.SrcLoc);
             } else {
-                return new Expr.IntegerNumber(i);
+                return new Form.IntegerNumber(i);
             }
         } else if (Double.TryParse(num.Text, out double d)) {
             if (syntax) {
-                return new Syntax.Literal(new Expr.DoubleNumber(d), num.SrcLoc);
+                return new Syntax.Literal(new Form.DoubleNumber(d), num.SrcLoc);
             } else {
-                return new Expr.DoubleNumber(d);
+                return new Form.DoubleNumber(d);
             }
         } else {
             throw new Exception($"ParseExpr: could not parse number token {num.Text} to number.");
         }
     }
 
-    private static Expr ParseChar(Token.Char cTok, TokenStream tokenStream, bool syntax = false) {
+    private static Form ParseChar(Token.Char cTok, TokenStream tokenStream, bool syntax = false) {
         tokenStream.Read();
-        var charExpr = new Expr.Char(cTok.Text[2]);
+        var charExpr = new Form.Char(cTok.Text[2]);
         if (syntax) {
             return new Syntax.Literal(charExpr, cTok.SrcLoc);
         } else {
@@ -135,22 +135,22 @@ public class Parser {
         }
     }
 
-    private static Expr ParseBool(Token tok, TokenStream tokenStream, bool syntax = false) {
+    private static Form ParseBool(Token tok, TokenStream tokenStream, bool syntax = false) {
         tokenStream.Read();
         switch (tok) {
             case Token.Bool b:
                 // tokenStream.Read();
                 if (b.Text == "#t" || b.Text == "#true") {
                     if (syntax) {
-                        return new Syntax.Literal(Expr.Bool.True, b.SrcLoc);
+                        return new Syntax.Literal(Form.Bool.True, b.SrcLoc);
                     } else {
-                        return Expr.Bool.True;
+                        return Form.Bool.True;
                     }
                 } else if (b.Text == "#f" || b.Text == "#false") {
                     if (syntax) {
-                        return new Syntax.Literal(Expr.Bool.False, b.SrcLoc);
+                        return new Syntax.Literal(Form.Bool.False, b.SrcLoc);
                     } else {
-                        return Expr.Bool.False;
+                        return Form.Bool.False;
                     }
                 } else {
                     throw new Exception($"ParseLiteral: couldn't match boolean token {b}");
@@ -161,15 +161,15 @@ public class Parser {
 
     }
 
-    static Expr ParseSymbol(Token.Identifier id, TokenStream tokenStream, bool syntax = false) {
+    static Form ParseSymbol(Token.Identifier id, TokenStream tokenStream, bool syntax = false) {
         var tok = tokenStream.Read();
         Debug.Assert(tok is Token.Identifier);
-        Expr.Symbol sym = Expr.Symbol.FromName(id.Text);
+        Form.Symbol sym = Form.Symbol.FromName(id.Text);
         return syntax ? new Syntax.Identifier(sym, id.SrcLoc) : sym;
     }
 
-    static Expr ParsePair(TokenStream tokenStream, bool syntax) {
-        Expr car = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
+    static Form ParsePair(TokenStream tokenStream, bool syntax) {
+        Form car = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
         if (syntax && car is not Syntax) {
             Console.WriteLine($"ParsePair: expected car to be syntax but got {car}, a {car.GetType()}");
         }
@@ -177,22 +177,22 @@ public class Parser {
         //     return ParseSpecialForm(car, tokenStream, syntax);
         // }
         // next token could be dot, closeparen or something else, in which case the rest will be another pair
-        Expr? cdr;
+        Form? cdr;
         if (tokenStream.Peek() is Token.Dot) {
             tokenStream.Read();
             cdr = ParseExpr(tokenStream, syntax);
             if (cdr is null) throw new Exception("unexpected EOF");
-            return (Expr)Expr.Pair.Cons(car, cdr);
+            return (Form)Form.Pair.Cons(car, cdr);
         }
 
         if (tokenStream.Peek() is Token.CloseParen) {
             cdr = List.Empty;
-            return (Expr)Expr.Pair.Cons(car, cdr);
+            return (Form)Form.Pair.Cons(car, cdr);
 
         }
         cdr = ParsePair(tokenStream, syntax);
         if (cdr is null) throw new Exception("unexpected EOF");
-        return (Expr)Expr.Pair.Cons(car, cdr);
+        return (Form)Form.Pair.Cons(car, cdr);
 
 
     }

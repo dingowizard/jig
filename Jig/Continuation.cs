@@ -33,7 +33,7 @@ public class Continuation : Procedure {
     }
 
 
-    internal static Thunk? ApplyDelegate(Delegate k, Expr arg) {
+    internal static Thunk? ApplyDelegate(Delegate k, Form arg) {
         // TODO: should we handle more continuation types here?
             if (k is Continuation.ContinuationAny cany) {
                 return cany(arg);
@@ -64,7 +64,7 @@ public class Continuation : Procedure {
         var paramList = new List<ParameterExpression>();
         foreach (var p in parameterInfos)
         {
-            paramList.Add(Expression.Parameter(typeof(Expr), p.ToString()));
+            paramList.Add(Expression.Parameter(typeof(Form), p.ToString()));
         }
         Type? type = GetTypeForContinuation(consumerDel);
         if (type is null) {
@@ -75,7 +75,7 @@ public class Continuation : Procedure {
             return lexpr.Compile();
         }
         if (type == typeof(ContinuationAny)) {
-            ParameterExpression xs = Expression.Parameter(typeof(Expr[]));
+            ParameterExpression xs = Expression.Parameter(typeof(Form[]));
             return Expression.Lambda<ContinuationAny>(
                 body: Expression.Convert(ET.DynInv(new Expression [] {
                             Expression.Constant(consumerDel),
@@ -115,15 +115,15 @@ public class Continuation : Procedure {
     }
 
 
-    public delegate Thunk? OneArgDelegate(Expr arg);
-    public delegate Thunk? ContinuationAny(params Expr[] args);
+    public delegate Thunk? OneArgDelegate(Form arg);
+    public delegate Thunk? ContinuationAny(params Form[] args);
     private delegate Thunk ListContinuation(List rest);
-    private delegate Thunk PairContinuation(Expr arg0, List rest);
-    private delegate Thunk ImproperListContinuation2(Expr arg0, Expr arg1, List rest);
-    private delegate Thunk ImproperListContinuation3(Expr arg0, Expr arg1, Expr arg2, List rest);
-    private delegate Thunk ImproperListContinuation4(Expr arg0, Expr arg1, Expr arg2, Expr arg3, List rest);
-    private delegate Thunk ImproperListContinuation5(Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, List rest);
-    private delegate Thunk ImproperListContinuation6(Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, Expr arg5, List rest);
-    private delegate Thunk ImproperListContinuation7(Expr arg0, Expr arg1, Expr arg2, Expr arg3, Expr arg4, Expr arg5, Expr arg6, List rest);
+    private delegate Thunk PairContinuation(Form arg0, List rest);
+    private delegate Thunk ImproperListContinuation2(Form arg0, Form arg1, List rest);
+    private delegate Thunk ImproperListContinuation3(Form arg0, Form arg1, Form arg2, List rest);
+    private delegate Thunk ImproperListContinuation4(Form arg0, Form arg1, Form arg2, Form arg3, List rest);
+    private delegate Thunk ImproperListContinuation5(Form arg0, Form arg1, Form arg2, Form arg3, Form arg4, List rest);
+    private delegate Thunk ImproperListContinuation6(Form arg0, Form arg1, Form arg2, Form arg3, Form arg4, Form arg5, List rest);
+    private delegate Thunk ImproperListContinuation7(Form arg0, Form arg1, Form arg2, Form arg3, Form arg4, Form arg5, Form arg6, List rest);
 }
 
