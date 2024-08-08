@@ -2,107 +2,140 @@ using System.Collections;
 
 namespace Jig;
 
-public abstract class List : Form, IEnumerable<Form> {
+public abstract class List : Form, IEnumerable<Form>, IList
+{
+    public Bool NullP => this is Empty ? Bool.True : Bool.False;
 
-    public static Empty Null {get;} = new Empty();
+    public static Empty Null { get; } = new Empty();
 
-    public class Empty : List {
+    public class Empty : List
+    {
         public override string Print() => "()";
     }
-    public static List ListFromEnumerable(IEnumerable<Form> elements) {
+    public static List ListFromEnumerable(IEnumerable<Form> elements)
+    {
+        // WARNING: vs code says no references, but at runtime something uses method reflection to find and cache it
         List result = Null;
-        for (int index = elements.Count() - 1; index >= 0; index--) {
+        for (int index = elements.Count() - 1; index >= 0; index--)
+        {
             result = new NonEmpty(elements.ElementAt(index), result);
         }
         return result;
     }
 
-    public static List NewList(params Form[] args) {
+    public static List NewList(params Form[] args)
+    {
         List result = Null;
-        for (int index = args.Length - 1; index >= 0; index--) {
+        for (int index = args.Length - 1; index >= 0; index--)
+        {
             result = new NonEmpty(args[index], result);
         }
         return result;
     }
 
-    public Form Append(Form x) {
-        switch (x) {
+    public Form Append(Form x)
+    {
+        switch (x)
+        {
             case List.Empty:
                 return this;
             case List.NonEmpty properList:
-                return ListFromEnumerable(this.Concat(properList));
+                return this.Concat(properList).ToJigList();
             default:
                 Form result = x;
                 var array = this.ToArray();
-                for (int i = array.Length - 1; i>=0; i--) {
+                for (int i = array.Length - 1; i >= 0; i--)
+                {
                     result = (Form)Pair.Cons(array[i], result);
                 }
                 return result;
-
         }
     }
 
 
-    public override string ToString() {
+    public override string ToString()
+    {
         return $"({string.Join(' ', this)})";
     }
 
-    public class NonEmpty : List, IPair {
-
-        public NonEmpty(Form car, List cdr) {
+    public class NonEmpty : List, IPair
+    {
+        public NonEmpty(Form car, List cdr)
+        {
             Car = car;
             Cdr = cdr;
             Rest = cdr;
         }
 
-        public override bool Equals(object? obj) {
+        public override bool Equals(object? obj)
+        {
             if (obj is null) return false;
-            if (obj is NonEmpty list) {
+            if (obj is NonEmpty list)
+            {
                 return this.Car.Equals(list.Car) && this.Cdr.Equals(list.Cdr);
             }
             return false;
         }
 
-        public Form Car {get; set;}
-        public Form Cdr {get; set;}
+        public Form Car { get; set; }
+        public Form Cdr { get; set; }
 
-        public List Rest {get;}
-        public override int GetHashCode() {
+        public List Rest { get; }
+        public override int GetHashCode()
+        {
             return base.GetHashCode();
         }
 
-        public override string ToString() {
+        public override string ToString()
+        {
             return Print();
         }
 
-        public override string Print() {
+        public override string Print()
+        {
             return "(" + string.Join(" ", this.Select(el => el.Print())) + ")";
         }
 
     }
 
 
-    public IEnumerator<Form> GetEnumerator() {
+    public IEnumerator<Form> GetEnumerator()
+    {
         List theList = this;
-        while (theList is NonEmpty nonEmptyList) {
+        while (theList is NonEmpty nonEmptyList)
+        {
             yield return nonEmptyList.Car;
             theList = nonEmptyList.Rest;
         }
 
     }
 
-    IEnumerator IEnumerable.GetEnumerator() {
+    IEnumerator IEnumerable.GetEnumerator()
+    {
         return this.GetEnumerator();
     }
 
-    public override int GetHashCode() {
+    public override int GetHashCode()
+    {
         int hash = 19;
-        unchecked {
-            foreach (var expr in this) {
+        unchecked
+        {
+            foreach (var expr in this)
+            {
                 hash = hash * 31 + expr.GetHashCode();
 
             }
         }
         return hash;
     }
+}
+
+public static class IEnumerableExtensions {
+    public static Jig.List ToJigList(this IEnumerable<Form> elements) {
+        List result = List.Null;
+        for (int index = elements.Count() - 1; index >= 0; index--) {
+            result = new List.NonEmpty(elements.ElementAt(index), result);
+        }
+        return result;
+    } 
 }

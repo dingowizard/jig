@@ -164,56 +164,56 @@ public class ParserTests {
     public void ParsePair() {
         var tokenStream = new TokenStream(InputPort.FromString("(abc . def)"));
         var actual = Parser.ParseExpr(tokenStream);
-        Assert.AreEqual(Form.Pair.Cons(new Form.Symbol("abc"), new Form.Symbol("def")), actual);
+        Assert.AreEqual(Pair.Cons(new Form.Symbol("abc"), new Form.Symbol("def")), actual);
     }
 
     [TestMethod]
     public void ParseImproperList() {
         var tokenStream = new TokenStream(InputPort.FromString("(abc . (def . ghi))"));
         var actual = Parser.ParseExpr(tokenStream);
-        Assert.AreEqual(Form.Pair.Cons(new Form.Symbol("abc"), (Form.Pair) Form.Pair.Cons(new Form.Symbol("def"), new Form.Symbol("ghi"))), actual);
+        Assert.AreEqual(Pair.Cons(new Form.Symbol("abc"), (Pair) Pair.Cons(new Form.Symbol("def"), new Form.Symbol("ghi"))), actual);
     }
 
     [TestMethod]
     public void ParseImproperListExpressedDifferently() {
         var lexer = new TokenStream(InputPort.FromString("(abc  def . ghi)"));
         var actual = Parser.ParseExpr(lexer);
-        Assert.AreEqual(Form.Pair.Cons(new Form.Symbol("abc"), (Form.Pair) Form.Pair.Cons(new Form.Symbol("def"), new Form.Symbol("ghi"))), actual);
+        Assert.AreEqual(Pair.Cons(new Form.Symbol("abc"), (Pair) Pair.Cons(new Form.Symbol("def"), new Form.Symbol("ghi"))), actual);
     }
 
     [TestMethod]
     public void ParseHashFToFalse() {
         var lexer = new TokenStream(InputPort.FromString("#f"));
         var actual = Parser.ParseExpr(lexer);
-        Assert.AreEqual(Form.Bool.False, actual);
+        Assert.AreEqual(Bool.False, actual);
     }
 
     [TestMethod]
     public void ParseHashTToFalse() {
         var lexer = new TokenStream(InputPort.FromString("#t"));
         var actual = Parser.ParseExpr(lexer);
-        Assert.AreEqual(Form.Bool.True, actual);
+        Assert.AreEqual(Bool.True, actual);
     }
 
     [TestMethod]
     public void ParseDigitsToInt() {
         var lexer = new TokenStream(InputPort.FromString("1234"));
         var actual = Parser.ParseExpr(lexer);
-        Assert.AreEqual(new Form.IntegerNumber(1234), actual);
+        Assert.AreEqual(new Integer(1234), actual);
     }
 
     [TestMethod]
     public void ParseDigitsDotMoreDigitsToDouble() {
         var lexer = new TokenStream(InputPort.FromString("1234.5678"));
         var actual = Parser.ParseExpr(lexer);
-        Assert.AreEqual(new Form.DoubleNumber(1234.5678), actual);
+        Assert.AreEqual(new Float(1234.5678), actual);
     }
 
     [TestMethod]
     public void ParseListWithSymbolAndInt() {
         var lexer = new TokenStream(InputPort.FromString("(succ 0)"));
         var actual = Parser.ParseExpr(lexer);
-        Assert.AreEqual(List.NewList(new Form.Symbol("succ"), new Form.IntegerNumber(0)), actual);
+        Assert.AreEqual(List.NewList(new Form.Symbol("succ"), new Integer(0)), actual);
 
     }
 
@@ -221,14 +221,14 @@ public class ParserTests {
     public void ParseQuoteTextQuoteYieldsStringExpr() {
         var lexer = new TokenStream(InputPort.FromString("\"hello goodbye\""));
         var actual = Parser.ParseExpr(lexer);
-        Assert.AreEqual(new Form.String("hello goodbye"), actual);
+        Assert.AreEqual(new String("hello goodbye"), actual);
     }
 
     [TestMethod]
     public void ParseListWithSymbolAndBool() {
         var lexer = new TokenStream(InputPort.FromString("(not #f)"));
         var actual = Parser.ParseExpr(lexer);
-        Assert.AreEqual(List.NewList(new Form.Symbol("not"), Form.Bool.False), actual);
+        Assert.AreEqual(List.NewList(new Form.Symbol("not"), Bool.False), actual);
 
     }
 

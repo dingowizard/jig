@@ -8,15 +8,13 @@ namespace Jig;
 public class Syntax : Form {
     // TODO: should this be an interface rather than a class? then e.g. Identifier : Symbol, ISyntaxObject
     //
-    // NOTE:
-    // in racket, syntax-objects do not have to have srclocs. a syntx-object could return #f for syntax-line or syntax-source
 
     public static Form E(Syntax stx) {
         return stx.Expression;
     }
 
     public static Syntax Cons(Syntax car, Form cdr) {
-        return new Syntax((Form)Form.Pair.Cons(car, cdr));
+        return new Syntax((Form)Pair.Cons(car, cdr));
     }
 
     public static Form ToDatum(Syntax stx) {
@@ -136,7 +134,7 @@ public class Syntax : Form {
             case IPair pair:
                 Syntax pairCar = pair.Car as Syntax ?? throw new Exception($"FlattenPair: expected pair.Car to be Syntax but got {pair.Car.Print()}, a {pair.Car.GetType()}");
                 return (List)FlattenPair(pairCar, pair.Cdr).Append(Flatten(new Syntax(cdr)));
-            default: return (List)Form.Pair.Cons(car, Flatten(new Syntax(cdr)));
+            default: return (List)Pair.Cons(car, Flatten(new Syntax(cdr)));
         }
 
     }
@@ -153,7 +151,7 @@ public class Syntax : Form {
         {
             List.Empty => Flatten(stxCdr),
             IPair pair => (List)FlattenPair((Syntax)pair.Car, pair.Cdr).Append(Flatten(stxCdr)),
-            _ => (SyntaxList)Form.Pair.Cons(car, Flatten(stxCdr)),
+            _ => (SyntaxList)Pair.Cons(car, Flatten(stxCdr)),
         };
     }
 
@@ -186,17 +184,17 @@ public class Syntax : Form {
                 return stx;
             case Symbol sym:
                 return new Identifier(sym, srcLoc);
-            case Form.Bool:
-            case Form.Char:
-            case Form.DoubleNumber:
-            case Form.IntegerNumber:
-            case Form.String:
-            case Form.Vector:
+            case Bool:
+            case Char:
+            case Float:
+            case Integer:
+            case String:
+            case Vector:
                 return new Literal(x, srcLoc);
             case List list:
                 return new Syntax(SyntaxList.FromIEnumerable(list.Select(x => Syntax.FromDatum(srcLoc, x))), srcLoc);
             case IPair pair:
-                return new Syntax((Form)Form.Pair.Cons(FromDatum(srcLoc, pair.Car),
+                return new Syntax((Form)Pair.Cons(FromDatum(srcLoc, pair.Car),
                                                  FromDatum(srcLoc, pair.Cdr)),
                                   srcLoc);
             default:
@@ -265,11 +263,11 @@ public class Syntax : Form {
             //     throw new Exception($"SyntaxObject.SyntaxPairToDatum: expected syntax pair, but car -- {stxPair.Car} -- is not a syntax object");
             Form car = stxPair.Car is Syntax stxCar ? ToDatum(stxCar) : stxPair.Car;
             if (stxPair.Cdr is List.Empty) {
-                return (Form)Form.Pair.Cons(car, (Form)List.Null);
+                return (Form)Pair.Cons(car, (Form)List.Null);
             } else if (stxPair.Cdr is Syntax soCdr) {
-                return (Form)Form.Pair.Cons(car, ToDatum(soCdr));
+                return (Form)Pair.Cons(car, ToDatum(soCdr));
             } else if (stxPair.Cdr is IPair cdrPair) {
-                return (Form)Form.Pair.Cons(car, SyntaxPairToDatum(cdrPair));
+                return (Form)Pair.Cons(car, SyntaxPairToDatum(cdrPair));
             } else {
                 throw new Exception($"SyntaxPairToDatum: cdr of a syntax pair should be a syntax object, null or a pair. {stxPair.Cdr} is none of these)");
             }

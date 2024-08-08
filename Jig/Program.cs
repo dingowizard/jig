@@ -17,7 +17,7 @@ public static class Program {
             {"e|expr=", "evaluate expression and exit", e => expr = e},
             {"h|help", "show this message", h => showHelp = h is not null},
         };
-        List<string> extraArgs;
+        System.Collections.Generic.List<string> extraArgs;
         try {
             extraArgs = options.Parse(args);
         } catch (OptionException x) {

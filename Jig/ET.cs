@@ -67,9 +67,10 @@ internal abstract class ET : Expression {
         if (ast is ParsedList parsedList) {
             return new ProcAppET(scope, parsedList);
         }
-        if (Form.IsLiteral(ast) || ast is Form.VoidType) {
+        if (ast is LiteralExpr || ast is Syntax.Literal) {
             return new LiteralET(ast);
-        } else if (Form.IsSymbol(ast)) {
+        }
+        if (Form.IsSymbol(ast)) {
             return new SymbolET(scope, ast);
         } else if (Form.IsNonEmptyList(ast)) {
             List.NonEmpty list = ast is Syntax stx ? (List.NonEmpty)Syntax.E(stx) : (List.NonEmpty)ast;
@@ -91,7 +92,7 @@ internal abstract class ET : Expression {
             }
         } else {
             SrcLoc? srcLoc = ast is Syntax stx ? stx.SrcLoc : null;
-            throw new Exception($"Analyze: doesn't know what to do with {ast}" + (srcLoc is not null ? $" @ {srcLoc}" : ""));
+            throw new Exception($"Analyze: doesn't know what to do with {ast}, a {ast.GetType()}. Equal to LiteralExpr? {ast is LiteralExpr}" + (srcLoc is not null ? $" @ {srcLoc}" : ""));
         }
     }
 
@@ -325,7 +326,7 @@ internal abstract class ET : Expression {
 
         public override Expression Body {get;}
         private static bool IsNotFalse(Form x) {
-            if (x is Form.Bool boolExpr) {
+            if (x is Bool boolExpr) {
                 return boolExpr.Value != false;
             }
             else return true;
@@ -514,7 +515,7 @@ internal abstract class ET : Expression {
         public LambdaExprET(LexicalContext scope, List.NonEmpty args) {
             Form lambdaParameters = args.ElementAt(1) is Syntax stx ? Syntax.ToDatum(stx) : args.ElementAt(1); // TODO: do we want to throw this info out already?
             Debug.Assert(args.Count() >= 3);
-            List.NonEmpty lambdaBody = (List.NonEmpty)List.ListFromEnumerable(args.Skip(2));
+            List.NonEmpty lambdaBody = (List.NonEmpty)args.Skip(2).ToJigList();
 
             var k = Expression.Parameter(typeof(Delegate), "k in MakeProcET"); // this is the continuation paramter for the proc we are making
             LexicalContext lambdaScope;
@@ -574,8 +575,8 @@ internal abstract class ET : Expression {
 
         public override Expression Body {get;}
 
-        private static List<Form.Symbol> ValidateAndConvertToSymbols(IPair parameters) {
-            var result = new List<Form.Symbol>();
+        private static System.Collections.Generic.List<Form.Symbol> ValidateAndConvertToSymbols(IPair parameters) {
+            var result = new System.Collections.Generic.List<Form.Symbol>();
             Form car = parameters.Car;
             Form.Symbol sym = car is Syntax.Identifier id ? id.Symbol : car is Form.Symbol s ? s : throw new Exception($"lambda: all parameters must be symbols (given {car}");
             result.Add(sym);

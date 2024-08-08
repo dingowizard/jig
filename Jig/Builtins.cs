@@ -13,7 +13,7 @@ internal static class Builtins {
 
 
         if (index < codes.Length) {
-            Continuation.OneArgDelegate k2 = (arg) => map_internal((Continuation.OneArgDelegate)((rest) => k((Form)Form.Pair.Cons(arg, (List) rest))), env, codes, index + 1);
+            Continuation.OneArgDelegate k2 = (arg) => map_internal((Continuation.OneArgDelegate)((rest) => k((Form)Pair.Cons(arg, (List) rest))), env, codes, index + 1);
             return codes[index](k2, env);
         } else {
             return k(List.Null); // at this point , k is (lambda (l) (apply (car l) (cdr l)))
@@ -36,10 +36,10 @@ internal static class Builtins {
     public static  Thunk? nullP (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             Form arg = properList.Car;
-            if (arg is List.Empty) {
-                return Continuation.ApplyDelegate(k, Form.Bool.True);
+            if (arg is List list) {
+                return Continuation.ApplyDelegate(k, list.NullP);
             }
-            return Continuation.ApplyDelegate(k, Form.Bool.False);
+            return Continuation.ApplyDelegate(k, Bool.False);
 
         } else {
             return Error(k, "null?: expected one argument but got none");
@@ -62,10 +62,10 @@ internal static class Builtins {
         if (args is List.NonEmpty properList) {
             if (args.Count() != 1) return Error(k, "char?: expected one argument but got {args.Count()}");
             Form arg = properList.Car;
-            if (arg is Form.Char) {
-                return Continuation.ApplyDelegate(k, Form.Bool.True);
+            if (arg is Char) {
+                return Continuation.ApplyDelegate(k, Bool.True);
             }
-            return Continuation.ApplyDelegate(k, Form.Bool.False);
+            return Continuation.ApplyDelegate(k, Bool.False);
 
         } else {
             return Error(k, "char?: expected one argument but got none");
@@ -75,8 +75,8 @@ internal static class Builtins {
     public static Thunk? succ(Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             object arg = properList.Car;
-            if (arg is Form.IntegerNumber intExpr) {
-                return Continuation.ApplyDelegate(k, new Form.IntegerNumber(intExpr.Value + 1));
+            if (arg is Integer intExpr) {
+                return Continuation.ApplyDelegate(k, new Integer(intExpr.Value + 1));
             } else {
                 return Error(k, $"succ: expected single integer argument, but got {args}");
             }
@@ -88,7 +88,7 @@ internal static class Builtins {
     public static Thunk? number_p(Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             if (properList.Count() == 1) {
-                return Continuation.ApplyDelegate(k, properList.Car is Form.Number ? Form.Bool.True : Form.Bool.False);
+                return Continuation.ApplyDelegate(k, properList.Car is Number ? Bool.True : Bool.False);
             } else {
                 return Error(k, $"number?: expected one argument and only one argument. Got {args}.");
             }
@@ -98,9 +98,9 @@ internal static class Builtins {
     }
 
     public static Thunk? sum(Delegate k, List args) {
-        Form.Number acc = Form.Number.From(0);
+        Number acc = Number.From(0);
         foreach (var arg in args) {
-            if (arg is Form.Number num) {
+            if (arg is Number num) {
                 acc += num;
             } else {
                 return Error(k, $"+: all args must be numbers. got {arg}");
@@ -110,9 +110,9 @@ internal static class Builtins {
     }
 
     public static Thunk? diff(Delegate k, Form first, List args) {
-        if (first is Form.Number acc) {
+        if (first is Number acc) {
             foreach (var arg in args) {
-                if (arg is Form.Number num) {
+                if (arg is Number num) {
                     acc = acc - num;
                 } else {
                     return Error(k, $"-: all args must be numbers. {first} is not a number.");
@@ -125,10 +125,10 @@ internal static class Builtins {
     }
 
     public static Thunk? numEq(Delegate k, Form first, List args) {
-        if (first is Form.Number n1) {
+        if (first is Number n1) {
             foreach (var arg in args) {
-                if (arg is Form.Number n2) {
-                    Form.Bool b = n1 == n2;
+                if (arg is Number n2) {
+                    Bool b = n1 == n2;
                     if (b.Value) {
                         continue;
                     }
@@ -137,7 +137,7 @@ internal static class Builtins {
                     return Error(k, $"=: expects only numeric arguments. Got {arg}");
                 }
             }
-            return Continuation.ApplyDelegate(k, Form.Bool.True);
+            return Continuation.ApplyDelegate(k, Bool.True);
         } else {
             return Error(k, $"=: expects only numeric arguments. Got {first}");
         }
@@ -146,13 +146,13 @@ internal static class Builtins {
 
     public static Thunk? gt(Delegate k, List args) {
         if (args is List.NonEmpty nonEmpty) {
-            Form.Number? first = nonEmpty.Car as Form.Number;
+            Number? first = nonEmpty.Car as Number;
             if (first is null) return Error(k, $">: expected arguments to be numbers but got {first}");
             args = nonEmpty.Rest;
             while (args is List.NonEmpty rest) {
-                Form.Number? second = rest.Car as Form.Number;
+                Number? second = rest.Car as Number;
                 if (second is null) return Error(k, $">: expected arguments to be numbers but got {second}");
-                Form.Bool b = first > second;
+                Bool b = first > second;
                 if (b.Value) {
                     first = second;
                     args = rest.Rest;
@@ -161,7 +161,7 @@ internal static class Builtins {
                     return Continuation.ApplyDelegate(k, b);
                 }
             }
-            return Continuation.ApplyDelegate(k, Form.Bool.True);
+            return Continuation.ApplyDelegate(k, Bool.True);
         } else {
             return Error(k, ">: expected at least one argument but got none");
         }
@@ -176,7 +176,7 @@ internal static class Builtins {
             Form first = args.ElementAt(0);
             Form second = args.ElementAt(1);
             bool result = first is IPair ? Object.ReferenceEquals(first, second) : first.Equals(second);
-            return Continuation.ApplyDelegate(k, result ? Form.Bool.True : Form.Bool.False);
+            return Continuation.ApplyDelegate(k, result ? Bool.True : Bool.False);
         } else {
             return Error(k, "eq?: expected two arguments but got none");
         }
@@ -191,16 +191,16 @@ internal static class Builtins {
             Form first = args.ElementAt(0);
             Form second = args.ElementAt(1);
             bool result = first.Equals(second);
-            return Continuation.ApplyDelegate(k, result ? Form.Bool.True : Form.Bool.False);
+            return Continuation.ApplyDelegate(k, result ? Bool.True : Bool.False);
         } else {
             return Error(k, "eqv?: expected two arguments but got none");
         }
     }
 
     public static Thunk? new_product(Delegate k, List args) {
-        Form.Number acc = Form.Number.From(1);
+        Number acc = Number.From(1);
         foreach (var arg in args) {
-            if (arg is Form.Number num) {
+            if (arg is Number num) {
                 acc = acc * num;
             } else {
                 return Error(k, $"*: all args must be numbers. {arg} is not a number.");
@@ -217,7 +217,7 @@ internal static class Builtins {
             }
             Form car = args.ElementAt(0);
             Form cdr = args.ElementAt(1);
-            Form result = (Form)Form.Pair.Cons(car, cdr);
+            Form result = (Form)Pair.Cons(car, cdr);
             return Continuation.ApplyDelegate(k, result);
         } else {
             return Error(k, "cons: expected two arguments but got none");
@@ -253,7 +253,7 @@ internal static class Builtins {
             if (sym2 is null) return Error(k, $"symbol=?: expected all arguments to be symbols, but got {rest.ElementAt(0)}");
             while (rest is List.NonEmpty nonEmpty) {
                 if (!sym1.Equals(sym2)) {
-                    return Continuation.ApplyDelegate(k, Form.Bool.False);
+                    return Continuation.ApplyDelegate(k, Bool.False);
                 }
                 sym1 = sym2;
                 sym2 = nonEmpty.Car as Form.Symbol;
@@ -261,9 +261,9 @@ internal static class Builtins {
                 rest = nonEmpty.Rest;
             }
             if (sym1.Equals(sym2)) {
-                return Continuation.ApplyDelegate(k, Form.Bool.True);
+                return Continuation.ApplyDelegate(k, Bool.True);
             } else {
-                return Continuation.ApplyDelegate(k, Form.Bool.False);
+                return Continuation.ApplyDelegate(k, Bool.False);
             }
         } else {
             return Error(k, "symbol=?: expected two or more arguments.");
@@ -276,7 +276,7 @@ internal static class Builtins {
             if (properList.Count() != 1) {
                 return Error(k, "symbol?: expected one argument.");
             }
-            return Continuation.ApplyDelegate(k, properList.Car is Form.Symbol ? Form.Bool.True : Form.Bool.False);
+            return Continuation.ApplyDelegate(k, properList.Car is Form.Symbol ? Bool.True : Bool.False);
         } else {
             return Error(k, "symbol?: expected one argument.");
         }
@@ -304,7 +304,7 @@ internal static class Builtins {
                 return Error(k, "symbol->string: expected one argument.");
             }
             if (properList.Car is Form.Symbol symbol) {
-                return Continuation.ApplyDelegate(k, new Form.String(symbol.Name));
+                return Continuation.ApplyDelegate(k, new String(symbol.Name));
             } else {
                 return Error(k, "symbol->string: expected its argument to be a symbol.");
             }
@@ -319,7 +319,7 @@ internal static class Builtins {
             if (properList.Count() != 1) {
                 return Error(k, "string->symbol: expected one argument.");
             }
-            if (properList.Car is Form.String str) {
+            if (properList.Car is String str) {
                 return Continuation.ApplyDelegate(k, new Form.Symbol(str.Value));
             } else {
                 return Error(k, "string->symbol: expected its argument to be a string.");
@@ -395,22 +395,22 @@ internal static class Builtins {
         if (Syntax.ToList(stx, out List? result)) {
             return Continuation.ApplyDelegate(k, result);
         } else {
-            return Continuation.ApplyDelegate(k, Form.Bool.False);
+            return Continuation.ApplyDelegate(k, Bool.False);
         }
     }
 
     public static Thunk? syntax_p(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"syntax?: expected one argument.");
         if (args.ElementAt(0) is Syntax) {
-            return Continuation.ApplyDelegate(k, Form.Bool.True);
+            return Continuation.ApplyDelegate(k, Bool.True);
         } else {
-            return Continuation.ApplyDelegate(k, Form.Bool.False);
+            return Continuation.ApplyDelegate(k, Bool.False);
         }
     }
 
     public static Thunk? pair_p(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"pair?: expected one argument.");
-        return Continuation.ApplyDelegate(k, args.ElementAt(0) is IPair ? Form.Bool.True : Form.Bool.False);
+        return Continuation.ApplyDelegate(k, args.ElementAt(0) is IPair ? Bool.True : Bool.False);
     }
 
     public static Thunk? datum_to_syntax(Delegate k, List args) {
@@ -457,7 +457,7 @@ internal static class Builtins {
         // TODO: cache this search somehow
         Form errorExpr = Program.TopLevel[new Form.Symbol("error")];
         if (errorExpr is Procedure proc) {
-            return proc.Apply(k, List.NewList(new Form.String(msg)));
+            return proc.Apply(k, List.NewList(new String(msg)));
         } else {
             throw new Exception("error is not bound to a procedure");
         }
@@ -474,7 +474,7 @@ internal static class Builtins {
             Console.Error.WriteLine("error: expected at least one argument");
             return Continuation.ApplyDelegate(end, Form.Void);
         }
-        if (args.ElementAt(0) is not Form.String msg)
+        if (args.ElementAt(0) is not String msg)
         {
             Console.Error.WriteLine($"error: expected first argument to be a string message but got {args.ElementAt(0)}.");
         }
@@ -486,7 +486,7 @@ internal static class Builtins {
     }
 
     public static Thunk? vector(Delegate k, List args) {
-        return Continuation.ApplyDelegate(k, new Form.Vector(args));
+        return Continuation.ApplyDelegate(k, new Vector(args));
 
     }
     public static Thunk? make_record_type_descriptor(Delegate k, List args) {
@@ -497,17 +497,17 @@ internal static class Builtins {
     public static Thunk? record_type_descriptor_p(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"record-type-descriptor?: expected a single argument but got {args.Count()}");
         if (args.ElementAt(0) is Record.TypeDescriptor) {
-            return Continuation.ApplyDelegate(k, Form.Bool.True);
+            return Continuation.ApplyDelegate(k, Bool.True);
         }
-        return Continuation.ApplyDelegate(k, Form.Bool.False);
+        return Continuation.ApplyDelegate(k, Bool.False);
 
     }
     public static Thunk? record_constructor_descriptor_p(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"record-constructor-descriptor?: expected a single argument but got {args.Count()}");
         if (args.ElementAt(0) is Record.ConstructorDescriptor) {
-            return Continuation.ApplyDelegate(k, Form.Bool.True);
+            return Continuation.ApplyDelegate(k, Bool.True);
         }
-        return Continuation.ApplyDelegate(k, Form.Bool.False);
+        return Continuation.ApplyDelegate(k, Bool.False);
 
     }
 
@@ -519,21 +519,21 @@ internal static class Builtins {
         if (args.Count() != 1) return Error(k, $"vector?: expected a single argument but got {args.Count()}");
         var arg = args.ElementAt(0);
         if (arg is Record) {
-            return Continuation.ApplyDelegate(k, Form.Bool.False);
+            return Continuation.ApplyDelegate(k, Bool.False);
         }
-        if (arg is Form.Vector) {
-            return Continuation.ApplyDelegate(k, Form.Bool.True);
+        if (arg is Vector) {
+            return Continuation.ApplyDelegate(k, Bool.True);
         }
-        return Continuation.ApplyDelegate(k, Form.Bool.False);
+        return Continuation.ApplyDelegate(k, Bool.False);
 
     }
     public static Thunk? record_p(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"record?: expected a single argument but got {args.Count()}");
         var arg = args.ElementAt(0);
         if (arg is Record) {
-            return Continuation.ApplyDelegate(k, Form.Bool.True);
+            return Continuation.ApplyDelegate(k, Bool.True);
         }
-        return Continuation.ApplyDelegate(k, Form.Bool.False);
+        return Continuation.ApplyDelegate(k, Bool.False);
 
     }
     public static Thunk? record_predicate(Delegate k, List args) {
@@ -551,7 +551,7 @@ internal static class Builtins {
         if (args.ElementAt(0) is not Record.TypeDescriptor rtd) {
             return Error(k, $"record-predicate: expected argument to be a record type descriptor but got {args.ElementAt(0)}");
         }
-        if (args.ElementAt(1) is not Form.IntegerNumber i) {
+        if (args.ElementAt(1) is not Integer i) {
             return Error(k, $"record-predicate: expected second argument to be an integer but got {args.ElementAt(1)}");
         }
         return Continuation.ApplyDelegate(k, rtd.Accessor(i));
@@ -569,7 +569,7 @@ internal static class Builtins {
 
     public static Thunk? vector_length(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"vector-length: expected a single argument but got {args.Count()}");
-        if (args.ElementAt(0) is Form.Vector v) {
+        if (args.ElementAt(0) is Vector v) {
             return Continuation.ApplyDelegate(k, v.Length);
         } else {
             return Error(k, "vector-length: expected argument to be vector");
@@ -580,8 +580,8 @@ internal static class Builtins {
 
     public static Thunk? vector_ref(Delegate k, List args) {
         if (args.Count() != 2) return Error(k, $"vector-ref: expected two arguments but got {args.Count()}");
-        if (args.ElementAt(0) is Form.Vector v) {
-            if (args.ElementAt(1) is Form.IntegerNumber i) {
+        if (args.ElementAt(0) is Vector v) {
+            if (args.ElementAt(1) is Integer i) {
                 if (v.TryGetAtIndex(i, out Form? result)) {
                     return Continuation.ApplyDelegate(k, result);
                 } else {

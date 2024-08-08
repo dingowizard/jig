@@ -61,7 +61,7 @@ public class Continuation : Procedure {
     private static Delegate ContinuationFromProc(Delegate k, Delegate consumerDel) {
         MethodInfo method = consumerDel.GetType().GetMethod("Invoke") ?? throw new Exception($"ContinuationFromProc: could not find 'Invoke' method on type of proc (proc.GetType())");
         var parameterInfos = method.GetParameters().Skip(1); // get parameters that are not the continuation
-        var paramList = new List<ParameterExpression>();
+        var paramList = new System.Collections.Generic.List<ParameterExpression>();
         foreach (var p in parameterInfos)
         {
             paramList.Add(Expression.Parameter(typeof(Form), p.ToString()));

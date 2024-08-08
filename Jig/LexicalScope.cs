@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 
 namespace Jig;
+using System.Collections.Generic;
 
 internal class LexicalContext {
 
@@ -17,7 +18,7 @@ internal class LexicalContext {
     }
 
     public LexicalContext Extend() {
-        return new LexicalContext(this, new List<Form.Symbol>());
+        return new LexicalContext(this, new System.Collections.Generic.List<Form.Symbol>());
     }
 
     private LexicalContext(LexicalContext enclosing, IEnumerable<Form.Symbol> symbols) {
@@ -83,7 +84,7 @@ internal class LexicalContext {
 
     public ParameterExpression[] Parameters => Symbols.Select(tup => tup.Item2).ToArray();
 
-    List<Tuple<Form.Symbol, ParameterExpression>> Symbols {get;} = [];
+    System.Collections.Generic.List<Tuple<Form.Symbol, ParameterExpression>> Symbols {get;} = [];
 
     LexicalContext? EnclosingScope {get;}
 

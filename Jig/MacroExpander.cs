@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq.Expressions;
 
 namespace Jig;
 
@@ -151,7 +150,7 @@ public class MacroExpander {
     }
 
     private  ParsedList ExpandList(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
-        List<Syntax> xs = [];
+        System.Collections.Generic.List<Syntax> xs = [];
         foreach (var x in stxList) {
             Syntax bodyExpr = Expand(x, ee, definesAllowed: false);
             xs.Add(bodyExpr);
@@ -161,7 +160,7 @@ public class MacroExpander {
 
     private  Syntax ExpandSet(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
-        List<Syntax> xs = new List<Syntax>();
+        System.Collections.Generic.List<Syntax> xs = [];
         Debug.Assert(stxList.Count<Syntax>() == 3);
         xs.Add(stxList.ElementAt<Syntax>(0)); // set!
         foreach (var x in stxList.Skip<Syntax>(1)) {
@@ -173,7 +172,7 @@ public class MacroExpander {
 
     private  Syntax ExpandDefine(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
-        List<Syntax> xs = new List<Syntax>();
+        System.Collections.Generic.List<Syntax> xs = [];
         Debug.Assert(stxList.Count<Syntax>() == 3); // TODO: this should be a syntax error
         xs.Add(stxList.ElementAt<Syntax>(0));
         Syntax.Identifier id = stxList.ElementAt<Syntax>(1) as Syntax.Identifier
@@ -192,7 +191,7 @@ public class MacroExpander {
 
 
     private  Syntax ExpandLambda(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
-        List<Syntax> xs = new List<Syntax>();
+        System.Collections.Generic.List<Syntax> xs = [];
         xs.Add(stxList.ElementAt<Syntax>(0)); // lamdbda keyword
         var newScope = new Scope();
         var parameters = stxList.ElementAt<Syntax>(1);
@@ -282,7 +281,7 @@ public class ExpansionEnvironment {
             clauses.Count() == 1 ?
             new Syntax(SyntaxList.FromParams(
                 new Syntax.Identifier(new Form.Symbol("error")),
-                new Syntax.Literal(new Form.String("match: couldn't find a match."))
+                new Syntax.Literal(new String("match: couldn't find a match."))
             )) : 
             new Syntax(MakeIfs(x, clauses.Skip(1)));
           
@@ -300,12 +299,13 @@ public class ExpansionEnvironment {
         // TODO: UGH!!
         SyntaxList result = 
             (SyntaxList)SyntaxList.FromIEnumerable(
-            new List<Syntax> {
+            new System.Collections.Generic.List<Syntax> {
                 new Syntax(
                     SyntaxList.FromIEnumerable(
-                        new List<Syntax> {
-                        new Syntax.Identifier(new Form.Symbol("lambda")),
-                        ParamsForLambdaForMatchClauseThen(pattern)}.
+                        new System.Collections.Generic.List<Syntax> {
+                            new Syntax.Identifier(new Form.Symbol("lambda")),
+                            ParamsForLambdaForMatchClauseThen(pattern)
+                        }.
                         Concat<Syntax>(bodies.Cast<Syntax>())
                     ))
             });
@@ -322,7 +322,7 @@ public class ExpansionEnvironment {
         switch (car) {
             case List.Empty: return Flatten(cdr);
             case IPair pair: return (List)Flatten(pair.Car).Append(Flatten(cdr));
-            case Syntax stxCar: return (List)Form.Pair.Cons(stxCar, Flatten(cdr));
+            case Syntax stxCar: return (List)Pair.Cons(stxCar, Flatten(cdr));
             default: throw new Exception();
 
         }
@@ -332,7 +332,7 @@ public class ExpansionEnvironment {
         switch (first) {
             case List.Empty: return Flatten(rest);
             case IPair pair: return (List)Flatten(pair.Car).Append(Flatten(rest));
-            case Syntax stxCar: return (List)Form.Pair.Cons(stxCar, Flatten(rest));
+            case Syntax stxCar: return (List)Pair.Cons(stxCar, Flatten(rest));
             default: throw new Exception();
         }
 
@@ -341,7 +341,7 @@ public class ExpansionEnvironment {
         switch (first) {
             case List.Empty: return Flatten(rest);
             case IPair pair: return (List)Flatten(pair.Car).Append(Flatten(rest));
-            case Syntax stxCar: return (List)Form.Pair.Cons(stxCar, Flatten(rest));
+            case Syntax stxCar: return (List)Pair.Cons(stxCar, Flatten(rest));
             default: throw new Exception();
         }
 
@@ -370,11 +370,11 @@ public class ExpansionEnvironment {
     }
 
     private static List ArgsForLambdaForMatchClauseThen(Syntax x, SyntaxList patterns) {
-        List<Form> result = [];
+        System.Collections.Generic.List<Form> result = [];
         for (int i = 0; i < patterns.Count<Syntax>(); i++){
             result.Add(ArgsForLambdaForMatchClauseThen(NthElementOfList(i, x), patterns.ElementAt<Syntax>(i)));
         }
-        return List.NonEmpty.ListFromEnumerable(result);
+        return result.ToJigList();
 
     }
 
@@ -383,10 +383,10 @@ public class ExpansionEnvironment {
         return Syntax.E(pattern) switch
         {
             List.Empty => SyntaxList.FromParams(),
-            Form.Number => SyntaxList.FromParams(),
+            Number => SyntaxList.FromParams(),
             Form.Symbol => x,
             SyntaxList stxList => ArgsForLambdaForMatchClauseThen(x, stxList),
-            Form.Pair pair => (Form)Form.Pair.Cons(
+            Pair pair => (Form)Pair.Cons(
                 ArgsForLambdaForMatchClauseThen(
                     x: new Syntax(SyntaxList.FromParams(
                         new Syntax.Identifier(new Form.Symbol("car")),
@@ -403,18 +403,18 @@ public class ExpansionEnvironment {
 
     private static Form ParamsFromPattern(Syntax pattern) {
         switch (Syntax.E(pattern)) {
-            case Form.Number: return List.Null;
+            case Number: return List.Null;
             case List.Empty: return List.Null;
             case Form.Symbol: return pattern;
             case SyntaxList stxList:
-                List<Form> res = [];
+                System.Collections.Generic.List<Form> res = [];
                 foreach (var s in stxList) {
                     res.Add(ParamsFromPattern(s));
                 }
-                return List.ListFromEnumerable(res);
-            case Form.Pair pair:
+                return res.ToJigList();
+            case Pair pair:
                 if (pair.Car is Syntax x && pair.Cdr is Syntax y ) {
-                    return (Form) Form.Pair.Cons(ParamsFromPattern(x),
+                    return (Form) Pair.Cons(ParamsFromPattern(x),
                                                  ParamsFromPattern(y));
                 }
                 throw new NotImplementedException();
@@ -429,7 +429,7 @@ public class ExpansionEnvironment {
     }
 
     private static Syntax MakeConditionForMatchClause(Syntax x, SyntaxList pattern) {
-        List<Syntax> firstPart = [
+        System.Collections.Generic.List<Syntax> firstPart = [
             new Syntax.Identifier(new Form.Symbol("and")),
             new Syntax(SyntaxList.FromParams(
                 new Syntax.Identifier(new Form.Symbol("list?")),
@@ -441,9 +441,9 @@ public class ExpansionEnvironment {
                         new Syntax.Identifier(new Form.Symbol("length")),
                         x
                     )),
-                    new Syntax.Literal(new Form.IntegerNumber(pattern.Count<Syntax>()))))
+                    new Syntax.Literal(new Integer(pattern.Count<Syntax>()))))
         ];
-        var secondPart = new List<Syntax>();
+        var secondPart = new System.Collections.Generic.List<Syntax>();
         for(int i = 0; i < pattern.Count<Syntax>(); i++) {
             secondPart.Add(MakeConditionForMatchClause(NthElementOfList(i, x), pattern.ElementAt<Syntax>(i)));
         }
@@ -485,9 +485,9 @@ public class ExpansionEnvironment {
     private static Syntax MakeConditionForMatchClause(Syntax x, Syntax pattern) {
         return Syntax.E(pattern) switch
         {
-            Form.Number n => MakeNumEqTest(pattern, x),
+            Number n => MakeNumEqTest(pattern, x),
             List.Empty => MakeNullTest(x),
-            Form.Symbol => new Syntax.Literal(Form.Bool.True),
+            Form.Symbol => new Syntax.Literal(Bool.True),
             SyntaxList syntaxList => MakeConditionForMatchClause(x, syntaxList),
             IPair pair => MakeConditionForMatchClause(x, pair.Car, pair.Cdr),
             _ => throw new NotImplementedException($"x = {x.Print()} and pattern = {pattern.Print()}"),
@@ -509,7 +509,7 @@ public class ExpansionEnvironment {
         Syntax result;
         SyntaxList stxList = Syntax.E(stx) as SyntaxList ?? throw new Exception("and: syntax should expand to list");
         if (stxList.Count<Syntax>() == 1) { // E.g. (and)
-            result = new Syntax.Literal(Form.Bool.True, null);
+            result = new Syntax.Literal(Bool.True, null);
             return Continuation.ApplyDelegate(k, result);
         }
         if (stxList.Count<Syntax>() == 2) { // Eg (and 1)
@@ -521,12 +521,12 @@ public class ExpansionEnvironment {
             SyntaxList.FromParams(new Syntax.Identifier(new Form.Symbol("if")),
                                     first,
                                     new Syntax(
-                                    SyntaxList.FromIEnumerable(new List<Syntax>{
+                                    SyntaxList.FromIEnumerable(new System.Collections.Generic.List<Syntax>{
                                         new Syntax.Identifier(new Form.Symbol("and"))
                                                                             }.Concat<Syntax>(stxList.Skip<Syntax>(2))),
 
                                     new SrcLoc()),
-                                    new Syntax.Literal(Form.Bool.False)),
+                                    new Syntax.Literal(Bool.False)),
             stx.SrcLoc);
         return Continuation.ApplyDelegate(k, result);
 

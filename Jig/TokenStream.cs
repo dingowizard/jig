@@ -51,7 +51,7 @@ public class TokenStream {
     // **************************************
 
     Token Start(StringBuilder sb) {
-        while (Char.IsWhiteSpace((char)Port.Peek())) {
+        while (System.Char.IsWhiteSpace((char)Port.Peek())) {
             Port.Read();
         }
         if (Port.Peek() == -1) {
@@ -258,7 +258,7 @@ public class TokenStream {
     private Token HashSlash(StringBuilder sb, SrcLoc startLoc)
     {
         char peeked = (char)Port.Peek();
-        if (Char.IsAsciiLetterOrDigit(peeked)) {
+        if (System.Char.IsAsciiLetterOrDigit(peeked)) {
             sb.Append((char)Port.Read());
             return new Token.Char(sb.ToString(), startLoc.Source, startLoc.Line, startLoc.Column, startLoc.Position, Port.Position);
         } else {
@@ -447,7 +447,7 @@ public class TokenStream {
     private bool AtTokenEnd() {
         if (Port.Peek() == -1) return true; // EOF
         char peeked = (char)Port.Peek();
-        if (Char.IsWhiteSpace(peeked)) return true;
+        if (System.Char.IsWhiteSpace(peeked)) return true;
         switch (peeked) {
             case '(': return true;
             case ')': return true;

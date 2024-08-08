@@ -73,7 +73,7 @@ ParsedExpr((Form)Pair.Cons(keyword, SyntaxList.FromIEnumerable(forms)), srcLoc) 
             beginExpr = null;
             return false;
         }
-        List<ParsedExpr> forms = [];
+        System.Collections.Generic.List<ParsedExpr> forms = [];
         foreach (var x in stxList.Skip<Syntax>(1)) {
             forms.Add(expander.Expand(x, ee, definesAllowed));
         }
@@ -207,7 +207,7 @@ public class ParsedLambda : ParsedExpr {
             lambdaExpr = null;
             return false;
         }
-        List<Syntax> xs = [];
+        System.Collections.Generic.List<Syntax> xs = [];
         xs.Add(stxList.ElementAt<Syntax>(0));
         var newScope = new Scope();
         var parameters = stxList.ElementAt<Syntax>(1);
@@ -236,8 +236,8 @@ public class ParsedLambda : ParsedExpr {
         }
 
         public static LambdaParameters Parse(Syntax stx, MacroExpander expander, ExpansionEnvironment ee) {
-            var namesSeen = new List<string>();
-            var required = new List<Syntax.Identifier>();
+            var namesSeen = new System.Collections.Generic.List<string>();
+            var required = new System.Collections.Generic.List<Syntax.Identifier>();
             Syntax.Identifier? rest = null;
             if (Syntax.E(stx) is SyntaxList psStxList) {
                 foreach(var p in psStxList) {
@@ -365,7 +365,7 @@ public class ParsedIf : ParsedExpr {
             ifExpr = null;
             return false;
         }
-        List<ParsedExpr> xs = [];
+        System.Collections.Generic.List<ParsedExpr> xs = [];
         if (!Form.IsKeyword("if", stx)) {
             ifExpr = null;
             return false;

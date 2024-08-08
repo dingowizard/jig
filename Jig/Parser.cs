@@ -98,7 +98,7 @@ public class Parser {
 
     private static Form ParseString(Token.String str, TokenStream tokenStream, bool syntax) {
         tokenStream.Read();
-        var x = new Form.String(str.Text[1..^1]);
+        var x = new String(str.Text[1..^1]);
         if (syntax) {
             return new Syntax.Literal(x, str.SrcLoc);
         } else {
@@ -110,15 +110,15 @@ public class Parser {
         tokenStream.Read();
         if (Int32.TryParse(num.Text, out int i)) {
             if (syntax) {
-                return new Syntax.Literal(new Form.IntegerNumber(i), num.SrcLoc);
+                return new Syntax.Literal(new Integer(i), num.SrcLoc);
             } else {
-                return new Form.IntegerNumber(i);
+                return new Integer(i);
             }
         } else if (Double.TryParse(num.Text, out double d)) {
             if (syntax) {
-                return new Syntax.Literal(new Form.DoubleNumber(d), num.SrcLoc);
+                return new Syntax.Literal(new Float(d), num.SrcLoc);
             } else {
-                return new Form.DoubleNumber(d);
+                return new Float(d);
             }
         } else {
             throw new Exception($"ParseExpr: could not parse number token {num.Text} to number.");
@@ -127,7 +127,7 @@ public class Parser {
 
     private static Form ParseChar(Token.Char cTok, TokenStream tokenStream, bool syntax = false) {
         tokenStream.Read();
-        var charExpr = new Form.Char(cTok.Text[2]);
+        var charExpr = new Char(cTok.Text[2]);
         if (syntax) {
             return new Syntax.Literal(charExpr, cTok.SrcLoc);
         } else {
@@ -142,15 +142,15 @@ public class Parser {
                 // tokenStream.Read();
                 if (b.Text == "#t" || b.Text == "#true") {
                     if (syntax) {
-                        return new Syntax.Literal(Form.Bool.True, b.SrcLoc);
+                        return new Syntax.Literal(Bool.True, b.SrcLoc);
                     } else {
-                        return Form.Bool.True;
+                        return Bool.True;
                     }
                 } else if (b.Text == "#f" || b.Text == "#false") {
                     if (syntax) {
-                        return new Syntax.Literal(Form.Bool.False, b.SrcLoc);
+                        return new Syntax.Literal(Bool.False, b.SrcLoc);
                     } else {
-                        return Form.Bool.False;
+                        return Bool.False;
                     }
                 } else {
                     throw new Exception($"ParseLiteral: couldn't match boolean token {b}");
@@ -182,17 +182,17 @@ public class Parser {
             tokenStream.Read();
             cdr = ParseExpr(tokenStream, syntax);
             if (cdr is null) throw new Exception("unexpected EOF");
-            return (Form)Form.Pair.Cons(car, cdr);
+            return (Form)Pair.Cons(car, cdr);
         }
 
         if (tokenStream.Peek() is Token.CloseParen) {
             cdr = List.Null;
-            return (Form)Form.Pair.Cons(car, cdr);
+            return (Form)Pair.Cons(car, cdr);
 
         }
         cdr = ParsePair(tokenStream, syntax);
         if (cdr is null) throw new Exception("unexpected EOF");
-        return (Form)Form.Pair.Cons(car, cdr);
+        return (Form)Pair.Cons(car, cdr);
 
 
     }
