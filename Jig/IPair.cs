@@ -1,6 +1,6 @@
 namespace Jig;
 
-public interface IPair {
-    Form Car {get;}
-    Form Cdr {get;}
+public interface IPair : IForm {
+    IForm Car {get;}
+    IForm Cdr {get;}
 }

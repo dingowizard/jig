@@ -5,9 +5,9 @@ public delegate Thunk CompiledCode(Delegate k, IEnvironment env);
 
 internal static class Compiler {
 
-    public static CompiledCode Compile(Form ast) {
+    public static CompiledCode Compile(IForm ast) {
         var scope = new LexicalContext();
-        return ET.Analyze(scope,ast).Compile();
+        return ET.Analyze(scope, ast).Compile();
     }
 
 }

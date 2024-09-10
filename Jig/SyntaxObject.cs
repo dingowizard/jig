@@ -1,7 +1,7 @@
 using System;
-using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using Microsoft.Scripting.Utils;
 
 namespace Jig;
 
@@ -9,19 +9,19 @@ public class Syntax : Form {
     // TODO: should this be an interface rather than a class? then e.g. Identifier : Symbol, ISyntaxObject
     //
 
-    public static Form E(Syntax stx) {
+    public static IForm E(Syntax stx) {
         return stx.Expression;
     }
 
-    public static Syntax Cons(Syntax car, Form cdr) {
-        return new Syntax((Form)Pair.Cons(car, cdr));
-    }
 
-    public static Form ToDatum(Syntax stx) {
-        Form x = Syntax.E(stx);
-        if (x is IPair stxPair) {
+    public static IForm ToDatum(Syntax stx) {
+        IForm x = Syntax.E(stx);
+        if (x is  SyntaxPair stxPair) {
             // Console.WriteLine($"Syntax.ToDatum: {stx}");
             return SyntaxPairToDatum(stxPair);
+        }
+        if (x is SyntaxList stxList) {
+            return stxList.Select<Syntax, IForm>(s => ToDatum(s)).ToJigList();
         }
         return x;
     }
@@ -108,19 +108,19 @@ public class Syntax : Form {
         return;
     }
 
-    public static bool ToList(Syntax stx, [NotNullWhen(returnValue: true)] out List? stxList) {
-        Form e = Syntax.E(stx);
+    public static bool ToList(Syntax stx, [NotNullWhen(returnValue: true)] out SyntaxList? stxList) {
+        IForm e = Syntax.E(stx);
         if (e is SyntaxList slist) {
             stxList = slist;
             return true;
         } else if (e is List l) {
             if (l is List.Empty) {
-                stxList = List.Null;
+                stxList = SyntaxList.Null;
                 return true;
 
             }
             IEnumerable<Syntax> xs = l.Select(x => new Syntax(x, null));
-            stxList = (SyntaxList)SyntaxList.FromIEnumerable(xs);
+            stxList = xs.ToSyntaxList();
             return true;
         }
         stxList = null;
@@ -128,18 +128,19 @@ public class Syntax : Form {
 
     }
 
-    private static List FlattenPair(Syntax car, SyntaxList cdr) {
+    private static SyntaxList FlattenPair(Syntax car, SyntaxList cdr) {
+        SyntaxList.NonEmpty rest = cdr as SyntaxList.NonEmpty;
         switch (Syntax.E(car)) {
-            case List.Empty: return FlattenPair(cdr.First, cdr.Cdr);
-            case IPair pair:
+            case List.Empty: return FlattenPair(rest.First, rest.Rest);
+            case SyntaxPair pair:
                 Syntax pairCar = pair.Car as Syntax ?? throw new Exception($"FlattenPair: expected pair.Car to be Syntax but got {pair.Car.Print()}, a {pair.Car.GetType()}");
-                return (List)FlattenPair(pairCar, pair.Cdr).Append(Flatten(new Syntax(cdr)));
-            default: return (List)Pair.Cons(car, Flatten(new Syntax(cdr)));
+                return (SyntaxList)FlattenPair(pairCar, pair.Cdr).Append(Flatten(new Syntax(cdr)));
+            default: return (SyntaxList)Pair.Cons(car, Flatten(new Syntax(cdr)));
         }
 
     }
 
-    private static List FlattenPair(Syntax car, Form cdr) {
+    private static List FlattenPair(Syntax car, IForm cdr) {
         if (cdr is SyntaxList stxList) {
             return FlattenPair(car, stxList);
         }
@@ -178,7 +179,7 @@ public class Syntax : Form {
         }
     }
 
-    public static Syntax FromDatum(SrcLoc? srcLoc, Form x) {
+    public static Syntax FromDatum(SrcLoc? srcLoc, IForm x) {
         switch (x) {
             case Syntax stx:
                 return stx;
@@ -203,13 +204,13 @@ public class Syntax : Form {
     }
 
 
-    public Syntax(Form expr, SrcLoc? srcLoc = null) {
+    public Syntax(IForm expr, SrcLoc? srcLoc = null) {
         Expression = expr;
         SrcLoc = srcLoc;
     }
 
     public class Literal : Syntax {
-        internal Literal(Form x, SrcLoc? srcLoc = null) : base (x, srcLoc) {}
+        internal Literal(IForm x, SrcLoc? srcLoc = null) : base (x, srcLoc) {}
     }
 
     public class Identifier : Syntax {
@@ -258,22 +259,22 @@ public class Syntax : Form {
 
     public override string ToString() => $"#<syntax: {ToDatum(this).Print()}>";
 
-    private static Form SyntaxPairToDatum(IPair stxPair) {
+    private static IForm SyntaxPairToDatum(SyntaxPair stxPair) {
             // Syntax car = stxPair.Car as Syntax ??
             //     throw new Exception($"SyntaxObject.SyntaxPairToDatum: expected syntax pair, but car -- {stxPair.Car} -- is not a syntax object");
-            Form car = stxPair.Car is Syntax stxCar ? ToDatum(stxCar) : stxPair.Car;
+            IForm car = stxPair.Car is Syntax stxCar ? ToDatum(stxCar) : stxPair.Car;
             if (stxPair.Cdr is List.Empty) {
-                return (Form)Pair.Cons(car, (Form)List.Null);
+                return (Form)Pair.Cons(car, (IForm)List.Null);
             } else if (stxPair.Cdr is Syntax soCdr) {
                 return (Form)Pair.Cons(car, ToDatum(soCdr));
-            } else if (stxPair.Cdr is IPair cdrPair) {
-                return (Form)Pair.Cons(car, SyntaxPairToDatum(cdrPair));
+            // } else if (stxPair.Cdr is SyntaxPair cdrPair) {
+            //     return (Form)Pair.Cons(car, SyntaxPairToDatum(cdrPair));
             } else {
                 throw new Exception($"SyntaxPairToDatum: cdr of a syntax pair should be a syntax object, null or a pair. {stxPair.Cdr} is none of these)");
             }
     }
 
-    protected virtual Form Expression {get;}
+    protected virtual IForm Expression {get;}
 
     public SrcLoc? SrcLoc {get;}
     // public LexicalContext LexicalContext {get;}
@@ -307,46 +308,6 @@ public struct SrcLoc {
                               first.Column,
                               first.Position,
                               (last.Position - first.Position) + last.Span);    }
-}
-
-public class SyntaxList : List.NonEmpty, IEnumerable<Syntax> {
-
-    public SyntaxList(Syntax car, List cdr) : base(car, cdr) {
-        First = car;
-    }
-
-    public static List FromIEnumerable(IEnumerable<Syntax> stxs) {
-        List result = List.Null;
-        for (int index = stxs.Count() - 1; index >= 0; index--) {
-            result = new SyntaxList(stxs.ElementAt(index), result);
-        }
-        return result;
-    }
-
-    public static List FromParams(params Syntax[] stxs) {
-        List result = List.Null;
-        for (int index = stxs.Count() - 1; index >= 0; index--) {
-            result = new SyntaxList(stxs.ElementAt(index), result);
-        }
-        return result;
-    }
-
-    public Syntax First {get;}
-
-    public new IEnumerator<Syntax> GetEnumerator() {
-        List theList = this;
-        while (theList is SyntaxList nonEmptyList) {
-            yield return nonEmptyList.First;
-            theList = nonEmptyList.Rest;
-        }
-
-    }
-
-    IEnumerator IEnumerable.GetEnumerator() {
-        return this.GetEnumerator();
-    }
-
-
 }
 
 internal struct Scope {

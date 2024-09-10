@@ -17,6 +17,7 @@ public class Integer(int i) : Number<int>(i) {
         return Value.GetHashCode();
     }
 
+
     public static Bool operator ==(Integer i1, Number n) {
         return n switch
         {
@@ -34,6 +35,9 @@ public class Integer(int i) : Number<int>(i) {
             _ => throw new NotImplementedException(),
         };
     }
+
+    public static Integer operator +(Integer i1, Integer i2) => new (i1.Value + i2.Value);
+    public static Float operator +(Integer i1, Float f) => new (i1.Value + f.Value);
 
     public static Number operator +(Integer i1, Number n) {
         return n switch

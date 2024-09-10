@@ -8,7 +8,7 @@ public class Parser {
         return (Syntax?)ParseExpr(tokenStream, syntax: true);
     }
 
-    public static Form? ParseExpr(TokenStream tokenStream, bool syntax = false) {
+    public static IForm? ParseExpr(TokenStream tokenStream, bool syntax = false) {
         // TODO: handle comments!
         var peeked = tokenStream.Peek();
         while (peeked is Token.Comment) {
@@ -18,7 +18,7 @@ public class Parser {
         switch (peeked) {
             case Token.Quote quoteToken:
                 tokenStream.Read();
-                Form? arg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
+                IForm? arg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
                    return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Form.Symbol.FromName("quote"), quoteToken.SrcLoc),
                                                            (Syntax)arg),
@@ -28,7 +28,7 @@ public class Parser {
                 }
             case Token.QuasiQuote quasiquoteToken:
                 tokenStream.Read();
-                Form? quasiArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
+                IForm? quasiArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
                    return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Form.Symbol.FromName("quasiquote"), quasiquoteToken.SrcLoc),
                                                            (Syntax)quasiArg),
@@ -38,7 +38,7 @@ public class Parser {
                 }
             case Token.UnQuote unquoteToken:
                 tokenStream.Read();
-                Form? unquoteArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
+                IForm? unquoteArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
                    return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Form.Symbol.FromName("unquote"), unquoteToken.SrcLoc),
                                                            (Syntax)unquoteArg),
@@ -48,7 +48,7 @@ public class Parser {
                 }
             case Token.UnQuoteSplicing unquoteSplicingToken:
                 tokenStream.Read();
-                Form? unquoteSplicingArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
+                IForm? unquoteSplicingArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
                    return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Form.Symbol.FromName("unquote-splicing"), unquoteSplicingToken.SrcLoc),
                                                            (Syntax)unquoteSplicingArg),
@@ -68,7 +68,7 @@ public class Parser {
                         return List.Null;
                     }
                 }
-                Form pair =  ParsePair(tokenStream, syntax);
+                IForm pair =  ParsePair(tokenStream, syntax);
                 if (tokenStream.Peek() is Token.CloseParen close) {
                     tokenStream.Read();
                     if (syntax) {
@@ -168,31 +168,26 @@ public class Parser {
         return syntax ? new Syntax.Identifier(sym, id.SrcLoc) : sym;
     }
 
-    static Form ParsePair(TokenStream tokenStream, bool syntax) {
-        Form car = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
+    static IForm ParsePair(TokenStream tokenStream, bool syntax) {
+        IForm car = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
         if (syntax && car is not Syntax) {
             Console.WriteLine($"ParsePair: expected car to be syntax but got {car}, a {car.GetType()}");
         }
-        // if (Keyword.Is<Keyword>(car)) {
-        //     return ParseSpecialForm(car, tokenStream, syntax);
-        // }
-        // next token could be dot, closeparen or something else, in which case the rest will be another pair
-        Form? cdr;
+        IForm? cdr;
         if (tokenStream.Peek() is Token.Dot) {
             tokenStream.Read();
             cdr = ParseExpr(tokenStream, syntax);
             if (cdr is null) throw new Exception("unexpected EOF");
-            return (Form)Pair.Cons(car, cdr);
+            return Pair.Cons(car, cdr);
         }
 
         if (tokenStream.Peek() is Token.CloseParen) {
             cdr = List.Null;
-            return (Form)Pair.Cons(car, cdr);
-
+            return Pair.Cons(car, cdr);
         }
         cdr = ParsePair(tokenStream, syntax);
         if (cdr is null) throw new Exception("unexpected EOF");
-        return (Form)Pair.Cons(car, cdr);
+        return Pair.Cons(car, cdr);
 
 
     }

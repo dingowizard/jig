@@ -4,12 +4,12 @@ namespace Jig;
 
 public class Pair : Form, IPair {
 
-    public static IPair Cons(Form car, Form cdr) {
+    public static IPair Cons(IForm car, IForm cdr) {
         if (car is Syntax stxCar) {
-            if (cdr == List.Null) {
-                return new SyntaxList(stxCar, List.Null);
+            if (cdr is IEmptyList) {
+                return SyntaxList.Cons(stxCar, SyntaxList.Null);
             } else if (cdr is SyntaxList stxListCdr) {
-                return new SyntaxList(stxCar, stxListCdr);
+                return SyntaxList.Cons(stxCar, stxListCdr);
             } else if (cdr is Syntax stxCdr) {
                 return new SyntaxPair(stxCar, stxCdr);
             } else {
@@ -21,13 +21,13 @@ public class Pair : Form, IPair {
             }
         }
         if (cdr is List list) {
-            return  new List.NonEmpty(car, list);
+            return new List.NonEmpty(car, list);
         } else {
             return  new Pair(car, cdr);
         }
     }
 
-    protected Pair(Form car, Form cdr) {
+    protected Pair(IForm car, IForm cdr) {
         Car = car;
         Cdr = cdr;
     }
@@ -50,11 +50,11 @@ public class Pair : Form, IPair {
     }
 
 
-    public Form Car {get; set;}
-    public Form Cdr {get; set;}
+    public IForm Car {get; set;}
+    public IForm Cdr {get; set;}
 
     public override string Print() {
-        StringBuilder sb = new StringBuilder("(");
+        StringBuilder sb = new("(");
         Pair pair = this;
         sb.Append(pair.Car.Print());
         while (pair.Cdr is Pair cdr) {

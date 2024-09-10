@@ -80,7 +80,7 @@ public class Record : Vector {
                     throw new Exception("expected a symbol value for field mutability");
                 }
                 bool mut = mutability.Equals(new Form.Symbol("mutable")) || (mutability.Equals(new Form.Symbol("immutable")) ? false : throw new Exception());
-                listFields.Add(new Tuple<Symbol, bool>(fieldName, mut));
+                listFields.Add(new Tuple<Form.Symbol, bool>(fieldName, mut));
             }
             Fields = [.. listFields];
         }
@@ -116,7 +116,7 @@ public class Record : Vector {
         public Procedure Predicate() {
             Builtin predicate = (k, args) => {
                 if (args.Count() != 1) return Builtins.Error(k, $"{this.Name}?: expected exactly one argument but got {args.Count()}");
-                Form arg = args.ElementAt(0);
+                IForm arg = args.ElementAt(0);
                 if (arg is not Record record) {
                     return Continuation.ApplyDelegate(k, Bool.False);
                 }

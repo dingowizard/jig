@@ -133,7 +133,7 @@ public class MacroExpander {
             // var result = output;
             // Console.WriteLine($"toggling scope on {output}");
             Syntax.ToggleScope(output, macroExpansionScope);
-            // Console.WriteLine($"{stx} => {output}");
+            // Console.WriteLine($"\t => {output}");
             if (once) {
                 if (ParsedQuoteSyntax.TryParse(new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Form.Symbol("quote-syntax")), output)),
                                                out ParsedQuoteSyntax? quoteSyntax)) {
@@ -150,12 +150,12 @@ public class MacroExpander {
     }
 
     private  ParsedList ExpandList(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
-        System.Collections.Generic.List<Syntax> xs = [];
-        foreach (var x in stxList) {
-            Syntax bodyExpr = Expand(x, ee, definesAllowed: false);
+        System.Collections.Generic.List<ParsedExpr> xs = [];
+        foreach (Syntax x in stxList.Cast<Syntax>()) {
+            ParsedExpr bodyExpr = Expand(x, ee, definesAllowed: false);
             xs.Add(bodyExpr);
         }
-        return new ParsedList((SyntaxList)SyntaxList.FromIEnumerable(xs), srcLoc);
+        return new ParsedList(xs, srcLoc);
     }
 
     private  Syntax ExpandSet(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
@@ -285,7 +285,7 @@ public class ExpansionEnvironment {
             )) : 
             new Syntax(MakeIfs(x, clauses.Skip(1)));
           
-        SyntaxList thisClause = Syntax.E(clauses.ElementAt(0)) as SyntaxList ?? throw new Exception();
+        SyntaxList.NonEmpty thisClause = Syntax.E(clauses.ElementAt(0)) as SyntaxList.NonEmpty ?? throw new Exception();
         return (SyntaxList)SyntaxList.FromParams(
             new Syntax.Identifier(new Form.Symbol("if")),
             MakeConditionForMatchClause(x, thisClause.First),
@@ -296,68 +296,62 @@ public class ExpansionEnvironment {
     }
 
     private static Syntax MakeThenForMatchClause(Syntax x, Syntax pattern, List bodies) {
-        // TODO: UGH!!
+        // TODO: rewrite with cons and append
         SyntaxList result = 
-            (SyntaxList)SyntaxList.FromIEnumerable(
             new System.Collections.Generic.List<Syntax> {
-                new Syntax(
-                    SyntaxList.FromIEnumerable(
-                        new System.Collections.Generic.List<Syntax> {
-                            new Syntax.Identifier(new Form.Symbol("lambda")),
-                            ParamsForLambdaForMatchClauseThen(pattern)
-                        }.
-                        Concat<Syntax>(bodies.Cast<Syntax>())
-                    ))
-            });
-        List args = Flatten(ArgsForLambdaForMatchClauseThen(x, pattern));
-        if (args is SyntaxList properArgs) {
-            result = (SyntaxList)SyntaxList.FromIEnumerable(result.Concat<Syntax>(properArgs));
-        }
+                new(new System.Collections.Generic.List<Syntax>
+                {
+                    new Syntax.Identifier(new Form.Symbol("lambda")),
+                    ParamsForLambdaForMatchClauseThen(pattern)
+                }.Concat<Syntax>(bodies.Cast<Syntax>()).ToSyntaxList())
+            }.ToSyntaxList();
+        SyntaxList args = Flatten(ArgsForLambdaForMatchClauseThen(x, pattern));
+        result = result.Concat<Syntax>(args).ToSyntaxList();
         return new Syntax(result);
     }
 
 
-    private static List FlattenPair(Form car, Syntax cdr) {
+    private static SyntaxList FlattenPair(IForm car, Syntax cdr) {
         // if this gets called, cdr is not a list
         switch (car) {
-            case List.Empty: return Flatten(cdr);
-            case IPair pair: return (List)Flatten(pair.Car).Append(Flatten(cdr));
-            case Syntax stxCar: return (List)Pair.Cons(stxCar, Flatten(cdr));
+            case IEmptyList: return Flatten(cdr);
+            case IPair pair: return (SyntaxList)Flatten(pair.Car).Append(Flatten(cdr));
+            case Syntax stxCar: return SyntaxList.Cons(stxCar, Flatten(cdr));
             default: throw new Exception();
 
         }
 
     }
-    private static List FlattenPair(Form first, List rest) {
+    private static SyntaxList FlattenPair(IForm first, SyntaxList rest) {
         switch (first) {
-            case List.Empty: return Flatten(rest);
-            case IPair pair: return (List)Flatten(pair.Car).Append(Flatten(rest));
-            case Syntax stxCar: return (List)Pair.Cons(stxCar, Flatten(rest));
+            case IEmptyList: return Flatten(rest);
+            case IPair pair: return (SyntaxList)Flatten(pair.Car).Append(Flatten(rest));
+            case Syntax stxCar: return SyntaxList.Cons(stxCar, Flatten(rest));
             default: throw new Exception();
         }
 
     }
-    private static List FlattenPair(Form first, SyntaxPair rest) {
+    private static SyntaxList FlattenPair(IForm first, SyntaxPair rest) {
         switch (first) {
-            case List.Empty: return Flatten(rest);
-            case IPair pair: return (List)Flatten(pair.Car).Append(Flatten(rest));
-            case Syntax stxCar: return (List)Pair.Cons(stxCar, Flatten(rest));
+            case IEmptyList: return Flatten(rest);
+            case IPair pair: return (SyntaxList)Flatten(pair.Car).Append(Flatten(rest));
+            case Syntax stxCar: return SyntaxList.Cons(stxCar, Flatten(rest));
             default: throw new Exception();
         }
 
     }
 
-    private static List Flatten(Form x) {
+    private static SyntaxList Flatten(IForm x) {
 
         switch (x) {
-            case List.Empty: return List.Null;
+            case IEmptyList: return SyntaxList.Null;
             case Syntax stx: return SyntaxList.FromParams(stx);
-            case List.NonEmpty list: return FlattenPair(list.Car, list.Rest);
+            case SyntaxList.NonEmpty list: return FlattenPair(list.First, list.Rest);
             case IPair pair:
                 if (pair.Cdr is Syntax stxCdr) {
                     return FlattenPair(pair.Car, stxCdr);
-                } else if (pair.Cdr is List l) {
-                    return FlattenPair(pair.Car, l);
+                // } else if (pair.Cdr is List l) {
+                //     return FlattenPair(pair.Car, l);
                 } else if (pair.Cdr is SyntaxPair stxPairCdr) {
                     // TODO: sigh
                     return FlattenPair(pair.Car, stxPairCdr);
@@ -370,7 +364,7 @@ public class ExpansionEnvironment {
     }
 
     private static List ArgsForLambdaForMatchClauseThen(Syntax x, SyntaxList patterns) {
-        System.Collections.Generic.List<Form> result = [];
+        System.Collections.Generic.List<IForm> result = [];
         for (int i = 0; i < patterns.Count<Syntax>(); i++){
             result.Add(ArgsForLambdaForMatchClauseThen(NthElementOfList(i, x), patterns.ElementAt<Syntax>(i)));
         }
@@ -378,12 +372,12 @@ public class ExpansionEnvironment {
 
     }
 
-    private static Form ArgsForLambdaForMatchClauseThen(Syntax x, Syntax pattern)
+    private static IForm ArgsForLambdaForMatchClauseThen(Syntax x, Syntax pattern)
     {
         return Syntax.E(pattern) switch
         {
-            List.Empty => SyntaxList.FromParams(),
-            Number => SyntaxList.FromParams(),
+            List.Empty => SyntaxList.Null,
+            Number => SyntaxList.Null,
             Form.Symbol => x,
             SyntaxList stxList => ArgsForLambdaForMatchClauseThen(x, stxList),
             Pair pair => (Form)Pair.Cons(
@@ -401,14 +395,14 @@ public class ExpansionEnvironment {
         };
     }
 
-    private static Form ParamsFromPattern(Syntax pattern) {
+    private static IForm ParamsFromPattern(Syntax pattern) {
         switch (Syntax.E(pattern)) {
             case Number: return List.Null;
             case List.Empty: return List.Null;
             case Form.Symbol: return pattern;
             case SyntaxList stxList:
-                System.Collections.Generic.List<Form> res = [];
-                foreach (var s in stxList) {
+                System.Collections.Generic.List<IForm> res = [];
+                foreach (Syntax s in stxList.Cast<Syntax>()) {
                     res.Add(ParamsFromPattern(s));
                 }
                 return res.ToJigList();
@@ -458,7 +452,7 @@ public class ExpansionEnvironment {
         return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Form.Symbol("car")), x));
     }
 
-    private static Syntax MakeConditionForMatchClause(Syntax x, Form car, Form cdr) {
+    private static Syntax MakeConditionForMatchClause(Syntax x, IForm car, IForm cdr) {
         // TODO: Pair<Syntax> type?
         Syntax carSyntax = car as Syntax ?? throw new Exception();
         Syntax cdrSyntax = cdr as Syntax ?? throw new Exception();
@@ -540,7 +534,7 @@ public class ExpansionEnvironment {
             throw new Exception($"quasiquote: expected exactly one argument");
         }
         Syntax arg = stxList.ElementAt<Syntax>(1);
-        Form argE = Syntax.E(arg);
+        IForm argE = Syntax.E(arg);
         if (argE is List.Empty ||
             argE is not IPair) {
             result = new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Form.Symbol("quote")),

@@ -9,6 +9,12 @@
               (loop (+ 1 acc) (cdr l)))))
       (loop 0 l)))
 
+; (define length
+;    (lambda (xs)
+;       (if (null? xs)
+;           0
+;           (+ 1 (length (cdr xs))))))
+
 (define list-tail
   (lambda (x k)
     (if (= k 0)
@@ -81,13 +87,6 @@
 
 (define cdddr (lambda (p) (cdr (cdr (cdr p)))))
 
-; (define-syntax begin
-;   (lambda (stx)
-;     (datum->syntax
-;      stx
-;      (list
-;       (append (list 'lambda (list))
-;               (cdr (syntax->list stx)))))))
 
 (define-syntax let
   (lambda (stx)
@@ -136,7 +135,8 @@
       (datum->syntax
        stx
        `((lambda () ,@(map (lambda (p v) `(define ,p ,v)) ps vs) ,@body))))))
-
+;----------------------------------------------------------------------------------------
+; LEAVE COMMENTED
 ; ;; TODO: figure out why these two definitions of letrec, which work in racket, fail in Jig
 ; ;; (letrec ((x 1)) x) => error: unbound x
 ; ;; the x in the body can't find its binding because its only scope is the toplevel scope
@@ -166,8 +166,9 @@
 ; ;;        `((lambda (,@ps)
 ; ;;           ,@(map (lambda (p v) `(set! ,p ,v)) ps vs)
 ; ;;           ,@body) ,@(map (lambda (p) `(if #f #f)) ps))))))
+; ------------------------------------------------------------------------------
 
-; TODO: support 'else'
+;TODO: support 'else'
 (define-syntax cond
   (lambda (stx)
     (let ((clauses (cdr (syntax->list stx))))
@@ -203,20 +204,6 @@
       (datum->syntax
        stx
        `((lambda () (define loop (lambda ,ps (if ,test ,result (begin ,@body (loop ,@incrs))))) (loop ,@inits)))))))
-
-;; (define-syntax define-record-type
-;;   (lambda (stx)
-;;     (let* ((args (cdr (syntax->list stx)))
-;;            (name (car args))
-;;            (fields (cdr (syntax->list (car (cdr args)))))
-;;            (rtd (make-record-type-descriptor name (vector ...)))
-;;            (rcd (make-record-constructor-descriptor rtd)))
-;;       (datum->syntax
-;;        stx
-;;        `(begin
-;;           (define-syntax ,name
-;;             (lambda (stx)))
-;;           (define ,cstor ',fields) (newline))))))
 
 (define dynamic-wind #f)
 
@@ -293,8 +280,8 @@
                      (set! value ((cadr args) (car args))))
                     (#t 'error))))))))
 
-; TODO: parameterize should handle multiple bindings
-; TODO: in below, it shold be possible to write `(lambda () . ,bodies), but it expands incorrectly
+; ; TODO: parameterize should handle multiple bindings
+; ; TODO: in below, it shold be possible to write `(lambda () . ,bodies), but it expands incorrectly
 (define-syntax parameterize
   (lambda (stx)
     (let* ((stx-list (syntax->list stx))
@@ -354,7 +341,7 @@
 
 (define error #f)
 
-; TODO: shouldn't this call raise or raise continuable?
+; ; TODO: shouldn't this call raise or raise continuable?
 (call/cc
  (lambda (k)
    (set! error
@@ -363,12 +350,12 @@
            (newline)
            (k (void))))))
 
-(define flatten
-  (lambda (l)
-    (cond ((null? l) '())
-          ((pair? l)
-           (cond ((null? (car l)) (flatten (cdr l))) 
-                 ((pair? (car l))
-                  (append (flatten (car l)) (flatten (cdr l))))
-                 (#t (cons (car l) (flatten (cdr l))))))
-          (#t (list l)))))
+; (define flatten
+;   (lambda (l)
+;     (cond ((null? l) '())
+;           ((pair? l)
+;            (cond ((null? (car l)) (flatten (cdr l)))
+;                  ((pair? (car l))
+;                   (append (flatten (car l)) (flatten (cdr l))))
+;                  (#t (cons (car l) (flatten (cdr l))))))
+;           (#t (list l)))))

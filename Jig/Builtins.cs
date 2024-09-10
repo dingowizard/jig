@@ -1,3 +1,4 @@
+using System.Collections;
 namespace Jig;
 
 public delegate Thunk? Builtin(Delegate k, List args);
@@ -13,10 +14,10 @@ internal static class Builtins {
 
 
         if (index < codes.Length) {
-            Continuation.OneArgDelegate k2 = (arg) => map_internal((Continuation.OneArgDelegate)((rest) => k((Form)Pair.Cons(arg, (List) rest))), env, codes, index + 1);
+            Continuation.OneArgDelegate k2 = (arg) => map_internal((Continuation.OneArgDelegate)((rest) => k((IForm)Pair.Cons(arg, (List) rest))), env, codes, index + 1);
             return codes[index](k2, env);
         } else {
-            return k(List.Null); // at this point , k is (lambda (l) (apply (car l) (cdr l)))
+            return k(List.Null);
         }
     }
 
@@ -35,8 +36,8 @@ internal static class Builtins {
 
     public static  Thunk? nullP (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
-            Form arg = properList.Car;
-            if (arg is List list) {
+            IForm arg = properList.Car;
+            if (arg is IList list) {
                 return Continuation.ApplyDelegate(k, list.NullP);
             }
             return Continuation.ApplyDelegate(k, Bool.False);
@@ -61,7 +62,7 @@ internal static class Builtins {
     public static Thunk? char_p(Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             if (args.Count() != 1) return Error(k, "char?: expected one argument but got {args.Count()}");
-            Form arg = properList.Car;
+            IForm arg = properList.Car;
             if (arg is Char) {
                 return Continuation.ApplyDelegate(k, Bool.True);
             }
@@ -109,7 +110,7 @@ internal static class Builtins {
         return Continuation.ApplyDelegate(k, acc);
     }
 
-    public static Thunk? diff(Delegate k, Form first, List args) {
+    public static Thunk? diff(Delegate k, IForm first, List args) {
         if (first is Number acc) {
             foreach (var arg in args) {
                 if (arg is Number num) {
@@ -124,7 +125,7 @@ internal static class Builtins {
         }
     }
 
-    public static Thunk? numEq(Delegate k, Form first, List args) {
+    public static Thunk? numEq(Delegate k, IForm first, List args) {
         if (first is Number n1) {
             foreach (var arg in args) {
                 if (arg is Number n2) {
@@ -144,14 +145,12 @@ internal static class Builtins {
 
     }
 
-    public static Thunk? gt(Delegate k, List args) {
+    public static Thunk? gt(Delegate k, IList args) {
         if (args is List.NonEmpty nonEmpty) {
-            Number? first = nonEmpty.Car as Number;
-            if (first is null) return Error(k, $">: expected arguments to be numbers but got {first}");
+            if (nonEmpty.Car is not Number first) return Error(k, $">: expected arguments to be numbers but got {nonEmpty.Car}");
             args = nonEmpty.Rest;
             while (args is List.NonEmpty rest) {
-                Number? second = rest.Car as Number;
-                if (second is null) return Error(k, $">: expected arguments to be numbers but got {second}");
+                if (rest.Car is not Number second) return Error(k, $">: expected arguments to be numbers but got {rest.Car}");
                 Bool b = first > second;
                 if (b.Value) {
                     first = second;
@@ -173,8 +172,8 @@ internal static class Builtins {
             if (properList.Count() != 2) {
                 return Error(k, "eq?: expected two arguments");
             }
-            Form first = args.ElementAt(0);
-            Form second = args.ElementAt(1);
+            IForm first = args.ElementAt(0);
+            IForm second = args.ElementAt(1);
             bool result = first is IPair ? Object.ReferenceEquals(first, second) : first.Equals(second);
             return Continuation.ApplyDelegate(k, result ? Bool.True : Bool.False);
         } else {
@@ -188,8 +187,8 @@ internal static class Builtins {
             if (properList.Count() != 2) {
                 return Error(k, "eqv?: expected two arguments");
             }
-            Form first = args.ElementAt(0);
-            Form second = args.ElementAt(1);
+            IForm first = args.ElementAt(0);
+            IForm second = args.ElementAt(1);
             bool result = first.Equals(second);
             return Continuation.ApplyDelegate(k, result ? Bool.True : Bool.False);
         } else {
@@ -215,28 +214,35 @@ internal static class Builtins {
             if (properList.Count() != 2) {
                 return Error(k, "cons: expected two arguments");
             }
-            Form car = args.ElementAt(0);
-            Form cdr = args.ElementAt(1);
-            Form result = (Form)Pair.Cons(car, cdr);
+            IForm car = args.ElementAt(0);
+            IForm cdr = args.ElementAt(1);
+            IPair result = Pair.Cons(car, cdr);
             return Continuation.ApplyDelegate(k, result);
         } else {
             return Error(k, "cons: expected two arguments but got none");
         }
     }
 
-    public static Thunk? append(Delegate k, List args) {
-        Form acc = List.Null;
-        List rest = args;
-        while (rest is List.NonEmpty lists) {
-            Form first = lists.Car;
-            rest = lists.Rest;
-            if (acc is List list) {
-                acc = list.Append(first);
-            } else {
-                return Error(k, $"append: {acc} is not a proper codes.");
+    public static Thunk? append(Delegate k, IList args) {
+        if (args is INonEmptyList xs) {
+            IForm result = xs.Car;
+            IList rest = xs.Rest;
+            while (rest is INonEmptyList properRest) {
+                if (result is IList firstList) {
+                    IForm second = properRest.Car;
+                    result = firstList.Append(second);
+                    rest = properRest.Rest;
+                } else {
+                    if (xs.Rest is IEmptyList) {
+                        return Continuation.ApplyDelegate(k, result);
+                    } else {
+                        return Error(k, $"append: {xs.Car} is not a proper list.");
+                    }
+                }
             }
+            return Continuation.ApplyDelegate(k, result);
         }
-        return Continuation.ApplyDelegate(k, acc);
+        return Continuation.ApplyDelegate(k, List.Null);
 
     }
 
@@ -248,9 +254,8 @@ internal static class Builtins {
             if (properList.Car is not Form.Symbol sym1){
                 return Error(k, $"symbol=?: expected all arguments to be symbols, but got {properList.Car}");
             }
-            List rest = properList.Rest;
-            Form.Symbol? sym2 = rest.ElementAt(0) as Form.Symbol;
-            if (sym2 is null) return Error(k, $"symbol=?: expected all arguments to be symbols, but got {rest.ElementAt(0)}");
+            List rest = (List)properList.Rest;
+            if (rest.ElementAt(0) is not Form.Symbol sym2) return Error(k, $"symbol=?: expected all arguments to be symbols, but got {rest.ElementAt(0)}");
             while (rest is List.NonEmpty nonEmpty) {
                 if (!sym1.Equals(sym2)) {
                     return Continuation.ApplyDelegate(k, Bool.False);
@@ -258,7 +263,7 @@ internal static class Builtins {
                 sym1 = sym2;
                 sym2 = nonEmpty.Car as Form.Symbol;
                 if (sym2 is null) return Error(k, $"symbol=?: expected all arguments to be symbols, but got {nonEmpty.Car}");
-                rest = nonEmpty.Rest;
+                rest = (List)nonEmpty.Rest;
             }
             if (sym1.Equals(sym2)) {
                 return Continuation.ApplyDelegate(k, Bool.True);
@@ -284,16 +289,16 @@ internal static class Builtins {
     }
 
     public static Thunk? syntax_e (Delegate k, List args) {
-        if (args is List.NonEmpty properList) {
-            if (properList.Count() != 1) {
-                return Error(k, "syntax-e: expected one argument.");
+        if (args is INonEmptyList properList) {
+            if (!properList.Length.Equals(Integer.One)) {
+                return Error(k, $"syntax-e: expected one argument, but got {properList.Length.Print()}.");
             }
             if (properList.Car is not Syntax stx) {
                 return Error(k, $"syntax-e: expected syntax argument but got {properList.Car}");
             }
             return Continuation.ApplyDelegate(k, Syntax.E(stx));
         } else {
-            return Error(k, "syntax-e: expected one argument.");
+            return Error(k, $"syntax-e: expected non-empty list of arguments. Got {args.Print()}, a {args.GetType()}.");
         }
 
     }
@@ -376,7 +381,7 @@ internal static class Builtins {
 
     // public static void dynamic_wind(Delegate k, List args) {}
 
-    public static Thunk? apply (Delegate k, Form x, List args) {
+    public static Thunk? apply (Delegate k, IForm x, List args) {
         // Console.WriteLine($"in Builtins.apply: applying {x} to {args}");
         if (x is Continuation cont) {
             return cont.Apply(args);
@@ -392,7 +397,7 @@ internal static class Builtins {
         if (args.ElementAt(0) is not Syntax stx){
             return Error(k, $"syntax->list: expected a syntax argument, got got {args.ElementAt(0)}");
         }
-        if (Syntax.ToList(stx, out List? result)) {
+        if (Syntax.ToList(stx, out SyntaxList? result)) {
             return Continuation.ApplyDelegate(k, result);
         } else {
             return Continuation.ApplyDelegate(k, Bool.False);
@@ -582,7 +587,7 @@ internal static class Builtins {
         if (args.Count() != 2) return Error(k, $"vector-ref: expected two arguments but got {args.Count()}");
         if (args.ElementAt(0) is Vector v) {
             if (args.ElementAt(1) is Integer i) {
-                if (v.TryGetAtIndex(i, out Form? result)) {
+                if (v.TryGetAtIndex(i, out IForm? result)) {
                     return Continuation.ApplyDelegate(k, result);
                 } else {
                     return Error(k, $"vector-ref: {i} is not a valid index.");

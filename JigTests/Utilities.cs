@@ -11,6 +11,8 @@ public static class Utilities {
 
     [AssemblyInitialize]
     public static void AssemblyInitialize(TestContext tc) {
+        // TODO: all tests will fail if there is an error in prelude
+        // find a different way to eval this only if we are running non-core tests
         PreludeInterp = new Interpreter(withPrelude: true);
 
     }
@@ -61,7 +63,7 @@ public class Interpreter : IInterpreter {
 
     public string InterpretSequence(string[] inputs) {
         foreach (string input in inputs) {
-            Form? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
+            IForm? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
             Assert.IsNotNull(x);
             Program.Eval(SetResultOne, x, Env);
         }
@@ -74,13 +76,13 @@ public class Interpreter : IInterpreter {
 
     static string _result = "";
 
-    static Thunk? _setResultAny (params Form[] xs) {
-        Form? first = xs[0];
+    static Thunk? _setResultAny (params IForm[] xs) {
+        IForm? first = xs[0];
         _result = first is null ? "" : first.Print();
         return null;
     }
 
-    static Thunk? _setResultOne (Form x) {
+    static Thunk? _setResultOne (IForm x) {
         _result = x.Print();
         return null;
     }
@@ -96,14 +98,14 @@ public class Interpreter : IInterpreter {
 
     public string Interpret(string input) {
         // Continuation setResult = (x) => result = x.Print();
-        Form? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
+        IForm? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
         Assert.IsNotNull(x);
         Program.Eval(SetResultAny, x, Env);
         return _result;
     }
 
     public string InterpretMultipleValues(string input) {
-        Form? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
+        IForm? x = Jig.Reader.Reader.Read(InputPort.FromString(input));
         Assert.IsNotNull(x);
         Program.Eval(SetResultAny, x, Env);
         return _result;

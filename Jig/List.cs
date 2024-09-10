@@ -1,18 +1,33 @@
 using System.Collections;
+using System.Reflection.Metadata.Ecma335;
 
 namespace Jig;
 
-public abstract class List : Form, IEnumerable<Form>, IList
+public abstract class List : Form, IEnumerable<IForm>, IList
 {
-    public Bool NullP => this is Empty ? Bool.True : Bool.False;
+    public Bool NullP => this is IEmptyList ? Bool.True : Bool.False;
+
+    public Integer Length => this is INonEmptyList p ?  Integer.One + p.Rest.Length : Integer.Zero;
 
     public static Empty Null { get; } = new Empty();
 
-    public class Empty : List
-    {
-        public override string Print() => "()";
+    public override string Print() => $"({string.Join(" ", this.Select<IForm, string>(x => x.Print()))})";
+
+    public static List Cons(IForm car, List cdr) {
+        return new List.NonEmpty(car, cdr);
     }
-    public static List ListFromEnumerable(IEnumerable<Form> elements)
+
+    public static List NewList(params IForm[] args)
+    {
+        List result = Null;
+        for (int index = args.Length - 1; index >= 0; index--)
+        {
+            result = new NonEmpty(args[index], result);
+        }
+        return result;
+    }
+
+    public static List ListFromEnumerable(IEnumerable<IForm> elements)
     {
         // WARNING: vs code says no references, but at runtime something uses method reflection to find and cache it
         List result = Null;
@@ -23,50 +38,18 @@ public abstract class List : Form, IEnumerable<Form>, IList
         return result;
     }
 
-    public static List NewList(params Form[] args)
-    {
-        List result = Null;
-        for (int index = args.Length - 1; index >= 0; index--)
-        {
-            result = new NonEmpty(args[index], result);
-        }
-        return result;
+    public override string ToString() => $"({string.Join(' ', this)})"; 
+
+
+
+
+    public class Empty : List, IEmptyList {
+
+
     }
 
-    public Form Append(Form x)
+    public class NonEmpty(IForm car, List cdr) : List, INonEmptyList, IPair
     {
-        switch (x)
-        {
-            case List.Empty:
-                return this;
-            case List.NonEmpty properList:
-                return this.Concat(properList).ToJigList();
-            default:
-                Form result = x;
-                var array = this.ToArray();
-                for (int i = array.Length - 1; i >= 0; i--)
-                {
-                    result = (Form)Pair.Cons(array[i], result);
-                }
-                return result;
-        }
-    }
-
-
-    public override string ToString()
-    {
-        return $"({string.Join(' ', this)})";
-    }
-
-    public class NonEmpty : List, IPair
-    {
-        public NonEmpty(Form car, List cdr)
-        {
-            Car = car;
-            Cdr = cdr;
-            Rest = cdr;
-        }
-
         public override bool Equals(object? obj)
         {
             if (obj is null) return false;
@@ -77,32 +60,30 @@ public abstract class List : Form, IEnumerable<Form>, IList
             return false;
         }
 
-        public Form Car { get; set; }
-        public Form Cdr { get; set; }
 
-        public List Rest { get; }
+        public IForm First { get; } = car;
+        public List Rest { get; } = cdr;
+        public IForm Cdr => Rest;
+        public IForm Car => First;
+
+        IForm IPair.Car => Car;
+
+        IForm IPair.Cdr => Cdr;
+
+        IList INonEmptyList.Rest => Rest;
+
         public override int GetHashCode()
         {
             return base.GetHashCode();
         }
 
-        public override string ToString()
-        {
-            return Print();
-        }
-
-        public override string Print()
-        {
-            return "(" + string.Join(" ", this.Select(el => el.Print())) + ")";
-        }
-
     }
 
 
-    public IEnumerator<Form> GetEnumerator()
+    public IEnumerator<IForm> GetEnumerator()
     {
-        List theList = this;
-        while (theList is NonEmpty nonEmptyList)
+        IList theList = this;
+        while (theList is INonEmptyList nonEmptyList)
         {
             yield return nonEmptyList.Car;
             theList = nonEmptyList.Rest;
@@ -128,10 +109,42 @@ public abstract class List : Form, IEnumerable<Form>, IList
         }
         return hash;
     }
+
+    public IForm Append(IForm x) {
+        if (this is INonEmptyList l) {
+            return x switch {
+                IEmptyList => this,
+                _ => Pair.Cons(l.Car, l.Rest.Append(x)),
+            };
+        }
+        return x;
+    }
+
+    public List Append(List x) {
+        if (this is NonEmpty l) {
+            return x switch {
+                IEmptyList => this,
+                _ => List.Cons(l.Car, l.Rest.Append(x)),
+            };
+        }
+        return x;
+
+    }
+
+    public IList Append(IList l)
+    {
+        if (this is INonEmptyList xs) {
+            return l switch {
+                IEmptyList => this,
+                _ => (IList)Pair.Cons(xs.Car, xs.Rest.Append(l)),
+            };
+        }
+        return l;
+    }
 }
 
-public static class IEnumerableExtensions {
-    public static Jig.List ToJigList(this IEnumerable<Form> elements) {
+public static partial class IEnumerableExtensions {
+    public static Jig.List ToJigList(this IEnumerable<IForm> elements) {
         List result = List.Null;
         for (int index = elements.Count() - 1; index >= 0; index--) {
             result = new List.NonEmpty(elements.ElementAt(index), result);

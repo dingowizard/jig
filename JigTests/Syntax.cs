@@ -12,12 +12,9 @@ public class Syntaxes
     public void SyntaxP(string input, string expected)
     {
         var actual = Utilities.BareInterpretUsingReadSyntax(input);
-        Assert.AreEqual(actual, expected);
+        Assert.AreEqual(expected, actual);
 
     }
-
-    // [TestMethod]
-    // [DataRow("(syntax-flatten (quote-syntax 1))", "(1)")]
 
     [TestMethod]
     [DataRow("(syntax? (syntax-e (quote-syntax boo)))", "#f")]
@@ -26,7 +23,7 @@ public class Syntaxes
     public void SyntaxE(string input, string expected)
     {
         var actual = Utilities.BareInterpretUsingReadSyntax(input);
-        Assert.AreEqual(actual, expected);
+        Assert.AreEqual(expected, actual);
 
     }
 
@@ -37,7 +34,7 @@ public class Syntaxes
     public void DatumToSyntax(string input, string expected)
     {
         var actual = Utilities.BareInterpretUsingReadSyntax(input);
-        Assert.AreEqual(actual, expected);
+        Assert.AreEqual(expected, actual);
 
     }
 

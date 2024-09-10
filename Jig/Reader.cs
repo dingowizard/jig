@@ -4,7 +4,7 @@ namespace Jig.Reader;
 
 public static class Reader {
 
-    public static Form? Read(InputPort port) {
+    public static IForm? Read(InputPort port) {
         if (port.Peek() == -1) return null;
         return Parser.ParseExpr(new TokenStream(port));
     }

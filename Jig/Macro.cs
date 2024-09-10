@@ -11,8 +11,8 @@ public class Transformer : LiteralExpr<Delegate> {
 
     public Syntax Apply(Syntax stx) {
         // Console.WriteLine($"\tto {stx} @ {stx.SrcLoc}");
-        Form? result = null;
-        Continuation.OneArgDelegate setResult =  Thunk? (Form x) => {result = x; return null;};
+        IForm? result = null;
+        Continuation.OneArgDelegate setResult =  Thunk? (IForm x) => {result = x; return null;};
         Thunk? thunk = TransformerDelegate(setResult, stx);
         // TODO: this seems crazy
         while (thunk is not null) {

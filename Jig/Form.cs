@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Jig;
 
-public abstract partial class Form {
+public abstract partial class Form : IForm {
 
     // TODO: decide whether it makes sense to have all of these as nested classes
 
@@ -62,14 +62,14 @@ public abstract partial class Form {
 
     public abstract string Print();
 
-    internal static bool IsSymbol(Form ast)
+    internal static bool IsSymbol(IForm ast)
     {
         if (ast is Form.Symbol) return true;
         if (ast is Syntax.Identifier) return true;
         return false;
     }
 
-    internal static bool IsNonEmptyList(Form ast)
+    internal static bool IsNonEmptyList(IForm ast)
     {
         if (ast is Syntax stx) {
             if (Syntax.E(stx) is List list) {
@@ -79,28 +79,9 @@ public abstract partial class Form {
         return ast is List.NonEmpty;
     }
 
-    internal static bool IsNonEmptyList(Form ast, [NotNullWhen(returnValue: true)]out List.NonEmpty? list)
-    {
+    
 
-        if (ast is Syntax stx) {
-            if ( Syntax.E(stx) is List.NonEmpty l) {
-                list = l;
-                return true;
-            } else {
-                list = null;
-                return false;
-            }
-        }
-        if (ast is List.NonEmpty last) {
-            list = last;
-            return true;
-
-        }
-        list = null;
-        return false;
-    }
-
-    internal static bool IsKeyword(string name, Form ast) {
+    internal static bool IsKeyword(string name, IForm ast) {
         if (ast is Syntax stx) {
             if (Syntax.E(stx) is List list) {
                 if (list.ElementAt(0) is Syntax.Identifier id) {

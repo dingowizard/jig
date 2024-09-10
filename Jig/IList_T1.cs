@@ -1,4 +1,5 @@
 namespace Jig;
 
-public interface IList<T> :  IEnumerable<T> where T : Form {
+public interface IList<T> :  IForm, IList, IEnumerable<T> where T : IForm {
+    IList<T> Append(IList<T> l);
 }

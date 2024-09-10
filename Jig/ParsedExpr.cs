@@ -5,13 +5,13 @@ namespace Jig;
 
 public abstract class ParsedExpr : Syntax {
 
-    protected ParsedExpr(Form x, SrcLoc? srcLoc = null) : base(x, srcLoc) {}
+    protected ParsedExpr(IForm x, SrcLoc? srcLoc = null) : base(x, srcLoc) {}
 
 }
 
 public class ParsedList : ParsedExpr {
-    public ParsedList(SyntaxList stxList, SrcLoc? srcLoc) : base(stxList, srcLoc) {
-        ParsedExprs = stxList.Cast<ParsedExpr>().ToArray();
+    public ParsedList(IEnumerable<ParsedExpr> stxList, SrcLoc? srcLoc) : base(stxList.ToSyntaxList(), srcLoc) {
+        ParsedExprs = stxList.ToArray();
     }
 
     public IEnumerable<ParsedExpr> ParsedExprs {get;}
@@ -183,15 +183,15 @@ public class ParsedDefine : ParsedExpr {
 
 public class ParsedLambda : ParsedExpr {
 
-    private ParsedLambda(Syntax keyword, LambdaParameters parameters, SyntaxList bodies, SrcLoc? srcLoc = null)
-      : base((Form)Pair.Cons(keyword, (Form)Pair.Cons(parameters, bodies)), srcLoc)
+    private ParsedLambda(Syntax keyword, LambdaParameters parameters, SyntaxList.NonEmpty bodies, SrcLoc? srcLoc = null)
+      : base(Pair.Cons(keyword, Pair.Cons(parameters, bodies)), srcLoc)
     {
         Parameters = parameters;
         Bodies = bodies;
     }
 
     public LambdaParameters Parameters {get;}
-    public SyntaxList Bodies {get;}
+    public SyntaxList.NonEmpty Bodies {get;}
 
     public static bool TryParse(Syntax stx,
                                 MacroExpander expander,
@@ -223,7 +223,7 @@ public class ParsedLambda : ParsedExpr {
         }
         // TODO: ensure that bodies is non-empty here or in constructor
         // return new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc);
-        lambdaExpr = new ParsedLambda(xs.ElementAt(0), ps, (SyntaxList)SyntaxList.FromIEnumerable(xs.Skip(2)), stx.SrcLoc);
+        lambdaExpr = new ParsedLambda(xs.ElementAt(0), ps, (SyntaxList.NonEmpty)xs.Skip(2).ToSyntaxList(), stx.SrcLoc);
         return true;
     }
 
@@ -240,7 +240,7 @@ public class ParsedLambda : ParsedExpr {
             var required = new System.Collections.Generic.List<Syntax.Identifier>();
             Syntax.Identifier? rest = null;
             if (Syntax.E(stx) is SyntaxList psStxList) {
-                foreach(var p in psStxList) {
+                foreach(Syntax p in psStxList.Cast<Syntax>()) {
                     Syntax.Identifier id = p as Syntax.Identifier ??
                         throw new Exception($"lambda: expected parameters to be identifiers, but got {p} @ {p.SrcLoc?.ToString() ?? "?"}");
                     if (namesSeen.Contains(id.Symbol.Name)) {
