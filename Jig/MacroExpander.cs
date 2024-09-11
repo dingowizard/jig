@@ -246,9 +246,6 @@ public class ExpansionEnvironment {
     }
 
     private static Thunk? match_macro(Delegate k, Form arg) {
-        // TODO: we need to make a local variable to hold the result of evaluating the expression to match
-        // but how to do this hygienically?
-        // is it sufficient just to create a binding form and variable?
         Syntax stx = arg as Syntax ?? throw new Exception($"match: expected syntax, got {arg.GetType()}");
         SyntaxList stxList = Syntax.E(stx) as SyntaxList ?? throw new Exception("match: syntax should expand to list");
         if (stxList.Count<Syntax>() < 2) throw new Exception(); // TODO: this should be a syntax error
