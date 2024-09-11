@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Scripting.Utils;
 
 namespace Jig;
 
@@ -285,7 +286,8 @@ public class ExpansionEnvironment {
             )) : 
             new Syntax(MakeIfs(x, clauses.Skip(1)));
           
-        SyntaxList.NonEmpty thisClause = Syntax.E(clauses.ElementAt(0)) as SyntaxList.NonEmpty ?? throw new Exception();
+        SyntaxList.NonEmpty thisClause =
+            Syntax.E(clauses.ElementAt(0)) as SyntaxList.NonEmpty ?? throw new Exception(); // TODO: should be syntax error
         return (SyntaxList)SyntaxList.FromParams(
             new Syntax.Identifier(new Form.Symbol("if")),
             MakeConditionForMatchClause(x, thisClause.First),
@@ -355,6 +357,8 @@ public class ExpansionEnvironment {
                 } else if (pair.Cdr is SyntaxPair stxPairCdr) {
                     // TODO: sigh
                     return FlattenPair(pair.Car, stxPairCdr);
+                } else if (pair.Cdr is INonEmptyList l) {
+                    return FlattenPair(pair.Car, l.Cast<Syntax>().ToSyntaxList());
                 } else {
                     throw new Exception($"In ExpansionEnvironment.Flatten: pair.Cdr is {pair.Cdr.Print()}, a {pair.Cdr.GetType()}");
                 }
@@ -380,19 +384,32 @@ public class ExpansionEnvironment {
             Number => SyntaxList.Null,
             Form.Symbol => x,
             SyntaxList stxList => ArgsForLambdaForMatchClauseThen(x, stxList),
-            Pair pair => (Form)Pair.Cons(
+            IPair pair => ArgsForLambdaForMatchClauseThen(x, pair),
+            _ => throw new NotImplementedException(),
+        };
+    }
+    private static IForm ArgsForLambdaForMatchClauseThen(Syntax x, IPair pair) {
+        return Pair.Cons(
                 ArgsForLambdaForMatchClauseThen(
                     x: new Syntax(SyntaxList.FromParams(
                         new Syntax.Identifier(new Form.Symbol("car")),
                         x)),
-                    pattern: (Syntax) pair.Car),
+                    pattern: pair.Car),
                 ArgsForLambdaForMatchClauseThen(
                     x: new Syntax(SyntaxList.FromParams(
                         new Syntax.Identifier(new Form.Symbol("cdr")),
                         x)),
-                    pattern: (Syntax)pair.Cdr)),
-            _ => throw new NotImplementedException(),
-        };
+                    pattern: pair.Cdr));
+    }
+
+    private static IForm ArgsForLambdaForMatchClauseThen(Syntax x, IForm pattern) {
+        if (pattern is Syntax stx) {
+            return ArgsForLambdaForMatchClauseThen(x, stx);
+        } else if (pattern is IPair p) {
+            return ArgsForLambdaForMatchClauseThen(x, p);
+        } else {
+            throw new NotImplementedException();
+        }
     }
 
     private static IForm ParamsFromPattern(Syntax pattern) {
@@ -406,16 +423,27 @@ public class ExpansionEnvironment {
                     res.Add(ParamsFromPattern(s));
                 }
                 return res.ToJigList();
-            case Pair pair:
-                if (pair.Car is Syntax x && pair.Cdr is Syntax y ) {
-                    return (Form) Pair.Cons(ParamsFromPattern(x),
-                                                 ParamsFromPattern(y));
-                }
-                throw new NotImplementedException();
+            case IPair pair:
+                return ParamsFromPattern(pair);
             default:
                 throw new NotImplementedException();
         }
 
+    }
+
+    private static IForm ParamsFromPattern(IForm form) {
+        if (form is Syntax stx) {
+            return ParamsFromPattern(stx);
+        } else if (form is IPair pair) {
+            return ParamsFromPattern(pair);
+        } else {
+            throw new NotImplementedException();
+        }
+
+    }
+
+    private static IForm ParamsFromPattern(IPair pair) {
+        return Pair.Cons(ParamsFromPattern(pair.Car), ParamsFromPattern(pair.Cdr));
     }
 
     private static Syntax ParamsForLambdaForMatchClauseThen(Syntax pattern) {
@@ -455,17 +483,37 @@ public class ExpansionEnvironment {
     private static Syntax MakeConditionForMatchClause(Syntax x, IForm car, IForm cdr) {
         // TODO: Pair<Syntax> type?
         Syntax carSyntax = car as Syntax ?? throw new Exception();
-        Syntax cdrSyntax = cdr as Syntax ?? throw new Exception();
-        return new Syntax(
-            SyntaxList.FromParams(
-                new Syntax.Identifier(new Form.Symbol("and")),
-                new Syntax(SyntaxList.FromParams(
-                    new Syntax.Identifier(new Form.Symbol("pair?")),
-                    x
-                )),
-                MakeConditionForMatchClause(x, carSyntax),
-                MakeConditionForMatchClause(x, cdrSyntax))
-        );
+        if (cdr is Syntax cdrSyntax) {
+            return new Syntax(
+                SyntaxList.FromParams(
+                    new Syntax.Identifier(new Form.Symbol("and")),
+                    new Syntax(SyntaxList.FromParams(
+                        new Syntax.Identifier(new Form.Symbol("pair?")),
+                        x
+                    )),
+                    MakeConditionForMatchClause(new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Form.Symbol("car")), x)), carSyntax),
+                    MakeConditionForMatchClause(new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Form.Symbol("cdr")), x)), cdrSyntax))
+            );
+        } else {
+            if (cdr is IPair p) {
+                return new Syntax(
+                    SyntaxList.FromParams(
+                        new Syntax.Identifier(new Form.Symbol("and")),
+                        new Syntax(SyntaxList.FromParams(
+                            new Syntax.Identifier(new Form.Symbol("pair?")),
+                            x
+                        )),
+                        MakeConditionForMatchClause(new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Form.Symbol("car")), x)), carSyntax),
+                        MakeConditionForMatchClause(
+                            new Syntax(
+                                SyntaxList.FromParams(new Syntax.Identifier(new Form.Symbol("cdr")), x)),
+                                p.Car,
+                                p.Cdr))
+                );
+            } else {
+                throw new NotImplementedException();
+            }
+        }
     }
 
     private static Syntax MakeNullTest(Syntax x) {

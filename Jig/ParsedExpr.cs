@@ -328,8 +328,8 @@ public class ParsedVariable : ParsedExpr {
                 parsedVariable = new ParsedVariable.Lexical(id, stx.SrcLoc);
                 return true;
             } else {
-                if (id.Symbol.Name == "a") {
-                    Console.WriteLine("couldn't resolve a");
+                if (id.Symbol.Name == "c") {
+                    Console.WriteLine("couldn't resolve c");
                 }
                 parsedVariable = new ParsedVariable.TopLevel(id, stx.SrcLoc);
                 return true;

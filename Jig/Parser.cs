@@ -168,7 +168,12 @@ public class Parser {
         return syntax ? new Syntax.Identifier(sym, id.SrcLoc) : sym;
     }
 
-    static IForm ParsePair(TokenStream tokenStream, bool syntax) {
+    static IPair ParsePair(TokenStream tokenStream, bool syntax) {
+        // DONE: what is the difference between (1 . (2 . 3))
+        // and (1 2 . 3)?
+        // they should be the same. NOTE: no they shouldn't. they are different syntaxes even though they have the same datum
+        // see Racket
+        // The first one makes two syntax pairs: (stx-pair (#<stx 1> . #<syntax (stx-pair (#<syntax 2> . #<syntax 3>)))
         IForm car = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
         if (syntax && car is not Syntax) {
             Console.WriteLine($"ParsePair: expected car to be syntax but got {car}, a {car.GetType()}");
