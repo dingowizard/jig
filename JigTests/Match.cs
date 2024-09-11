@@ -17,7 +17,7 @@ public class Match {
     [DataRow("(match '(1 2 . 3) ((a . (b . c)) c))", "3")]
     [DataRow("(match '(1 2 . 3) ((a b . c) c))", "3")]
     [DataRow("(match (list 1 2 3) ((a b c) (+ a b c)))", "6")]
-    // [DataRow("(match (cons (cons 1 2) 3) (((a . b) . c) (+ a b c)))", "6")] // stack overflow
+    [DataRow("(match (cons (cons 1 2) 3) (((a . b) . c) (+ a b c)))", "6")] // stack overflow
     public void MatchExamples(string input, string expected) {
         var actual = Utilities.BareInterpretUsingReadSyntax(input);
         Assert.AreEqual(expected, actual);

@@ -12,7 +12,7 @@ public abstract class List<T> : List, IList<T>, IEnumerable<T> where T : Form
         }
     }
 
-    public IList<T> Append(IList<T> l) => Append(l);
+    public IList<T> Append(IList<T> l) => (IList<T>)((IList)this).Append(l);
 
 
     public abstract override bool Equals(object? obj);

@@ -224,6 +224,7 @@ internal static class Builtins {
     }
 
     public static Thunk? append(Delegate k, IList args) {
+        // TODO: this is super inefficient because Append needs to run through the accumulator every time it appends another list
         if (args is INonEmptyList xs) {
             IForm result = xs.Car;
             IList rest = xs.Rest;

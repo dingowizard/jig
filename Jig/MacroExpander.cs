@@ -313,56 +313,14 @@ public class ExpansionEnvironment {
     }
 
 
-    private static SyntaxList FlattenPair(IForm car, Syntax cdr) {
-        // if this gets called, cdr is not a list
-        switch (car) {
-            case IEmptyList: return Flatten(cdr);
-            case IPair pair: return (SyntaxList)Flatten(pair.Car).Append(Flatten(cdr));
-            case Syntax stxCar: return SyntaxList.Cons(stxCar, Flatten(cdr));
-            default: throw new Exception();
-
-        }
-
-    }
-    private static SyntaxList FlattenPair(IForm first, SyntaxList rest) {
-        switch (first) {
-            case IEmptyList: return Flatten(rest);
-            case IPair pair: return (SyntaxList)Flatten(pair.Car).Append(Flatten(rest));
-            case Syntax stxCar: return SyntaxList.Cons(stxCar, Flatten(rest));
-            default: throw new Exception();
-        }
-
-    }
-    private static SyntaxList FlattenPair(IForm first, SyntaxPair rest) {
-        switch (first) {
-            case IEmptyList: return Flatten(rest);
-            case IPair pair: return (SyntaxList)Flatten(pair.Car).Append(Flatten(rest));
-            case Syntax stxCar: return SyntaxList.Cons(stxCar, Flatten(rest));
-            default: throw new Exception();
-        }
-
-    }
-
     private static SyntaxList Flatten(IForm x) {
 
         switch (x) {
             case IEmptyList: return SyntaxList.Null;
             case Syntax stx: return SyntaxList.FromParams(stx);
-            case SyntaxList.NonEmpty list: return FlattenPair(list.First, list.Rest);
             case IPair pair:
-                if (pair.Cdr is Syntax stxCdr) {
-                    return FlattenPair(pair.Car, stxCdr);
-                // } else if (pair.Cdr is List l) {
-                //     return FlattenPair(pair.Car, l);
-                } else if (pair.Cdr is SyntaxPair stxPairCdr) {
-                    // TODO: sigh
-                    return FlattenPair(pair.Car, stxPairCdr);
-                } else if (pair.Cdr is INonEmptyList l) {
-                    return FlattenPair(pair.Car, l.Cast<Syntax>().ToSyntaxList());
-                } else {
-                    throw new Exception($"In ExpansionEnvironment.Flatten: pair.Cdr is {pair.Cdr.Print()}, a {pair.Cdr.GetType()}");
-                }
-            default: throw new Exception();
+                return (SyntaxList)Flatten(pair.Car).Append(Flatten(pair.Cdr));
+            default: throw new Exception($"Flatten: unhandled case {x} a {x.GetType()}");
         }
 
     }
@@ -447,7 +405,10 @@ public class ExpansionEnvironment {
     }
 
     private static Syntax ParamsForLambdaForMatchClauseThen(Syntax pattern) {
-        return new Syntax(Flatten(ParamsFromPattern(pattern)));
+        Console.WriteLine($"ParamsForLambdaForMatchClauseThen: pattern = {pattern.Print()}, syntax-e is a  {Syntax.E(pattern).GetType()}");
+        var parameters = ParamsFromPattern(pattern);
+        Console.WriteLine($"ParamsForLambdaForMatchClauseThen: parameters = {parameters.Print()}, syntax-e is a  {parameters.GetType()}");
+        return new Syntax(Flatten(parameters));
     }
 
     private static Syntax MakeConditionForMatchClause(Syntax x, SyntaxList pattern) {
