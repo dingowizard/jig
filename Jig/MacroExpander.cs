@@ -405,9 +405,7 @@ public class ExpansionEnvironment {
     }
 
     private static Syntax ParamsForLambdaForMatchClauseThen(Syntax pattern) {
-        Console.WriteLine($"ParamsForLambdaForMatchClauseThen: pattern = {pattern.Print()}, syntax-e is a  {Syntax.E(pattern).GetType()}");
         var parameters = ParamsFromPattern(pattern);
-        Console.WriteLine($"ParamsForLambdaForMatchClauseThen: parameters = {parameters.Print()}, syntax-e is a  {parameters.GetType()}");
         return new Syntax(Flatten(parameters));
     }
 

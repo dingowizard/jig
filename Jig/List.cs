@@ -111,7 +111,6 @@ public abstract class List : Form, IEnumerable<IForm>, IList
     }
 
     public IForm Append(IForm x) {
-        Console.WriteLine($"Append(IForm) called with {this} and {x}");
         if (this is INonEmptyList l) {
             return x switch {
                 IEmptyList => this,
@@ -122,7 +121,6 @@ public abstract class List : Form, IEnumerable<IForm>, IList
     }
 
     public List Append(List x) {
-        Console.WriteLine($"Append(List) called with {this} and {x}");
         if (this is NonEmpty l) {
             return x switch {
                 IEmptyList => this,
@@ -135,7 +133,6 @@ public abstract class List : Form, IEnumerable<IForm>, IList
 
     public IList Append(IList l)
     {
-        Console.WriteLine($"Append(IList) called with {this} and {l}");
         if (this is INonEmptyList xs) {
             return l switch {
                 IEmptyList => this,
