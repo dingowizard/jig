@@ -94,5 +94,23 @@ public class ListsAndPairs
         Assert.AreEqual(expected, actual);
     }
 
+    [TestMethod]
+    [DataRow("(append)", "()")]
+    [DataRow("(append '(1 2 3) '())", "(1 2 3)")]
+    [DataRow("(append '() '(1 2 3))", "(1 2 3)")]
+    [DataRow("(append '(1 2 3) '(4 5 6))", "(1 2 3 4 5 6)")]
+    [DataRow("(append 5)", "5")]
+    [DataRow("(append '() 5)", "5")]
+    [DataRow("(append '(1 2 3 4) 5)", "(1 2 3 4 . 5)")]
+    [DataRow("(append '(1 2 3) '(4 5 6) '(7 8 9))", "(1 2 3 4 5 6 7 8 9)")]
+    [DataRow("(append '(1 2 3) '(4 5 6) '())", "(1 2 3 4 5 6)")]
+    [DataRow("(append '() '(1 2 3) '(4 5 6))", "(1 2 3 4 5 6)")]
+    [DataRow("(append '(1 2 3) '(4 5 6) 7)", "(1 2 3 4 5 6 . 7)")]
+    public void Append(string input, string expected) {
+        var actual = Utilities.BareInterpret(input);
+        Assert.AreEqual(expected, actual);
+    }
+
+
 
 }
