@@ -7,7 +7,7 @@ public class Begin
     [DataRow("(begin 3 2 1)", "1")]
     public void Begins(string input, string expected)
     {
-        var actual = Utilities.PreludeInterp.InterpretUsingReadSyntax(input);
+        var actual = Utilities.BareInterpretUsingReadSyntax(input);
         Assert.AreEqual(expected, actual);
     }
 

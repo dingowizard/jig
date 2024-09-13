@@ -1,5 +1,5 @@
 
-namespace JigTests;
+namespace PreludeTests;
 
 [TestClass]
 public class DynamicWind

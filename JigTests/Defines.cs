@@ -6,7 +6,7 @@ public class Defines {
     [TestMethod]
     [DataRow(new string[]{"(define q 12)", "q"}, "12")]
     public void DefineTopLevelVar(string[] exprs, string expected) {
-        IInterpreter interp = new Interpreter(withPrelude: false);
+        IInterpreter interp = new Interpreter();
         string actual = "";
         foreach(string input in exprs) {
             actual = interp.Interpret(input);
@@ -25,7 +25,7 @@ public class Defines {
     [TestMethod]
     [DataRow(new string[]{"(define q 12)", "q"}, "12")]
     public void DefineTopLevelVarSyntax(string[] exprs, string expected) {
-        IInterpreter interp = new Interpreter(withPrelude: false);
+        IInterpreter interp = new Interpreter();
         string actual = "";
         foreach(string input in exprs) {
             actual = interp.InterpretUsingReadSyntax(input);

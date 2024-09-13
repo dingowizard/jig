@@ -323,6 +323,12 @@ public class ExpansionEnvironment {
     }
 
     private static List ArgsForLambdaForMatchClauseThen(Syntax x, SyntaxList patterns) {
+        if (patterns.ElementAt<Syntax>(0) is Syntax.Identifier id && id.Symbol.Name == "quote") {
+            return SyntaxList.Null;
+        }
+        if (patterns.ElementAt<Syntax>(0) is Syntax.Identifier q && q.Symbol.Name == "quote-syntax") {
+            return SyntaxList.Null;
+        }
         System.Collections.Generic.List<IForm> result = [];
         for (int i = 0; i < patterns.Count<Syntax>(); i++){
             result.Add(ArgsForLambdaForMatchClauseThen(NthElementOfList(i, x), patterns.ElementAt<Syntax>(i)));
@@ -337,6 +343,7 @@ public class ExpansionEnvironment {
         {
             List.Empty => SyntaxList.Null,
             Number => SyntaxList.Null,
+            Bool => SyntaxList.Null,
             Form.Symbol => x,
             SyntaxList stxList => ArgsForLambdaForMatchClauseThen(x, stxList),
             IPair pair => ArgsForLambdaForMatchClauseThen(x, pair),
@@ -370,9 +377,16 @@ public class ExpansionEnvironment {
     private static IForm ParamsFromPattern(Syntax pattern) {
         switch (Syntax.E(pattern)) {
             case Number: return List.Null;
+            case Bool: return List.Null;
             case List.Empty: return List.Null;
             case Form.Symbol: return pattern;
             case SyntaxList stxList:
+                if (Form.IsKeyword("quote", pattern)) {
+                    return List.Null;
+                }
+                if (Form.IsKeyword("quote-syntax", pattern)) {
+                    return List.Null;
+                }
                 System.Collections.Generic.List<IForm> res = [];
                 foreach (Syntax s in stxList.Cast<Syntax>()) {
                     res.Add(ParamsFromPattern(s));
@@ -381,7 +395,7 @@ public class ExpansionEnvironment {
             case IPair pair:
                 return ParamsFromPattern(pair);
             default:
-                throw new NotImplementedException();
+                throw new NotImplementedException($"ParamsFromPatterns: unhandled case {Syntax.E(pattern)}");
         }
 
     }
@@ -407,6 +421,20 @@ public class ExpansionEnvironment {
     }
 
     private static Syntax MakeConditionForMatchClause(Syntax x, SyntaxList pattern) {
+        if (pattern.ElementAt<Syntax>(0) is Syntax.Identifier id && id.Symbol.Name == "quote") {
+            return new Syntax(
+                SyntaxList.FromParams(
+                    new Syntax.Identifier(new Form.Symbol("eqv?")),
+                    x,
+                    new Syntax(pattern)));
+        }
+        if (pattern.ElementAt<Syntax>(0) is Syntax.Identifier q && q.Symbol.Name == "quote-syntax") {
+            return new Syntax(
+                SyntaxList.FromParams(
+                    new Syntax.Identifier(new Form.Symbol("eqv?")),
+                    x,
+                    new Syntax(pattern)));
+        }
         System.Collections.Generic.List<Syntax> firstPart = [
             new Syntax.Identifier(new Form.Symbol("and")),
             new Syntax(SyntaxList.FromParams(
@@ -484,6 +512,7 @@ public class ExpansionEnvironment {
         return Syntax.E(pattern) switch
         {
             Number n => MakeNumEqTest(pattern, x),
+            Bool b => new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Form.Symbol("=")), pattern, x)),
             List.Empty => MakeNullTest(x),
             Form.Symbol => new Syntax.Literal(Bool.True),
             SyntaxList syntaxList => MakeConditionForMatchClause(x, syntaxList),

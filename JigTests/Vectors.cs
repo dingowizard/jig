@@ -13,7 +13,7 @@ public class Vectors {
 
     [TestMethod]
     [DataRow("(vector? (vector 1 2 3))", "#t")]
-    [DataRow("(vector? (list 1 2 3))", "#f")]
+    [DataRow("(vector? '(1 2 3))", "#f")]
     [DataRow("(vector? 12)", "#f")]
     public void Vector_PKnowsWhatsAVector(string input, string expected) {
         var actual = Utilities.BareInterpretUsingReadSyntax(input);

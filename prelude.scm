@@ -16,10 +16,10 @@
 ;           (+ 1 (length (cdr xs))))))
 
 (define list-tail
-  (lambda (x k)
+  (lambda (xs k)
     (if (= k 0)
-        x
-        (list-tail (cdr x) (- k 1)))))
+        xs
+        (list-tail (cdr xs) (- k 1)))))
 
 (define list-ref
   (lambda (xs k)

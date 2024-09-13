@@ -1,52 +1,29 @@
 using Jig;
 using Jig.IO;
 
-namespace JigTests;
+namespace PreludeTests;
 
 [TestClass]
 public static class Utilities {
-    // static Interpreter _interp = new Interpreter();
-    static Interpreter _bareInterp = new Interpreter();
     public static IInterpreter PreludeInterp = null!;
 
+    [AssemblyInitialize]
+    public static void AssemblyInitialize(TestContext tc) {
+        // TODO: all tests will fail if there is an error in prelude
+        // find a different way to eval this only if we are running non-core tests
+        PreludeInterp = new Interpreter(withPrelude: true);
 
-    // public static string Interpret(string input) {
-    //     return _interp.Interpret(input);
-    // }
-
-    // public static string InterpretUsingReadSyntax(string input) {
-    //     return _interp.InterpretUsingReadSyntax(input);
-    // }
-
-    // public static string InterpretUsingReadSyntax(string[] inputs) {
-    //     return _interp.InterpretSequenceReadSyntax(inputs);
-    // }
-
-    // public static string InterpretMultipleValues(string input) {
-    //     return _interp.InterpretMultipleValues(input);
-    // }
-
-    public static string BareInterpret(string input) {
-        return _bareInterp.Interpret(input);
     }
 
-    public static string BareInterpretUsingReadSyntax(string input) {
-        return _bareInterp.InterpretUsingReadSyntax(input);
-    }
-
-    public static string BareInterpretUsingReadSyntax(string[] inputs) {
-        return _bareInterp.InterpretSequenceReadSyntax(inputs);
-    }
-
-    public static string BareInterpretMultipleValues(string input) {
-        return _bareInterp.InterpretMultipleValues(input);
-    }
 }
 
 public class Interpreter : IInterpreter {
     IEnvironment Env {get;}
-    public Interpreter() {
+    public Interpreter(bool withPrelude = true) {
         Env = Program.TopLevel;
+        if (withPrelude) {
+            Program.ExecuteFile("prelude.scm", Env);
+        }
         SetResultAny = _setResultAny;
         SetResultOne = _setResultOne;
     }

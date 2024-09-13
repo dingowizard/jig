@@ -183,12 +183,13 @@ internal static class Builtins {
 
     public static Thunk? eqv_p(Delegate k, List args) {
         // TODO: write some tests for eqv?
-        if (args is List.NonEmpty properList) {
-            if (properList.Count() != 2) {
+        if (args is INonEmptyList properList) {
+            if (!properList.Length.Equals(Integer.Two)) {
                 return Error(k, "eqv?: expected two arguments");
             }
             IForm first = args.ElementAt(0);
             IForm second = args.ElementAt(1);
+            Console.WriteLine($"eqv?: testing {first.Print()}, a {first.GetType()}, against {second.Print()}, a {second.GetType()}");
             bool result = first.Equals(second);
             return Continuation.ApplyDelegate(k, result ? Bool.True : Bool.False);
         } else {

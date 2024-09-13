@@ -226,6 +226,7 @@ public class Syntax : Form {
             // }
             if (obj is Identifier id) {
                 if (!Symbol.Equals(id.Symbol)) return false;
+                Console.WriteLine($"this scope set = {this.ScopeSet}. other {id.ScopeSet}");
                 if (ScopeSet.Equals(id.ScopeSet)) return true;
                 return false;
 

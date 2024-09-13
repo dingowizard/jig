@@ -67,7 +67,7 @@ public class Literals
     [DataRow(new string[]{"(define a 1)", "a"}, "1")]
     [DataRow(new string[]{"(define a #t)", "a"}, "#t")]
     public void EvalVars(string[] exprs, string expected) {
-        IInterpreter interp = new Interpreter(withPrelude: false);
+        IInterpreter interp = new Interpreter();
         string actual = "";
         foreach(string input in exprs) {
             actual = interp.Interpret(input);

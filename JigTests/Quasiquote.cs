@@ -18,7 +18,7 @@ public class Quasiquote {
     [DataRow("(quasiquote (unquote b))", "2")]
     [DataRow("(quasiquote (a (unquote b) c))", "(a 2 c)")]
     public void QuasiquoteUnquoteWithBEquals2Evaluated(string input, string expected) {
-        IInterpreter interp = new Interpreter(withPrelude: false);
+        IInterpreter interp = new Interpreter();
         var actual = interp.InterpretSequenceReadSyntax(new string [] {
                 "(define b 2)",
                 input
@@ -30,7 +30,7 @@ public class Quasiquote {
     [DataRow("(quasiquote ((unquote-splicing (cons a (cons b '()))) 3 4))", "(1 2 3 4)")]
     [DataRow("(quasiquote (-1 0 (unquote-splicing (cons a (cons b '()))) 3 4))", "(-1 0 1 2 3 4)")]
     public void QuasiquoteUnquoteSplicingWithA1B2Evaluated(string input, string expected) {
-        IInterpreter interp = new Interpreter(withPrelude: false);
+        IInterpreter interp = new Interpreter();
         var actual = interp.InterpretSequenceReadSyntax(new string [] {
                 "(define a 1)",
                 "(define b 2)",
