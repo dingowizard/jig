@@ -15,6 +15,14 @@
 ;           0
 ;           (+ 1 (length (cdr xs))))))
 
+(define list?
+  (lambda (x)
+    (if (null? x)
+        #t
+        (if (pair? x)
+            (list? (cdr x))
+            #f))))
+
 (define list-tail
   (lambda (xs k)
     (if (= k 0)
@@ -30,14 +38,6 @@
 (define zero? (lambda (x) (= x 0)))
 
 (define not (lambda (x) (if x #f #t)))
-
-(define list?
-  (lambda (x)
-    (if (null? x)
-        #t
-        (if (pair? x)
-            (list? (cdr x))
-            #f))))
 
 (define fold
   (lambda (fn init xs)
@@ -88,26 +88,48 @@
 (define cdddr (lambda (p) (cdr (cdr (cdr p)))))
 
 
+; doesn't use quasiquote
+; (define-syntax let
+;   (lambda (stx)
+;     (datum->syntax
+;      stx
+;      (cons
+;        (append (list 'lambda
+;                      (map (lambda (b) (car (syntax->list b))) (syntax->list (cadr (syntax->list stx)))))
+;                (cddr (syntax->list stx)))
+;        (map (lambda (b) (cadr (syntax->list b))) (syntax->list (cadr (syntax->list stx))))))))
+
 (define-syntax let
-  (lambda (stx)
-    (datum->syntax
-     stx
-     (cons
-       (append (list 'lambda
-                     (map (lambda (b) (car (syntax->list b))) (syntax->list (cadr (syntax->list stx)))))
-               (cddr (syntax->list stx)))
-       (map (lambda (b) (cadr (syntax->list b))) (syntax->list (cadr (syntax->list stx))))))))
+   (lambda (stx)
+    ((lambda (xs)
+        ((lambda (bindings bodies)
+            (datum->syntax
+               stx
+               `((lambda ,(map car bindings) ,@bodies) ,@(map cadr bindings))))
+            (map syntax->list (syntax->list (cadr xs)))
+            (cddr xs)))
+        (syntax->list stx))))
+
+; --- or that doesn't use match
+; (define-syntax or
+;   (lambda (stx)
+;     (let ((stx-list (syntax->list stx)))
+;       (if (= 1 (length stx-list))
+;           (datum->syntax stx (quote #f))
+;           (datum->syntax
+;            stx
+;            (list 'let
+;                  (list (list 'x (car (cdr stx-list))))
+;                  (list 'if 'x 'x (append (list 'or) (cdr (cdr stx-list))))))))))
 
 (define-syntax or
-  (lambda (stx)
-    (let ((stx-list (syntax->list stx)))
-      (if (= 1 (length stx-list))
-          (datum->syntax stx (quote #f))
-          (datum->syntax
-           stx
-           (list 'let
-                 (list (list 'x (car (cdr stx-list))))
-                 (list 'if 'x 'x (append (list 'or) (cdr (cdr stx-list))))))))))
+   (lambda (stx)
+      (datum->syntax
+         stx
+         (match (cdr (syntax->list stx))
+            ('() #f)
+            ((x) x)
+            ((x . rest) `(let ((tmp ,x)) (if tmp tmp (or ,@rest))))))))
 
 (define-syntax let*
   (lambda (stx)
@@ -168,26 +190,51 @@
 ; ;;           ,@body) ,@(map (lambda (p) `(if #f #f)) ps))))))
 ; ------------------------------------------------------------------------------
 
-;TODO: support 'else'
+; TODO: support 'else'
+; (define-syntax cond
+;   (lambda (stx)
+;     (let ((clauses (cdr (syntax->list stx))))
+;       (let ((clause1 (syntax->list (car clauses))))
+;         (datum->syntax
+;          stx
+;          (if (= (length clauses) 1)
+;              `(if ,(car clause1)
+;                   ,(cadr clause1))
+;              `(if ,(car clause1)
+;                   ,(cadr clause1)
+;                   (cond ,@(cdr clauses)))))))))
+
+; (define-syntax cond
+;    (lambda (stx)
+;       (datum->syntax
+;          stx
+;          (match (cdr (syntax->datum stx))
+;             (((test x)) `(if ,test ,x))
+;             (((test x) . more) `(if ,test ,x (cond ,@more)))))))
+
 (define-syntax cond
   (lambda (stx)
-    (let ((clauses (cdr (syntax->list stx))))
-      (let ((clause1 (syntax->list (car clauses))))
-        (datum->syntax
-         stx
-         (if (= (length clauses) 1)
-             `(if ,(car clause1)
-                  ,(cadr clause1))
-             `(if ,(car clause1)
-                  ,(cadr clause1)
-                  (cond ,@(cdr clauses)))))))))
+    (datum->syntax
+      stx
+      (match-syntax stx
+        ((cond (test expr))
+        `(if ,test ,expr))
+        ((cond (test expr) . more)
+        `(if ,test ,expr (cond ,@more)))))))
+
+; (define-syntax when
+;   (lambda (stx)
+;     (let* ((stx-list (syntax->list stx))
+;            (condition (cadr stx-list))
+;            (body (cddr stx-list)))
+;       (datum->syntax stx `(if ,condition (begin ,@body))))))
 
 (define-syntax when
-  (lambda (stx)
-    (let* ((stx-list (syntax->list stx))
-           (condition (cadr stx-list))
-           (body (cddr stx-list)))
-      (datum->syntax stx `(if ,condition (begin ,@body))))))
+   (lambda (stx)
+      (datum->syntax
+         stx
+         (match (cdr (syntax->list stx))
+            ((test . bodies) `(if ,test (begin ,@bodies)))))))
 
 (define-syntax do
   (lambda (stx)
@@ -297,7 +344,6 @@
              (lambda () ,@bodies)
              (lambda () (,(car ps) old (lambda (x) x))))) (,(car ps)))))))
 
-
 (define with-exception-handler #f)
 (define raise #f)
 (define raise-continuable #f)
@@ -349,13 +395,3 @@
            (display msg)
            (newline)
            (k (void))))))
-
-; (define flatten
-;   (lambda (l)
-;     (cond ((null? l) '())
-;           ((pair? l)
-;            (cond ((null? (car l)) (flatten (cdr l)))
-;                  ((pair? (car l))
-;                   (append (flatten (car l)) (flatten (cdr l))))
-;                  (#t (cons (car l) (flatten (cdr l))))))
-;           (#t (list l)))))

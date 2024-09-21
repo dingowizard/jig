@@ -512,7 +512,8 @@ public class ExpansionEnvironment {
         return Syntax.E(pattern) switch
         {
             Number n => MakeNumEqTest(pattern, x),
-            Bool b => new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Form.Symbol("=")), pattern, x)),
+            Bool b => new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Form.Symbol("eqv?")), pattern, x)),
+            Syntax => new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Form.Symbol("eqv?")), pattern, x)),
             List.Empty => MakeNullTest(x),
             Form.Symbol => new Syntax.Literal(Bool.True),
             SyntaxList syntaxList => MakeConditionForMatchClause(x, syntaxList),
@@ -637,6 +638,7 @@ public class ExpansionEnvironment {
         new ExpansionEnvironment(new Dictionary<Form.Symbol, Transformer>{
             {new Form.Symbol("and"), new Transformer((Func<Delegate, Form, Thunk?>) and_macro)},
             {new Form.Symbol("match"), new Transformer((Func<Delegate, Form, Thunk?>) match_macro)},
+            {new Form.Symbol("match-syntax"), new Transformer((Func<Delegate, Form, Thunk?>) Builtins.match_syntax_macro)},
             {new Form.Symbol("quasiquote"), new Transformer((Func<Delegate, Form, Thunk?>) quasiquote_macro)},
             }
         );

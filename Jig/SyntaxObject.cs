@@ -17,7 +17,7 @@ public class Syntax : Form {
     public static IForm ToDatum(Syntax stx) {
         IForm x = Syntax.E(stx);
         if (x is  SyntaxPair stxPair) {
-            return ToDatum(stxPair);
+            return Pair.Cons(ToDatum(stxPair.Car), ToDatum(stxPair.Cdr));
         }
         if (x is SyntaxList stxList) {
             return stxList.Select<Syntax, IForm>(s => ToDatum(s)).ToJigList();
@@ -226,7 +226,6 @@ public class Syntax : Form {
             // }
             if (obj is Identifier id) {
                 if (!Symbol.Equals(id.Symbol)) return false;
-                Console.WriteLine($"this scope set = {this.ScopeSet}. other {id.ScopeSet}");
                 if (ScopeSet.Equals(id.ScopeSet)) return true;
                 return false;
 

@@ -1,9 +1,8 @@
-using System.Collections;
 namespace Jig;
 
 public delegate Thunk? Builtin(Delegate k, List args);
 
-internal static class Builtins {
+internal static partial class Builtins {
 
 
     internal static Thunk? map_internal(Continuation.OneArgDelegate k, IEnvironment env, CompiledCode[] codes, int index) {
@@ -424,6 +423,15 @@ internal static class Builtins {
         if (args.Count() != 2) return Error(k, $"datum->syntax: expected two arguments but got {args.Count()}.");
         if (args.ElementAt(0) is Syntax stx) {
             return Continuation.ApplyDelegate(k, Syntax.FromDatum(stx.SrcLoc, args.ElementAt(1)));
+        } else {
+            return Error(k, $"datum->syntax: expected first argument to be syntax, but got {args.ElementAt(0)}");
+        }
+    }
+
+    public static Thunk? syntax_to_datum(Delegate k, List args) {
+        if (args.Count() != 1) return Error(k, $"syntax->datum: expected one argument but got {args.Count()}.");
+        if (args.ElementAt(0) is Syntax stx) {
+            return Continuation.ApplyDelegate(k, Syntax.ToDatum(stx));
         } else {
             return Error(k, $"datum->syntax: expected first argument to be syntax, but got {args.ElementAt(0)}");
         }

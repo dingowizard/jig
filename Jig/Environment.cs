@@ -22,6 +22,7 @@ public class Environment : IEnvironment {
         _dict.Add(new Form.Symbol("syntax->list"), new Procedure( (Builtin)Builtins.syntax_to_list));
         _dict.Add(new Form.Symbol("syntax?"), new Procedure( (Builtin)Builtins.syntax_p));
         _dict.Add(new Form.Symbol("datum->syntax"), new Procedure( (Builtin)Builtins.datum_to_syntax));
+        _dict.Add(new Form.Symbol("syntax->datum"), new Procedure( (Builtin)Builtins.syntax_to_datum));
         _dict.Add(new Form.Symbol("expand"), new Procedure( (Builtin)Builtins.expand));
         _dict.Add(new Form.Symbol("expand-once"), new Procedure( (Builtin)Builtins.expand_once));
         _dict.Add(new Form.Symbol("pair?"), new Procedure( (Builtin)Builtins.pair_p));
