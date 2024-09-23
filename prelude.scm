@@ -44,6 +44,14 @@
     (if (null? xs)
         init
         (fold fn (fn (car xs) init) (cdr xs)))))
+(define compose2
+    (lambda (f1 f2)
+      (lambda (x)
+        (f2 (f1 x)))))
+
+(define compose
+    (lambda xs
+      (fold compose2 (lambda (x) x) xs)))
 
 (define reverse
   (lambda (xs)
@@ -236,21 +244,47 @@
          (match (cdr (syntax->list stx))
             ((test . bodies) `(if ,test (begin ,@bodies)))))))
 
+; (define-syntax do
+;   (lambda (stx)
+;     (let* ((stx-list (syntax->list stx))
+;            (bs (map syntax->list (syntax->list (cadr stx-list))))
+;            (ps (map car bs))
+;            (inits (map cadr bs))
+;            (incrs (map caddr bs))
+;            (test (car (syntax->list (caddr stx-list))))
+;            (result (if (null? (cdr (syntax->list (caddr stx-list))))
+;                        (quote-syntax (void))
+;                        (cadr (syntax->list (caddr stx-list)))))
+;            (body (cdddr stx-list)))
+;       (datum->syntax
+;        stx
+;        `((lambda () (define loop (lambda ,ps (if ,test ,result (begin ,@body (loop ,@incrs))))) (loop ,@inits)))))))
+
 (define-syntax do
-  (lambda (stx)
-    (let* ((stx-list (syntax->list stx))
-           (bs (map syntax->list (syntax->list (cadr stx-list))))
-           (ps (map car bs))
-           (inits (map cadr bs))
-           (incrs (map caddr bs))
-           (test (car (syntax->list (caddr stx-list))))
-           (result (if (null? (cdr (syntax->list (caddr stx-list))))
-                       (quote-syntax (void))
-                       (cadr (syntax->list (caddr stx-list)))))
-           (body (cdddr stx-list)))
+   (lambda (stx)
       (datum->syntax
-       stx
-       `((lambda () (define loop (lambda ,ps (if ,test ,result (begin ,@body (loop ,@incrs))))) (loop ,@inits)))))))
+         stx
+         (match-syntax stx
+            ((do ((i init incr) . vars)
+                 (test result))
+             `((lambda ()
+                  (define loop
+                     (lambda ,(cons i (map (compose car syntax-e) vars))
+                        (if ,test
+                            ,result
+                            (loop ,@(cons incr (map (compose caddr syntax-e) vars))))))
+                  (loop ,@(cons init (map (compose cadr syntax-e) vars))))))
+            ((do ((i init incr) . vars)
+                 (test result) . bodies)
+             `((lambda ()
+                  (define loop
+                     (lambda ,(cons i (map (lambda (x) (car (syntax-e x))) vars))
+                        (if ,test
+                            ,result
+                            (begin ,@bodies
+                                   (loop ,@(cons incr (map (lambda (x) (caddr (syntax-e x))) vars)))))))
+                  (loop ,@(cons init (map (lambda (x) (cadr (syntax-e x))) vars))))))))))
+
 
 (define dynamic-wind #f)
 

@@ -20,7 +20,7 @@ public class Transformer : LiteralExpr<Delegate> {
         }
         // TODO: if Error is called somewhere in execution of transformer, we get null result
         // TODO: When the assertion fails, stdin is all fucked up
-        Debug.Assert(result is not null);
+        if (result is null) {throw new Exception($"Transformer.Apply: macro application failed with error");}
         return result as Syntax ?? throw new Exception($"transformer must return a syntax object. (got '{result}')");
 
     }

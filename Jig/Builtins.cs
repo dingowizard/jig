@@ -22,14 +22,14 @@ internal static partial class Builtins {
 
 
     public static Thunk? car (Delegate k, List args) {
-        if (args is List.NonEmpty properList) {
+        if (args is INonEmptyList properList) {
             return properList.Car switch
             {
                 IPair pair => Continuation.ApplyDelegate(k, pair.Car),
                 _ => Error(k, $"car: expected pair but got {properList.Car}"),
             };
         } else {
-            return Error(k, "car: expected one argument but got none");
+            return Error(k, $"car: expected one argument but got {args}");
         }
     }
 

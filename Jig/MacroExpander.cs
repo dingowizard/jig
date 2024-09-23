@@ -40,7 +40,7 @@ public class MacroExpander {
         #pragma warning disable CS8600
         Syntax.Identifier maxID = candidates.MaxBy<Syntax.Identifier, int>(i => i.ScopeSet.Count);// ?? throw new Exception("impossible");
         Debug.Assert(maxID is not null);
-#pragma warning restore CS8600
+        #pragma warning restore CS8600
         CheckUnambiguous(maxID, candidates);
         binding = Bindings[maxID];
         return true;
