@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 
 namespace Jig;
 
-public abstract class SyntaxList : List<Syntax>, IEnumerable<Syntax>, IList<Syntax> {
+public abstract class SyntaxList : List<Syntax> {
 
 
     public static new SyntaxList.Empty Null {get;} = new Empty();

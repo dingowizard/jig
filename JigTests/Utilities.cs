@@ -38,6 +38,10 @@ public static class Utilities {
         return _bareInterp.InterpretSequenceReadSyntax(inputs);
     }
 
+    public static string BareInterpretSequenceReadSyntax(params string[] inputs) {
+        return _bareInterp.InterpretSequenceReadSyntax(inputs);
+    }
+
     public static string BareInterpretMultipleValues(string input) {
         return _bareInterp.InterpretMultipleValues(input);
     }

@@ -124,25 +124,23 @@ internal static partial class Builtins {
 
     }
 
-    private static Syntax MakeCall(string functionName, params Syntax[] args) {
+    private static Syntax MakeCallFromName(string functionName, params Syntax[] args) {
         var syntaxList = new System.Collections.Generic.List<Syntax>{
             new Syntax.Identifier(new Form.Symbol(functionName))
         }.Concat(args).ToSyntaxList();
         return new Syntax(syntaxList);
-        
-
-
     }
+
     private static Syntax MakeConditionForMatchClause(Syntax x, Syntax pattern) {
         return Syntax.E(pattern) switch
         {
-            Number => MakeCall("=", pattern, x),
-            Bool => MakeCall("eqv?", pattern, x),
-            Syntax => MakeCall("eqv?", pattern, x),
-            IEmptyList => MakeCall("null?", x),
+            Number => MakeCallFromName("=", pattern, x),
+            Bool => MakeCallFromName("eqv?", pattern, x),
+            Syntax => MakeCallFromName("eqv?", pattern, x),
+            IEmptyList => MakeCallFromName("null?", x),
             Form.Symbol => new Syntax.Literal(Bool.True),
-            SyntaxList syntaxList => MakeConditionForMatchClause(MakeCall("syntax-e", x), syntaxList),
-            IPair pair => MakeConditionForMatchClause(MakeCall("syntax-e", x), pair.Car, pair.Cdr),
+            SyntaxList syntaxList => MakeConditionForMatchClause(MakeCallFromName("syntax-e", x), syntaxList),
+            IPair pair => MakeConditionForMatchClause(MakeCallFromName("syntax-e", x), pair.Car, pair.Cdr),
             _ => throw new NotImplementedException($"x = {x.Print()} and pattern = {pattern.Print()}"),
         };
     }
@@ -151,18 +149,18 @@ internal static partial class Builtins {
     {
         Syntax carSyntax = car as Syntax ?? throw new Exception();
         if (cdr is Syntax cdrSyntax) {
-            return MakeCall(
+            return MakeCallFromName(
                 "and",
-                MakeCall("pair?", x),
-                MakeConditionForMatchClause(MakeCall("car", x), carSyntax),
-                MakeConditionForMatchClause(MakeCall("cdr", x), cdrSyntax));
+                MakeCallFromName("pair?", x),
+                MakeConditionForMatchClause(MakeCallFromName("car", x), carSyntax),
+                MakeConditionForMatchClause(MakeCallFromName("cdr", x), cdrSyntax));
         } else {
             if (cdr is IPair p) {
-                return MakeCall(
+                return MakeCallFromName(
                     "and",
-                    MakeCall("pair?", x),
-                        MakeConditionForMatchClause(MakeCall("car", x), carSyntax),
-                        MakeConditionForMatchClause(MakeCall("cdr", x), p.Car, p.Cdr));
+                    MakeCallFromName("pair?", x),
+                        MakeConditionForMatchClause(MakeCallFromName("car", x), carSyntax),
+                        MakeConditionForMatchClause(MakeCallFromName("cdr", x), p.Car, p.Cdr));
             } else {
                 throw new NotImplementedException();
             }
@@ -171,15 +169,15 @@ internal static partial class Builtins {
 
     private static Syntax MakeConditionForMatchClause(Syntax x, SyntaxList pattern) {
         if (pattern.ElementAt<Syntax>(0) is Syntax.Identifier id && id.Symbol.Name == "quote") {
-            return MakeCall("eqv?", x, new Syntax(pattern));
+            return MakeCallFromName("eqv?", x, new Syntax(pattern));
         }
         if (pattern.ElementAt<Syntax>(0) is Syntax.Identifier q && q.Symbol.Name == "quote-syntax") {
-            return MakeCall("eqv?", x, new Syntax(pattern));
+            return MakeCallFromName("eqv?", x, new Syntax(pattern));
         }
         System.Collections.Generic.List<Syntax> firstPart = [
             new Syntax.Identifier(new Form.Symbol("and")),
-            MakeCall("list?", x),
-            MakeCall("=", MakeCall("length", x), new Syntax.Literal(new Integer(pattern.Count<Syntax>())))
+            MakeCallFromName("list?", x),
+            MakeCallFromName("=", MakeCallFromName("length", x), new Syntax.Literal(new Integer(pattern.Count<Syntax>())))
         ];
         var secondPart = new System.Collections.Generic.List<Syntax>();
         for(int i = 0; i < pattern.Count<Syntax>(); i++) {
@@ -189,7 +187,7 @@ internal static partial class Builtins {
     }
 
     private static Syntax NthElementOfList(int i, Syntax x) {
-        return MakeCall("list-ref", x, new Syntax.Literal(new Integer(i)));
+        return MakeCallFromName("list-ref", x, new Syntax.Literal(new Integer(i)));
         // while (i > 0) {
         //     x = new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Form.Symbol("cdr")), x));
         //     i--;
@@ -227,18 +225,18 @@ internal static partial class Builtins {
             Number => SyntaxList.Null,
             Bool => SyntaxList.Null,
             Form.Symbol => x,
-            SyntaxList stxList => ArgsForLambdaForMatchClauseThen(MakeCall("syntax-e", x), stxList),
-            IPair pair => ArgsForLambdaForMatchClauseThen(MakeCall("syntax-e", x), pair),
+            SyntaxList stxList => ArgsForLambdaForMatchClauseThen(MakeCallFromName("syntax-e", x), stxList),
+            IPair pair => ArgsForLambdaForMatchClauseThen(MakeCallFromName("syntax-e", x), pair),
             _ => throw new NotImplementedException(),
         };
     }
     private static IForm ArgsForLambdaForMatchClauseThen(Syntax x, IPair pair) {
         return Pair.Cons(
                 ArgsForLambdaForMatchClauseThen(
-                    x: MakeCall("car", x),
+                    x: MakeCallFromName("car", x),
                     pattern: pair.Car),
                 ArgsForLambdaForMatchClauseThen(
-                    x: MakeCall("cdr", x),
+                    x: MakeCallFromName("cdr", x),
                     pattern: pair.Cdr));
     }
 

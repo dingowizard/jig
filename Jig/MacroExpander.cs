@@ -98,14 +98,9 @@ public class MacroExpander {
         // Console.WriteLine($"define-syntax: {id}");
         id.Symbol.Binding = new Binding();
         Bindings.Add(id, id.Symbol.Binding);
-        Syntax shouldBeLambdaExpr = stxList.ElementAt<Syntax>(2);
-        if (!Form.IsKeyword("lambda", shouldBeLambdaExpr)) {
-            throw new Exception($"define-syntax: expected 2nd argument to be a transformer. Got {stxList.ElementAt<Syntax>(2)}");
-        }
-
         // TODO: use ParsedLambda.TryParse? (for vars in set! and define as well?)
-        ParsedLambda expandedLambdaExpr = (ParsedLambda)Expand(stxList.ElementAt<Syntax>(2), ee);
-        Transformer transformer = EvaluateTransformer(expandedLambdaExpr);
+        ParsedLambda expandedLambdaExpr = Expand(stxList.ElementAt<Syntax>(2), ee) as ParsedLambda ?? throw new Exception($"define-syntax: expected 2nd argument to be a transformer. Got {stxList.ElementAt<Syntax>(2)}");
+        Transformer transformer = EvaluateTransformer(expandedLambdaExpr); // TODO: should this part actually happen at runtime? then eval would need expansion env
         ee.AddTransformer(id.Symbol, transformer);
         Syntax result = new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Form.Symbol("quote")), id), srcLoc);
         if (ParsedLiteral.TryParse(result, out ParsedLiteral? lit)) {
@@ -640,6 +635,7 @@ public class ExpansionEnvironment {
             {new Form.Symbol("match"), new Transformer((Func<Delegate, Form, Thunk?>) match_macro)},
             {new Form.Symbol("match-syntax"), new Transformer((Func<Delegate, Form, Thunk?>) Builtins.match_syntax_macro)},
             {new Form.Symbol("quasiquote"), new Transformer((Func<Delegate, Form, Thunk?>) quasiquote_macro)},
+            {new Form.Symbol("syntax-rules"), new Transformer((Func<Delegate, Form, Thunk?>) Builtins.SyntaxRules.macro)},
             }
         );
 

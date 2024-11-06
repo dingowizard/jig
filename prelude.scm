@@ -44,6 +44,7 @@
     (if (null? xs)
         init
         (fold fn (fn (car xs) init) (cdr xs)))))
+
 (define compose2
     (lambda (f1 f2)
       (lambda (x)

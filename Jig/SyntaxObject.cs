@@ -1,7 +1,4 @@
-using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Numerics;
-using Microsoft.Scripting.Utils;
 
 namespace Jig;
 
@@ -20,7 +17,7 @@ public class Syntax : Form {
             return Pair.Cons(ToDatum(stxPair.Car), ToDatum(stxPair.Cdr));
         }
         if (x is SyntaxList stxList) {
-            return stxList.Select<Syntax, IForm>(s => ToDatum(s)).ToJigList();
+            return stxList.Select<Syntax, IForm>(ToDatum).ToJigList();
         }
         if (x is IPair p) {
             return ToDatum(p);
@@ -55,16 +52,18 @@ public class Syntax : Form {
 
     }
 
-    private static void AddScope(IForm form, Scope scope) {
-        if (form is Syntax stx) {
-            AddScope(stx, scope);
-            return;
-        } else if (form is IPair pair) {
-            AddScope(pair.Car, scope);
-            AddScope(pair.Cdr, scope);
-            return;
+    private static void AddScope(IForm form, Scope scope)
+    {
+        switch (form)
+        {
+            case Syntax stx:
+                AddScope(stx, scope);
+                return;
+            case IPair pair:
+                AddScope(pair.Car, scope);
+                AddScope(pair.Cdr, scope);
+                return;
         }
-
     }
 
     internal static void AddScope(Syntax stx, Scope scope) {
@@ -260,26 +259,19 @@ public class Syntax : Form {
 
 }
 
-public struct SrcLoc {
-    public SrcLoc(string src, int line, int column, int position, int span) {
-        Source = src;
-        Line = line;
-        Column = column;
-        Position = position;
-        Span = span;
-
-    }
+public struct SrcLoc(string src, int line, int column, int position, int span)
+{
     public static SrcLoc WithNewEnd(SrcLoc start, int endPosition) {
         return new SrcLoc(start.Source, start.Line, start.Column, start.Position, endPosition - start.Position);
     }
 
     public override string ToString() => $"(srcloc {Source} {Line} {Column} {Position} {Span})";
 
-    public string Source;
-    public int Line;
-    public int Column;
-    public int Position;
-    public int Span;
+    public readonly string Source = src;
+    public readonly int Line = line;
+    public readonly int Column = column;
+    public readonly int Position = position;
+    public readonly int Span = span;
 
     internal static SrcLoc Combine(SrcLoc first, SrcLoc last) {
         return new SrcLoc(first.Source,

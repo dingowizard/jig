@@ -1,7 +1,6 @@
-using System.Linq;
 namespace Jig;
 
-public abstract class List<T> : List, IList<T>, IEnumerable<T> where T : Form
+public abstract class List<T> : List, IList<T> where T : Form
 {
     IEnumerator<T> IEnumerable<T>.GetEnumerator() {
         IList<T> theList = this;
