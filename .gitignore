@@ -16,5 +16,6 @@ repl
 *nettrace*
 
 .vscode/
+.idea/
 
 .fake
