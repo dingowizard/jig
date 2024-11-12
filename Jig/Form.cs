@@ -1,12 +1,10 @@
-using System.Diagnostics.CodeAnalysis;
-
 namespace Jig;
 
-public abstract partial class Form : IForm {
+public abstract class Form : IForm {
 
     // TODO: decide whether it makes sense to have all of these as nested classes
 
-    public readonly static VoidType Void = new();
+    public static readonly VoidType Void = new();
 
     public class VoidType : LiteralExpr {
         internal VoidType() {}
@@ -41,11 +39,11 @@ public abstract partial class Form : IForm {
         public virtual string Name {get;}
 
         public override bool Equals(object? obj) {
-            if (obj is null) return false;
-            if (obj is Form.Symbol sym2) {
-                return this.Name == sym2.Name;
-            }
-            return false;
+            return obj switch {
+                null => false,
+                Symbol sym2 => this.Name == sym2.Name,
+                _ => false
+            };
         }
 
         public override int GetHashCode() {
@@ -64,9 +62,13 @@ public abstract partial class Form : IForm {
 
     internal static bool IsSymbol(IForm ast)
     {
-        if (ast is Form.Symbol) return true;
-        if (ast is Syntax.Identifier) return true;
-        return false;
+        switch (ast) {
+            case Symbol:
+            case Syntax.Identifier:
+                return true;
+            default:
+                return false;
+        }
     }
 
     internal static bool IsNonEmptyList(IForm ast)
@@ -82,16 +84,19 @@ public abstract partial class Form : IForm {
     
 
     internal static bool IsKeyword(string name, IForm ast) {
-        if (ast is Syntax stx) {
-            if (Syntax.E(stx) is List list) {
+        switch (ast) {
+            case Syntax stx when Syntax.E(stx) is List list: {
                 if (list.ElementAt(0) is Syntax.Identifier id) {
                     return id.Symbol.Name == name;
                 } return false;
-            } return false;
+            }
+            case Syntax:
+                return false;
+            case List.NonEmpty l:
+                return l.Car is Symbol sym && sym.Name == name;
+            default:
+                return false;
         }
-        if (ast is List.NonEmpty l) {
-            return l.Car is Form.Symbol sym && sym.Name == name;
-        } return false;
     }
 
 }
@@ -121,7 +126,7 @@ public abstract class Keyword : Form.Symbol {
     }
     public static bool Is<T>(Form car) where T : Keyword => car switch {
             Syntax.Identifier id => id.Symbol is T,
-            Form.Symbol symbol => symbol is T,
+            Symbol symbol => symbol is T,
             _ => false,
         };
 }

@@ -144,25 +144,22 @@ internal static partial class Builtins {
 
     }
 
-    public static Thunk? gt(Delegate k, IList args) {
-        if (args is List.NonEmpty nonEmpty) {
-            if (nonEmpty.Car is not Number first) return Error(k, $">: expected arguments to be numbers but got {nonEmpty.Car}");
-            args = nonEmpty.Rest;
-            while (args is List.NonEmpty rest) {
-                if (rest.Car is not Number second) return Error(k, $">: expected arguments to be numbers but got {rest.Car}");
-                Bool b = first > second;
-                if (b.Value) {
-                    first = second;
-                    args = rest.Rest;
-                    continue;
-                } else {
-                    return Continuation.ApplyDelegate(k, b);
-                }
-            }
-            return Continuation.ApplyDelegate(k, Bool.True);
-        } else {
-            return Error(k, ">: expected at least one argument but got none");
+    public static Thunk? gt(Delegate k, IList args)
+    {
+        if (args is not List.NonEmpty nonEmpty) return Error(k, ">: expected at least one argument but got none");
+        if (nonEmpty.Car is not Number first) return Error(k, $">: expected arguments to be numbers but got {nonEmpty.Car}");
+        args = nonEmpty.Rest;
+        while (args is List.NonEmpty rest) {
+            if (rest.Car is not Number second) return Error(k, $">: expected arguments to be numbers but got {rest.Car}");
+            Bool b = first > second;
+            if (!b.Value) return Continuation.ApplyDelegate(k, b);
+            first = second;
+            args = rest.Rest;
+            continue;
+
         }
+        return Continuation.ApplyDelegate(k, Bool.True);
+
     }
 
     public static Thunk? eq_p(Delegate k, List args) {

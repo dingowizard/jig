@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -325,11 +324,13 @@ internal abstract class ET : Expression {
         }
 
         public override Expression Body {get;}
-        private static bool IsNotFalse(Form x) {
+        private static bool IsNotFalse(Form x)
+        {
             if (x is Bool boolExpr) {
-                return boolExpr.Value != false;
+                return boolExpr.Value;
             }
-            else return true;
+
+            return true;
         }
     }
 
@@ -422,7 +423,8 @@ internal abstract class ET : Expression {
 
         }
 
-        public DefineET(LexicalContext lexVars, List.NonEmpty list) : base() {
+        public DefineET(LexicalContext lexVars, List.NonEmpty list)
+        {
             IForm sym = list.ElementAt(1);
             IForm valExpr = list.ElementAt(2);
             ParameterExpression val = Expression.Parameter(typeof(Form), "val");
@@ -499,7 +501,7 @@ internal abstract class ET : Expression {
                 // parameters are like (a b c)
                 lambdaScope = scope.Extend(parameters.Required.Select(i => i.Symbol));
                 LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
-                LambdaExpressionParams = new ParameterExpression[] {k}.Concat(lambdaScope.Parameters).ToArray();
+                LambdaExpressionParams = new[] {k}.Concat(lambdaScope.Parameters).ToArray();
                 Body =
                     Expression.Convert(
                         DynInv(kParam,

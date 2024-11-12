@@ -30,19 +30,20 @@ internal static partial class Builtins {
     }
 
 
-    private static SyntaxList MakeIfs (Syntax x, IEnumerable<Syntax> clauses) {
+    private static SyntaxList MakeIfs (Syntax x, IEnumerable<Syntax> xs) {
         // TODO: clean this up
-        if (!clauses.Any()) throw new Exception();
-        Syntax elseBranch =
-            clauses.Count() == 1 ?
+        var clauses = xs as Syntax[] ?? xs.ToArray();
+        if (clauses.Length == 0) throw new Exception();
+        var elseBranch =
+            clauses.Length == 1 ?
             new Syntax(SyntaxList.FromParams(
                 new Syntax.Identifier(new Form.Symbol("error")),
                 new Syntax.Literal(new String("match: couldn't find a match."))
             )) : 
             new Syntax(MakeIfs(x, clauses.Skip(1)));
-          
-        SyntaxList.NonEmpty thisClause =
-            Syntax.E(clauses.ElementAt(0)) as SyntaxList.NonEmpty ?? throw new Exception(); // TODO: should be syntax error
+
+        var thisClause = Syntax.E(clauses[0]) as SyntaxList.NonEmpty
+                         ?? throw new Exception(); // TODO: should be syntax error
         return (SyntaxList)SyntaxList.FromParams(
             new Syntax.Identifier(new Form.Symbol("if")),
             MakeConditionForMatchClause(x, thisClause.First),

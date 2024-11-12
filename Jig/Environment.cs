@@ -54,19 +54,9 @@ public class Environment : IEnvironment {
         // _dict.Add(new Expr.Symbol("error"), new Procedure( (Builtin)Builtins.error));
     }
 
-    public IEnumerable<Form.Symbol> Symbols {
+    public IEnumerable<Form.Symbol> Symbols => _dict.Keys;
 
-        get {
-            return _dict.Keys;
-        }
-
-    }
-
-    public Form this[Form.Symbol symbol] {
-        get {
-            return _dict[symbol];
-        }
-    }
+    public Form this[Form.Symbol symbol] => _dict[symbol];
 
     public Thunk? Set(Delegate k, Form sym, Form v) {
         Syntax.Identifier? id = sym as Syntax.Identifier;
@@ -80,13 +70,11 @@ public class Environment : IEnvironment {
     }
 
     public Thunk? Define (Delegate k, Form sym, Form v) {
-        Form.Symbol s = sym is Syntax.Identifier i ? i.Symbol : ((Form.Symbol) sym);
-        if (_dict.ContainsKey(s)) {
-            _dict[s] = v;
-            return Continuation.ApplyDelegate(k, Form.Void);
-        }
-        _dict.Add(s, v);
+        var s = sym is Syntax.Identifier i ? i.Symbol : ((Form.Symbol) sym);
+        if (_dict.TryAdd(s, v)) return Continuation.ApplyDelegate(k, Form.Void);
+        _dict[s] = v;
         return Continuation.ApplyDelegate(k, Form.Void);
+
     }
 
     public Thunk? LookUp (Delegate k, Form expr) {

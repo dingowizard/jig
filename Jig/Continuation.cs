@@ -2,14 +2,12 @@ using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Jig;
-public class Continuation : Procedure {
-
-    public Continuation(Delegate d) : base (d) {}
-
+public class Continuation(Delegate d) : Procedure(d)
+{
     public Thunk? Apply(List args) {
         switch (Value) {
-            case ContinuationAny cany:
-                return cany(args.ToArray());
+            case ContinuationAny cAny:
+                return  cAny(args.ToArray());
             case ListContinuation lc:
                 return lc(args);
             case PairContinuation pc:
@@ -27,7 +25,7 @@ public class Continuation : Procedure {
             case ImproperListContinuation7 ic7:
                 return ic7(args.ElementAt(0), args.ElementAt(1), args.ElementAt(2), args.ElementAt(3), args.ElementAt(4), args.ElementAt(5), args.ElementAt(6), List.NewList(args.Skip(7).ToArray()));
             default:
-                return  (Thunk?) Value.DynamicInvoke(args.ToArray());
+                return  (Thunk?) Value.DynamicInvoke(args.ToArray<object?>());
         }
 
     }

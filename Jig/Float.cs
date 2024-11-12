@@ -1,11 +1,11 @@
 namespace Jig;
 public class Float(double d) : Number<double>(d) {
     public override bool Equals(object? obj) {
-        if (obj is null) return false;
-        if (obj is Float lit) {
-            return this.Value.Equals(lit.Value);
-        }
-        return false;
+        return obj switch {
+            null => false,
+            Float lit => this.Value.Equals(lit.Value),
+            _ => false
+        };
     }
 
     public override int GetHashCode() {
@@ -15,8 +15,8 @@ public class Float(double d) : Number<double>(d) {
     public static Bool operator ==(Float d1, Number n) {
         return n switch
         {
-            Integer i2 => d1.Value == i2.Value ? Bool.True : Bool.False,
-            Float d2 => d1.Value == d2.Value ? Bool.True : Bool.False,
+            Integer i2 => Math.Abs(d1.Value - i2.Value) < double.Epsilon ? Bool.True : Bool.False,
+            Float d2 => Math.Abs(d1.Value - d2.Value) < double.Epsilon ? Bool.True : Bool.False,
             _ => throw new NotImplementedException(),
         };
     }
@@ -24,8 +24,8 @@ public class Float(double d) : Number<double>(d) {
     public static Bool operator !=(Float d1, Number n) {
         return n switch
         {
-            Integer i2 => d1.Value != i2.Value ? Bool.True : Bool.False,
-            Float d2 => d1.Value != d2.Value ? Bool.True : Bool.False,
+            Integer i2 => Math.Abs(d1.Value - i2.Value) > double.Epsilon ? Bool.True : Bool.False,
+            Float d2 => Math.Abs(d1.Value - d2.Value) > double.Epsilon ? Bool.True : Bool.False,
             _ => throw new NotImplementedException(),
         };
     }
