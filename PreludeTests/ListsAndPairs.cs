@@ -66,15 +66,25 @@ public class ListsAndPairs
     }
 
     [TestMethod]
-    [DataRow("(fold + 0 '(1 2 3 4 5 6 7 8 9 10))", "55")]
-    [DataRow("(fold cons '() '(1 2 3 4 5 6 7 8 9 10))", "(10 9 8 7 6 5 4 3 2 1)")]
-    [DataRow("(fold * 1 '(1 2 3 4 5 6 7))", "5040")]
-    public void Fold(string input, string expected) {
+    [DataRow("(fold-left + 0 '(1 2 3 4 5 6 7 8 9 10))", "55")]
+    [DataRow("(fold-left cons '() '(1 2 3 4 5 6 7 8 9 10))", "(10 9 8 7 6 5 4 3 2 1)")]
+    [DataRow("(fold-left * 1 '(1 2 3 4 5 6 7))", "5040")]
+    public void FoldLeft(string input, string expected) {
 
         string actual = Utilities.PreludeInterp.InterpretUsingReadSyntax(input);
         Assert.AreEqual(expected, actual);
     }
 
+    [TestMethod]
+    [DataRow("(fold-right + 0 '(1 2 3 4 5 6 7 8 9 10))", "55")]
+    [DataRow("(fold-right cons '() '(1 2 3 4 5 6 7 8 9 10))", "(1 2 3 4 5 6 7 8 9 10)")]
+    [DataRow("(fold-right (lambda (h acc) (+ 1 acc)) 0 '(a b c d))", "4")]
+    [DataRow("(fold-right (lambda (h acc) (cons h acc)) '(4 5 6) '(1 2 3))", "(1 2 3 4 5 6)")]
+    public void FoldRight(string input, string expected) {
+
+        string actual = Utilities.PreludeInterp.InterpretUsingReadSyntax(input);
+        Assert.AreEqual(expected, actual);
+    }
     [TestMethod]
     [DataRow("(reverse '())", "()")]
     [DataRow("(reverse '(1 2 3 4 5))", "(5 4 3 2 1)")]

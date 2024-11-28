@@ -39,11 +39,17 @@
 
 (define not (lambda (x) (if x #f #t)))
 
-(define fold
+(define fold-left
   (lambda (fn init xs)
     (if (null? xs)
         init
-        (fold fn (fn (car xs) init) (cdr xs)))))
+        (fold-left fn (fn (car xs) init) (cdr xs)))))
+
+(define fold-right
+  (lambda (fn init xs)
+    (if (null? xs)
+        init
+        (fn (car xs) (fold-right fn init (cdr xs))))))
 
 (define compose2
     (lambda (f1 f2)
@@ -52,11 +58,11 @@
 
 (define compose
     (lambda xs
-      (fold compose2 (lambda (x) x) xs)))
+      (fold-left compose2 (lambda (x) x) xs)))
 
 (define reverse
   (lambda (xs)
-    (fold cons (list) xs)))
+    (fold-left cons (list) xs)))
 
 ;; TODO: why do we need to define map1? we get infinite loop otherwise
 (define map
