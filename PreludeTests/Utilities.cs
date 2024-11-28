@@ -15,6 +15,10 @@ public static class Utilities {
 
     }
 
+    public static string InterpretSequenceReadSyntax(params string[] inputs) {
+        return PreludeInterp.InterpretSequenceReadSyntax(inputs);
+    }
+
 }
 
 public class Interpreter : IInterpreter {

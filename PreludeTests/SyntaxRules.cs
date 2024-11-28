@@ -1,4 +1,4 @@
-namespace JigTests.Core;
+namespace PreludeTests;
 
 [TestClass]
 public class SyntaxRules
@@ -7,7 +7,7 @@ public class SyntaxRules
     [TestMethod]
     public void Call2()
     {
-        var actual = Utilities.BareInterpretSequenceReadSyntax(
+        var actual = Utilities.InterpretSequenceReadSyntax(
             "(define-syntax call2 (syntax-rules () ((_ a b c) (a b c))))",
             "(call2 + 1 2)"
         );
@@ -20,7 +20,7 @@ public class SyntaxRules
     [DataRow("(and2 1 2)", "2")]
     public void And2(string macroUse, string expected)
     {
-        var actual = Utilities.BareInterpretSequenceReadSyntax(
+        var actual = Utilities.InterpretSequenceReadSyntax(
             """
             (define-syntax and2
                (syntax-rules ()
@@ -34,7 +34,7 @@ public class SyntaxRules
     [TestMethod]
     public void Hygiene()
     {
-        var actual = Utilities.BareInterpretSequenceReadSyntax(
+        var actual = Utilities.InterpretSequenceReadSyntax(
             """
             (define-syntax or2
                (syntax-rules ()
@@ -52,7 +52,7 @@ public class SyntaxRules
     [DataRow("(test b c)", "2")]
     [DataRow("(test d e f)", "3")]
     public void CountArgs(string macroUse, string expected) {
-        var actual = Utilities.BareInterpretSequenceReadSyntax(
+        var actual = Utilities.InterpretSequenceReadSyntax(
             @"(define-syntax test
                 (syntax-rules ()
                   ((test) 0)
@@ -71,7 +71,7 @@ public class SyntaxRules
     [DataRow("(test (a (b e) d) c)", "3")]
     [DataRow("(test (a . b) (c) d)", "4")]
     public void CorrectConditionsForPatternVars(string macroUse, string expected) {
-        var actual = Utilities.BareInterpretSequenceReadSyntax(
+        var actual = Utilities.InterpretSequenceReadSyntax(
             @"(define-syntax test
                 (syntax-rules ()
                   ((test) 0)
