@@ -163,7 +163,7 @@ internal abstract class ET : Expression {
             } else {
                 ParameterExpression? pe = scope.LookUp(variable.Identifier);
                 if (pe is null) {
-                    throw new Exception($"free variable: {variable.Identifier.Symbol}");
+                    throw new Exception($"free variable: {variable.Identifier.Symbol} @ {variable.Identifier.SrcLoc }");
                     // var v = Expression.Parameter(typeof(Expr));
                     // var k = Expression.Lambda<Continuation.OneArgDelegate>(Expression.Convert(DynInv(kParam, v), typeof(Thunk)), new ParameterExpression[] {v});
                     // Body = Expression.Call(envParam,
