@@ -64,7 +64,7 @@ ParsedExpr((Form)Pair.Cons(keyword, SyntaxList.FromIEnumerable(forms)), srcLoc) 
                                 bool definesAllowed,
                                 [NotNullWhen(returnValue: true)] out ParsedBegin? beginExpr)
     {
-        if (Syntax.E(stx) is not SyntaxList stxList)
+        if (Syntax.E(stx) is not SyntaxList.NonEmpty stxList)
         {
             beginExpr = null;
             return false;
@@ -165,12 +165,13 @@ public class ParsedDefine : ParsedExpr {
         Syntax.Identifier id = stxList.ElementAt<Syntax>(1) as Syntax.Identifier
             ?? throw new Exception($"syntax error: malformed define: expected first argument to be an identifier. Got {stxList.ElementAt<Syntax>(1)}");
         // Console.WriteLine($"parsing define {stx}: {id} has scope set {string.Join(", ", id.ScopeSet)}");
-        if (!expander.Bindings.ContainsKey(id)) {
+        // TODO: hm...
+        // if (!expander.Bindings.ContainsKey(id)) {
             if (id.ScopeSet.Count != 0) {
                 id.Symbol.Binding = new Binding();
-                expander.Bindings.Add(id, id.Symbol.Binding);
+                expander.AddBinding(id, id.Symbol.Binding);
             }
-        }
+        //}
         var x = stxList.ElementAt<Syntax>(2);
         defineExpr = new ParsedDefine(stxList.ElementAt<Syntax>(0),
                                     (ParsedVariable)expander.Expand(id, ee),
@@ -207,11 +208,15 @@ public class ParsedLambda : ParsedExpr {
             lambdaExpr = null;
             return false;
         }
-        System.Collections.Generic.List<Syntax> xs = [];
-        xs.Add(stxList.ElementAt<Syntax>(0));
+        System.Collections.Generic.List<Syntax> xs = [
+            stxList.ElementAt<Syntax>(0)
+        ];
         var newScope = new Scope();
         var parameters = stxList.ElementAt<Syntax>(1);
         Syntax.AddScope(parameters, newScope);
+        if (Syntax.E(parameters) is SyntaxList sl && sl.Any<Syntax>(p => p is Syntax.Identifier { Symbol.Name: "y" })) {
+            Console.Error.WriteLine($"parsing lambda expr {stxList}");
+        }
         // create a new binding for each parameter
         LambdaParameters ps = LambdaParameters.Parse(parameters, expander, ee);
 
@@ -222,7 +227,6 @@ public class ParsedLambda : ParsedExpr {
             xs.Add(bodyExpr);
         }
         // TODO: ensure that bodies is non-empty here or in constructor
-        // return new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc);
         lambdaExpr = new ParsedLambda(xs.ElementAt(0), ps, (SyntaxList.NonEmpty)xs.Skip(2).ToSyntaxList(), stx.SrcLoc);
         return true;
     }
@@ -248,7 +252,10 @@ public class ParsedLambda : ParsedExpr {
                     }
                     Binding binding = new Binding();
                     id.Symbol.Binding = binding;
-                    expander.Bindings.Add(id, binding);
+                    if (id.Symbol.Name == "y") {
+                        Console.Error.WriteLine($"about to add {binding} to {id} {string.Join(", ", id.ScopeSet)}");
+                    }
+                    expander.AddBinding(id, binding);
                     namesSeen.Add(id.Symbol.Name);
                     required.Add(id);
                 }
@@ -262,7 +269,7 @@ public class ParsedLambda : ParsedExpr {
                 required.Add(id);
                 Binding binding = new Binding();
                 id.Symbol.Binding = binding;
-                expander.Bindings.Add(id, binding);
+                expander.AddBinding(id, binding);
                 while (pair.Cdr is IPair cdrPair) {
                     id = cdrPair.Car as Syntax.Identifier;
                     if (id is null) throw new Exception($"lambda: expected parameters to be identifiers, but got {pair.Car}");
@@ -271,7 +278,7 @@ public class ParsedLambda : ParsedExpr {
                     }
                     binding = new Binding();
                     id.Symbol.Binding = binding;
-                    expander.Bindings.Add(id, binding);
+                    expander.AddBinding(id, binding);
                     pair = cdrPair;
                     namesSeen.Add(id.Symbol.Name);
                     required.Add(id);
@@ -283,13 +290,13 @@ public class ParsedLambda : ParsedExpr {
                 }
                 binding = new Binding();
                 id.Symbol.Binding = binding;
-                expander.Bindings.Add(id, binding);
+                expander.AddBinding(id, binding);
                 namesSeen.Add(id.Symbol.Name);
                 rest = id;
             } else if (stx is Syntax.Identifier psId) {
                     Binding binding = new Binding();
                     psId.Symbol.Binding = binding;
-                    expander.Bindings.Add(psId, binding);
+                    expander.AddBinding(psId, binding);
                     rest = psId;
             } else if (Syntax.E(stx) is List.Empty) {
 

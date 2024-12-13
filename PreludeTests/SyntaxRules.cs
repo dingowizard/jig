@@ -67,36 +67,44 @@ public class SyntaxRules
     }
 
     [TestMethod]
-    [DataRow("(test)", "0")]
-    [DataRow("(test a)", "1")]
-    [DataRow("(test (a b) c)", "2")]
-    [DataRow("(test (a (b e) d) c)", "3")]
-    [DataRow("(test (a . b) (c) d)", "4")]
-    public void CorrectConditionsForPatternVars(string macroUse, string expected) {
+    [DataRow("(test)", "(test)", "#t")]
+    [DataRow("(test)", "(test 1)", "#f")]
+    [DataRow("(test a)", "(test 1)", "#t")]
+    [DataRow("(test a)", "(test 1 2)", "#f")]
+    [DataRow("(test a)", "(test (4 3 2 1))", "#t")]
+    [DataRow("(test a)", "(test (4 . 3))", "#t")]
+    [DataRow("(test (a b) c)", "(test (1 2) 3)", "#t")]
+    [DataRow("(test (a b) c)", "(test (1 2) (1 2 3 4 5))", "#t")]
+    [DataRow("(test (a b) c)", "(test (1 2 3) 3)", "#f")]
+    [DataRow("(test (a b) c)", "(test ((1 1) 2) 3)", "#t")]
+    [DataRow("(test (a (b e) d) c)", "(test (1 (2 3) 4) 5)", "#t")]
+    [DataRow("(test (a (b e) d) c)", "(test (1 (2 (1 1)) 4) 5)", "#t")]
+    [DataRow("(test (a . b) (c) d)", "(test (1 . 2) (3) 4)", "#t")]
+    [DataRow("(test (a . b) (c) d)", "(test (1 . (2 . 2)) (3) 4)", "#t")]
+    [DataRow("(test (a . (b . e)) (c) d)", "(test (1 . (2 . 2)) (3) 4)", "#t")]
+    public void CorrectConditionsForPatternVars(string pattern, string macroUse, string expected) {
         var actual = Utilities.InterpretSequenceReadSyntax(
-            """
-            (define-syntax test
-              (syntax-rules ()
-                ((test) 0)
-                ((test _) 1)
-                ((test (_ _) _) 2)
-                ((test (_ (_ _) _) _) 3)
-                ((test (_ . _) (_) _) 4)))
-            """,
+            $"(define-syntax test (syntax-rules () ({pattern} #t) ((a ...) #f)))",
             macroUse
         );
         Assert.AreEqual(expected, actual);
     }
     
     [TestMethod]
-    [DataRow("(test a ...)", "(test)")]
-    [DataRow("(test a ...)", "(test 1)")]
-    public void CorrectConditionsWithEllipses(string pattern, string macroUse) {
+    [DataRow("(test a ...)", "(test)", "#t")]
+    [DataRow("(test a b ...)", "(test)", "#f")]
+    [DataRow("(test a ...)", "(test 1)", "#t")]
+    [DataRow("(test a b ...)", "(test 1)", "#t")]
+    [DataRow("(test (a b) ...)", "(test (1 2) (3 4) (5 6))", "#t")]
+    [DataRow("(test (a b) ...)", "(test (1 2) 3 4)", "#f")]
+    [DataRow("(test (a ...) ...)", "(test (1) (2 3 4) (5 6) (7 8 9 10 11 12))", "#t")]
+    [DataRow("(test (a b) ...)", "(test)", "#t")]
+    public void CorrectConditionsWithEllipses(string pattern, string macroUse, string expected) {
         var actual = Utilities.InterpretSequenceReadSyntax(
-            $"(define-syntax test (syntax-rules () ({pattern} #t)))",
+            $"(define-syntax test (syntax-rules () ({pattern} #t) ((a ...) #f)))",
             macroUse
         );
-        Assert.AreEqual("#t", actual);
+        Assert.AreEqual(expected, actual);
     }
 
     [TestMethod]
@@ -107,7 +115,7 @@ public class SyntaxRules
               (syntax-rules ()
                 ((my-append (a ...) ...) '(a ... ...))))
             """,
-            "(my-append '(1 2 3) '(4 5 6) '(7 8 9))"
+            "(my-append (1 2 3) (4 5 6) (7 8 9))"
         );
         Assert.AreEqual("(1 2 3 4 5 6 7 8 9)", actual);
         
@@ -116,6 +124,8 @@ public class SyntaxRules
     [TestMethod]
     [DataRow("(any-of-any)", "()")]
     [DataRow("(any-of-any 1)", "(1)")]
+    [DataRow("(any-of-any 1 2)", "(1 2)")]
+    [DataRow("(any-of-any 1 (2 3) 4)", "(1 (2 3) 4)")]
     public void AnyOfAny(string macroUse, string expected) {
         var actual = Utilities.InterpretSequenceReadSyntax(
             """
@@ -126,6 +136,20 @@ public class SyntaxRules
             macroUse
         );
         Assert.AreEqual(expected, actual);
+        
+    }
+
+    [TestMethod]
+    public void Let() {
+        var actual = Utilities.InterpretSequenceReadSyntax(
+            """
+            (define-syntax lit
+              (syntax-rules ()
+                ((lit ((p arg) ...) body0 bodies ...) ((lambda (p ...) body0 bodies ...) arg ...))))
+            """,
+            "(lit ((a 1) (b 2)) (+ a b))"
+        );
+        Assert.AreEqual("3", actual);
         
     }
 }

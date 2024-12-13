@@ -10,13 +10,32 @@ public class MacroExpander {
 
     public MacroExpander() {
 
-        Bindings = new Dictionary<Syntax.Identifier, Binding>();
+        _bindings = new Dictionary<Syntax.Identifier, Binding>();
     }
 
-    internal Dictionary<Syntax.Identifier, Binding> Bindings {get;}
+    public void AddBinding(Syntax.Identifier id, Binding binding) {
+        if (_bindings.ContainsKey(id)) {
+            Console.Error.WriteLine($"Expander.AddBinding: Duplicate binding '{id}'");
+            foreach (var kvp in _bindings) {
+                if (kvp.Key.Symbol.Name == id.Symbol.Name && kvp.Key.ScopeSet == id.ScopeSet) {
+                    Console.Error.WriteLine($"\ttrying to add {id.Symbol} which has scopeset \n\t\t{string.Join(", ", id.ScopeSet)}");
+                    Console.Error.WriteLine($"\tBut there is a key with the same name with scopeset \n\t\t{string.Join(", ", kvp.Key.ScopeSet)}");
+                    Console.Error.WriteLine($"\tThey have the same hash code? {kvp.Key.GetHashCode() == id.GetHashCode()}");
+                    Console.Error.WriteLine($"\tThey the same object? {ReferenceEquals(id, kvp.Key)}");
+
+                }
+            }
+
+            throw new Exception();
+        }
+
+        _bindings[id] = binding;
+    }
+
+    private Dictionary<Syntax.Identifier, Binding> _bindings {get;}
 
     IEnumerable<Syntax.Identifier> FindCandidateIdentifiers(Syntax.Identifier id) {
-        IEnumerable<Syntax.Identifier> sameName = Bindings.Keys.Where(i => i.Symbol.Name == id.Symbol.Name);
+        IEnumerable<Syntax.Identifier> sameName = _bindings.Keys.Where(i => i.Symbol.Name == id.Symbol.Name);
         // if (id.Symbol.Name == "a") {
         //     Console.WriteLine($"The search id -- {id} -- has the following scope sets: {string.Join(',', id.ScopeSet)}");
         //     Console.WriteLine($"Found {sameName.Count()} bindings with same name.");
@@ -42,7 +61,7 @@ public class MacroExpander {
         Debug.Assert(maxID is not null);
         #pragma warning restore CS8600
         CheckUnambiguous(maxID, candidates);
-        binding = Bindings[maxID];
+        binding = _bindings[maxID];
         return true;
     }
 
@@ -57,6 +76,7 @@ public class MacroExpander {
     }
 
     public  ParsedExpr Expand(Syntax stx, ExpansionEnvironment ee, bool definesAllowed = true, bool once = false) {
+        // Console.WriteLine($"Expanding {stx}");
         if (ParsedVariable.TryParse(stx, this, out ParsedVariable? parsedVar)) {
             return parsedVar;
         }
@@ -97,7 +117,7 @@ public class MacroExpander {
         Syntax.Identifier id = stxList.ElementAt<Syntax>(1) as Syntax.Identifier ?? throw new Exception() ;
         // Console.WriteLine($"define-syntax: {id}");
         id.Symbol.Binding = new Binding();
-        Bindings.Add(id, id.Symbol.Binding);
+        _bindings.Add(id, id.Symbol.Binding);
         // TODO: use ParsedLambda.TryParse? (for vars in set! and define as well?)
         ParsedLambda expandedLambdaExpr = Expand(stxList.ElementAt<Syntax>(2), ee) as ParsedLambda ?? throw new Exception($"define-syntax: expected 2nd argument to be a transformer. Got {stxList.ElementAt<Syntax>(2)}");
         Transformer transformer = EvaluateTransformer(expandedLambdaExpr); // TODO: should this part actually happen at runtime? then eval would need expansion env
@@ -123,6 +143,7 @@ public class MacroExpander {
     {
         if (stxList.ElementAt<Syntax>(0) is Syntax.Identifier id && ee.TryFindTransformer(id.Symbol, out Transformer? transformer)) {
             Scope macroExpansionScope = new Scope();
+            
             Syntax.AddScope(stx, macroExpansionScope);
             // Console.WriteLine($"macro application: {stx}");
             Syntax output = transformer.Apply(stx);
@@ -175,63 +196,15 @@ public class MacroExpander {
             ?? throw new Exception($"ExpandDefine: expected first argument to be identifier. Got {stxList.ElementAt<Syntax>(1)}");
         // var newScope = new Scope();
         // Syntax.AddScope(id, newScope);
-        if (!Bindings.ContainsKey(id)) {
+        if (!_bindings.ContainsKey(id)) {
             id.Symbol.Binding = new Binding();
-            Bindings.Add(id, id.Symbol.Binding);
+            _bindings.Add(id, id.Symbol.Binding);
         }
         xs.Add(id);
         var x = stxList.ElementAt<Syntax>(2);
         xs.Add(Expand(x, ee));
         return new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc);
     }
-
-
-    private  Syntax ExpandLambda(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
-        System.Collections.Generic.List<Syntax> xs = [];
-        xs.Add(stxList.ElementAt<Syntax>(0)); // lamdbda keyword
-        var newScope = new Scope();
-        var parameters = stxList.ElementAt<Syntax>(1);
-        Syntax.AddScope(parameters, newScope); // TODO: is this necessary? Seems so. deleting it breaks a lot of tests.
-        // create a new binding for each parameter
-        if (Syntax.E(parameters) is SyntaxList psStxList) {
-            foreach(var stx in psStxList) {
-                Syntax.Identifier id = stx as Syntax.Identifier ?? throw new Exception($"ExpandLambda: expected parameters to be identifiers, but got {stx}");
-                Binding binding = new Binding();
-                id.Symbol.Binding = binding;
-                Bindings.Add(id, binding);
-            }
-        } else if (Syntax.E(parameters) is IPair pair) {
-            while (pair.Cdr is IPair cdrPair) {
-                if (pair.Car is Syntax.Identifier ident) {
-                    Binding binding = new Binding();
-                    ident.Symbol.Binding = binding;
-                    Bindings.Add(ident, binding);
-                }
-                pair = cdrPair;
-            }
-            if (pair.Cdr is Syntax.Identifier id) {
-                Binding binding = new Binding();
-                id.Symbol.Binding = binding;
-                Bindings.Add(id, binding);
-            }
-        } else if (parameters is Syntax.Identifier psId) {
-                Binding binding = new Binding();
-                psId.Symbol.Binding = binding;
-                Bindings.Add(psId, binding);
-        } else if (Syntax.E(parameters) is List.Empty) {
-            
-        } else {
-            throw new Exception($"ExpandLambda: expected parameters to be list or identifier, got {Syntax.E(parameters)}");
-        }
-        xs.Add(parameters);
-        foreach (var x in stxList.Skip<Syntax>(2)) {
-            Syntax.AddScope(x, newScope);
-            Syntax bodyExpr = Expand(x, ee);
-            xs.Add(bodyExpr);
-        }
-        return new Syntax(SyntaxList.FromIEnumerable(xs), srcLoc);
-    }
-
 }
 
 public class ExpansionEnvironment {

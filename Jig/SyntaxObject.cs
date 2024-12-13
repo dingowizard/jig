@@ -68,16 +68,7 @@ public class Syntax : Form {
 
     internal static void AddScope(Syntax stx, Scope scope) {
         if (stx is Syntax.Identifier id) {
-            bool added = id.ScopeSet.Add(scope);
-            // if (added && id.Symbol.Name == "a") {
-            //     Console.WriteLine($"AddScope: {scope} was added to {stx}.");
-            //         Console.WriteLine($"\tat {id.SrcLoc.ToString() ?? "null"}");
-                // Console.WriteLine($"AddScope: ScopeSet contains {id.ScopeSet.Count}");
-                // foreach (var sc in id.ScopeSet) {
-                //     Console.WriteLine ($"{sc} in ScopeSet Equals scope to add: {sc.Equals(scope)}");
-                //     Console.WriteLine ($"sc.GetHashCode == scope.GetHashCode() : {sc.GetHashCode() == scope.GetHashCode()}");
-                // }
-            // }
+            id.AddScope(scope);
             return;
         }
         if (Syntax.E(stx) is SyntaxList stxList) {
@@ -198,6 +189,9 @@ public class Syntax : Form {
 
 
     public Syntax(IForm expr, SrcLoc? srcLoc = null) {
+        if (expr is List list) {
+            
+        }
         Expression = expr;
         SrcLoc = srcLoc;
     }
@@ -210,8 +204,23 @@ public class Syntax : Form {
         internal Identifier(Form.Symbol symbol, SrcLoc? srcLoc = null) : base (symbol, srcLoc) {
             ScopeSet = new HashSet<Scope>();
         }
+        
 
         // public static implicit operator Expr.Symbol(Identifier i) => i.Symbol;
+
+        internal void AddScope(Scope sc) {
+            
+            bool added = ScopeSet.Add(sc);
+            // if (added && id.Symbol.Name == "a") {
+            //     Console.WriteLine($"AddScope: {scope} was added to {stx}.");
+            //         Console.WriteLine($"\tat {id.SrcLoc.ToString() ?? "null"}");
+                // Console.WriteLine($"AddScope: ScopeSet contains {id.ScopeSet.Count}");
+                // foreach (var sc in id.ScopeSet) {
+                //     Console.WriteLine ($"{sc} in ScopeSet Equals scope to add: {sc.Equals(scope)}");
+                //     Console.WriteLine ($"sc.GetHashCode == scope.GetHashCode() : {sc.GetHashCode() == scope.GetHashCode()}");
+                // }
+            // }
+        }
 
         public new Form.Symbol Symbol {
             get {
@@ -225,8 +234,8 @@ public class Syntax : Form {
             // }
             if (obj is Identifier id) {
                 if (!Symbol.Equals(id.Symbol)) return false;
-                if (ScopeSet.Equals(id.ScopeSet)) return true;
-                return false;
+                if (!ScopeSet.Equals(id.ScopeSet)) return false;
+                return true;
 
             } else {
                 return false;

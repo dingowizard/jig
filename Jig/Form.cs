@@ -86,6 +86,9 @@ public abstract class Form : IForm {
     internal static bool IsKeyword(string name, IForm ast) {
         switch (ast) {
             case Syntax stx when Syntax.E(stx) is List list: {
+                if (list is IEmptyList) {
+                    throw new Exception($"IsKeyword: ast is ()");
+                }
                 if (list.ElementAt(0) is Syntax.Identifier id) {
                     return id.Symbol.Name == name;
                 } return false;

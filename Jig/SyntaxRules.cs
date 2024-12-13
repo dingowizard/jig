@@ -1,5 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Scripting.Utils;
+using EnvEntry = System.Tuple<Jig.Syntax.Identifier, Jig.Syntax, int>;
+using Env = System.Collections.Generic.List<System.Tuple<Jig.Syntax.Identifier, Jig.Syntax, int>>;
 
 namespace Jig;
 
@@ -50,12 +52,14 @@ internal static partial class Builtins {
                 NewList(
                     new SyntaxRules(stx, literals.ToSyntaxList(), clauses).LambdaFromClauses(),
                     NewList(NewId("syntax-e"), stxParam)));
+            // if (stxList.ElementAt<Syntax>(0) is Syntax.Identifier macroName && macroName.Symbol.Name == "lit") {
+                // Console.Error.WriteLine($"syntax-rules expanded to\n\t{result}");
+            //}
             return Continuation.ApplyDelegate(k, result);
 
         }
 
         private SyntaxRules(Syntax stx, SyntaxList literals, IEnumerable<Tuple<SyntaxList.NonEmpty, Syntax>> clauses) {
-            STX = stx;
             if (literals is not SyntaxList.Empty) {
                 throw new NotImplementedException($"syntax-rules: literals ({literals.Print()}) are not supported yet.");
             }
@@ -65,7 +69,6 @@ internal static partial class Builtins {
 
         }
         
-        private Syntax STX { get; }
 
         private SyntaxList Literals {get;}
 
@@ -99,92 +102,252 @@ internal static partial class Builtins {
         }
 
         internal class Clause {
-            public Clause(Syntax.Identifier toMatch, SyntaxList.NonEmpty pattern, Syntax template) {
+            public Clause(Syntax.Identifier toMatch, SyntaxList.NonEmpty pattern, Syntax templateSyntax) {
 
                 VarForInput = toMatch;
                 Pattern = pattern;
-                Template = template;
+                TemplateSyntax = templateSyntax;
+                PatternVars = EnvFromPattern(toMatch, pattern, 0);
 
             }
+
+            private Env EnvFromPattern(Syntax arg, SyntaxList.NonEmpty pattern, int depth)
+            {
+                if (IsEllipsisPattern(pattern))
+                {
+                    return EnvFromEllipsisPattern(arg, pattern, depth);
+                }
+                return EnvFromPattern(
+                        NewList( NewId("car"), arg),
+                        pattern.First,
+                        depth)
+                    .Concat(EnvFromPattern(
+                        NewList(NewId("cdr"), arg),
+                        pattern.Rest,
+                        depth))
+                    .ToList();
+            }
+
+            private Env EnvFromPattern(Syntax arg, Syntax pattern, int depth)
+            {
+                if (pattern is Syntax.Identifier id)
+                {
+                    return EnvFromPattern(arg, id, depth);
+                }
+
+                if (pattern is Syntax.Literal _)
+                {
+                    return [];
+                }
+
+                switch (Syntax.E(pattern))
+                {
+                    case SyntaxList stxList:
+                        return EnvFromPattern(
+                            NewList(NewId("syntax-e"), arg),
+                            stxList,
+                            depth);
+                    case SyntaxPair stxPair:
+                        return EnvFromPattern(
+                            NewList(NewId("syntax-e"), arg),
+                            stxPair,
+                            depth);
+                    default: throw new Exception("syntax-rules: unhandled case {pattern}");
+                }
+                
+            }
+
+            private Env EnvFromPattern(Syntax arg, SyntaxPair pattern, int depth)
+            {
+                return EnvFromPattern(
+                        NewList( NewId("car"), arg),
+                        pattern.Car,
+                        depth)
+                    .Concat(EnvFromPattern(
+                        NewList(NewId("cdr"), arg),
+                        pattern.Cdr,
+                        depth))
+                    .ToList();
+            }
+
+            private Env EnvFromPattern(Syntax arg, SyntaxList pattern, int depth)
+            {
+                if (pattern is SyntaxList.NonEmpty stxList)
+                {
+                    return EnvFromPattern(arg, stxList, depth);
+                }
+
+                return [];
+            }
+
+            private Env EnvFromEllipsisPattern(Syntax arg, SyntaxList.NonEmpty pattern, int depth)
+            {
+                Env inner = EnvFromPattern(NewId("y"), pattern.ElementAt<Syntax>(0), depth + 1);
+                return inner.Select(tup =>
+                    new EnvEntry(
+                        tup.Item1,
+                        NewList(
+                            NewId("map"),
+                            NewList(
+                                NewId("lambda"),
+                                NewList(NewId("y")),
+                                tup.Item2),
+                            arg
+                        ),
+                        tup.Item3))
+                    .ToList();
+            }
+
+            private Env EnvFromPattern(Syntax arg, Syntax.Identifier id, int depth)
+            {
+                if (id.Symbol.Name != "_") {
+                    return [new EnvEntry(id, arg, depth)];
+                }
+
+                return [];
+            }
+
 
             public Syntax ThenBranch() {
-                    return ThenExprFromTemplate(Template);
-            }
-
-            private Syntax ThenExprFromTemplate(Syntax template)
-            {
-                // make this (lambda (ps ...)) as SyntaxList
-                var lambdaExpr = SyntaxList.FromParams(
-                    NewId("lambda"),
-                    new Syntax(EllipsisVars.Select(tup => tup.Item1).ToSyntaxList()),
-                    BodyFromTemplate(template));
-                // now ((lambda (ps* ...) bodies ...+) args* ...)
-                return new Syntax(
-                    SyntaxList.Cons(
-                        new Syntax(lambdaExpr),
-                        EllipsisVars.Select(tup => tup.Item2).ToSyntaxList()));
-
-            }
-
-            private Syntax BodyFromTemplate(Syntax template)
-            {
-                var body = Syntax.E(template) switch
-                {
-                    SyntaxList xs => SyntaxList.FromParams(NewId("quasiquote"), Quasiquoted(xs)),
-                    LiteralExpr lit => SyntaxList.FromParams(NewId("quote"), template),
-                    _ => throw new NotImplementedException()
-                };
-                return 
-                    NewList(
+                    
+                    return NewList(
                         NewId("datum->syntax"),
                         NewId("stx"),
-                        new Syntax(body));
+                        Template(TemplateSyntax, PatternVars));
+                    // return Template(TemplateSyntax, EllipsisVars);
             }
 
-            private Syntax Quasiquoted(SyntaxList xs)
-            {
-                return new Syntax(xs.Select<Syntax, Syntax>(stx => Quasiquoted(stx)).ToSyntaxList());
+            private static Syntax Template(Syntax stx, Env env) {
+                var env0 = env.FindAll(tup => tup.Item3 == 0);
+                if (env0.Any()) {
+                    var result = SyntaxList.FromParams(
+                        NewList( // ((lambda (p ...) body ...)) ; needs args appended
+                            NewId("lambda"),
+                            new Syntax(env0.Select(tup => tup.Item1).ToSyntaxList()), // parameters
+                            // body:
+                            Template(stx,
+                                // decrement any variable with n = 0
+                                env.Select(tup => tup.Item3 == 0 ? new EnvEntry(tup.Item1, tup.Item2, tup.Item3 -1) : tup)
+                                    .ToList())));
+                    return new Syntax(result.Concat(env0.Select(tup => tup.Item2)).ToSyntaxList());
+                }
+                if (stx is Syntax.Identifier id) {
+                    return Template(id, env);
+                }
+                if (stx is Syntax.Literal lit) {
+                    return lit;
+                }
+                if (Syntax.E(stx) is SyntaxList stxList) {
+                    return Template(stxList, env);
+                }
+                if (Syntax.E(stx) is SyntaxPair pair) {
+                    return NewList(
+                        NewId("cons"),
+                        Template(pair.Car, env),
+                        Template(pair.Cdr, env));
+                }
+
+                throw new Exception($"syntax-rules: unhandled case in template {stx}");
             }
 
-            private Syntax Quasiquoted(Syntax x)
-            {
-                if (Syntax.E(x) is SyntaxList xs)
-                {
-                    return Quasiquoted(xs);
-                }
-                switch (x)
-                {
-                    case Syntax.Identifier id:
-                        if (EllipsisVars.Find(tup => tup.Item1.Symbol.Equals(id.Symbol)) is { } t)
-                        {
-                            return NewList(NewId("unquote"), t.Item1);
-                        }
-                        return id;
-                    case Syntax.Literal:
-                        return x;
-                    default:
-                        throw new NotImplementedException(x.Print());
-                }
+            private static Syntax Template(SyntaxList.NonEmpty stxList, Env env) {
+                    if (CadrIsDotDotDot(stxList)) {
+                        int numDotDotDots = HowManyDotDotDots(stxList);
+                        var rest = stxList.Skip<Syntax>(numDotDotDots + 1).ToSyntaxList();
+                        return NewList(
+                            NewId("append"),
+                            MapForDotDotDot(stxList.First, NewEnvForDotDotDot(numDotDotDots, env)),
+                            Template(rest, env));
+                    }
+                    return NewList(
+                        NewId("cons"),
+                        Template(stxList.First, env),
+                        Template(stxList.Rest, env));
             }
+
+            private static Env NewEnvForDotDotDot(int numDotDotDots, Env env) {
+                for (; numDotDotDots > 0; numDotDotDots--) {
+                    var a = env.Find(tup => tup.Item1.Symbol.Name == "a");
+                    env = env
+                        .Select(tup => tup.Item3 > 0
+                                                         ? new EnvEntry(
+                                                             tup.Item1,
+                                                             tup.Item3 > 1
+                                                                 ? NewList(NewId("apply"), NewId("append"), tup.Item2)
+                                                                 : tup.Item2,
+                                                             tup.Item3 - 1)
+                                                         : tup)
+                        .ToList();
+                    
+                }
+
+                return env;
+            }
+
+            private static Syntax MapForDotDotDot(Syntax stx, Env env) {
+                var result = SyntaxList.FromParams(
+                    NewId("map"),
+                    NewList(
+                        NewId("lambda"),
+                        new Syntax(
+                            SyntaxList.FromIEnumerable(env
+                                .FindAll(tup => tup.Item3 == 0)
+                                .Select(tup => new Syntax.Identifier(tup.Item1.Symbol)))), // params
+                        Template(
+                            stx,
+                            env.Select(tup => tup.Item3 == 0 ? new EnvEntry(new Syntax.Identifier(tup.Item1.Symbol), tup.Item2, -1) : tup)
+                                .ToList())));
+                
+                return new Syntax(result
+                    .Concat<Syntax>(env
+                        .FindAll(tup => tup.Item3 == 0)
+                        .Select(tup => Syntax.FromDatum(null, Syntax.ToDatum(tup.Item2))))
+                    .ToSyntaxList());
+            }
+
+            private static int HowManyDotDotDots(SyntaxList.NonEmpty stxList) {
+                var array = stxList.Skip<Syntax>(2).ToArray(); // we know the list has at least (a ... 
+                int result = 1;
+                while ((result - 1) < array.Length && array[result - 1] is Syntax.Identifier { Symbol.Name: "..." }) {
+                    result++;
+                }
+
+                return result;
+            }
+
+            private static Syntax Template(SyntaxList stxList, Env env) {
+                if (stxList is SyntaxList.NonEmpty nonEmpty) {
+                    return Template(nonEmpty, env);
+                }
+
+                return NewList(NewId("quote"), new Syntax(SyntaxList.Null));
+            }
+
+            private static bool CadrIsDotDotDot(SyntaxList stxList) {
+                if (stxList.Count<Syntax>() < 2) return false;
+                return stxList.ElementAt<Syntax>(1) is Syntax.Identifier { Symbol.Name: "..." };
+            }
+
+            private static Syntax Template(Syntax.Identifier id, Env env) {
+                if (env.Any(tup => Equals(tup.Item1.Symbol, id.Symbol))) {
+                    var tup = env.First(tup => Equals(tup.Item1.Symbol, id.Symbol));
+                    if (tup.Item3 > 0) {
+                        throw new Exception($"syntax-rules: missing ... in template");
+                    }
+
+                    return tup.Item1;
+                }
+
+                return NewList(NewId("quote"), id);
+
+            }
+
 
             public Syntax Condition() {
                 // at the top, we should have an input to match that has been put through syntax-e
                 // and the Pattern is a SyntaxList
                 // so we don't need to check if it's a pair
-                if (IsEllipsisPattern(Pattern))
-                {
-                    return MakeEllipsisCondition(VarForInput, Pattern, 0);
-                }
-                return NewList(
-                    NewId("if"),
-                    MakeCondition(
-                        NewList(NewId("car"), VarForInput),
-                        Pattern.First),
-                    MakeCondition(
-                        NewList(NewId("cdr"), VarForInput),
-                        Pattern.Rest,
-                        0),
-                    NewLit(false));
+                return MakeCondition(VarForInput, VarForInput, Pattern, 0);
 
             }
 
@@ -194,49 +357,51 @@ internal static partial class Builtins {
                 return id.Symbol.Name == "...";
             }
 
-            private Syntax MakeEllipsisCondition(Syntax stxToMatch, SyntaxList pattern, int ellipsisDepth)
+            private Syntax MakeEllipsisCondition(Syntax stxToMatch, Syntax forVar, SyntaxList pattern, int ellipsisDepth)
             {
                 // at this point pattern is something like (a ...) where a
                 // could be just about anything
-                var x = NewId("z");
-                Syntax condition = MakeCondition(stxToMatch, pattern.ElementAt<Syntax>(0), ellipsisDepth + 1);
+                var z = NewId("z");
+                Syntax condition = MakeCondition(
+                    z,
+                    stxToMatch,
+                    pattern.ElementAt<Syntax>(0),
+                    ellipsisDepth + 1);
                 var result = NewList(
                     NewId("all"),
                     NewList(
                         NewId("lambda"),
-                        NewList(x),
+                        NewList(new Syntax.Identifier(z.Symbol)),
                         condition),
                     stxToMatch );
-                Console.WriteLine($"MakeEllipsisCondition: test for {pattern} = {result.Print()}");
                 return result;
 
             }
 
-            private Syntax MakeCondition(Syntax toMatch, Syntax pattern, int ellipsisDepth = 0)
+            private Syntax MakeCondition(Syntax toMatch, Syntax forVar, Syntax pattern, int ellipsisDepth = 0)
             {
                 switch (Syntax.E(pattern))
                 {
-                    case Form.Symbol sym:
-                        Syntax.Identifier id = (Syntax.Identifier)pattern;
-                        if (sym.Name != "_") {
-                            EllipsisVars.Add(
-                                new Tuple<Syntax.Identifier, Syntax, int>(
-                                    id,
-                                    toMatch,
-                                    ellipsisDepth));
-                        }
-                        return NewLit(true);
+                    case Form.Symbol sym: return NewLit(true);
                     case SyntaxList.NonEmpty stxList:
-                        return MakeCondition(NewList(NewId("syntax-e"), toMatch), stxList, ellipsisDepth);
+                        return MakeCondition(
+                            NewList(NewId("syntax-e"), toMatch),
+                            NewList(NewId("syntax-e"), forVar),
+                            stxList,
+                            ellipsisDepth);
                     case SyntaxPair stxPair:
-                        return MakeCondition(NewList(NewId("syntax-e"), toMatch), stxPair);
+                        return MakeCondition(
+                            NewList(NewId("syntax-e"), toMatch),
+                            NewList(NewId("syntax-e"), forVar),
+                            stxPair,
+                            ellipsisDepth);
                     default:
                         throw new NotImplementedException();
                     
                 }
             }
 
-            private Syntax MakeCondition(Syntax toMatch, SyntaxPair stxPair) {
+            private Syntax MakeCondition(Syntax toMatch, Syntax forVar, SyntaxPair stxPair, int ellipsisDepth) {
                         return NewList(
                             NewId("if"),
                             NewList(NewId("pair?"), toMatch),
@@ -244,20 +409,24 @@ internal static partial class Builtins {
                                 NewId("if"),
                                 MakeCondition(
                                     NewList(NewId("car"), toMatch),
-                                    stxPair.Car),
+                                    NewList(NewId("car"), forVar),
+                                    stxPair.Car,
+                                    ellipsisDepth),
                                 MakeCondition(
                                     NewList(NewId("cdr"), toMatch),
-                                    stxPair.Cdr),
+                                    NewList(NewId("cdr"), forVar),
+                                    stxPair.Cdr,
+                                    ellipsisDepth),
                                 NewLit(false)),
                             NewLit(false));
 
             }
 
 
-            private Syntax MakeCondition(Syntax toMatch, SyntaxList pattern, int ellipsisDepth) {
+            private Syntax MakeCondition(Syntax toMatch, Syntax forVar, SyntaxList pattern, int ellipsisDepth) {
                 if (IsEllipsisPattern(pattern))
                 {
-                    return MakeEllipsisCondition(toMatch, pattern, ellipsisDepth);
+                    return MakeEllipsisCondition(toMatch, forVar, pattern, ellipsisDepth);
                 }
                 switch (pattern) {
                     case SyntaxList.Empty: return NewList(NewId("null?"), toMatch);
@@ -269,10 +438,12 @@ internal static partial class Builtins {
                                 NewId("if"),
                                 MakeCondition(
                                     NewList(NewId("car"), toMatch),
+                                    NewList(NewId("car"), forVar),
                                     list.First,
                                     ellipsisDepth),
                                 MakeCondition(
                                     NewList(NewId("cdr"), toMatch),
+                                    NewList(NewId("cdr"), forVar),
                                     list.Rest,
                                     ellipsisDepth),
                                 NewLit(false)),
@@ -283,18 +454,20 @@ internal static partial class Builtins {
             }
 
 
-            private System.Collections.Generic.List<Tuple<Syntax.Identifier, Syntax, int>> EllipsisVars =
-                new System.Collections.Generic.List<Tuple<Syntax.Identifier, Syntax, int>>();
+            private Env  PatternVars = [];
             public Syntax.Identifier VarForInput {get;}
             public SyntaxList.NonEmpty Pattern {get;}
-            public Syntax Template {get;}
+            public Syntax TemplateSyntax {get;}
         }
 
     }
 
 
     internal static Syntax.Identifier NewId(string name, SrcLoc? srcLoc = null) {
-        return new Syntax.Identifier(new Form.Symbol(name), srcLoc);
+        
+        var result = new Syntax.Identifier(new Form.Symbol(name), srcLoc);
+
+        return result;
     }
 
     internal static Syntax NewList(params Syntax[] stxs) {
