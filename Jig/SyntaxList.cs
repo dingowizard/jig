@@ -76,7 +76,6 @@ public abstract class SyntaxList : List<Syntax> {
 
     public void InnerStxPrint(StringBuilder sb) {
         if (this is SyntaxList.Empty) {
-            sb.Append("()");
             return;
         }
         foreach (var stx in this.Take<Syntax>(this.Count<Syntax>() - 1)) {

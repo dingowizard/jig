@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.Scripting.Utils;
 using EnvEntry = System.Tuple<Jig.Form.Symbol, Jig.Form, int>;
 using Env = System.Collections.Generic.List<System.Tuple<Jig.Form.Symbol, Jig.Form, int>>;
 
@@ -50,7 +49,7 @@ internal static partial class Builtins {
                 NewSym("lambda"),
                 NewList(stxParam),
                 NewList(
-                    new SyntaxRules(stx, literals.ToSyntaxList(), clauses).LambdaFromClauses(),
+                    new SyntaxRules(literals.ToSyntaxList(), clauses).LambdaFromClauses(),
                     NewList(NewSym("syntax-e"), stxParam)));
             // if (stxList.ElementAt<Syntax>(0) is Syntax.Identifier macroName && macroName.Symbol.Name == "lit") {
                 // Console.Error.WriteLine($"syntax-rules expanded to\n\t{result}");
@@ -59,7 +58,7 @@ internal static partial class Builtins {
 
         }
 
-        private SyntaxRules(Syntax stx, SyntaxList literals, IEnumerable<Tuple<SyntaxList.NonEmpty, Syntax>> clauses) {
+        private SyntaxRules(SyntaxList literals, IEnumerable<Tuple<SyntaxList.NonEmpty, Syntax>> clauses) {
             if (literals is not SyntaxList.Empty) {
                 throw new NotImplementedException($"syntax-rules: literals ({literals.Print()}) are not supported yet.");
             }
@@ -76,7 +75,7 @@ internal static partial class Builtins {
 
         private IEnumerable<Clause> Clauses {get;}
 
-        public List LambdaFromClauses() {
+        private List LambdaFromClauses() {
             // makes:
             // (lambda (x) ...)
             // where x will be bound to (syntax-e stx)
@@ -142,6 +141,7 @@ internal static partial class Builtins {
 
                 switch (Syntax.E(pattern))
                 {
+                    case IEmptyList: return [];
                     case SyntaxList stxList:
                         return EnvFromPattern(
                             NewList(NewSym("syntax-e"), arg),
@@ -152,7 +152,7 @@ internal static partial class Builtins {
                             NewList(NewSym("syntax-e"), arg),
                             stxPair,
                             depth);
-                    default: throw new Exception("syntax-rules: unhandled case {pattern}");
+                    default: throw new Exception($"syntax-rules: unhandled case {pattern}");
                 }
                 
             }
@@ -240,6 +240,10 @@ internal static partial class Builtins {
                         return Template(id, env);
                     case Syntax.Literal lit:
                         return lit;
+                }
+
+                if (Syntax.E(stx) is IEmptyList) {
+                    return NewList(NewSym("quote"), List.Null);
                 }
 
                 if (Syntax.E(stx) is SyntaxList stxList) {
@@ -334,7 +338,7 @@ internal static partial class Builtins {
                     return Template(nonEmpty, env);
                 }
 
-                return NewList(NewSym("quote"), new Syntax(SyntaxList.Null));
+                return NewList(NewSym("quote"), List.Null);
             }
 
             private static bool CadrIsDotDotDot(SyntaxList stxList) {
@@ -396,7 +400,9 @@ internal static partial class Builtins {
             {
                 switch (Syntax.E(pattern))
                 {
-                    case Form.Symbol sym: return NewLit(true);
+                    
+                    case IEmptyList: return NewList(NewSym("null?"), NewList(NewSym("syntax-e"), toMatch));
+                    case Form.Symbol: return NewLit(true);
                     case SyntaxList.NonEmpty stxList:
                         return MakeCondition(
                             NewList(NewSym("syntax-e"), toMatch),
@@ -410,7 +416,7 @@ internal static partial class Builtins {
                             stxPair,
                             ellipsisDepth);
                     default:
-                        throw new NotImplementedException();
+                        throw new NotImplementedException($"SyntaxRules.MakeCondition: unhandled case {pattern}");
                     
                 }
             }

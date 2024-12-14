@@ -140,16 +140,50 @@ public class SyntaxRules
     }
 
     [TestMethod]
-    public void Let() {
+    [DataRow("(lit ((a 1) (b 2)) (+ a b))", "3")]
+    public void Let(string macroUse, string expected) {
         var actual = Utilities.InterpretSequenceReadSyntax(
             """
             (define-syntax lit
               (syntax-rules ()
                 ((lit ((p arg) ...) body0 bodies ...) ((lambda (p ...) body0 bodies ...) arg ...))))
             """,
-            "(lit ((a 1) (b 2)) (+ a b))"
+            macroUse
         );
-        Assert.AreEqual("3", actual);
+        Assert.AreEqual(expected, actual);
         
+    }
+    
+    [TestMethod]
+    [DataRow("(letstar () 1)", "1")]
+    [DataRow("(letstar ((a 1)) a)", "1")]
+    [DataRow("(letstar ((a 0) (b (+ a 1))) (+ a b))", "1")]
+    public void LetStar(string macroUse, string expected) {
+        var actual = Utilities.InterpretSequenceReadSyntax(
+            """
+            (define-syntax letstar
+              (syntax-rules ()
+                ((letstar () body0 bodies ...) ((lambda () body0 bodies ...)))
+                ((letstar ((p x)) body0 bodies ...) ((lambda (p) body0 bodies ...) x))
+                ((letstar ((p1 x1) (p x) ...) body0 bodies ...) ((lambda (p1) (letstar ((p x) ...) body0 bodies ...)) x1))))
+            """,
+            macroUse
+        );
+        Assert.AreEqual(expected, actual);
+        
+    }
+
+    [TestMethod]
+    public void MatchEmptyList() {
+        var actual = Utilities.InterpretSequenceReadSyntax(
+            """
+            (define-syntax true-for-null
+              (syntax-rules ()
+                ((true-for-null ()) '#t)
+                ((true-for-null a ...) '#f)))
+            """,
+            "(true-for-null ())"
+        );
+        Assert.AreEqual("#t", actual);
     }
 }

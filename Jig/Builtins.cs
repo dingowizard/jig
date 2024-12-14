@@ -34,7 +34,7 @@ internal static partial class Builtins {
     }
 
     public static  Thunk? nullP (Delegate k, List args) {
-        if (args is List.NonEmpty properList) {
+        if (args is INonEmptyList properList) {
             IForm arg = properList.Car;
             if (arg is IList list) {
                 return Continuation.ApplyDelegate(k, list.NullP);

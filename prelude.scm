@@ -144,14 +144,19 @@
 ;                  (list (list 'x (car (cdr stx-list))))
 ;                  (list 'if 'x 'x (append (list 'or) (cdr (cdr stx-list))))))))))
 
+; (define-syntax or
+;    (lambda (stx)
+;       (datum->syntax
+;          stx
+;          (match (cdr (syntax->list stx))
+;             ('() #f)
+;             ((x) x)
+;             ((x . rest) `(let ((tmp ,x)) (if tmp tmp (or ,@rest))))))))
 (define-syntax or
-   (lambda (stx)
-      (datum->syntax
-         stx
-         (match (cdr (syntax->list stx))
-            ('() #f)
-            ((x) x)
-            ((x . rest) `(let ((tmp ,x)) (if tmp tmp (or ,@rest))))))))
+   (syntax-rules ()
+      ((or) #f)
+      ((or x) x)
+      ((or a rest ...) (let ((tmp a)) (if tmp tmp (or rest ...))))))
 
 (define-syntax let*
   (lambda (stx)
@@ -166,6 +171,13 @@
               (if (= len 1)
                   `(let (,(car bindings)) ,@body)
                   `(let (,(car bindings)) (let* ,(cdr bindings) ,@body))))))))))
+
+
+; (define-syntax let*
+;    (syntax-rules ()
+;       ((let* () body0 bodies ...) ((lambda () body0 bodies ...)))
+;       ((let* ((p x)) body0 bodies ...) ((lambda (p) body0 bodies ...) x))
+;       ((let* ((p1 x1) (p x) ...) body0 bodies ...) ((lambda (p1) (let* ((p x) ...) body0 bodies ...)) x1))))
 
 (define void (lambda () (if #f #f)))
 
