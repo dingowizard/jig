@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.Scripting.Utils;
 
 namespace Jig;
 
@@ -14,7 +13,7 @@ public class MacroExpander {
     }
 
     public void AddBinding(Syntax.Identifier id, Binding binding) {
-        if (_bindings.ContainsKey(id)) {
+        if (!_bindings.TryAdd(id, binding)) {
             Console.Error.WriteLine($"Expander.AddBinding: Duplicate binding '{id}'");
             foreach (var kvp in _bindings) {
                 if (kvp.Key.Symbol.Name == id.Symbol.Name && kvp.Key.ScopeSet == id.ScopeSet) {
@@ -28,15 +27,13 @@ public class MacroExpander {
 
             throw new Exception();
         }
-
-        _bindings[id] = binding;
     }
 
     private Dictionary<Syntax.Identifier, Binding> _bindings {get;}
 
     IEnumerable<Syntax.Identifier> FindCandidateIdentifiers(Syntax.Identifier id) {
         IEnumerable<Syntax.Identifier> sameName = _bindings.Keys.Where(i => i.Symbol.Name == id.Symbol.Name);
-        // if (id.Symbol.Name == "a") {
+        // if (id.Symbol.Name == "y") {
         //     Console.WriteLine($"The search id -- {id} -- has the following scope sets: {string.Join(',', id.ScopeSet)}");
         //     Console.WriteLine($"Found {sameName.Count()} bindings with same name.");
         //     foreach (var b in sameName) {
@@ -49,18 +46,19 @@ public class MacroExpander {
 
     internal bool TryResolve(Syntax.Identifier id, [NotNullWhen(returnValue: true)] out Binding? binding) {
         var candidates = FindCandidateIdentifiers(id);
-        // if (id.Symbol.Name == "a") {
-        //     Console.WriteLine($"TryResolve: found {candidates.Count()} candidates for 'a' at {id.SrcLoc} in {this.GetHashCode()}");
+        var identifiers = candidates as Syntax.Identifier[] ?? candidates.ToArray();
+        // if (id.Symbol.Name == "y") {
+        //     Console.WriteLine($"TryResolve: found {identifiers.Length} candidates for 'y' at {id.SrcLoc} in {this.GetHashCode()}");
         // }
-        if (!candidates.Any()) {
+        if (identifiers.Length == 0) {
             binding = null;
             return false;
         }
         #pragma warning disable CS8600
-        Syntax.Identifier maxID = candidates.MaxBy<Syntax.Identifier, int>(i => i.ScopeSet.Count);// ?? throw new Exception("impossible");
+        Syntax.Identifier maxID = identifiers.MaxBy<Syntax.Identifier, int>(i => i.ScopeSet.Count);// ?? throw new Exception("impossible");
         Debug.Assert(maxID is not null);
         #pragma warning restore CS8600
-        CheckUnambiguous(maxID, candidates);
+        CheckUnambiguous(maxID, identifiers);
         binding = _bindings[maxID];
         return true;
     }
@@ -633,11 +631,29 @@ public class Binding {
     static int count = 0;
 
     public Binding() {
-        count++;
+        Count = count++;
     }
+
+    private int Count { get; }
     //TODO: why can't scope be like this? (scope needs a member to work. maybe because it has to define gethashcode and equals?)
     //TODO: should the binding contain the scope that it comes from?
     //TODO: can Scope and binding classes be combined in some way?
     public static Binding TopLevel {get;} = new Binding();
-    public override string ToString() => $"binding{count}";
+    public override string ToString() => $"binding{Count}";
+
+    public override bool Equals(object? obj) {
+        if (obj is null) return false;
+        return obj switch {
+            Binding binding => this.Count == binding.Count,
+            _ => false
+        };
+    }
+
+    protected bool Equals(Binding other) {
+        return Count == other.Count;
+    }
+
+    public override int GetHashCode() {
+        return Count;
+    }
 }

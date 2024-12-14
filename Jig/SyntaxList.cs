@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Runtime.ExceptionServices;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace Jig;
 
@@ -73,6 +74,17 @@ public abstract class SyntaxList : List<Syntax> {
         return result;
     }
 
+    public void InnerStxPrint(StringBuilder sb) {
+        if (this is SyntaxList.Empty) {
+            sb.Append("()");
+            return;
+        }
+        foreach (var stx in this.Take<Syntax>(this.Count<Syntax>() - 1)) {
+            stx.InnerStxPrint(sb);
+            sb.Append(' ');
+        }
+        this.Last<Syntax>().InnerStxPrint(sb);
+    }
 }
 
 public static partial class IEnumerableExtensions {

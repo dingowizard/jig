@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 
 namespace Jig;
 
@@ -12,24 +13,24 @@ public class Syntax : Form {
 
 
     public static IForm ToDatum(Syntax stx) {
-        IForm x = Syntax.E(stx);
-        if (x is  SyntaxPair stxPair) {
-            return Pair.Cons(ToDatum(stxPair.Car), ToDatum(stxPair.Cdr));
-        }
-        if (x is SyntaxList stxList) {
-            return stxList.Select<Syntax, IForm>(ToDatum).ToJigList();
-        }
-        if (x is IPair p) {
-            return ToDatum(p);
-        }
-        if (x is List list) {
-            IEnumerable<Syntax> slist = list.Cast<Syntax>();
-            if (list.Count() != slist.Count()) {
-                throw new Exception("ToDatum: expected all elements to be syntax");
+        var x = Syntax.E(stx);
+        switch (x) {
+            case SyntaxPair stxPair:
+                return Pair.Cons(ToDatum(stxPair.Car), ToDatum(stxPair.Cdr));
+            case SyntaxList stxList:
+                return stxList.Select<Syntax, IForm>(ToDatum).ToJigList();
+            case IPair p:
+                return ToDatum(p);
+            case List list: {
+                IEnumerable<Syntax> slist = list.Cast<Syntax>();
+                if (list.Count() != slist.Count()) {
+                    throw new Exception("ToDatum: expected all elements to be syntax");
+                }
+                return list.Cast<Syntax>().Select<Syntax, IForm>(ToDatum).ToJigList();
             }
-            return list.Cast<Syntax>().Select<Syntax, IForm>(s=> ToDatum(s)).ToJigList();
+            default:
+                return x;
         }
-        return x;
     }
 
     private static IPair ToDatum(SyntaxPair stxPair) {
@@ -163,6 +164,37 @@ public class Syntax : Form {
 
     }
 
+    internal void InnerStxPrint(StringBuilder sb) {
+        switch (Expression) {
+            case Form.Symbol sym:
+                sb.Append(sym.Name);
+                break;
+            case SyntaxList stxList:
+                sb.Append('(');
+                stxList.InnerStxPrint(sb);
+                sb.Append(')');
+                break;
+            case SyntaxPair pair:
+                sb.Append('(');
+                pair.Car.InnerStxPrint(sb);
+                sb.Append(" . ");
+                pair.Cdr.InnerStxPrint(sb);
+                sb.Append(')');
+                break;
+            default:
+                sb.Append(Expression.Print());
+                break;
+        }
+        
+    }
+
+    private string StxPrint() {
+        var sb = new StringBuilder("#<syntax: ");
+        InnerStxPrint(sb);
+        sb.Append(">");
+        return sb.ToString();
+    }
+
     public static Syntax FromDatum(SrcLoc? srcLoc, IForm x) {
         switch (x) {
             case Syntax stx:
@@ -257,9 +289,9 @@ public class Syntax : Form {
         internal HashSet<Scope> ScopeSet {get; private set;}
     }
 
-    public override string Print() => $"#<syntax: {ToDatum(this).Print()}>";
+    public override string Print() => StxPrint();
 
-    public override string ToString() => $"#<syntax: {ToDatum(this).Print()}>";
+    public override string ToString() => StxPrint();
 
     protected virtual IForm Expression {get;}
 

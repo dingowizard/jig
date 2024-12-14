@@ -214,9 +214,6 @@ public class ParsedLambda : ParsedExpr {
         var newScope = new Scope();
         var parameters = stxList.ElementAt<Syntax>(1);
         Syntax.AddScope(parameters, newScope);
-        if (Syntax.E(parameters) is SyntaxList sl && sl.Any<Syntax>(p => p is Syntax.Identifier { Symbol.Name: "y" })) {
-            Console.Error.WriteLine($"parsing lambda expr {stxList}");
-        }
         // create a new binding for each parameter
         LambdaParameters ps = LambdaParameters.Parse(parameters, expander, ee);
 
@@ -252,9 +249,6 @@ public class ParsedLambda : ParsedExpr {
                     }
                     Binding binding = new Binding();
                     id.Symbol.Binding = binding;
-                    if (id.Symbol.Name == "y") {
-                        Console.Error.WriteLine($"about to add {binding} to {id} {string.Join(", ", id.ScopeSet)}");
-                    }
                     expander.AddBinding(id, binding);
                     namesSeen.Add(id.Symbol.Name);
                     required.Add(id);
@@ -330,14 +324,17 @@ public class ParsedVariable : ParsedExpr {
 
         // }
         if (stx is Syntax.Identifier id) {
-            if(expander.TryResolve(id, out Binding? binding)) {
+            if(expander.TryResolve(id, out var binding)) {
+                // if (id.Symbol.Name == "y") {
+                //     Console.WriteLine($"found binding for y: {binding}");
+                // }
                 id.Symbol.Binding = binding;
                 parsedVariable = new ParsedVariable.Lexical(id, stx.SrcLoc);
                 return true;
             } else {
-                if (id.Symbol.Name == "c") {
-                    Console.WriteLine("couldn't resolve c");
-                }
+                // if (id.Symbol.Name == "y") {
+                //     Console.WriteLine("couldn't resolve y");
+                // }
                 parsedVariable = new ParsedVariable.TopLevel(id, stx.SrcLoc);
                 return true;
             }

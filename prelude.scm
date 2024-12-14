@@ -79,16 +79,12 @@
                        (return #t)
                        (loop (cdr xs))))))
            (loop xs)))))
-    (define map1
-      (lambda (fn xs)
-        (if (null? xs)
-            '()
-            (cons (fn (car xs)) (map fn (cdr xs))))))
     ((lambda (ls)
       (if (any-null? ls)
           '()
-          (cons (apply fn (map1 car ls))
-                (apply map (cons fn (map1 cdr ls)))))) (cons xs rest))))
+          ; (cons (apply fn (map1 car ls))
+          (cons (apply fn (fold-right (lambda (x acc) (cons (car x) acc)) '() ls))
+                (apply map (cons fn (fold-right (lambda (x acc) (cons (cdr x) acc)) '() ls)))))) (cons xs rest))))
 
 (define caar (lambda (p) (car (car p))))
 
@@ -114,16 +110,27 @@
 ;                (cddr (syntax->list stx)))
 ;        (map (lambda (b) (cadr (syntax->list b))) (syntax->list (cadr (syntax->list stx))))))))
 
+; (define-syntax let
+;    (lambda (stx)
+;     ((lambda (xs)
+;         ((lambda (bindings bodies)
+;             (datum->syntax
+;                stx
+;                `((lambda ,(map car bindings) ,@bodies) ,@(map cadr bindings))))
+;             (map syntax->list (syntax->list (cadr xs)))
+;             (cddr xs)))
+;         (syntax->list stx))))
+(define all
+   (lambda (pred xs)
+      (if (null? xs)
+          #t
+          (if (pred (car xs)) (all pred (cdr xs)) #f))))
+
+; note: syntax-rules depends on all
+
 (define-syntax let
-   (lambda (stx)
-    ((lambda (xs)
-        ((lambda (bindings bodies)
-            (datum->syntax
-               stx
-               `((lambda ,(map car bindings) ,@bodies) ,@(map cadr bindings))))
-            (map syntax->list (syntax->list (cadr xs)))
-            (cddr xs)))
-        (syntax->list stx))))
+   (syntax-rules ()
+      ((let ((p x) ...) body0 bodies ...) ((lambda (p ...) body0 bodies ...) x ...))))
 
 ; --- or that doesn't use match
 ; (define-syntax or
@@ -446,8 +453,3 @@
 ;            ((lambda (test a) (datum->syntax stx (quote #t))) (car x) x)
 ;            (error (quote "syntax-rules: couldn't find a match.") x)))
 ;     (syntax-e stx)))
-(define all
-   (lambda (pred xs)
-      (if (null? xs)
-          #t
-          (if (pred (car xs)) (all pred (cdr xs)) #f))))

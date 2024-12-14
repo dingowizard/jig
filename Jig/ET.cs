@@ -202,6 +202,9 @@ internal abstract class ET : Expression {
     private class ProcAppET : ET {
 
         public ProcAppET(LexicalContext scope, ParsedList list) : base () {
+            // if (ListContainsY(list)) {
+            //     Console.WriteLine($"ProcAppET: {list}");
+            // }
             IEnumerable<Expression<CompiledCode>> analyzed =
                 list.ParsedExprs.Select(x => (Expression<CompiledCode>)Analyze(scope, x).Reduce());
             var vParam = Expression.Parameter(typeof(IForm));
@@ -225,6 +228,12 @@ internal abstract class ET : Expression {
                                       Expression.Constant(0)),
                     typeof(Thunk));
 
+        }
+
+        private bool ListContainsY(ParsedList list) {
+            return list
+                .ParsedExprs
+                .Any(x => x is ParsedVariable { Identifier.Symbol.Name: "y" });
         }
 
         public ProcAppET(LexicalContext scope, List.NonEmpty list) : base () {

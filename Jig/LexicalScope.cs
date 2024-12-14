@@ -45,28 +45,35 @@ internal class LexicalContext {
 
         Form.Symbol symbol =
             x is Syntax stx ?
-            (Form.Symbol)Syntax.ToDatum(stx) :
+            (Form.Symbol)Syntax.E(stx) :
             (Form.Symbol) x;
         var candidates = Symbols.Where(tup => tup.Item1.Name==symbol.Name);
-        // if (symbol.Name == "c") {
-        //         Console.WriteLine($"\tLookUp: found {candidates.Count()} candidate(s) for 'c'");
-        //         if (candidates.Any()) {
-        //             Binding? binding = candidates.ElementAt(0).Item1.Binding;
-        //             if (binding is not null) {
-        //                 Console.WriteLine($"\tLookUp: the first candidate has binding = {(binding is null ? "null" : binding.ToString())} and the symbol has binding = {(symbol.Binding == null ? "null" : symbol.Binding.ToString())}");
-        //             }
+        var enumerable = candidates as Tuple<Form.Symbol, ParameterExpression>[] ?? candidates.ToArray();
+        /*
+        if (symbol.Name == "y") {
+                Console.WriteLine($"\tLookUp: found {enumerable.Length} candidate(s) for 'y' ({symbol.Binding}");
+                if (enumerable.Length != 0) {
+                    Binding? binding = enumerable[0].Item1.Binding;
+                    if (binding is not null) {
+                        Console.WriteLine($"\tLookUp: the first candidate has binding = {binding.ToString()} and the symbol has binding = {(symbol.Binding == null ? "null" : symbol.Binding.ToString())}");
+                        Console.WriteLine(
+                            $"\t\tThe first candidate's binding and the lookup symbol's are ==: {symbol.Binding == binding}");
+                        Console.WriteLine($"\t\tThe first candidate's binding and the lookup symbol's are Equals: {symbol.Binding?.Equals(binding)}");
+                        Console.WriteLine($"\t\tThe first candidate's binding and the lookup symbol's are ReferenceEquals: {ReferenceEquals(symbol.Binding,binding)}");
+                    }
 
-        //         }
-        // }
-        var candidates2 = candidates.Where(tup => tup.Item1.Binding==symbol.Binding);
+                }
+        }
+        */
+        var candidates2 = enumerable.Where(tup => tup.Item1.Binding==symbol.Binding);
         ParameterExpression? pe = null;
         if (candidates2.Any()) {
             pe = candidates2.ElementAt(0)?.Item2;
         }
         if (pe is null) {
             if (EnclosingScope is null) {
-                // if (symbol.Name == "c") {
-                //     Console.WriteLine($"\tLookUp: couldn't find 'c'");
+                // if (symbol.Name == "y") {
+                //     Console.WriteLine($"\tLookUp: couldn't find 'y'");
                 // }
                 return null;
             } else {
@@ -74,7 +81,7 @@ internal class LexicalContext {
             }
 
         } else {
-            // if (symbol.Name == "c") {
+            // if (symbol.Name == "y") {
             //     Console.WriteLine($"\tLookUp: about to return {pe}");
             // }
             return pe;
