@@ -433,16 +433,15 @@
 ;              (lambda () ,@bodies)
 ;              (lambda () (,(car ps) old (lambda (x) x))))) (,(car ps)))))))
 
-; ; TODO: parameterize should handle multiple bindings
 ; TODO: make tests for make-parameter and parameterize
-(define-syntax parameterize
+(define-syntax parametize
    (syntax-rules ()
-      ((parameterize ((p v)) body0 body ...)
-       ((lambda (old)
+      ((parameterize ((p v) ...) body0 body ...)
+       ((lambda olds
            (dynamic-wind
-              (lambda () (p v))
+              (lambda () (p v) ...)
               (lambda () body0 body ...)
-              (lambda () (p old (lambda (x) x))))) (p)))))
+              (lambda () (map (lambda (pr old) (pr old (lambda (x) x))) (list p ...) olds)))) (p) ...))))
 
 (define with-exception-handler #f)
 (define raise #f)
