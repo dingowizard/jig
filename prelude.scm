@@ -158,39 +158,43 @@
       ((or x) x)
       ((or a rest ...) (let ((tmp a)) (if tmp tmp (or rest ...))))))
 
-(define-syntax let*
-  (lambda (stx)
-    (let ((syntax-list (syntax->list stx)))
-      (let ((bindings (syntax->list (cadr syntax-list))))
-        (datum->syntax
-         stx
-         (let ((len (length bindings))
-               (body (cddr syntax-list)))
-          (if (= len 0)
-              `((lambda () ,@body))
-              (if (= len 1)
-                  `(let (,(car bindings)) ,@body)
-                  `(let (,(car bindings)) (let* ,(cdr bindings) ,@body))))))))))
-
-
 ; (define-syntax let*
-;    (syntax-rules ()
-;       ((let* () body0 bodies ...) ((lambda () body0 bodies ...)))
-;       ((let* ((p x)) body0 bodies ...) ((lambda (p) body0 bodies ...) x))
-;       ((let* ((p1 x1) (p x) ...) body0 bodies ...) ((lambda (p1) (let* ((p x) ...) body0 bodies ...)) x1))))
+;   (lambda (stx)
+;     (let ((syntax-list (syntax->list stx)))
+;       (let ((bindings (syntax->list (cadr syntax-list))))
+;         (datum->syntax
+;          stx
+;          (let ((len (length bindings))
+;                (body (cddr syntax-list)))
+;           (if (= len 0)
+;               `((lambda () ,@body))
+;               (if (= len 1)
+;                   `(let (,(car bindings)) ,@body)
+;                   `(let (,(car bindings)) (let* ,(cdr bindings) ,@body))))))))))
+
+
+(define-syntax let*
+   (syntax-rules ()
+      ((let* () body0 bodies ...) ((lambda () body0 bodies ...)))
+      ((let* ((p x)) body0 bodies ...) ((lambda (p) body0 bodies ...) x))
+      ((let* ((p1 x1) (p x) ...) body0 bodies ...) ((lambda (p1) (let* ((p x) ...) body0 bodies ...)) x1))))
 
 (define void (lambda () (if #f #f)))
 
+; (define-syntax letrec
+;   (lambda (stx)
+;     (let* ((stx-list (syntax->list stx))
+;            (bs (map syntax->list (syntax->list (cadr stx-list))))
+;            (ps (map car bs))
+;            (vs (map cadr bs))
+;            (body (cddr stx-list)))
+;       (datum->syntax
+;        stx
+;        `((lambda () ,@(map (lambda (p v) `(define ,p ,v)) ps vs) ,@body))))))
+
 (define-syntax letrec
-  (lambda (stx)
-    (let* ((stx-list (syntax->list stx))
-           (bs (map syntax->list (syntax->list (cadr stx-list))))
-           (ps (map car bs))
-           (vs (map cadr bs))
-           (body (cddr stx-list)))
-      (datum->syntax
-       stx
-       `((lambda () ,@(map (lambda (p v) `(define ,p ,v)) ps vs) ,@body))))))
+   (syntax-rules ()
+      ((letrec ((p x) ...) body0 bodies ...) ((lambda () (define p x) ... body0 bodies ...)))))
 ;----------------------------------------------------------------------------------------
 ; LEAVE COMMENTED
 ; ;; TODO: figure out why these two definitions of letrec, which work in racket, fail in Jig
@@ -246,15 +250,20 @@
 ;             (((test x)) `(if ,test ,x))
 ;             (((test x) . more) `(if ,test ,x (cond ,@more)))))))
 
+; (define-syntax cond
+;   (lambda (stx)
+;     (datum->syntax
+;       stx
+;       (match-syntax stx
+;         ((cond (test expr))
+;         `(if ,test ,expr))
+;         ((cond (test expr) . more)
+;         `(if ,test ,expr (cond ,@more)))))))
+
 (define-syntax cond
-  (lambda (stx)
-    (datum->syntax
-      stx
-      (match-syntax stx
-        ((cond (test expr))
-        `(if ,test ,expr))
-        ((cond (test expr) . more)
-        `(if ,test ,expr (cond ,@more)))))))
+   (syntax-rules ()
+      ((cond (test x)) (if test x))
+      ((cond (test1 x1) (test x) ...) (if test1 x1 (cond (test x) ...)))))
 
 ; (define-syntax when
 ;   (lambda (stx)
@@ -263,12 +272,16 @@
 ;            (body (cddr stx-list)))
 ;       (datum->syntax stx `(if ,condition (begin ,@body))))))
 
+; (define-syntax when
+;    (lambda (stx)
+;       (datum->syntax
+;          stx
+;          (match (cdr (syntax->list stx))
+;             ((test . bodies) `(if ,test (begin ,@bodies)))))))
+
 (define-syntax when
-   (lambda (stx)
-      (datum->syntax
-         stx
-         (match (cdr (syntax->list stx))
-            ((test . bodies) `(if ,test (begin ,@bodies)))))))
+   (syntax-rules ()
+      ((when test body0 bodies ...) (if test (begin body0 bodies ...)))))
 
 ; (define-syntax do
 ;   (lambda (stx)
@@ -286,30 +299,46 @@
 ;        stx
 ;        `((lambda () (define loop (lambda ,ps (if ,test ,result (begin ,@body (loop ,@incrs))))) (loop ,@inits)))))))
 
+; (define-syntax do
+;    (lambda (stx)
+;       (datum->syntax
+;          stx
+;          (match-syntax stx
+;             ((do ((i init incr) . vars)
+;                  (test result))
+;              `((lambda ()
+;                   (define loop
+;                      (lambda ,(cons i (map (compose car syntax-e) vars))
+;                         (if ,test
+;                             ,result
+;                             (loop ,@(cons incr (map (compose caddr syntax-e) vars))))))
+;                   (loop ,@(cons init (map (compose cadr syntax-e) vars))))))
+;             ((do ((i init incr) . vars)
+;                  (test result) . bodies)
+;              `((lambda ()
+;                   (define loop
+;                      (lambda ,(cons i (map (lambda (x) (car (syntax-e x))) vars))
+;                         (if ,test
+;                             ,result
+;                             (begin ,@bodies
+;                                    (loop ,@(cons incr (map (lambda (x) (caddr (syntax-e x))) vars)))))))
+;                   (loop ,@(cons init (map (lambda (x) (cadr (syntax-e x))) vars))))))))))
+; TODO: make step optional (see spec r6rs-lib)
 (define-syntax do
-   (lambda (stx)
-      (datum->syntax
-         stx
-         (match-syntax stx
-            ((do ((i init incr) . vars)
-                 (test result))
-             `((lambda ()
-                  (define loop
-                     (lambda ,(cons i (map (compose car syntax-e) vars))
-                        (if ,test
-                            ,result
-                            (loop ,@(cons incr (map (compose caddr syntax-e) vars))))))
-                  (loop ,@(cons init (map (compose cadr syntax-e) vars))))))
-            ((do ((i init incr) . vars)
-                 (test result) . bodies)
-             `((lambda ()
-                  (define loop
-                     (lambda ,(cons i (map (lambda (x) (car (syntax-e x))) vars))
-                        (if ,test
-                            ,result
-                            (begin ,@bodies
-                                   (loop ,@(cons incr (map (lambda (x) (caddr (syntax-e x))) vars)))))))
-                  (loop ,@(cons init (map (lambda (x) (cadr (syntax-e x))) vars))))))))))
+   (syntax-rules ()
+      ((do ((var init step) ...)
+           (test expr ...)
+           command ...)
+       ((lambda ()
+           (define loop (lambda (var ...)
+                           (if test
+                               (begin
+                                  (void)
+                                  expr ...)
+                               (begin
+                                  command ...
+                                  (loop step ...)))))
+           (loop init ...))))))
 
 
 (define dynamic-wind #f)
@@ -389,20 +418,31 @@
 
 ; ; TODO: parameterize should handle multiple bindings
 ; ; TODO: in below, it shold be possible to write `(lambda () . ,bodies), but it expands incorrectly
+; (define-syntax parameterize
+;   (lambda (stx)
+;     (let* ((stx-list (syntax->list stx))
+;            (bs (map syntax->list (syntax->list (cadr stx-list))))
+;            (ps (map car bs))
+;            (vs (map cadr bs))
+;            (bodies (cddr stx-list)))
+;       (datum->syntax
+;        stx
+;        `((lambda (old)
+;            (dynamic-wind
+;              (lambda () (,(car ps) ,(car vs)))
+;              (lambda () ,@bodies)
+;              (lambda () (,(car ps) old (lambda (x) x))))) (,(car ps)))))))
+
+; ; TODO: parameterize should handle multiple bindings
+; TODO: make tests for make-parameter and parameterize
 (define-syntax parameterize
-  (lambda (stx)
-    (let* ((stx-list (syntax->list stx))
-           (bs (map syntax->list (syntax->list (cadr stx-list))))
-           (ps (map car bs))
-           (vs (map cadr bs))
-           (bodies (cddr stx-list)))
-      (datum->syntax
-       stx
-       `((lambda (old)
+   (syntax-rules ()
+      ((parameterize ((p v)) body0 body ...)
+       ((lambda (old)
            (dynamic-wind
-             (lambda () (,(car ps) ,(car vs)))
-             (lambda () ,@bodies)
-             (lambda () (,(car ps) old (lambda (x) x))))) (,(car ps)))))))
+              (lambda () (p v))
+              (lambda () body0 body ...)
+              (lambda () (p old (lambda (x) x))))) (p)))))
 
 (define with-exception-handler #f)
 (define raise #f)
