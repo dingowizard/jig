@@ -59,17 +59,15 @@ internal static partial class Builtins {
         }
 
         private SyntaxRules(SyntaxList literals, IEnumerable<Tuple<SyntaxList.NonEmpty, Syntax>> clauses) {
-            if (literals is not SyntaxList.Empty) {
-                throw new NotImplementedException($"syntax-rules: literals ({literals.Print()}) are not supported yet.");
-            }
-            Literals = literals;
+            // if (literals is not SyntaxList.Empty) {
+            //     throw new NotImplementedException($"syntax-rules: literals ({literals.Print()}) are not supported yet.");
+            // }
             Var = NewSym("x");
-            Clauses = clauses.Select<Tuple<SyntaxList.NonEmpty, Syntax>, Clause>(clause => new Clause(Var, clause.Item1, clause.Item2)).ToList();
+            Clauses = clauses.Select<Tuple<SyntaxList.NonEmpty, Syntax>, Clause>(clause => new Clause(Var, literals, clause.Item1, clause.Item2)).ToList();
 
         }
         
 
-        private SyntaxList Literals {get;}
 
         private Form.Symbol Var {get;}
 
@@ -87,8 +85,8 @@ internal static partial class Builtins {
         private static List IfsFromClauses(Form.Symbol toMatch, IEnumerable<Clause> clauses) {
             var enumerable = clauses as Clause[] ?? clauses.ToArray();
             Form elseBranch =
-            enumerable.Count() == 1 ?
-            NewList(NewSym("error"), NewLit($"syntax-rules: couldn't find a match."), toMatch) :
+            enumerable.Length == 1 ?
+            NewList(NewSym("error"), new String($"syntax-rules: couldn't find a match."), toMatch) :
             IfsFromClauses(toMatch, enumerable.Skip(1));
 
             var thisClause = enumerable.ElementAt(0);
@@ -101,14 +99,17 @@ internal static partial class Builtins {
         }
 
         internal class Clause {
-            public Clause(Form.Symbol toMatch, SyntaxList.NonEmpty pattern, Syntax templateSyntax) {
+            public Clause(Form.Symbol toMatch, SyntaxList literals, SyntaxList.NonEmpty pattern, Syntax templateSyntax) {
 
                 VarForInput = toMatch;
                 Pattern = pattern;
                 TemplateSyntax = templateSyntax;
+                Literals = literals;
                 PatternVars = EnvFromPattern(toMatch, pattern, 0);
 
             }
+            
+            private SyntaxList Literals {get;}
 
             private Env EnvFromPattern(Form arg, SyntaxList.NonEmpty pattern, int depth)
             {
@@ -355,7 +356,6 @@ internal static partial class Builtins {
 
                     return tup.Item1;
                 }
-
                 return NewList(NewSym("quote"), id);
 
             }
@@ -375,7 +375,7 @@ internal static partial class Builtins {
                 return id.Symbol.Name == "...";
             }
 
-            private Form MakeEllipsisCondition(Form stxToMatch, Form forVar, SyntaxList pattern, int ellipsisDepth)
+            private Form MakeEllipsisCondition(Form stxToMatch, SyntaxList pattern, int ellipsisDepth)
             {
                 // at this point pattern is something like (a ...) where a
                 // could be just about anything
@@ -402,7 +402,17 @@ internal static partial class Builtins {
                 {
                     
                     case IEmptyList: return NewList(NewSym("null?"), NewList(NewSym("syntax-e"), toMatch));
-                    case Form.Symbol: return NewLit(true);
+                    case Form.Symbol sym:
+                        Syntax.Identifier? lit = (Syntax.Identifier?)Literals.FirstOrDefault<Syntax>(stx => stx is Syntax.Identifier id && id.Symbol.Name == sym.Name);
+                        if (lit is not null) {
+                            // TODO: probably should test with something other than symbol=?
+                            return NewList(
+                                NewSym("if"),
+                                NewList(NewSym("symbol?"), NewList(NewSym("syntax-e"), toMatch)),
+                                NewList(new Form.Symbol("symbol=?"), NewList(NewSym("quote"), sym), NewList(NewSym("syntax-e"), toMatch)),
+                                NewLit(false));
+                        } 
+                        return NewLit(true);
                     case SyntaxList.NonEmpty stxList:
                         return MakeCondition(
                             NewList(NewSym("syntax-e"), toMatch),
@@ -446,7 +456,7 @@ internal static partial class Builtins {
             private Form MakeCondition(Form toMatch, Form forVar, SyntaxList pattern, int ellipsisDepth) {
                 if (IsEllipsisPattern(pattern))
                 {
-                    return MakeEllipsisCondition(toMatch, forVar, pattern, ellipsisDepth);
+                    return MakeEllipsisCondition(toMatch, pattern, ellipsisDepth);
                 }
                 switch (pattern) {
                     case SyntaxList.Empty: return NewList(NewSym("null?"), toMatch);
@@ -474,29 +484,25 @@ internal static partial class Builtins {
             }
 
 
-            private Env  PatternVars = [];
-            public Form.Symbol VarForInput {get;}
-            public SyntaxList.NonEmpty Pattern {get;}
-            public Syntax TemplateSyntax {get;}
+            private readonly Env  PatternVars;
+            private Form.Symbol VarForInput {get;}
+            private SyntaxList.NonEmpty Pattern {get;}
+            private Syntax TemplateSyntax {get;}
         }
 
     }
 
 
-    internal static Form.Symbol NewSym(string name, SrcLoc? srcLoc = null) {
+    private static Form.Symbol NewSym(string name) {
         return new Form.Symbol(name);
     }
 
-    internal static Jig.List NewList(params Form[] forms) {
+    private static List NewList(params Form[] forms) {
         return forms.ToJigList();
 
     }
 
-    internal static LiteralExpr NewLit(string str) {
-        return new String(str);
-    }
-
-    internal static LiteralExpr NewLit(bool b) {
+    private static Bool NewLit(bool b) {
         return b ? Bool.True : Bool.False;
     }
 

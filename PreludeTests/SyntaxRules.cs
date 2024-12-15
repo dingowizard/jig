@@ -186,4 +186,18 @@ public class SyntaxRules
         );
         Assert.AreEqual("#t", actual);
     }
+    
+    [TestMethod]
+    public void MatchLiteral() {
+        var actual = Utilities.InterpretSequenceReadSyntax(
+            """
+            (define-syntax arrow?
+              (syntax-rules (=>)
+                ((arrow? =>) '#t)
+                ((arrow? _ ...) '#f)))
+            """,
+            "(arrow? =>)"
+        );
+        Assert.AreEqual("#t", actual);
+    }
 }

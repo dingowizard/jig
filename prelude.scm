@@ -40,16 +40,16 @@
 (define not (lambda (x) (if x #f #t)))
 
 (define fold-left
-  (lambda (fn init xs)
+  (lambda (fn acc xs)
     (if (null? xs)
-        init
-        (fold-left fn (fn (car xs) init) (cdr xs)))))
+        acc
+        (fold-left fn (fn (car xs) acc) (cdr xs)))))
 
 (define fold-right
-  (lambda (fn init xs)
+  (lambda (fn acc xs)
     (if (null? xs)
-        init
-        (fn (car xs) (fold-right fn init (cdr xs))))))
+        acc
+        (fn (car xs) (fold-right fn acc (cdr xs))))))
 
 (define compose2
     (lambda (f1 f2)
@@ -62,27 +62,22 @@
 
 (define reverse
   (lambda (xs)
-    (fold-left cons (list) xs)))
+    (fold-left cons '() xs)))
 
-;; TODO: why do we need to define map1? we get infinite loop otherwise
+(define any
+   (lambda (pred xs)
+      (call/cc (lambda (return)
+                  (if (null? xs)
+                      #f
+                      (if (pred (car xs))
+                          (return #t)
+                          (any pred (cdr xs))))))))
+
 (define map
   (lambda (fn xs . rest)
-    (define any-null?
-      (lambda (xs)
-        (call/cc
-         (lambda (return)
-           (define loop
-             (lambda (xs)
-               (if (null? xs)
-                   #f
-                   (if (null? (car xs))
-                       (return #t)
-                       (loop (cdr xs))))))
-           (loop xs)))))
     ((lambda (ls)
-      (if (any-null? ls)
+      (if (any null? ls)
           '()
-          ; (cons (apply fn (map1 car ls))
           (cons (apply fn (fold-right (lambda (x acc) (cons (car x) acc)) '() ls))
                 (apply map (cons fn (fold-right (lambda (x acc) (cons (cdr x) acc)) '() ls)))))) (cons xs rest))))
 
@@ -120,13 +115,26 @@
 ;             (map syntax->list (syntax->list (cadr xs)))
 ;             (cddr xs)))
 ;         (syntax->list stx))))
+
+; TODO: replace these with normal versions
+(define odd?
+   (lambda (n)
+      (if (zero? n)
+          #f
+          (even? (- n 1)))))
+
+(define even?
+   (lambda (n)
+      (if (zero? n)
+          #t
+          (odd? (- n 1)))))
+
+; note: syntax-rules depends on all
 (define all
    (lambda (pred xs)
       (if (null? xs)
           #t
           (if (pred (car xs)) (all pred (cdr xs)) #f))))
-
-; note: syntax-rules depends on all
 
 (define-syntax let
    (syntax-rules ()
@@ -261,7 +269,8 @@
 ;         `(if ,test ,expr (cond ,@more)))))))
 
 (define-syntax cond
-   (syntax-rules ()
+   (syntax-rules (else)
+      ((cond (else x)) x)
       ((cond (test x)) (if test x))
       ((cond (test1 x1) (test x) ...) (if test1 x1 (cond (test x) ...)))))
 
@@ -378,19 +387,6 @@
                              (if (not (eq? save winders)) (do-wind save))
                              (apply k xs)))))))))
   (set! call-with-current-continuation call/cc)
-  ;; (set! error
-  ;;   (let ((prim-error error))
-  ;;     (lambda (msg . xs)
-  ;;       (define run-all
-  ;;         (lambda (ws)
-  ;;           (if (null? ws)
-  ;;               '()
-  ;;               (begin
-  ;;                 ((cdar ws))
-  ;;                 (run-all (cdr ws))))))
-  ;;       ; do all out thunks before exiting
-  ;;       (run-all winders)
-  ;;       (apply prim-error (cons msg xs)))))
   (set! dynamic-wind
     (lambda (in body out)
       (in)
@@ -434,7 +430,7 @@
 ;              (lambda () (,(car ps) old (lambda (x) x))))) (,(car ps)))))))
 
 ; TODO: make tests for make-parameter and parameterize
-(define-syntax parametize
+(define-syntax parameterize
    (syntax-rules ()
       ((parameterize ((p v) ...) body0 body ...)
        ((lambda olds
@@ -498,9 +494,3 @@
               (display (car xs))
               (newline))
            (k (void))))))
-; (lambda (stx)
-;    ((lambda (x)
-;        (if (if (quote #t) (all (lambda (x) (quote #t)) x) (quote #f))
-;            ((lambda (test a) (datum->syntax stx (quote #t))) (car x) x)
-;            (error (quote "syntax-rules: couldn't find a match.") x)))
-;     (syntax-e stx)))
