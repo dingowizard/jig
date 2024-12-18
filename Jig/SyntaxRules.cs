@@ -51,17 +51,11 @@ internal static partial class Builtins {
                 NewList(
                     new SyntaxRules(literals.ToSyntaxList(), clauses).LambdaFromClauses(),
                     NewList(NewSym("syntax-e"), stxParam)));
-            // if (stxList.ElementAt<Syntax>(0) is Syntax.Identifier macroName && macroName.Symbol.Name == "lit") {
-                // Console.Error.WriteLine($"syntax-rules expanded to\n\t{result}");
-            //}
             return Continuation.ApplyDelegate(k, Syntax.FromDatum(stx.SrcLoc, result));
 
         }
 
         private SyntaxRules(SyntaxList literals, IEnumerable<Tuple<SyntaxList.NonEmpty, Syntax>> clauses) {
-            // if (literals is not SyntaxList.Empty) {
-            //     throw new NotImplementedException($"syntax-rules: literals ({literals.Print()}) are not supported yet.");
-            // }
             Var = NewSym("x");
             Clauses = clauses.Select<Tuple<SyntaxList.NonEmpty, Syntax>, Clause>(clause => new Clause(Var, literals, clause.Item1, clause.Item2)).ToList();
 
@@ -89,7 +83,7 @@ internal static partial class Builtins {
             NewList(NewSym("error"), new String($"syntax-rules: couldn't find a match."), toMatch) :
             IfsFromClauses(toMatch, enumerable.Skip(1));
 
-            var thisClause = enumerable.ElementAt(0);
+            var thisClause = enumerable[0];
             return NewList(
                 NewSym("if"),
                 thisClause.Condition(),
@@ -298,7 +292,7 @@ internal static partial class Builtins {
                     case Form.Symbol symbol:
                         return Equals(entry.Item1, symbol) && entry.Item3 == 0;
                     case SyntaxList stxList:
-                        return stxList.Any<Syntax>(stx => InPattern(stx, entry));
+                        return stxList.Any<Syntax>(tup => InPattern(tup, entry));
                     case SyntaxPair pair:
                         return InPattern(pair.Car, entry) || InPattern(pair.Cdr, entry);
                     default: return false;
@@ -306,8 +300,26 @@ internal static partial class Builtins {
                 }
             }
 
+            private static bool InPattern(SyntaxList stxList, EnvEntry entry) {
+                while (true) {
+                    switch (stxList) {
+                        case SyntaxList.NonEmpty xs:
+                            if (!CadrIsDotDotDot(xs)) return InPattern(xs.First, entry) || InPattern(xs.Rest, entry);
+                            stxList = xs.Skip<Syntax>(HowManyDotDotDots(xs) + 1).ToSyntaxList();
+                            continue;
+                        case IEmptyList:
+                            return false;
+                        default:
+                            throw new Exception();
+                    }
+
+                    break;
+                }
+            }
+
             private static Form MapForDotDotDot(Syntax pattern, Env env) {
                 var entries = env.FindAll(tup => InPattern(pattern, tup));
+                // Console.Error.WriteLine($"entries for {pattern} = {string.Join(", ", entries)}");
                 var result = NewList(
                     NewSym("map"),
                     NewList(
@@ -375,10 +387,11 @@ internal static partial class Builtins {
                 return id.Symbol.Name == "...";
             }
 
-            private Form MakeEllipsisCondition(Form stxToMatch, SyntaxList pattern, int ellipsisDepth)
+            private Form MakeEllipsisCondition(Form stxToMatch, SyntaxList.NonEmpty pattern, int ellipsisDepth)
             {
                 // at this point pattern is something like (a ...) where a
                 // could be just about anything
+                
                 var z = NewSym("z");
                 var condition = MakeCondition(
                     z,
@@ -392,12 +405,16 @@ internal static partial class Builtins {
                         NewList(z),
                         condition),
                     stxToMatch );
-                return result;
+                return NewList(NewSym("if"), NewList(NewSym("list?"), stxToMatch), result, NewLit(false));
 
             }
 
             private Form MakeCondition(Form toMatch, Form forVar, Syntax pattern, int ellipsisDepth = 0)
             {
+                if (pattern is Syntax.Literal constant) {
+                    return NewList(NewSym("eqv?"), NewList(NewSym("syntax-e"), toMatch), (Form)constant.Expression);
+                    
+                }
                 switch (Syntax.E(pattern))
                 {
                     
@@ -414,11 +431,13 @@ internal static partial class Builtins {
                         } 
                         return NewLit(true);
                     case SyntaxList.NonEmpty stxList:
-                        return MakeCondition(
-                            NewList(NewSym("syntax-e"), toMatch),
-                            NewList(NewSym("syntax-e"), forVar),
-                            stxList,
-                            ellipsisDepth);
+                        Console.Error.WriteLine($"In {Pattern} \n\tMakeCondition: found list \n\t{stxList} in {toMatch}");
+                        return 
+                            MakeCondition(
+                                NewList(NewSym("syntax-e"), toMatch),
+                                NewList(NewSym("syntax-e"), forVar),
+                                stxList,
+                                ellipsisDepth);
                     case SyntaxPair stxPair:
                         return MakeCondition(
                             NewList(NewSym("syntax-e"), toMatch),
@@ -432,6 +451,7 @@ internal static partial class Builtins {
             }
 
             private Form MakeCondition(Form toMatch, Form forVar, SyntaxPair stxPair, int ellipsisDepth) {
+                // TODO: if it worked, make this like stxList
                         return NewList(
                             NewSym("if"),
                             NewList(NewSym("pair?"), toMatch),
@@ -453,34 +473,41 @@ internal static partial class Builtins {
             }
 
 
-            private Form MakeCondition(Form toMatch, Form forVar, SyntaxList pattern, int ellipsisDepth) {
+            private Form MakeCondition(Form toMatch, Form forVar, SyntaxList.NonEmpty pattern, int ellipsisDepth) {
                 if (IsEllipsisPattern(pattern))
                 {
                     return MakeEllipsisCondition(toMatch, pattern, ellipsisDepth);
                 }
-                switch (pattern) {
-                    case SyntaxList.Empty: return NewList(NewSym("null?"), toMatch);
-                    case SyntaxList.NonEmpty list:
-                        return NewList(
+                return NewList(
+                    NewSym("if"),
+                    NewList(NewSym("pair?"),  toMatch),
+                        NewList(
                             NewSym("if"),
-                            NewList(NewSym("pair?"), toMatch),
-                            NewList(
-                                NewSym("if"),
-                                MakeCondition(
-                                    NewList(NewSym("car"), toMatch),
-                                    NewList(NewSym("car"), forVar),
-                                    list.First,
-                                    ellipsisDepth),
-                                MakeCondition(
-                                    NewList(NewSym("cdr"), toMatch),
-                                    NewList(NewSym("cdr"), forVar),
-                                    list.Rest,
-                                    ellipsisDepth),
-                                NewLit(false)),
-                            NewLit(false));
-                    default: throw new Exception("should be impossible. a list is empty or not");
-                }
+                            MakeCondition(
+                                NewList(NewSym("car"), toMatch),
+                                NewList(NewSym("car"), forVar),
+                                pattern.First,
+                                ellipsisDepth),
+                            MakeCondition(
+                                NewList(NewSym("cdr"), toMatch),
+                                NewList(NewSym("cdr"), forVar),
+                                pattern.Rest,
+                                ellipsisDepth),
+                            NewLit(false)),
+                    NewLit(false));
 
+            }
+
+            private Form MakeCondition(Form toMatch, Form forVar, SyntaxList pattern, int ellipsisDepth) {
+                // This would be called on the cdr if a SyntaxList.NonEmpty
+                if (pattern is not SyntaxList.NonEmpty list) return NewList(NewSym("null?"), toMatch);
+                Console.Error.WriteLine($"In {Pattern} \n\tMakeCondition: found list \n\t{list} in {toMatch}");
+                return
+                    MakeCondition(
+                        toMatch,
+                        forVar,
+                        list,
+                        ellipsisDepth);
             }
 
 

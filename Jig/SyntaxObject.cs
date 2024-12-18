@@ -293,7 +293,7 @@ public class Syntax : Form {
 
     public override string ToString() => StxPrint();
 
-    protected virtual IForm Expression {get;}
+    internal virtual IForm Expression {get;}
 
     public SrcLoc? SrcLoc {get;}
     // public LexicalContext LexicalContext {get;}

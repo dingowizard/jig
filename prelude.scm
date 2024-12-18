@@ -76,6 +76,8 @@
 (define map
   (lambda (fn xs . rest)
     ((lambda (ls)
+        (if (not (apply = (fold-right (lambda (x acc) (cons (length x) acc)) '() ls)))
+            (error "map: lists must be same length" ls))
       (if (any null? ls)
           '()
           (cons (apply fn (fold-right (lambda (x acc) (cons (car x) acc)) '() ls))
@@ -93,6 +95,29 @@
 
 (define cdddr (lambda (p) (cdr (cdr (cdr p)))))
 
+(define memv
+   (lambda (x xs)
+      (if (null? xs)
+          #f
+          (if (eqv? (car xs) x)
+              xs
+              (memv x (cdr xs))))))
+
+(define member
+   (lambda (x xs)
+      (if (null? xs)
+          #f
+          (if (equal? (car xs) x)
+              xs
+              (member x (cdr xs))))))
+
+(define memq
+   (lambda (x xs)
+      (if (null? xs)
+          #f
+          (if (eq? (car xs) x)
+              xs
+              (memq x (cdr xs))))))
 
 ; doesn't use quasiquote
 ; (define-syntax let
@@ -269,11 +294,52 @@
 ;         `(if ,test ,expr (cond ,@more)))))))
 
 (define-syntax cond
-   (syntax-rules (else)
-      ((cond (else x)) x)
-      ((cond (test x)) (if test x))
-      ((cond (test1 x1) (test x) ...) (if test1 x1 (cond (test x) ...)))))
+  (syntax-rules (else =>)
+    ((cond (else result1 result2 ...))
+     (begin result1 result2 ...))
+    ((cond (test => result))
+     (let ((temp test))
+       (if temp (result temp))))
+    ((cond (test => result) clause1 clause2 ...)
+     (let ((temp test))
+       (if temp
+           (result temp)
+           (cond clause1 clause2 ...))))
+    ((cond (test)) test)
+    ((cond (test) clause1 clause2 ...)
+     (let ((temp test))
+       (if temp
+           temp
+           (cond clause1 clause2 ...))))
+    ((cond (test result1 result2 ...))
+     (if test (begin result1 result2 ...)))
+    ((cond (test result1 result2 ...)
+           clause1 clause2 ...)
+     (if test
+         (begin result1 result2 ...)
+         (cond clause1 clause2 ...)))))
 
+; this is case from r5rs. The one from r6rs has stuff after ... in a pattern, which we can't handle yet
+(define-syntax case
+  (syntax-rules (else)
+    ((case (key ...)
+       clauses ...)
+     (let ((atom-key (key ...)))
+       (case atom-key clauses ...)))
+    ((case key
+       (else result1 result2 ...))
+     (begin result1 result2 ...))
+    ((case key
+       ((atoms ...) result1 result2 ...))
+     (if (memv key '(atoms ...))
+         (begin result1 result2 ...)))
+    ((case key
+       ((atoms ...) result1 result2 ...)
+       clause clauses ...)
+     (if (memv key '(atoms ...))
+         (begin result1 result2 ...)
+         (case key clause clauses ...)))))
+;
 ; (define-syntax when
 ;   (lambda (stx)
 ;     (let* ((stx-list (syntax->list stx))

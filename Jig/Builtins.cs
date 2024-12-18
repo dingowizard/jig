@@ -26,7 +26,7 @@ internal static partial class Builtins {
             return properList.Car switch
             {
                 IPair pair => Continuation.ApplyDelegate(k, pair.Car),
-                _ => Error(k, $"car: expected pair but got {properList.Car}"),
+                _ => Error(k, $"car: expected pair but got {properList.Car.Print()}"),
             };
         } else {
             return Error(k, $"car: expected one argument but got {args}");
@@ -185,7 +185,7 @@ internal static partial class Builtins {
             }
             IForm first = args.ElementAt(0);
             IForm second = args.ElementAt(1);
-            Console.WriteLine($"eqv?: testing {first.Print()}, a {first.GetType()}, against {second.Print()}, a {second.GetType()}");
+            // Console.WriteLine($"eqv?: testing {first.Print()}, a {first.GetType()}, against {second.Print()}, a {second.GetType()}");
             bool result = first.Equals(second);
             return Continuation.ApplyDelegate(k, result ? Bool.True : Bool.False);
         } else {
@@ -386,7 +386,7 @@ internal static partial class Builtins {
         } else if (x is Procedure proc) {
             return proc.Apply(k, args);
         } else {
-            return Error(k, $"apply: expected procedure as first argument, but got {x}");
+            return Error(k, $"apply: expected procedure as first argument, but got {x.Print()}");
         }
     }
 

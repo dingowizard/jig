@@ -706,7 +706,7 @@ internal abstract class ET : Expression {
                 .Take<Syntax>(exprs.Count<Syntax>() - 1)
                 .Select(x => (Expression<CompiledCode>)Analyze(blockScope, x).Reduce()).ToArray();
             // forcing to array to deal with weird bug where things were done out of order when handled as IEnumerable
-            Expression<CompiledCode> lastExprCC = (Expression<CompiledCode>)Analyze(blockScope, exprs.Last<Syntax>()).Reduce();
+            Expression<CompiledCode> lastExprCC = (Expression<CompiledCode>)Analyze(blockScope, (ParsedExpr)exprs.Last<Syntax>()).Reduce();
             Expression thunkExpr = Expression.Lambda<Thunk>(Expression.Convert(Expression.Invoke(lastExprCC, kParam, envParam), typeof(Thunk)));
             Expression<CompiledCode> last = Expression.Lambda<CompiledCode>(thunkExpr, new ParameterExpression[] {kParam, envParam});
             analyzed = [.. analyzed, last];

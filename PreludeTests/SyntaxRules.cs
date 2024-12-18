@@ -186,7 +186,30 @@ public class SyntaxRules
         );
         Assert.AreEqual("#t", actual);
     }
-    
+
+    /*
+    [TestMethod]
+    public void DotDotDotInMiddle() {
+
+        var actual = Utilities.InterpretSequenceReadSyntax(
+            """
+            (define-syntax case
+              (syntax-rules (else)
+                ((case expr0
+                  ((key ...) res1 res2 ...)
+                  ...
+                  (else else-res1 else-res2 ...))
+                  '(cond
+                     ((memv tmp '(key ...)) res1 res2 ...)
+                     ...
+                     (else else-res1 else-res2 ...)))))
+            """,
+            "(case 3 ((2 4 6 8) 'even) ((1 3 5 7 9) 'odd) (else 'out-of-range))"
+        );
+        Assert.AreEqual("(cond ((memv 3 '(2 4 6 8)) 'even) ((memv 3 '(1 3 5 7 9)) 'odd) (else 'out-of-range))", actual);
+    }
+    */
+
     [TestMethod]
     public void MatchLiteral() {
         var actual = Utilities.InterpretSequenceReadSyntax(
@@ -199,5 +222,76 @@ public class SyntaxRules
             "(arrow? =>)"
         );
         Assert.AreEqual("#t", actual);
+    }
+
+    [TestMethod]
+    [DataRow("(case 7 ((2 4 6 8) 'even) ((1 3 5 7) 'odd))", "odd")]
+    [DataRow("(case (+ 3 4) ((2 4 6 8) 'even) ((1 3 5 7) 'odd))", "odd")]
+    public void SimplifiedCase(string macroUse, string expected) {
+        var actual = Utilities.InterpretSequenceReadSyntax(
+            """
+            (define-syntax case
+              (syntax-rules ()
+                ((case (key ...)
+                   clauses ...)
+                 (let ((atom-key (key ...)))
+                   (case atom-key clauses ...)))
+                ((case key
+                   ((atoms ...) result1 result2 ...))
+                 (if (memv key '(atoms ...))
+                     (begin result1 result2 ...)))
+                ((case key
+                   ((atoms ...) result1 result2 ...)
+                   clause clauses ...)
+                 (if (memv key '(atoms ...))
+                     (begin result1 result2 ...)
+                     (case key clause clauses ...)))))
+            """,
+            macroUse
+        );
+        Assert.AreEqual(expected, actual);
+    }
+    
+    [TestMethod]
+    [DataRow("(case 7 ((1 3 5 7 9) 'odd))", "1")]
+    // [DataRow("(case 7 ((2 4 6 8) 'even) ((1 3 5 7 9) 'odd))", "2")]
+    // [DataRow("(case (+ 3 4) ((2 4 6 8) 'even) ((1 3 5 7 9) 'odd))", "0")]
+    public void MatchingForSimplifiedCase(string macroUse, string expected) {
+        var actual = Utilities.InterpretSequenceReadSyntax(
+            """
+            (define-syntax case
+              (syntax-rules ()
+                ((case (key ...)
+                   clauses ...)
+                 '0)
+                ((case key
+                   ((atoms ...) result1 result2 ...))
+                 '1)))
+            """,
+            macroUse
+        );
+        Assert.AreEqual(expected, actual);
+    }
+    [TestMethod]
+    [DataRow("(case 7 ((2 4 6 8) 'even) ((1 3 5 7) 'odd))", "odd")]
+    public void ReallySimplifiedCase(string macroUse, string expected) {
+        var actual = Utilities.InterpretSequenceReadSyntax(
+            """
+            (define-syntax case
+              (syntax-rules ()
+                ((case key
+                   ((atoms ...) result1 result2 ...))
+                 (if (memv key '(atoms ...))
+                     (begin result1 result2 ...)))
+                ((case key
+                   ((atoms ...) result1 result2 ...)
+                   clause clauses ...)
+                 (if (memv key '(atoms ...))
+                     (begin result1 result2 ...)
+                     (case key clause clauses ...)))))
+            """,
+            macroUse
+        );
+        Assert.AreEqual(expected, actual);
     }
 }

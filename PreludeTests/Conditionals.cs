@@ -25,4 +25,11 @@ public class Conditionals {
         Assert.AreEqual(expected, actual);
     }
 
+    [TestMethod]
+    [DataRow("(case (+ 3 4) ((1 3 5 7 9) 'odd) ((0 2 4 6 8) 'even))", "odd")]
+    [DataRow("(case (+ 3 4) ((1 3 5 7 9) 'odd) ((0 2 4 6 8) 'even) (else 'out-of-range))", "odd")]
+    public void Case(string input, string expected) {
+        var actual = Utilities.PreludeInterp.InterpretUsingReadSyntax(input);
+        Assert.AreEqual(expected, actual);
+    }
 }
