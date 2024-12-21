@@ -13,7 +13,9 @@ internal static partial class Builtins {
 
 
         if (index < codes.Length) {
-            Continuation.OneArgDelegate k2 = (arg) => map_internal((Continuation.OneArgDelegate)((rest) => k((IForm)Pair.Cons(arg, (List) rest))), env, codes, index + 1);
+            Continuation.OneArgDelegate k2 = (arg) =>
+                map_internal((Continuation.OneArgDelegate)((rest) =>
+                    k(Pair.Cons(arg, (List) rest))), env, codes, index + 1);
             return codes[index](k2, env);
         } else {
             return k(List.Null);
@@ -33,18 +35,6 @@ internal static partial class Builtins {
         }
     }
 
-    public static  Thunk? nullP (Delegate k, List args) {
-        if (args is INonEmptyList properList) {
-            IForm arg = properList.Car;
-            if (arg is IList list) {
-                return Continuation.ApplyDelegate(k, list.NullP);
-            }
-            return Continuation.ApplyDelegate(k, Bool.False);
-
-        } else {
-            return Error(k, "null?: expected one argument but got none");
-        }
-    }
 
     public static Thunk? cdr (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
@@ -58,6 +48,77 @@ internal static partial class Builtins {
         }
     }
 
+    public static Thunk? map(Delegate k, List args) {
+        // NOTE: making this builtin did not appreciably speed up tests
+        if (args is List.NonEmpty properList) {
+            if (properList.Car is not Procedure proc) {
+                return Error(k, $"map: expected first argument to be a procedure, but got {properList.Car.Print()}");
+            }
+
+            if (properList.Cdr is not List.NonEmpty ls) {
+                return Error(k, $"map: expected at least two arguments, but got {properList.Count()}");
+            }
+
+            if (ls.Car is not List xs) {
+                return Error(k, $"map: expected second argument to be list, but got {ls.Car}");
+                
+            }
+
+            var arrays = new System.Collections.Generic.List<IForm[]>() { xs.ToArray<IForm>() };
+
+            foreach (var form in ls.Rest) {
+                if (form is not List ys) {
+                    return Error(k, $"map: expected list argument, but got {form}");
+                }
+
+                arrays.Add(ys.ToArray());
+            }
+
+            int length = arrays[0].Length;
+            if (arrays.Skip(1).Any(arr => arr.Length != length)) {
+                return Error(k, $"map: list arguments should all be the same length.");
+            }
+            var result = new IForm[length];
+            IForm? v = null;
+            Continuation.OneArgDelegate k1 = (x) => {
+                v = x;
+                return null;
+            };
+            for (int i = 0; i < length; i++) {
+                var thunk = proc.Apply(k1, arrays.Select(a => a[i]).ToJigList());
+                while (thunk is not null) {
+                    thunk = thunk();
+                }
+                if (v is not null) {
+                    result[i] = v;
+                }
+                else {
+                    return Error(k, $"map: application of function produced no result");
+                }
+
+            }
+
+            return Continuation.ApplyDelegate(k, result.ToJigList());
+
+
+        } else {
+            return Error(k, "map: expected one argument but got none");
+        }
+        
+    }
+
+    public static  Thunk? nullP (Delegate k, List args) {
+        if (args is INonEmptyList properList) {
+            IForm arg = properList.Car;
+            if (arg is IList list) {
+                return Continuation.ApplyDelegate(k, list.NullP);
+            }
+            return Continuation.ApplyDelegate(k, Bool.False);
+
+        } else {
+            return Error(k, "null?: expected one argument but got none");
+        }
+    }
     public static Thunk? char_p(Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             if (args.Count() != 1) return Error(k, "char?: expected one argument but got {args.Count()}");

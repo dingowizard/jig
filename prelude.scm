@@ -73,15 +73,15 @@
                           (return #t)
                           (any pred (cdr xs))))))))
 
-(define map
-  (lambda (fn xs . rest)
-    ((lambda (ls)
-        (if (not (apply = (fold-right (lambda (x acc) (cons (length x) acc)) '() ls)))
-            (error "map: lists must be same length" ls))
-      (if (any null? ls)
-          '()
-          (cons (apply fn (fold-right (lambda (x acc) (cons (car x) acc)) '() ls))
-                (apply map (cons fn (fold-right (lambda (x acc) (cons (cdr x) acc)) '() ls)))))) (cons xs rest))))
+; (define map
+;   (lambda (fn xs . rest)
+;     ((lambda (ls)
+;         (if (not (apply = (fold-right (lambda (x acc) (cons (length x) acc)) '() ls)))
+;             (error "map: lists must be same length" ls))
+;       (if (any null? ls)
+;           '()
+;           (cons (apply fn (fold-right (lambda (x acc) (cons (car x) acc)) '() ls))
+;                 (apply map (cons fn (fold-right (lambda (x acc) (cons (cdr x) acc)) '() ls)))))) (cons xs rest))))
 
 (define caar (lambda (p) (car (car p))))
 
@@ -231,6 +231,7 @@
 ;----------------------------------------------------------------------------------------
 ; LEAVE COMMENTED
 ; ;; TODO: figure out why these two definitions of letrec, which work in racket, fail in Jig
+; ;; Is it because of nested back-tick??
 ; ;; (letrec ((x 1)) x) => error: unbound x
 ; ;; the x in the body can't find its binding because its only scope is the toplevel scope
 ; ;;

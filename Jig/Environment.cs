@@ -50,6 +50,7 @@ public class Environment : IEnvironment {
         _dict.Add(new Form.Symbol("record-predicate"), new Procedure( (Builtin)Builtins.record_predicate));
         _dict.Add(new Form.Symbol("record-accessor"), new Procedure( (Builtin)Builtins.record_accessor));
         _dict.Add(new Form.Symbol("record-constructor"), new Procedure( (Builtin)Builtins.record_constructor));
+        _dict.Add(new Form.Symbol("map"), new Procedure( (Builtin)Builtins.map));
         // _dict.Add(new Expr.Symbol("dynamic-wind"), new Procedure( (Builtin)Builtins.dynamic_wind));
         // _dict.Add(new Expr.Symbol("error"), new Procedure( (Builtin)Builtins.error));
     }
