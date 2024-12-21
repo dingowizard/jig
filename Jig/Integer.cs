@@ -4,6 +4,10 @@ public class Integer(int i) : Number<int>(i) {
     public static Integer Zero {get;} = new Integer(0);
     public static Integer One {get;} = new Integer(1);
     public static Integer Two {get;} = new Integer(2);
+    
+    
+    public override string Print() => Value.ToString();
+    public override string ToString() => Value.ToString();
 
     public override bool Equals(object? obj) {
         if (obj is null) return false;
