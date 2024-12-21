@@ -44,7 +44,7 @@ internal static partial class Builtins {
 
         var thisClause = Syntax.E(clauses[0]) as SyntaxList.NonEmpty
                          ?? throw new Exception(); // TODO: should be syntax error
-        return (SyntaxList)SyntaxList.FromParams(
+        return SyntaxList.FromParams(
             new Syntax.Identifier(new Form.Symbol("if")),
             MakeConditionForMatchClause(x, thisClause.First),
             MakeThenForMatchClause(x, thisClause.First, thisClause.Rest),
@@ -106,7 +106,7 @@ internal static partial class Builtins {
                 {
                     new Syntax.Identifier(new Form.Symbol("lambda")),
                     ParamsForLambdaForMatchClauseThen(pattern)
-                }.Concat<Syntax>(bodies.Cast<Syntax>()).ToSyntaxList())
+                }.Concat(bodies.Cast<Syntax>()).ToSyntaxList())
             }.ToSyntaxList();
         SyntaxList args = Flatten(ArgsForLambdaForMatchClauseThen(x, pattern));
         result = result.Concat<Syntax>(args).ToSyntaxList();
@@ -169,10 +169,10 @@ internal static partial class Builtins {
     }
 
     private static Syntax MakeConditionForMatchClause(Syntax x, SyntaxList pattern) {
-        if (pattern.ElementAt<Syntax>(0) is Syntax.Identifier id && id.Symbol.Name == "quote") {
+        if (pattern.ElementAt<Syntax>(0) is Syntax.Identifier { Symbol.Name: "quote" }) {
             return MakeCallFromName("eqv?", x, new Syntax(pattern));
         }
-        if (pattern.ElementAt<Syntax>(0) is Syntax.Identifier q && q.Symbol.Name == "quote-syntax") {
+        if (pattern.ElementAt<Syntax>(0) is Syntax.Identifier { Symbol.Name: "quote-syntax" }) {
             return MakeCallFromName("eqv?", x, new Syntax(pattern));
         }
         System.Collections.Generic.List<Syntax> firstPart = [
@@ -184,7 +184,7 @@ internal static partial class Builtins {
         for(int i = 0; i < pattern.Count<Syntax>(); i++) {
             secondPart.Add(MakeConditionForMatchClause(NthElementOfList(i, x), pattern.ElementAt<Syntax>(i)));
         }
-        return new Syntax(firstPart.Concat<Syntax>(secondPart).ToSyntaxList());
+        return new Syntax(firstPart.Concat(secondPart).ToSyntaxList());
     }
 
     private static Syntax NthElementOfList(int i, Syntax x) {
@@ -204,10 +204,10 @@ internal static partial class Builtins {
 
 
     private static List ArgsForLambdaForMatchClauseThen(Syntax x, SyntaxList patterns) {
-        if (patterns.ElementAt<Syntax>(0) is Syntax.Identifier id && id.Symbol.Name == "quote") {
+        if (patterns.ElementAt<Syntax>(0) is Syntax.Identifier { Symbol.Name: "quote" }) {
             return SyntaxList.Null;
         }
-        if (patterns.ElementAt<Syntax>(0) is Syntax.Identifier q && q.Symbol.Name == "quote-syntax") {
+        if (patterns.ElementAt<Syntax>(0) is Syntax.Identifier { Symbol.Name: "quote-syntax" }) {
             return SyntaxList.Null;
         }
         System.Collections.Generic.List<IForm> result = [];

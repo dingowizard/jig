@@ -431,7 +431,7 @@ internal static partial class Builtins {
                         } 
                         return NewLit(true);
                     case SyntaxList.NonEmpty stxList:
-                        Console.Error.WriteLine($"In {Pattern} \n\tMakeCondition: found list \n\t{stxList} in {toMatch}");
+                        // Console.Error.WriteLine($"In {Pattern} \n\tMakeCondition: found list \n\t{stxList} in {toMatch}");
                         return 
                             MakeCondition(
                                 NewList(NewSym("syntax-e"), toMatch),
@@ -501,7 +501,7 @@ internal static partial class Builtins {
             private Form MakeCondition(Form toMatch, Form forVar, SyntaxList pattern, int ellipsisDepth) {
                 // This would be called on the cdr if a SyntaxList.NonEmpty
                 if (pattern is not SyntaxList.NonEmpty list) return NewList(NewSym("null?"), toMatch);
-                Console.Error.WriteLine($"In {Pattern} \n\tMakeCondition: found list \n\t{list} in {toMatch}");
+                // Console.Error.WriteLine($"In {Pattern} \n\tMakeCondition: found list \n\t{list} in {toMatch}");
                 return
                     MakeCondition(
                         toMatch,

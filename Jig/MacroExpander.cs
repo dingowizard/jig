@@ -143,7 +143,7 @@ public class MacroExpander {
             Scope macroExpansionScope = new Scope();
             
             Syntax.AddScope(stx, macroExpansionScope);
-            Console.WriteLine($"macro application: {stx}");
+            // Console.WriteLine($"macro application: {stx}");
             Syntax output = transformer.Apply(stx);
             // var result = output;
             // Console.WriteLine($"toggling scope on {output}");
