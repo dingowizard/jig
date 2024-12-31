@@ -37,6 +37,12 @@
 
 (define zero? (lambda (x) (= x 0)))
 
+(define positive? (lambda (n) (> n 0)))
+
+(define negative? (lambda (n) (< n 0)))
+
+(define abs (lambda (n) (if (< n 0) (- n) n)))
+
 (define not (lambda (x) (if x #f #t)))
 
 (define fold-left
@@ -50,6 +56,25 @@
     (if (null? xs)
         acc
         (fn (car xs) (fold-right fn acc (cdr xs))))))
+
+(define filter
+   (lambda (pred xs)
+      (if (null? xs)
+          '()
+          (if (pred (car xs))
+              (cons (car xs) (filter pred (cdr xs)))
+              (filter pred (cdr xs))))))
+
+(define partition
+   (lambda (pred xs)
+      (define loop
+         (lambda (ts fs xs)
+            (if (null? xs)
+                (values (reverse ts) (reverse fs))
+                (if (pred (car xs))
+                    (loop (cons (car xs) ts) fs (cdr xs))
+                    (loop ts (cons (car xs) fs) (cdr xs))))))
+      (loop '() '() xs)))
 
 (define compose2
     (lambda (f1 f2)
@@ -141,18 +166,13 @@
 ;             (cddr xs)))
 ;         (syntax->list stx))))
 
-; TODO: replace these with normal versions
 (define odd?
    (lambda (n)
-      (if (zero? n)
-          #f
-          (even? (- n 1)))))
+      (not (= (mod n 2) 0))))
 
 (define even?
    (lambda (n)
-      (if (zero? n)
-          #t
-          (odd? (- n 1)))))
+      (= (mod n 2) 0)))
 
 ; note: syntax-rules depends on all
 (define all
@@ -293,6 +313,9 @@
 ;         `(if ,test ,expr))
 ;         ((cond (test expr) . more)
 ;         `(if ,test ,expr (cond ,@more)))))))
+;
+; TODO: let-values from spec
+
 
 (define-syntax cond
   (syntax-rules (else =>)

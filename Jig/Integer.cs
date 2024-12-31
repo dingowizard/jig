@@ -1,3 +1,4 @@
+
 namespace Jig;
 public class Integer(int i) : Number<int>(i) {
 
@@ -26,7 +27,7 @@ public class Integer(int i) : Number<int>(i) {
         return n switch
         {
             Integer i2 => i1.Value == i2.Value ? Bool.True : Bool.False,
-            Float d2 => i1.Value == d2.Value ? Bool.True : Bool.False,
+            Float d2 => Math.Abs(i1.Value - d2.Value) < double.Epsilon ? Bool.True : Bool.False,
             _ => throw new NotImplementedException(),
         };
     }
@@ -35,7 +36,7 @@ public class Integer(int i) : Number<int>(i) {
         return n switch
         {
             Integer i2 => i1.Value != i2.Value ? Bool.True : Bool.False,
-            Float d2 => i1.Value != d2.Value ? Bool.True : Bool.False,
+            Float d2 => Math.Abs(i1.Value - d2.Value) > double.Epsilon ? Bool.True : Bool.False,
             _ => throw new NotImplementedException(),
         };
     }
@@ -73,12 +74,25 @@ public class Integer(int i) : Number<int>(i) {
     public static Number operator /(Integer i1, Number n) {
         return n switch
         {
-            Integer i2 => new Integer(i1.Value / i2.Value),
+            // TODO: return int if no decimal part
+            Integer i2 =>
+                // ReSharper disable once PossibleLossOfFraction
+                Math.Abs(i1.Value / i2.Value - (double) i1.Value / i2.Value) < double.Epsilon
+                ? new Integer(i1.Value / i2.Value)
+                : new Float((double) i1.Value / i2.Value),
             Float d2 => new Float(i1.Value / d2.Value),
             _ => throw new NotImplementedException(),
         };
     }
 
+    public static Number operator %(Integer i1, Number n) {
+        return n switch
+        {
+            Integer i2 => new Integer(i1.Value % i2.Value),
+            Float d2 => new Float(i1.Value % d2.Value),
+            _ => throw new NotImplementedException(),
+        };
+    }
     public static Bool operator >(Integer i1, Number n) {
         return n switch
         {
@@ -97,4 +111,22 @@ public class Integer(int i) : Number<int>(i) {
         };
     }
 
+    public static Bool operator >=(Integer i1, Number n) {
+        return n switch
+        {
+            Integer i2 => i1.Value >= i2.Value ? Bool.True : Bool.False,
+            Float d2 => i1.Value >= d2.Value ? Bool.True : Bool.False,
+            _ => throw new NotImplementedException(),
+        };
+    }
+
+    public static Bool operator <=(Integer i1, Number n) {
+        return n switch
+        {
+            Integer i2 => i1.Value <= i2.Value ? Bool.True : Bool.False,
+            Float d2 => i1.Value <= d2.Value ? Bool.True : Bool.False,
+            _ => throw new NotImplementedException(),
+        }
+            ;
+    }
 }

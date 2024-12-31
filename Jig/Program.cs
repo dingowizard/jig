@@ -109,7 +109,7 @@ public static class Program {
         Run(compiled, k, env);
     }
 
-    public static IForm EvalNonCPS(Form ast, IEnvironment? env = null) {
+    public static IForm EvalNonCPS(IForm ast, IEnvironment? env = null) {
         IForm? expr = null;
         Continuation.OneArgDelegate setResult = (x) => {expr = x; return null;};
         Eval(setResult, ast, Program.TopLevel);

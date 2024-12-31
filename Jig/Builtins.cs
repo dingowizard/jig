@@ -158,20 +158,6 @@ internal static partial class Builtins {
         return Continuation.ApplyDelegate(k, acc);
     }
 
-    public static Thunk? diff(Delegate k, IForm first, List args) {
-        if (first is Number acc) {
-            foreach (var arg in args) {
-                if (arg is Number num) {
-                    acc = acc - num;
-                } else {
-                    return Error(k, $"-: all args must be numbers. {first} is not a number.");
-                }
-            }
-            return Continuation.ApplyDelegate(k, acc);
-        } else {
-            return Error(k, $"-: all args must be numbers. {first} is not a number.");
-        }
-    }
 
     public static Thunk? numEq(Delegate k, IForm first, List args) {
         if (first is Number n1) {
@@ -193,23 +179,6 @@ internal static partial class Builtins {
 
     }
 
-    public static Thunk? gt(Delegate k, IList args)
-    {
-        if (args is not List.NonEmpty nonEmpty) return Error(k, ">: expected at least one argument but got none");
-        if (nonEmpty.Car is not Number first) return Error(k, $">: expected arguments to be numbers but got {nonEmpty.Car}");
-        args = nonEmpty.Rest;
-        while (args is List.NonEmpty rest) {
-            if (rest.Car is not Number second) return Error(k, $">: expected arguments to be numbers but got {rest.Car}");
-            Bool b = first > second;
-            if (!b.Value) return Continuation.ApplyDelegate(k, b);
-            first = second;
-            args = rest.Rest;
-            continue;
-
-        }
-        return Continuation.ApplyDelegate(k, Bool.True);
-
-    }
 
     public static Thunk? eq_p(Delegate k, List args) {
         // TODO: write some tests for eq?
@@ -242,18 +211,6 @@ internal static partial class Builtins {
         }
     }
 
-    public static Thunk? new_product(Delegate k, List args) {
-        Number acc = Number.From(1);
-        foreach (var arg in args) {
-            if (arg is Number num) {
-                acc = acc * num;
-            } else {
-                return Error(k, $"*: all args must be numbers. {arg} is not a number.");
-            }
-        }
-        return Continuation.ApplyDelegate(k, acc);
-
-    }
 
     public static Thunk? cons (Delegate k, List args) {
         if (args is List.NonEmpty properList) {
@@ -270,7 +227,7 @@ internal static partial class Builtins {
     }
 
     public static Thunk? append(Delegate k, IList args) {
-        // TODO: this is super inefficient because Append needs to run through the accumulator every time it appends another list
+        // TODO: this is inefficient because Append needs to run through the accumulator every time it appends another list
         if (args is INonEmptyList xs) {
             IForm result = xs.Car;
             IList rest = xs.Rest;
@@ -656,5 +613,16 @@ internal static partial class Builtins {
             return Error(k, "vector-ref: expected first argument to be vector");
         }
 
+    }
+
+    public static Thunk? eval(Delegate k, List args) {
+        if (args is List.NonEmpty properList) {
+            var datum = properList.Car;
+            Console.WriteLine($"eval: first arg is {datum}");
+            return Continuation.ApplyDelegate(k, Program.EvalNonCPS(datum));
+        }
+        else {
+            return Error(k, $"eval: expected at least one argument");
+        }
     }
 }

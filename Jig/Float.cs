@@ -66,6 +66,14 @@ public class Float(double d) : Number<double>(d) {
         };
     }
 
+    public static Number operator %(Float d1, Number n) {
+        return n switch
+        {
+            Integer i2 => new Float(d1.Value % i2.Value),
+            Float d2 => new Float(d1.Value % d2.Value),
+            _ => throw new NotImplementedException(),
+        };
+    }
     public static Bool operator >(Float d1, Number n) {
         return n switch
         {
