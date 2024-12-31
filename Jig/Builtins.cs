@@ -74,27 +74,15 @@ internal static partial class Builtins {
                 arrays.Add(ys.ToArray());
             }
 
-            int length = arrays[0].Length;
+            var length = arrays[0].Length;
             if (arrays.Skip(1).Any(arr => arr.Length != length)) {
                 return Error(k, $"map: list arguments should all be the same length.");
             }
             var result = new IForm[length];
-            IForm? v = null;
-            Continuation.OneArgDelegate k1 = (x) => {
-                v = x;
-                return null;
-            };
-            for (int i = 0; i < length; i++) {
-                var thunk = proc.Apply(k1, arrays.Select(a => a[i]).ToJigList());
-                while (thunk is not null) {
-                    thunk = thunk();
-                }
-                if (v is not null) {
-                    result[i] = v;
-                }
-                else {
-                    return Error(k, $"map: application of function produced no result");
-                }
+            for (var i = 0; i < length; i++) {
+                var i1 = i;
+                var v = proc.ApplyNonCPS( arrays.Select(a => a[i1]).ToJigList());
+                result[i] = v;
 
             }
 

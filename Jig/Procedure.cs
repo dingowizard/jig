@@ -3,8 +3,7 @@ namespace Jig;
 public class Procedure(Delegate d) : LiteralExpr<Delegate>(d) {
     public Thunk? Apply(Delegate k, List args) {
         Thunk? result = null;
-        try {
-        result = Value switch
+        return Value switch
         {
             Builtin builtin => builtin(k, args),
             ListFunction listFn => listFn(k, args),
@@ -24,15 +23,39 @@ public class Procedure(Delegate d) : LiteralExpr<Delegate>(d) {
                 List.NewList(args.Skip(7).ToArray())),
             _ => Value.DynamicInvoke(new System.Collections.Generic.List<object> { k }.Concat(args).ToArray()) as Thunk,
         };
-        } catch (System.ArgumentOutOfRangeException x) {
-            Console.Error.WriteLine($"applying {Value.GetType()} to {args.Print()}");
-            
-        }
 
-        return result;
 
+    }
+
+    public IForm ApplyNonCPS(List args) {
+            IForm? v = null;
+
+            Thunk? OneArgDelegate(IForm x) {
+                v = x;
+                return null;
+            }
+
+            var thunk = this.Apply((Continuation.OneArgDelegate)OneArgDelegate, args);
+            while (thunk is not null) {
+                thunk = thunk();
+            }
+
+            return v ?? Form.Void;
     }
 
     public override string Print() => "#<procedure>";
 
+    public static Thunk? procedure_p(Delegate k, List args) {
+        if (args is List.NonEmpty properList) {
+            if (args.Count() != 1) return Builtins.Error(k, "procedure?: expected one argument but got {args.Count()}");
+            var arg = properList.Car;
+            if (arg is Procedure) {
+                return Continuation.ApplyDelegate(k, Bool.True);
+            }
+            return Continuation.ApplyDelegate(k, Bool.False);
+
+        } else {
+            return Builtins.Error(k, "procedure?: expected one argument but got none");
+        }
+    }
 }

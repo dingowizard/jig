@@ -9,6 +9,7 @@ public class Environment : IEnvironment {
         _dict.Add(new Form.Symbol("null?"), new Procedure((Builtin) Builtins.nullP));
         _dict.Add(new Form.Symbol("succ"), new Procedure((Builtin) Builtins.succ));
         _dict.Add(new Form.Symbol("number?"), new Procedure((Builtin) Builtins.number_p));
+        _dict.Add(new Form.Symbol("procedure?"), new Procedure((Builtin) Procedure.procedure_p));
         _dict.Add(new Form.Symbol("+"), new Procedure((Builtin) Builtins.sum));
         _dict.Add(new Form.Symbol("*"), new Procedure((Builtin) Builtins.new_product));
         _dict.Add(new Form.Symbol("-"), new Procedure((PairFunction) Builtins.diff));
