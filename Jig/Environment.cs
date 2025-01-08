@@ -24,7 +24,7 @@ public class Environment : IEnvironment {
         _dict.Add(new Form.Symbol("floor"), new Procedure( (Builtin)Number.floor));
         _dict.Add(new Form.Symbol("ceiling"), new Procedure( (Builtin)Number.ceiling));
         _dict.Add(new Form.Symbol("apply"), new Procedure( Builtins.apply));
-        _dict.Add(new Form.Symbol("eval"), new Procedure( Builtins.eval));
+        _dict.Add(new Form.Symbol("eval"), new Procedure( (Builtin)Builtins.eval));
         _dict.Add(new Form.Symbol("call/cc"), new Procedure( (Builtin)Builtins.callcc));
         _dict.Add(new Form.Symbol("call-with-current-continuation"), new Procedure( (Builtin)Builtins.callcc));
         _dict.Add(new Form.Symbol("call-with-values"), new Procedure( Continuation.call_with_values));

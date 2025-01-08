@@ -95,10 +95,10 @@ public static class Program {
     }
 
     public static void Eval(Delegate k, IForm ast, IEnvironment? env = null) {
-        if (env is null) {
-            env = Program.TopLevel;
-        }
+        // TODO: should eval return Thunk??
+        env ??= Program.TopLevel;
         if (ast is Syntax stx) {
+            // TODO: shouldn't we be able to macro-expand syntactic-data as well as syntax objects?
             ParsedExpr program = new MacroExpander().Expand(stx, ExEnv);
             var scope = new LexicalContext();
             var c = ET.Analyze(scope, program).Compile();
@@ -112,7 +112,7 @@ public static class Program {
     public static IForm EvalNonCPS(IForm ast, IEnvironment? env = null) {
         IForm? expr = null;
         Continuation.OneArgDelegate setResult = (x) => {expr = x; return null;};
-        Eval(setResult, ast, Program.TopLevel);
+        Eval(setResult, ast, env);
 
         if (expr is null) throw new Exception();
         return expr;

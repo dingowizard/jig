@@ -616,10 +616,16 @@ internal static partial class Builtins {
     }
 
     public static Thunk? eval(Delegate k, List args) {
-        if (args is List.NonEmpty properList) {
+        // TODO: eval should take an optional environment argument
+        if (args is INonEmptyList properList) {
             var datum = properList.Car;
-            Console.WriteLine($"eval: first arg is {datum}");
-            return Continuation.ApplyDelegate(k, Program.EvalNonCPS(datum));
+            // TODO: should it be necessary to convert the datum to a syntax object?
+            // as it stands, if we don't, the program won't get macro-expanded
+            return Continuation.ApplyDelegate(
+                k,
+                datum is not Syntax 
+                    ? Program.EvalNonCPS(Syntax.FromDatum(null, datum))
+                    : Program.EvalNonCPS(datum));
         }
         else {
             return Error(k, $"eval: expected at least one argument");
