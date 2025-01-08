@@ -2,7 +2,6 @@ namespace Jig;
 
 public class Procedure(Delegate d) : LiteralExpr<Delegate>(d) {
     public Thunk? Apply(Delegate k, List args) {
-        Thunk? result = null;
         return Value switch
         {
             Builtin builtin => builtin(k, args),
@@ -30,17 +29,17 @@ public class Procedure(Delegate d) : LiteralExpr<Delegate>(d) {
     public IForm ApplyNonCPS(List args) {
             IForm? v = null;
 
-            Thunk? OneArgDelegate(IForm x) {
-                v = x;
-                return null;
-            }
-
             var thunk = this.Apply((Continuation.OneArgDelegate)OneArgDelegate, args);
             while (thunk is not null) {
                 thunk = thunk();
             }
 
             return v ?? Form.Void;
+
+            Thunk? OneArgDelegate(IForm x) {
+                v = x;
+                return null;
+            }
     }
 
     public override string Print() => "#<procedure>";

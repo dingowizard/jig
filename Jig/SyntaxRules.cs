@@ -312,8 +312,6 @@ internal static partial class Builtins {
                         default:
                             throw new Exception();
                     }
-
-                    break;
                 }
             }
 

@@ -265,8 +265,12 @@ internal static partial class Builtins {
                     return Continuation.ApplyDelegate(k, Bool.False);
                 }
                 sym1 = sym2;
-                sym2 = nonEmpty.Car as Form.Symbol;
-                if (sym2 is null) return Error(k, $"symbol=?: expected all arguments to be symbols, but got {nonEmpty.Car}");
+                if (nonEmpty.Car is Form.Symbol s) {
+                    sym2 = s;
+                }
+                else {
+                    return Error(k, $"symbol=?: expected all arguments to be symbols, but got {nonEmpty.Car}");
+                }
                 rest = (List)nonEmpty.Rest;
             }
             if (sym1.Equals(sym2)) {
