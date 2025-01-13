@@ -65,10 +65,11 @@ internal class LexicalContext {
                 }
         }
         */
-        var candidates2 = enumerable.Where(tup => tup.Item1.Binding==symbol.Binding);
+        var candidates2 = enumerable.Where(tup => Equals(tup.Item1.Binding, symbol.Binding));
         ParameterExpression? pe = null;
-        if (candidates2.Any()) {
-            pe = candidates2.ElementAt(0)?.Item2;
+        var tuples = candidates2 as Tuple<Form.Symbol, ParameterExpression>[] ?? candidates2.ToArray();
+        if (tuples.Length != 0) {
+            pe = tuples.ElementAt(0).Item2;
         }
         if (pe is null) {
             if (EnclosingScope is null) {

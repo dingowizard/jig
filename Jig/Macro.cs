@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace Jig;
 
 public delegate Thunk MacroDelegate(Delegate k, Syntax stx);
@@ -12,7 +10,7 @@ public class Transformer : LiteralExpr<Delegate> {
     public Syntax Apply(Syntax stx) {
         // Console.WriteLine($"\tto {stx} @ {stx.SrcLoc}");
         IForm? result = null;
-        Continuation.OneArgDelegate setResult =  Thunk? (IForm x) => {result = x; return null;};
+        Continuation.OneArgDelegate setResult =  Thunk? (x) => {result = x; return null;};
         Thunk? thunk = TransformerDelegate(setResult, stx);
         // TODO: this seems crazy
         while (thunk is not null) {

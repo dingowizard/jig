@@ -300,20 +300,6 @@ internal static partial class Builtins {
                 }
             }
 
-            private static bool InPattern(SyntaxList stxList, EnvEntry entry) {
-                while (true) {
-                    switch (stxList) {
-                        case SyntaxList.NonEmpty xs:
-                            if (!CadrIsDotDotDot(xs)) return InPattern(xs.First, entry) || InPattern(xs.Rest, entry);
-                            stxList = xs.Skip<Syntax>(HowManyDotDotDots(xs) + 1).ToSyntaxList();
-                            continue;
-                        case IEmptyList:
-                            return false;
-                        default:
-                            throw new Exception();
-                    }
-                }
-            }
 
             private static Form MapForDotDotDot(Syntax pattern, Env env) {
                 var entries = env.FindAll(tup => InPattern(pattern, tup));
@@ -335,9 +321,9 @@ internal static partial class Builtins {
             }
 
             private static int HowManyDotDotDots(SyntaxList.NonEmpty stxList) {
-                var array = stxList.Skip<Syntax>(2).ToArray(); // we know the list has at least (a ... 
+                var array = stxList.Skip<Syntax>(2).ToArray(); // we know the list has at least (a ... )
                 int result = 1;
-                while ((result - 1) < array.Length && array[result - 1] is Syntax.Identifier { Symbol.Name: "..." }) {
+                while (result - 1 < array.Length && array[result - 1] is Syntax.Identifier { Symbol.Name: "..." }) {
                     result++;
                 }
 

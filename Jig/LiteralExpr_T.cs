@@ -7,12 +7,11 @@ public abstract class LiteralExpr<T> : LiteralExpr where T : notnull {
     public T Value {get;}
 
     public override bool Equals(object? obj) {
-        if (obj is null) return false;
-        if (obj is LiteralExpr<T> lit) {
-            return this.Value.Equals(lit.Value);
-        }
-        return false;
-
+        return obj switch {
+            null => false,
+            LiteralExpr<T> lit => this.Value.Equals(lit.Value),
+            _ => false
+        };
     }
 
     public override int GetHashCode() {

@@ -13,10 +13,9 @@ internal static partial class Builtins {
 
 
         if (index < codes.Length) {
-            Continuation.OneArgDelegate k2 = (arg) =>
-                map_internal((Continuation.OneArgDelegate)((rest) =>
-                    k(Pair.Cons(arg, (List) rest))), env, codes, index + 1);
-            return codes[index](k2, env);
+            return codes[index]((Continuation.OneArgDelegate)K2, env);
+
+            Thunk? K2(IForm arg) => map_internal((rest) => k(Pair.Cons(arg, (List)rest)), env, codes, index + 1);
         } else {
             return k(List.Null);
         }
@@ -64,7 +63,7 @@ internal static partial class Builtins {
                 
             }
 
-            var arrays = new System.Collections.Generic.List<IForm[]>() { xs.ToArray<IForm>() };
+            var arrays = new System.Collections.Generic.List<IForm[]>() { xs.ToArray() };
 
             foreach (var form in ls.Rest) {
                 if (form is not List ys) {
@@ -258,7 +257,7 @@ internal static partial class Builtins {
             if (properList.Car is not Form.Symbol sym1){
                 return Error(k, $"symbol=?: expected all arguments to be symbols, but got {properList.Car}");
             }
-            List rest = (List)properList.Rest;
+            List rest = properList.Rest;
             if (rest.ElementAt(0) is not Form.Symbol sym2) return Error(k, $"symbol=?: expected all arguments to be symbols, but got {rest.ElementAt(0)}");
             while (rest is List.NonEmpty nonEmpty) {
                 if (!sym1.Equals(sym2)) {
@@ -271,7 +270,7 @@ internal static partial class Builtins {
                 else {
                     return Error(k, $"symbol=?: expected all arguments to be symbols, but got {nonEmpty.Car}");
                 }
-                rest = (List)nonEmpty.Rest;
+                rest = nonEmpty.Rest;
             }
             if (sym1.Equals(sym2)) {
                 return Continuation.ApplyDelegate(k, Bool.True);
@@ -491,7 +490,7 @@ internal static partial class Builtins {
         // TODO: print other args
         // TODO: stack trace
         Console.Error.Write("*** ERROR: ");
-        Continuation.OneArgDelegate end = (x) => null;
+        Continuation.OneArgDelegate end = (_) => null;
         if (!args.Any()) {
             Console.Error.WriteLine("error: expected at least one argument");
             return Continuation.ApplyDelegate(end, Form.Void);

@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Reflection.Metadata.Ecma335;
 
 namespace Jig;
 
@@ -14,7 +13,7 @@ public abstract class List : Form, IEnumerable<IForm>, IList
     public override string Print() => $"({string.Join(" ", this.Select<IForm, string>(x => x.Print()))})";
 
     public static List Cons(IForm car, List cdr) {
-        return new List.NonEmpty(car, cdr);
+        return new NonEmpty(car, cdr);
     }
 
     public static List NewList(params IForm[] args)
@@ -31,9 +30,10 @@ public abstract class List : Form, IEnumerable<IForm>, IList
     {
         // WARNING: vs code says no references, but at runtime something uses method reflection to find and cache it
         List result = Null;
-        for (int index = elements.Count() - 1; index >= 0; index--)
+        var enumerable = elements as IForm[] ?? elements.ToArray();
+        for (int index = enumerable.Length - 1; index >= 0; index--)
         {
-            result = new NonEmpty(elements.ElementAt(index), result);
+            result = new NonEmpty(enumerable.ElementAt(index), result);
         }
         return result;
     }
@@ -48,7 +48,7 @@ public abstract class List : Form, IEnumerable<IForm>, IList
 
     }
 
-    public class NonEmpty(IForm car, List cdr) : List, INonEmptyList, IPair
+    public class NonEmpty(IForm car, List cdr) : List, INonEmptyList
     {
         public override bool Equals(object? obj)
         {
@@ -144,10 +144,11 @@ public abstract class List : Form, IEnumerable<IForm>, IList
 }
 
 public static partial class IEnumerableExtensions {
-    public static Jig.List ToJigList(this IEnumerable<IForm> elements) {
+    public static List ToJigList(this IEnumerable<IForm> elements) {
         List result = List.Null;
-        for (int index = elements.Count() - 1; index >= 0; index--) {
-            result = new List.NonEmpty(elements.ElementAt(index), result);
+        var enumerable = elements as IForm[] ?? elements.ToArray();
+        for (int index = enumerable.Length - 1; index >= 0; index--) {
+            result = new List.NonEmpty(enumerable.ElementAt(index), result);
         }
         return result;
     } 

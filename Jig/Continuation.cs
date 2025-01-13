@@ -33,10 +33,10 @@ public class Continuation(Delegate d) : Procedure(d)
 
     internal static Thunk? ApplyDelegate(Delegate k, IForm arg) {
         // TODO: should we handle more continuation types here?
-            if (k is Continuation.ContinuationAny cany) {
+            if (k is ContinuationAny cany) {
                 return cany(arg);
             }
-            if (k is Continuation.OneArgDelegate c1) {
+            if (k is OneArgDelegate c1) {
                 return c1(arg);
             }
             return (Thunk?)k.DynamicInvoke(arg);
@@ -85,7 +85,7 @@ public class Continuation(Delegate d) : Procedure(d)
                                         ),
                                     type: typeof(List))
                         }.ToArray()), typeof(Thunk)),
-                parameters: new ParameterExpression[] {xs}
+                parameters: [xs]
             ).Compile();
         }
         return Expression.Lambda(
@@ -93,7 +93,6 @@ public class Continuation(Delegate d) : Procedure(d)
             body: Expression.Convert(ET.DynInv(new Expression [] {Expression.Constant(consumerDel), Expression.Constant(k)}.Concat(paramList).ToArray()), typeof(Thunk)),
             parameters: paramList.ToArray()
         ).Compile();
-        throw new NotImplementedException();
     }
 
     private static Type? GetTypeForContinuation(Delegate proc)

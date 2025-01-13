@@ -76,7 +76,9 @@ internal abstract class ET : Expression {
             if (Form.IsKeyword("quote", ast)) {
                 // TODO: QuoteET
                 return new LiteralET(list.ElementAt(1));
-            } else if (Form.IsKeyword("quote-syntax", ast)) {
+            }
+
+            if (Form.IsKeyword("quote-syntax", ast)) {
                 return new SyntaxLiteralET(ast);
             } else if (Form.IsKeyword("if", ast)) {
                 return new IfET(scope, list);
@@ -105,9 +107,9 @@ internal abstract class ET : Expression {
 
     public override Type Type {get;} = typeof(CompiledCode);
 
-    public ParameterExpression kParam;
-    public ParameterExpression envParam;
-    public abstract Expression Body {get;}
+    private readonly ParameterExpression kParam;
+    private readonly ParameterExpression envParam;
+    protected abstract Expression Body {get;}
 
     private class LiteralET : ET {
 
@@ -121,7 +123,7 @@ internal abstract class ET : Expression {
             Body = Expression.Convert(DynInv(kParam, Expression.Constant(x)), typeof(Thunk));
         }
 
-        public override Expression Body {get;}
+        protected override Expression Body {get;}
 
     }
 
@@ -145,7 +147,7 @@ internal abstract class ET : Expression {
             }
         }
 
-        public override Expression Body {get;}
+        protected override Expression Body {get;}
 
     }
 
@@ -188,7 +190,7 @@ internal abstract class ET : Expression {
             }
         }
 
-        public override Expression Body {get;}
+        protected override Expression Body {get;}
     }
 
 
@@ -218,11 +220,12 @@ internal abstract class ET : Expression {
                            parameters: [vParam]);
             Body =
                 Convert(
-                    Invoke(Constant((MapInternalDelegate) Builtins.map_internal),
-                                      k,
-                                      envParam,
-                                      NewArrayInit(typeof(CompiledCode), analyzed),
-                                      Constant(0)),
+                    Invoke(
+                        Constant((MapInternalDelegate) Builtins.map_internal),
+                        k,
+                        envParam,
+                        NewArrayInit(typeof(CompiledCode), analyzed),
+                        Constant(0)),
                     typeof(Thunk));
 
         }
@@ -231,25 +234,27 @@ internal abstract class ET : Expression {
             // TODO: probably there is a more certain way of checking to see that we have syntax pair?
             IEnumerable<Expression<CompiledCode>> analyzed =
                 list.Select(x => (Expression<CompiledCode>)Analyze(scope, x).Reduce());
-            var vParam = Expression.Parameter(typeof(IForm));
-            var k = Expression.Lambda<Continuation.OneArgDelegate>(
-                            Expression.Convert(DynInv(Expression.Constant((ApplyDelegate)Builtins.apply),
-                                   kParam,
-                                   Expression.Property(Expression.Convert(vParam, typeof(IPair)), carPropertyInfo),
-                                   Expression.Property(Expression.Convert(vParam, typeof(List.NonEmpty)), restPropertyInfo)),
-                                               typeof(Thunk)),
+            var vParam = Parameter(typeof(IForm));
+            var k = Lambda<Continuation.OneArgDelegate>(
+                            Convert(
+                                DynInv(
+                                    Constant((ApplyDelegate)Builtins.apply),
+                                    kParam,
+                                    Property(Convert(vParam, typeof(IPair)), carPropertyInfo),
+                                    Property(Convert(vParam, typeof(List.NonEmpty)), restPropertyInfo)),
+                                typeof(Thunk)),
                            parameters: [vParam]);
             Body =
-                Expression.Convert(
-                    Expression.Invoke(Expression.Constant((MapInternalDelegate) Builtins.map_internal),
+                Convert(
+                    Invoke(Constant((MapInternalDelegate) Builtins.map_internal),
                            k,
                            envParam,
-                           Expression.NewArrayInit(typeof(CompiledCode), analyzed),
-                           Expression.Constant(0)),
+                           NewArrayInit(typeof(CompiledCode), analyzed),
+                           Constant(0)),
                     typeof(Thunk));
         }
 
-        public override Expression Body {get;}
+        protected override Expression Body {get;}
     }
 
     private class IfET : ET {
@@ -261,27 +266,26 @@ internal abstract class ET : Expression {
             ParsedExpr consq = ifExpr.Then;
             Expression<CompiledCode> consqCC = (Expression<CompiledCode>)Analyze(lexVars, consq).Reduce();
             ParsedExpr alt;
-            Expression ifFalseExpr;
             if (ifExpr.Else is not null) {
                 alt = ifExpr.Else;
             } else {
-                if(ParsedLiteral.TryParse(new Syntax(Form.Void), out ParsedLiteral? voidLiteral)) {
+                if(ParsedLiteral.TryParse(new Syntax(Form.Void), out var voidLiteral)) {
                     alt = voidLiteral;
                 } else {
                     throw new Exception("omg! couldn't parse void in IfET ");
                 }
             }
-            ifFalseExpr = Expression.Lambda<Thunk>(
-                    Expression.Convert(DynInv((Expression<CompiledCode>)Analyze(lexVars, alt).Reduce(), kParam, envParam),
-                                       typeof(Thunk)));
-            ParameterExpression boolResult = Expression.Parameter(typeof(IForm), "boolResult");
-            var k0 = Expression.Lambda<Continuation.OneArgDelegate>(
-                body: Expression.Condition( // the Condition Expression returns something. IfThenElse is void
-                    test: Expression.Convert(DynInv(Expression.Constant((Func<Form, bool>) IfET.IsNotFalse), boolResult), typeof(bool)),
-                    ifTrue: Expression.Lambda<Thunk>(Expression.Convert(DynInv(consqCC, kParam, envParam), typeof(Thunk))),
+            Expression ifFalseExpr = Lambda<Thunk>(
+                Expression.Convert(DynInv((Expression<CompiledCode>)Analyze(lexVars, alt).Reduce(), kParam, envParam),
+                    typeof(Thunk)));
+            ParameterExpression boolResult = Parameter(typeof(IForm), "boolResult");
+            var k0 = Lambda<Continuation.OneArgDelegate>(
+                body: Condition( // the Condition Expression returns something. IfThenElse is void
+                    test: Convert(DynInv(Constant((Func<Form, bool>) IfET.IsNotFalse), boolResult), typeof(bool)),
+                    ifTrue: Lambda<Thunk>(Convert(DynInv(consqCC, kParam, envParam), typeof(Thunk))),
                     ifFalse: ifFalseExpr),
                 parameters: [boolResult]);
-            Body = Expression.Invoke(condCC, new Expression[] {k0, envParam});
+            Body = Invoke(condCC, k0, envParam);
 
         }
 
@@ -294,12 +298,10 @@ internal abstract class ET : Expression {
             IForm consq = listCdrCdr.Car;
             Expression<CompiledCode> consqCC = (Expression<CompiledCode>)Analyze(lexVars, consq).Reduce();
             // TODO: actually, if doesn't need an else branch
-            List.NonEmpty listCdrCdrCdr;
             IForm alt;
-            Expression ifFalseExpr;
             ParameterExpression boolResult = Expression.Parameter(typeof(IForm), "boolResult");
             if (list.Count() == 4) {
-                listCdrCdrCdr = listCdrCdr.Cdr as List.NonEmpty ?? throw new Exception($"malformed if: {list}");
+                var listCdrCdrCdr = listCdrCdr.Cdr as List.NonEmpty ?? throw new Exception($"malformed if: {list}");
                 alt = listCdrCdrCdr.Car;
             } else if (list.Count() == 3) {
                 alt = Form.Void;
@@ -307,20 +309,20 @@ internal abstract class ET : Expression {
                 throw new Exception($"malformed if: {list}");
 
             }
-            ifFalseExpr = Expression.Lambda<Thunk>(
-                    Expression.Convert(DynInv((Expression<CompiledCode>)Analyze(lexVars, alt).Reduce(), kParam, envParam),
-                                       typeof(Thunk)));
+            Expression ifFalseExpr = Expression.Lambda<Thunk>(
+                Expression.Convert(DynInv((Expression<CompiledCode>)Analyze(lexVars, alt).Reduce(), kParam, envParam),
+                    typeof(Thunk)));
             var k0 = Expression.Lambda<Continuation.OneArgDelegate>(
-                body: Expression.Condition( // the Condition Expression returns something. IfThenElse is void
-                    test: Expression.Convert(DynInv(Expression.Constant((Func<Form, bool>) IfET.IsNotFalse), boolResult), typeof(bool)),
-                    ifTrue: Expression.Lambda<Thunk>(Expression.Convert(DynInv(consqCC, kParam, envParam), typeof(Thunk))),
+                body: Condition( // the Condition Expression returns something. IfThenElse is void
+                    test: Convert(DynInv(Constant((Func<Form, bool>) IfET.IsNotFalse), boolResult), typeof(bool)),
+                    ifTrue: Lambda<Thunk>(Convert(DynInv(consqCC, kParam, envParam), typeof(Thunk))),
                     ifFalse: ifFalseExpr),
                 parameters: [boolResult]);
-            Body = Expression.Invoke(condCC, new Expression[] {k0, envParam});
+            Body = Invoke(condCC, k0, envParam);
 
         }
 
-        public override Expression Body {get;}
+        protected override Expression Body {get;}
         private static bool IsNotFalse(Form x)
         {
             if (x is Bool boolExpr) {
@@ -342,7 +344,8 @@ internal abstract class ET : Expression {
                         Expression.NewArrayInit(typeof(CompiledCode), analyzed),
                         Expression.Constant(0));
         }
-        public override Expression Body {get;}
+
+        protected override Expression Body {get;}
     }
 
     private class SetBangET : ET {
@@ -394,7 +397,7 @@ internal abstract class ET : Expression {
             Body = Expression.Invoke(valCC, [k, envParam]);
         }
 
-        public override Expression Body {get;}
+        protected override Expression Body {get;}
     }
 
     private class DefineET : ET {
@@ -441,7 +444,7 @@ internal abstract class ET : Expression {
         }
 
 
-        public override Expression Body {get;}
+        protected override Expression Body {get;}
     }
 
     internal static Expression DynInv(params Expression[] xs) {
@@ -459,7 +462,7 @@ internal abstract class ET : Expression {
         public LambdaExprET(LexicalContext scope, ParsedLambda lambdaExpr) {
             SyntaxList.NonEmpty lambdaBody = lambdaExpr.Bodies;
 
-            var k = Expression.Parameter(typeof(Delegate), "k in LambdaExprET"); // this is the continuation paramter for the proc we are making
+            var k = Expression.Parameter(typeof(Delegate), "k in LambdaExprET"); // this is the continuation parameter for the proc we are making
             // TODO: couldn't k be a more specific type than Delegate
             LexicalContext lambdaScope;
             var parameters = lambdaExpr.Parameters;
@@ -517,7 +520,7 @@ internal abstract class ET : Expression {
             Debug.Assert(args.Count() >= 3);
             List.NonEmpty lambdaBody = (List.NonEmpty)args.Skip(2).ToJigList();
 
-            var k = Parameter(typeof(Delegate), "k in MakeProcET"); // this is the continuation paramter for the proc we are making
+            var k = Parameter(typeof(Delegate), "k in MakeProcET"); // this is the continuation parameter for the proc we are making
             LexicalContext lambdaScope;
             switch (lambdaParameters) {
                 case List properList:
@@ -560,11 +563,11 @@ internal abstract class ET : Expression {
 
         }
 
-        public Expression LambdaExpressionBody {get;}
+        private Expression LambdaExpressionBody {get;}
 
-        public ParameterExpression[] LambdaExpressionParams {get;}
+        private ParameterExpression[] LambdaExpressionParams {get;}
 
-        public override Expression Body {get;}
+        protected override Expression Body {get;}
 
         private static System.Collections.Generic.List<Form.Symbol> ValidateAndConvertToSymbols(IPair parameters) {
             var result = new System.Collections.Generic.List<Form.Symbol>();
@@ -578,7 +581,7 @@ internal abstract class ET : Expression {
                 result.Add(sym);
                 cdr = pairCdr.Cdr;
             }
-            sym = cdr is Syntax.Identifier idf ? idf.Symbol : cdr is Form.Symbol symbol ? symbol : throw new Exception($"lambda: all paramters must be symbols (given {cdr})");
+            sym = cdr is Syntax.Identifier idf ? idf.Symbol : cdr is Form.Symbol symbol ? symbol : throw new Exception($"lambda: all parameters must be symbols (given {cdr})");
             result.Add(sym);
             return result;
 
@@ -587,7 +590,7 @@ internal abstract class ET : Expression {
         private static Type FunctionTypeFromRequiredCount(int num) {
             return num switch
             {
-                0 => throw new Exception("In FunctionTypeFromParameters: found 0 parameters before the rest paramter, but there should be at least one"),
+                0 => throw new Exception("In FunctionTypeFromParameters: found 0 parameters before the rest parameter, but there should be at least one"),
                 1 => typeof(PairFunction),
                 2 => typeof(ImproperListFunction2),
                 3 => typeof(ImproperListFunction3),
@@ -595,7 +598,7 @@ internal abstract class ET : Expression {
                 5 => typeof(ImproperListFunction5),
                 6 => typeof(ImproperListFunction6),
                 7 => typeof(ImproperListFunction7),
-                _ => throw new Exception("lambda: can't handle improper codes parameters with more than 7 parameters before the rest paramter."),
+                _ => throw new Exception("lambda: can't handle improper codes parameters with more than 7 parameters before the rest parameter."),
             };
         }
 
@@ -614,7 +617,7 @@ internal abstract class ET : Expression {
             // TODO: why is this so much more complicated than just returning a block expr?
             // TODO: shouldn't this create a Block?
 
-            // k is the paramter continuation for the procedure that is being made (the continuation when that proc is applied)
+            // k is the parameter continuation for the procedure that is being made (the continuation when that proc is applied)
             var block = new BlockET(scope.Extend(), exprs);
             var cont = Expression.Parameter(typeof(Delegate)); // this is the continuation parameter for the inner lambda
 
@@ -634,7 +637,7 @@ internal abstract class ET : Expression {
             // TODO: why is this so much more complicated than just returning a block expr?
             // TODO: shouldn't this create a Block?
 
-            // k is the paramter continuation for the procedure that is being made (the continuation when that proc is applied)
+            // k is the parameter continuation for the procedure that is being made (the continuation when that proc is applied)
             var block = new BlockET(scope.Extend(), exprs);
             var cont = Expression.Parameter(typeof(Delegate)); // this is the continuation parameter for the inner lambda
 
@@ -652,7 +655,7 @@ internal abstract class ET : Expression {
         }
     }
 
-    internal class BlockET : ET {
+    private class BlockET : ET {
 
         public BlockET(LexicalContext scope, List.NonEmpty exprs)
         {
@@ -703,12 +706,12 @@ internal abstract class ET : Expression {
 
         internal static Thunk doSequence(Delegate k, IEnvironment env, CompiledCode[] codes, int index) {
             var code = codes[index];
-            Continuation.ContinuationAny k0 = (_) => doSequence(k, env, codes, index + 1);
-            Delegate cont = index == codes.Length - 1 ? k : k0;
+            var cont = index == codes.Length - 1 ? k : (Continuation.ContinuationAny)K0;
             return code(cont, env);
+            Thunk? K0(IForm[] _) => doSequence(k, env, codes, index + 1);
         }
 
-        public override Expression Body {get;}
+        protected override Expression Body {get;}
     }
 
 }
@@ -732,7 +735,7 @@ public class MyInvokeMemberBinder : InvokeMemberBinder {
                 restrictions);
     }
 
-    public static Expression EnsureObjectResult (Expression expr) {
+    private static Expression EnsureObjectResult (Expression expr) {
         if (! expr.Type.IsValueType)
             return expr;
         if (expr.Type == typeof(void))
@@ -760,7 +763,8 @@ public class MyInvokeMemberBinder : InvokeMemberBinder {
         }
         return new CallSignature(ai);
     }
-    public static BindingRestrictions GetTargetArgsRestrictions(
+
+    private static BindingRestrictions GetTargetArgsRestrictions(
             DynamicMetaObject target, DynamicMetaObject[] args,
             bool instanceRestrictionOnTarget){
         // Important to add existing restriction first because the
@@ -781,14 +785,14 @@ public class MyInvokeMemberBinder : InvokeMemberBinder {
                     target.LimitType
                 ));
         }
-        for (int i = 0; i < args.Length; i++) {
+        foreach (var t in args) {
             BindingRestrictions r;
-            if (args[i].HasValue && args[i].Value == null) {
+            if (t is { HasValue: true, Value: null }) {
                 r = BindingRestrictions.GetInstanceRestriction(
-                        args[i].Expression, null);
+                    t.Expression, null);
             } else {
                 r = BindingRestrictions.GetTypeRestriction(
-                        args[i].Expression, args[i].LimitType);
+                    t.Expression, t.LimitType);
             }
             restrictions = restrictions.Merge(r);
         }
@@ -805,7 +809,7 @@ public class MyInvokeBinder : InvokeBinder {
         return new DefaultBinder().Call(CallInfoToSignature(this.CallInfo), target, args);
     }
 
-    internal static CallSignature CallInfoToSignature(CallInfo callInfo) {
+    private static CallSignature CallInfoToSignature(CallInfo callInfo) {
         Argument[] ai = new Argument[callInfo.ArgumentCount];
         int positionalArgNum = callInfo.ArgumentCount - callInfo.ArgumentNames.Count;
         int i;

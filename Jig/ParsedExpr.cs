@@ -358,7 +358,7 @@ public class ParsedVariable : ParsedExpr {
 
     }
 
-    public new Identifier Identifier { get; }
+    public Identifier Identifier { get; }
 }
 
 public class ParsedIf : ParsedExpr {
