@@ -3,6 +3,8 @@ ReaderTests/obj/
 PreludeTests/bin/
 PreludeTests/obj/
 Reader/bin/
+VM/bin/
+VM/obj/
 Reader/obj/
 Types/bin/
 Types/obj/
