@@ -5,7 +5,7 @@ namespace Jig;
 
 public static class Program {
 
-    public static IEnvironment TopLevel = new Environment();
+    public static IEnvironment TopLevel = Environment.Default;
     public static ExpansionEnvironment ExEnv = ExpansionEnvironment.Default;
 
     static void Main(string[] args) {

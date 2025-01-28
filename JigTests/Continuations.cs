@@ -17,7 +17,7 @@ public class Continuations
 
     [TestMethod]
     public void ApplyingContinuation() {
-        IEnvironment env = new Jig.Environment();
+        IEnvironment env = Program.TopLevel;
         string result1 = "";
         Continuation.OneArgDelegate setResult1 = (x) => {result1 = x.Print(); return null;};
         Form? x = Jig.Reader.Reader.ReadSyntax(InputPort.FromString("(define cont #f)"));
