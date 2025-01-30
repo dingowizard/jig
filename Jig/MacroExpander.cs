@@ -9,8 +9,12 @@ public class MacroExpander {
 
     public MacroExpander() {
 
+        Binding.Reset();
         _bindings = new Dictionary<Syntax.Identifier, Binding>();
     }
+
+    public Binding[] Bindings => _bindings.Values.ToArray();
+
 
     public void AddBinding(Syntax.Identifier id, Binding binding) {
         if (!_bindings.TryAdd(id, binding)) {
@@ -603,29 +607,32 @@ public class Binding {
     private static int count;
 
     public Binding() {
-        Count = count++;
+        Index = count++;
     }
 
-    private int Count { get; }
+    public static void Reset() {
+        count = 0;
+    }
+
+    public int Index { get; }
     //TODO: why can't scope be like this? (scope needs a member to work. maybe because it has to define gethashcode and equals?)
     //TODO: should the binding contain the scope that it comes from?
     //TODO: can Scope and binding classes be combined in some way?
-    public static Binding TopLevel {get;} = new Binding();
-    public override string ToString() => $"binding{Count}";
+    public override string ToString() => $"binding{Index}";
 
     public override bool Equals(object? obj) {
         if (obj is null) return false;
         return obj switch {
-            Binding binding => this.Count == binding.Count,
+            Binding binding => this.Index == binding.Index,
             _ => false
         };
     }
 
     protected bool Equals(Binding other) {
-        return Count == other.Count;
+        return Index == other.Index;
     }
 
     public override int GetHashCode() {
-        return Count;
+        return Index;
     }
 }

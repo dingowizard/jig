@@ -323,18 +323,21 @@ public class ParsedVariable : ParsedExpr {
         //     }
 
         // }
+        // TODO: make binding a required field for parsed variables
         if (stx is Syntax.Identifier id) {
             if(expander.TryResolve(id, out var binding)) {
                 // if (id.Symbol.Name == "y") {
                 //     Console.WriteLine($"found binding for y: {binding}");
                 // }
                 id.Symbol.Binding = binding;
-                parsedVariable = new ParsedVariable.Lexical(id, stx.SrcLoc);
+                parsedVariable = new ParsedVariable.Lexical(id, binding, stx.SrcLoc);
                 return true;
             } else {
                 // if (id.Symbol.Name == "y") {
                 //     Console.WriteLine("couldn't resolve y");
                 // }
+                
+                // TODO: toplevel vars still _do_ have a binding, right? a module binding?
                 parsedVariable = new ParsedVariable.TopLevel(id, stx.SrcLoc);
                 return true;
             }
@@ -354,7 +357,11 @@ public class ParsedVariable : ParsedExpr {
     }
 
     public class Lexical : ParsedVariable {
-        internal Lexical(Syntax.Identifier id, SrcLoc? srcLoc) : base (id, srcLoc) {}
+        internal Lexical(Syntax.Identifier id, Binding binding, SrcLoc? srcLoc) : base(id, srcLoc) {
+            Binding = binding;
+        }
+        
+        public Binding Binding { get; }
 
     }
 

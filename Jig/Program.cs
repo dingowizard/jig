@@ -99,7 +99,12 @@ public static class Program {
         env ??= Program.TopLevel;
         if (ast is Syntax stx) {
             // TODO: shouldn't we be able to macro-expand syntactic-data as well as syntax objects?
-            ParsedExpr program = new MacroExpander().Expand(stx, ExEnv);
+            var me = new MacroExpander();
+            ParsedExpr program = me.Expand(stx, ExEnv);
+            var bindings = me.Bindings;
+            if (bindings.Length != 0) {
+                Console.WriteLine($"There were {bindings.Length} lexical vars in that expression: {string.Join(", ", bindings.Select(b => b.Index.ToString()))}");
+            }
             var scope = new LexicalContext();
             var c = ET.Analyze(scope, program).Compile();
             Run(c, k, env);

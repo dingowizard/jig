@@ -1,18 +1,66 @@
+using System.Diagnostics;
+using System.Linq.Expressions;
+using System.Net;
+using System.Runtime.CompilerServices;
+using System.Text;
 using Jig;
+using Microsoft.Scripting.Utils;
 using Sys = System.Collections.Generic;
 
 namespace VM;
 
 public class Compiler {
 
+
+    public Template CompileExprForREPL(
+        ParsedExpr x,
+        CompileTimeEnvironment ctEnv,
+        int startLine = 0,
+        bool tail = false) {
+
+        Sys.List<Jig.Form> literals = [];
+        Sys.List<Binding> globals = [];
+
+        ulong[] code = Compile(x, ctEnv, literals, globals, startLine, true); 
+        var result = new Template(code, globals.ToArray(), literals.ToArray());
+        return result;
+
+    }
+
+    private ulong[] Compile(ParsedExpr x, CompileTimeEnvironment ctEnv, Sys.List<Jig.Form> literals, Sys.List<Binding> bindings, int startLine = 0,
+        bool tail = false) {
+        switch (x) {
+            case ParsedLiteral lit:
+                return Compile(lit, literals, tail);
+            case ParsedVariable.TopLevel top:
+                return Compile(top, ctEnv, bindings, tail);
+            case ParsedVariable.Lexical lexVar:
+                return Compile(lexVar, tail);
+            case ParsedLambda le:
+                return Compile(le, ctEnv, literals, bindings, 0, tail);
+            case ParsedList app:
+                return Compile(app, ctEnv, literals, bindings, 0, tail);
+            default:
+                throw new NotImplementedException($"{x.Print()} of type {x.GetType()} is not supported yet");
+        }
+    }
+
     public Template Compile(
         ParsedExpr[] sequence,
         CompileTimeEnvironment ctEnv,
         Sys.List<Jig.Form> literals,
         Sys.List<Binding> globals,
-        bool tail = false)
-    {
-        throw new NotImplementedException();
+        int startLine = 0,
+        bool tail = false) {
+        Sys.List<ulong> instructions = [];
+
+        int lineNo = startLine;
+        foreach (var x in sequence.Take(sequence.Length - 1)) {
+            instructions = instructions.Concat(Compile(x, ctEnv, literals, globals, startLine, false)).ToList();
+            lineNo += instructions.Count();
+        }
+        instructions = instructions.Concat(Compile(sequence[sequence.Length - 1], ctEnv, literals, globals, lineNo, true)).ToList();
+        return new Template(instructions.ToArray(), globals.ToArray(), literals.ToArray());
     }
 
     public ulong[] Compile(
@@ -55,19 +103,107 @@ public class Compiler {
 
     public ulong[] Compile(
         ParsedVariable.Lexical var,
-        CompileTimeEnvironment ctEnv,
         bool tail = false) {
 
         // TODO: we already found the bindings when we parsed/expanded
-        // we shouldn't have to do it twice
-        (int frame, int slot) = ctEnv.LookUpLexVar(var.Identifier.Symbol);
         ulong code = (ulong)OpCode.LexVar << 56;
-        code += (ulong)frame << 24;
-        code += (ulong)slot;
+        code += (ulong)var.Binding.Index;
         if (tail) {
             return [code, (ulong)OpCode.PopContinuation << 56];
         }
         return [code];
     }
 
+    public ulong[] Compile(
+        ParsedLambda lambdaExpr,
+        CompileTimeEnvironment ctEnv,
+        Sys.List<Form> literals,
+        Sys.List<Binding> bindings,
+        int startLine = 0,
+        bool tail = false) {
+
+        Template template = CompileLambdaTemplate(lambdaExpr, ctEnv);
+        literals.Add(template);
+        int templateIndex = literals.IndexOf(template);
+        Sys.List<ulong> result = [
+            (ulong)OpCode.Env << 56, // ENVT
+            (ulong)OpCode.Push << 56, // PUSH
+            ((ulong)OpCode.Lit << 56) + (ulong)templateIndex, // LIT
+            (ulong)OpCode.Push << 56, // PUSH
+            (ulong)OpCode.Closure << 56, // CLOS
+        ];
+        if (tail) {
+            return result.Append((ulong)OpCode.PopContinuation << 56).ToArray();
+        }
+        return result.ToArray();
+
+    }
+
+    private Template CompileLambdaTemplate(ParsedLambda lambdaExpr, CompileTimeEnvironment ctEnv) {
+        Sys.List<ulong> codes = [];
+        foreach (var id in lambdaExpr.Parameters.Required) {
+            var bindCode = (ulong)OpCode.Bind << 56;
+            Debug.Assert(id.Symbol.Binding is not null);
+            // TODO: lambdaparameters should be an array of parsed lexical vars, not identifiers
+            bindCode += (ulong)id.Symbol.Binding?.Index;
+            codes.Add(bindCode);
+        }
+
+        if (lambdaExpr.Parameters.HasRest) {
+            var bindRest = (ulong)OpCode.BindRest << 56;
+            Debug.Assert(lambdaExpr.Parameters.Rest.Symbol.Binding is not null);
+            bindRest += (ulong)lambdaExpr.Parameters.Rest.Symbol.Binding?.Index;
+            codes.Add(bindRest);
+        }
+
+        // TODO: likewise body of parsedlambda should be a collection of parsedexpr
+        var body = Compile(
+            lambdaExpr.Bodies.Cast<ParsedExpr>().ToArray(),
+            ctEnv,
+            new Sys.List<Form>(),
+            new Sys.List<Binding>(),
+            codes.Count() - 1);
+
+        return new Template(codes.Concat(body.Code).ToArray(), body.Globals, body.Slots);
+    }
+
+    public ulong[] Compile(
+        ParsedList app,
+        CompileTimeEnvironment ctEnv,
+        Sys.List<Form> literals,
+        Sys.List<Binding> globals,
+        int startLine = 0,
+        bool tail = false)
+    {
+        Sys.List<ulong> instructions = [];
+        var xs = app.ParsedExprs.ToArray();
+        // we're going to wait til the end for the push continuation instr because we need to know the address
+        // we'll append it to the front
+        int lineNo = startLine;
+        // eval and push for all args to the call
+        for (int i = xs.Length - 1; i > 0; i--) {
+            var codes = Compile(xs[i], ctEnv, literals, globals, lineNo, false).ToList();
+            codes.Add((ulong)OpCode.Push << 56);
+            instructions = instructions.Concat(codes).ToList();
+            lineNo += codes.Count();
+        }
+
+        var codeForProc = Compile(xs[0], ctEnv, literals, globals, lineNo, false);
+        // don't push it. Call assumes the procedure is in VAL
+        instructions.AddRange(codeForProc);
+        lineNo += codeForProc.Length;
+        
+        instructions.Add((ulong)OpCode.Call << 56);
+        lineNo++;
+        
+        
+        if (!tail) {
+            // the call is not a tail call, so we do want to save a continuation before we start
+            var pushContInstruction = (ulong)OpCode.PushContinuation << 56;
+            pushContInstruction += (ulong)lineNo + 1;
+            instructions.Insert(0, pushContInstruction);
+        }
+
+        return instructions.ToArray();
+    }
 }

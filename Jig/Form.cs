@@ -34,7 +34,7 @@ public abstract class Form : IForm {
             Binding = binding;
         }
 
-        internal Binding? Binding;
+        public Binding? Binding;
 
         public virtual string Name {get;}
 

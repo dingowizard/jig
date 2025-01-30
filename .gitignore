@@ -5,6 +5,8 @@ PreludeTests/obj/
 Reader/bin/
 VM/bin/
 VM/obj/
+VMRepl/bin/
+VMRepl/obj/
 Reader/obj/
 Types/bin/
 Types/obj/

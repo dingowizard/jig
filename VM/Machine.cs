@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Jig;
 namespace VM;
 
@@ -13,7 +14,7 @@ public class Machine {
 
     internal List EvalStack = Jig.List.Null;
 
-    internal PartialContinuation? CONT;
+    internal Continuation CONT;
 
     internal Environment ENVT;
 
@@ -28,8 +29,13 @@ public class Machine {
         EvalStack = Jig.List.Cons(val, EvalStack);
     }
 
+    private void ClearStack() {
+        EvalStack = Jig.List.Null;
+    }
+
     
     internal void Fetch() {
+        Debug.Assert(PC < (ulong)Template.Code.Length, $"PC was {PC} and Template length was {Template.Code.Length}");
         IR = Template.Code[PC];
         PC++;
     }
@@ -64,10 +70,15 @@ public class Machine {
                 EvalStack = Jig.List.Null;
                 return;
             case OpCode.PopContinuation:
-                CONT = CONT.Continuation;
+                if (CONT is PartialContinuation partialContinuation) {
+                    CONT = partialContinuation.Continuation;
+                    PC = CONT.ReturnAddress;
+                    EvalStack = CONT.EvalStack;
+                    ENVT = CONT.Environment;
+                    return;
+                }
+
                 PC = CONT.ReturnAddress;
-                EvalStack = CONT.EvalStack;
-                ENVT = CONT.Environment;
                 return;
             case OpCode.Call:
                 if (VAL is Procedure proc) {
@@ -92,34 +103,27 @@ public class Machine {
                 VAL = Template.Globals[IR & 0x00FFFFFFFFFFFFFF].Slot;
                 return;
             case OpCode.LexVar:
-                VAL = ENVT.LookUpLexVar(
-                    (int)(IR & 0x00FFFFFFFF000000) >> 24,
-                    (int)(IR & 0x0000000000FFFFFF));
+                var v = ENVT.LexVar[IR & 0x00FFFFFFFFFFFFFF];
+                VAL = v ?? throw new Exception($"tried to dereference undeclared variable");
                 return;
             case OpCode.SetLex:
-                ENVT.SetLexVar(
-                    (int)(IR & 0x00FFFFFFFF000000) >> 24,
-                    (int)(IR & 0x0000000000FFFFFF),
-                    Pop());
+                if (ENVT.LexVar[IR & 0x00FFFFFFFFFFFFFF] is null)
+                    throw new Exception($"tried to set undeclared lexical variable");
+                ENVT.LexVar[IR & 0x00FFFFFFFFFFFFFF] = Pop();
                 VAL = Form.Void;
                 return;
             case OpCode.Bind:
-                ulong argNum = IR & 0x00FFFFFFFFFFFFFF;
-                if (argNum != (ulong)EvalStack.Count()) {
-                    throw new Exception($"expected {argNum} args, but got {EvalStack.Count()}");
-                }
-                ENVT = ENVT.Extend(EvalStack);
+                ulong parameterIndex = IR & 0x00FFFFFFFFFFFFFF;
+                ENVT.LexVar[parameterIndex] = Pop();
                 return;
-            case OpCode.BindWRest:
-                ulong requiredNo = IR & 0x00FFFFFFFFFFFFFF;
-                if (requiredNo < (ulong)EvalStack.Count()) {
-                    throw new Exception($"expected at least {requiredNo} args, but got {EvalStack.Count()}");
-                }
-                ENVT = ENVT.ExtendWRest(EvalStack, requiredNo);
+            case OpCode.BindRest:
+                ulong restIndex = IR & 0x00FFFFFFFFFFFFFF;
+                ENVT.LexVar[restIndex] = EvalStack;
+                ClearStack();
                 return;
             case OpCode.DefLocal:
                 ulong slot = IR & 0x00FFFFFFFFFFFFFF;
-                ENVT.DefineLocal(slot, Pop());
+                ENVT.LexVar[slot] = Pop();
                 VAL = Form.Void;
                 return;
             case OpCode.DefTop:
@@ -140,10 +144,39 @@ public class Machine {
                     PC = IR & 0x00FFFFFFFFFFFFFF;
                 }
                 return;
-            default: throw new Exception($"unhandled case in Execute");
+            case OpCode.Closure:
+                var t = (Template)Pop();
+                var e = (VM.Environment)Pop();
+                VAL = new Procedure(e, t);
+                return;
+            case OpCode.Env:
+                VAL = ENVT;
+                return;
+            default: throw new Exception($"unhandled case {opCode} in Execute");
         }
 
     }
-    
-    
+
+    public void Load(Template program, Environment env) {
+        PC = 0;
+        Template = program;
+        ClearStack();
+        ENVT = env;
+        CONT = new TopLevelContinuation(env);
+
+
+
+
+
+    }
+
+
+    public Form Run() {
+        while (PC != ulong.MaxValue) {
+            Fetch();
+            Execute();
+        }
+
+        return VAL;
+    }
 }

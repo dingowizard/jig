@@ -2,14 +2,35 @@ using Jig;
 
 namespace VM;
 
-public class PartialContinuation : Form {
+public abstract class Continuation : Form {
+    public override string Print() => "#<continuation";
+
+    public abstract ulong ReturnAddress { get; }
+    
+    public abstract Environment Environment { get; }
+    
+    public abstract Jig.List EvalStack { get; }
+}
+
+public class TopLevelContinuation : Continuation {
+    public TopLevelContinuation(Environment env) {
+        Environment = env;
+    }
+
+    public override ulong ReturnAddress { get; } = ulong.MaxValue;
+    public override Environment Environment { get; }
+
+    public override Jig.List EvalStack { get; } = Jig.List.Null;
+}
+
+public class PartialContinuation : Continuation {
     
     public PartialContinuation(
         Template template,
         ulong returnAddress,
         Environment environment,
         List evalStack,
-        PartialContinuation continuation)
+        Continuation continuation)
     {
         Template = template;
         Continuation = continuation;
@@ -20,13 +41,12 @@ public class PartialContinuation : Form {
 
     public Template Template { get; }
 
-    public PartialContinuation Continuation { get; }
+    public Continuation Continuation { get; }
     
-    public ulong ReturnAddress { get; }
+    public override ulong ReturnAddress { get; }
     
-    public Environment Environment { get; }
+    public override Environment Environment { get; }
     
-    public Jig.List EvalStack { get; }
+    public override Jig.List EvalStack { get; }
 
-    public override string Print() => "#<continuation>";
 }
