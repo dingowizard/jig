@@ -23,6 +23,7 @@ public class Compiler {
 
         ulong[] code = Compile(x, ctEnv, literals, globals, startLine, true); 
         var result = new Template(code, globals.ToArray(), literals.ToArray());
+        Array.ForEach(Dissassembler.Disassemble(result), Console.WriteLine);
         return result;
 
     }
@@ -36,6 +37,8 @@ public class Compiler {
                 return Compile(top, ctEnv, bindings, tail);
             case ParsedVariable.Lexical lexVar:
                 return Compile(lexVar, tail);
+            case ParsedIf ifExpr:
+                return Compile(ifExpr, ctEnv, literals, bindings, startLine, tail);
             case ParsedLambda le:
                 return Compile(le, ctEnv, literals, bindings, 0, tail);
             case ParsedList app:
@@ -43,6 +46,39 @@ public class Compiler {
             default:
                 throw new NotImplementedException($"{x.Print()} of type {x.GetType()} is not supported yet");
         }
+    }
+
+    private ulong[] Compile(
+        ParsedIf ifExpr,
+        CompileTimeEnvironment ctEnv,
+        Sys.List<Form> literals,
+        Sys.List<Binding> bindings,
+        int startLine,
+        bool tail)
+    {
+        int lineNo = startLine;
+        var condCodes = Compile(ifExpr.Condition, ctEnv, literals, bindings, startLine, false);
+        lineNo += condCodes.Length;
+        lineNo++; // to account for JumpIfFalse instruction
+        var thenCodes = Compile(ifExpr.Then, ctEnv, literals, bindings, startLine, tail); 
+        lineNo += thenCodes.Length;
+        lineNo++; // for unconditional jump to end
+        // this is the start of the else code so JumpIfFalse should go here
+        ulong jumpIfFalse = ((ulong)OpCode.JumpIfFalse << 56) + (ulong)lineNo;
+        ulong[] elseCodes = [];
+        if (ifExpr.Else is not null) {
+            elseCodes = Compile(ifExpr.Else, ctEnv, literals, bindings, startLine, tail);
+        } else {
+            literals.Add(Form.Void);
+            int index = literals.IndexOf(Form.Void);
+            elseCodes = [((ulong)OpCode.Lit << 56) + (ulong)index];
+            if (tail) {
+                elseCodes = elseCodes.Append((ulong)OpCode.PopContinuation << 56).ToArray();
+            }
+        }
+        lineNo += elseCodes.Length;
+        ulong jump = ((ulong)OpCode.Jump << 56) + (ulong)lineNo;
+        return condCodes.Append(jumpIfFalse).Concat(thenCodes).Append(jump).Concat(elseCodes).ToArray();
     }
 
     public Template Compile(
@@ -142,9 +178,10 @@ public class Compiler {
     private Template CompileLambdaTemplate(ParsedLambda lambdaExpr, CompileTimeEnvironment ctEnv) {
         Sys.List<ulong> codes = [];
         foreach (var id in lambdaExpr.Parameters.Required) {
-            var bindCode = (ulong)OpCode.Bind << 56;
             Debug.Assert(id.Symbol.Binding is not null);
             // TODO: lambdaparameters should be an array of parsed lexical vars, not identifiers
+            // and it should not be possible for the binding of a parsedvar to be null
+            var bindCode = (ulong)OpCode.Bind << 56;
             bindCode += (ulong)id.Symbol.Binding?.Index;
             codes.Add(bindCode);
         }

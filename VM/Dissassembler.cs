@@ -70,6 +70,8 @@ public static class Dissassembler {
                 return $"{lineNo:D5}\tTOP\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
             case OpCode.Jump:
                 return $"{lineNo:D5}\tJMP\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
+            case OpCode.JumpIfFalse:
+                return $"{lineNo:D5}\tJFF\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
             default:
                 return $"unhandled opcode: {opCode}";
         }
