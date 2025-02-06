@@ -118,7 +118,7 @@ public class MacroExpander {
     {
         Syntax.Identifier id = stxList.ElementAt<Syntax>(1) as Syntax.Identifier ?? throw new Exception() ;
         // Console.WriteLine($"define-syntax: {id}");
-        id.Symbol.Binding = new Binding();
+        id.Symbol.Binding = new Binding(id.Symbol);
         _bindings.Add(id, id.Symbol.Binding);
         // TODO: use ParsedLambda.TryParse? (for vars in set! and define as well?)
         ParsedLambda expandedLambdaExpr = Expand(stxList.ElementAt<Syntax>(2), ee) as ParsedLambda ?? throw new Exception($"define-syntax: expected 2nd argument to be a transformer. Got {stxList.ElementAt<Syntax>(2)}");
@@ -606,9 +606,12 @@ public class ExpansionEnvironment {
 public class Binding {
     private static int count;
 
-    public Binding() {
+    public Binding(Form.Symbol sym) {
         Index = count++;
+        Symbol = sym;
     }
+    
+    public Form.Symbol Symbol { get; }
 
     public static void Reset() {
         count = 0;

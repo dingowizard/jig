@@ -5,15 +5,15 @@ namespace VM;
 public static class Dissassembler {
 
     public static string[] Disassemble(Template template) {
-        Sys.List<string> literals = ["***SLOTS***"];
+        Sys.List<string> literals = ["***LITERALS***"];
         for (int i = 0; i < template.Slots.Length; i++) {
             literals.Add($"{i:D5}\t{template.Slots[i].Print()}");
             
         }
         literals.Add("--------------------------");
-        Sys.List<string> globals = ["***GLOBALS***"];
-        for (int i = 0; i < template.Globals.Length; i++) {
-            literals.Add($"{i:D5}\t{template.Globals[i].Symbol.Print()}");
+        Sys.List<string> globals = ["***BINDINGS***"];
+        for (int i = 0; i < template.Bindings.Length; i++) {
+            globals.Add($"{i:D5}\t{template.Bindings[i].Symbol.Print()}");
         }
         globals.Add("--------------------------");
         Sys.List<string> instructions = ["***INSTRUCTIONS***"];
@@ -35,8 +35,7 @@ public static class Dissassembler {
     // LexVar,
     // Bind,
     // BindRest,
-    // DefLocal,
-    // DefTop,
+    // Def,
     // SetTop,
     // SetLex,
     // Jump,
@@ -68,10 +67,12 @@ public static class Dissassembler {
                 return $"{lineNo:D5}\tCLOS";
             case OpCode.Top:
                 return $"{lineNo:D5}\tTOP\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
+            case OpCode.Def:
+                return $"{lineNo:D5}\tDEF\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
             case OpCode.Jump:
                 return $"{lineNo:D5}\tJMP\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
             case OpCode.JumpIfFalse:
-                return $"{lineNo:D5}\tJFF\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
+                return $"{lineNo:D5}\tJIFF\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
             default:
                 return $"unhandled opcode: {opCode}";
         }

@@ -470,7 +470,7 @@ internal abstract class ET : Expression {
             if (rest is not null) {
                 if (parameters.HasRequired) {
                     // parameters are something like (a b . c)
-                    IEnumerable<Form.Symbol> symbols = parameters.Required.Select(id => id.Symbol).Append(rest.Symbol);
+                    IEnumerable<Form.Symbol> symbols = parameters.Required.Select(v => v.Identifier.Symbol).Append(rest.Identifier.Symbol);
                     lambdaScope = scope.Extend(symbols);
                     LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
                     LambdaExpressionParams = [k, .. lambdaScope.Parameters];
@@ -484,7 +484,7 @@ internal abstract class ET : Expression {
                                                             ])), typeof(Thunk));
                 } else {
                     // parameters are something like a
-                    lambdaScope = scope.Extend([rest.Symbol]);
+                    lambdaScope = scope.Extend([rest.Identifier.Symbol]);
                     LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
                     LambdaExpressionParams = [k, .. lambdaScope.Parameters];
 
@@ -499,7 +499,7 @@ internal abstract class ET : Expression {
 
             } else {
                 // parameters are like (a b c)
-                lambdaScope = scope.Extend(parameters.Required.Select(i => i.Symbol));
+                lambdaScope = scope.Extend(parameters.Required.Select(i => i.Identifier.Symbol));
                 LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
                 LambdaExpressionParams = new[] {k}.Concat(lambdaScope.Parameters).ToArray();
                 Body =

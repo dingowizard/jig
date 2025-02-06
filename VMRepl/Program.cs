@@ -67,6 +67,9 @@ public static class Program {
                     }
 
                     Jig.Form form = Eval(vm, input, TopLevel);
+                    if (form is null) {
+                        Console.WriteLine("form was null!");
+                    }
                     if (form is not Form.VoidType) {
                         Console.WriteLine(form.Print());
                     }
@@ -84,8 +87,9 @@ public static class Program {
         var me = new Jig.MacroExpander();
         Jig.ParsedExpr program = me.Expand(stx, ExEnv);
         var compiler = new VM.Compiler(); // should class be static?
-        var code = compiler.CompileExprForREPL(program, new CompileTimeEnvironment(env));
-        vm.Load(code, env.Extend(me.Bindings));
+        var ctEnv = new CompileTimeEnvironment(me.Bindings, env);
+        var code = compiler.CompileExprForREPL(program, ctEnv);
+        vm.Load(code, env);
         return vm.Run();
     }
 }
