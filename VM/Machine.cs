@@ -8,6 +8,7 @@ public class Machine {
     
     internal ulong PC;
 
+
     internal Form VAL = Form.Void;
 
     internal Template Template;
@@ -104,19 +105,6 @@ public class Machine {
                     }
 
                     throw new Exception($"VM: in Call @ {PC}: expected procedure or continuation, got {VAL.Print()}");
-                case OpCode.Top:
-                    VAL = Template.Bindings[IR & 0x00FFFFFFFFFFFFFF].Slot;
-                    continue;
-                case OpCode.LexVar:
-                    var v = Template.Bindings[IR & 0x00FFFFFFFFFFFFFF].Slot;
-                    VAL = v ?? throw new Exception($"tried to dereference undeclared variable");
-                    continue;
-                case OpCode.SetLex:
-                    if (Template.Bindings[IR & 0x00FFFFFFFFFFFFFF].Slot is null)
-                        throw new Exception($"tried to set undeclared lexical variable");
-                    Template.Bindings[IR & 0x00FFFFFFFFFFFFFF].Slot = Pop();
-                    VAL = Form.Void;
-                    continue;
                 case OpCode.Bind:
                     ulong parameterIndex = IR & 0x00FFFFFFFFFFFFFF;
                     Template.Bindings[parameterIndex].Slot = Pop();
@@ -126,14 +114,11 @@ public class Machine {
                     Template.Bindings[restIndex].Slot = EvalStack;
                     ClearStack();
                     continue;
-                case OpCode.Def:
-                    ulong slot = IR & 0x00FFFFFFFFFFFFFF;
-                    Template.Bindings[slot].Slot = VAL;
-                    VAL = Form.Void;
+                case OpCode.Load:
+                    VAL = Template.Bindings[IR & 0x00FFFFFFFFFFFFFF].Slot;
                     continue;
-                case OpCode.SetTop:
-                    ulong symIndex = IR & 0x00FFFFFFFFFFFFFF;
-                    Template.Bindings[symIndex].Slot = VAL;
+                case OpCode.Store:
+                    Template.Bindings[IR & 0x00FFFFFFFFFFFFFF].Slot = VAL;
                     VAL = Form.Void;
                     continue;
                 case OpCode.Jump:
@@ -143,9 +128,8 @@ public class Machine {
                     if (Bool.False.Equals(VAL)) {
                         PC = IR & 0x00FFFFFFFFFFFFFF;
                     }
-
                     continue;
-                case OpCode.Closure:
+                case OpCode.Lambda:
                     var t = (Template)Pop();
                     var e = (VM.Environment)Pop();
                     VAL = new Procedure(e, t);
@@ -165,7 +149,6 @@ public class Machine {
                         VAL = (Jig.Form)pair.Car;
                         continue;
                     }
-
                     throw new Exception("car: expected pair argument");
                 case OpCode.Cdr:
                     var cns = Pop();
@@ -173,7 +156,6 @@ public class Machine {
                         VAL = (Jig.Form)p.Cdr;
                         continue;
                     }
-
                     throw new Exception("cdr: expected pair argument");
                 case OpCode.NullP:
                     var arg = Pop();
@@ -181,7 +163,6 @@ public class Machine {
                         VAL = Jig.Bool.True;
                         continue;
                     }
-
                     VAL = Jig.Bool.False;
                     continue;
                 case OpCode.Sum:
@@ -189,7 +170,6 @@ public class Machine {
                     while (EvalStack is not IEmptyList) {
                         VAL = (Number)VAL + (Number)Pop();
                     }
-
                     continue;
                 case OpCode.ZeroP:
                     // TODO: check arg type
@@ -197,7 +177,6 @@ public class Machine {
                         VAL = Bool.True;
                         continue;
                     }
-
                     VAL = Bool.False;
                     continue;
                 default: throw new Exception($"unhandled case {opCode} in Execute");

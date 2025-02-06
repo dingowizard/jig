@@ -1,4 +1,4 @@
-namespace JigTests.Core;
+namespace Tests.DLRRuntime.Core;
 
 [TestClass]
 public class MultipleValues

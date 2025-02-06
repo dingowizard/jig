@@ -25,23 +25,6 @@ public static class Dissassembler {
 
     }
     
-    // Push,
-    // Pop,
-    // Lit,
-    // PushContinuation,
-    // PopContinuation,
-    // Call,
-    // Top,
-    // LexVar,
-    // Bind,
-    // BindRest,
-    // Def,
-    // SetTop,
-    // SetLex,
-    // Jump,
-    // JumpIfFalse,
-    // Env,
-    // Closure,
     public static string Decode(int lineNo, ulong instr) {
         OpCode opCode = (OpCode)(instr >> 56);
         switch (opCode) {
@@ -54,21 +37,21 @@ public static class Dissassembler {
             case OpCode.Lit:
                 return $"{lineNo:D5}\tLIT\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
             case OpCode.PushContinuation:
-                return $"{lineNo:D5}\tPUSHK\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
+                return $"{lineNo:D5}\tSAVE\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
             case OpCode.PopContinuation:
                 return $"{lineNo:D5}\tRET";
-            case OpCode.LexVar:
-                return $"{lineNo:D5}\tVAR\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
             case OpCode.Bind:
                 return $"{lineNo:D5}\tBIND\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
+            case OpCode.BindRest:
+                return $"{lineNo:D5}\tBNDR\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
             case OpCode.Env:
                 return $"{lineNo:D5}\tENVT";
-            case OpCode.Closure:
-                return $"{lineNo:D5}\tCLOS";
-            case OpCode.Top:
-                return $"{lineNo:D5}\tTOP\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
-            case OpCode.Def:
-                return $"{lineNo:D5}\tDEF\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
+            case OpCode.Lambda:
+                return $"{lineNo:D5}\tLMBD";
+            case OpCode.Load:
+                return $"{lineNo:D5}\tLOAD\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
+            case OpCode.Store:
+                return $"{lineNo:D5}\tSTORE\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
             case OpCode.Jump:
                 return $"{lineNo:D5}\tJMP\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
             case OpCode.JumpIfFalse:

@@ -14,8 +14,12 @@ obj/
 .cache/
 Jig/bin/
 Jig/obj/
-JigTests/obj/
-JigTests/bin/
+Tests.VM/bin/
+Tests.VM/obj/
+Tests.DLRRuntime/bin/
+Tests.DLRRuntime/obj/
+Tests.Common/bin/
+Tests.Common/obj/
 repl
 *nettrace*
 

@@ -1,4 +1,4 @@
-namespace JigTests;
+namespace Tests.DLRRuntime;
 
 [TestClass]
 public class CharacterProcedures {

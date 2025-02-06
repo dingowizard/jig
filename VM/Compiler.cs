@@ -64,7 +64,7 @@ public class Compiler {
             if (!bindings.Contains(bing)) {
                 bindings.Add(bing);
             }
-            ulong code = (ulong)OpCode.Def << 56;
+            ulong code = (ulong)OpCode.Store << 56;
             int index = bindings.IndexOf(bing);
             code += (ulong)index;
             result.Add(code);
@@ -73,7 +73,7 @@ public class Compiler {
             var binding = new VM.Binding(lexVar.Binding);
             bindings.Add(binding);
             ctEnv.LexVars[lexVar.Binding.Index] = binding;
-            ulong code = (ulong)OpCode.Def << 56;
+            ulong code = (ulong)OpCode.Store << 56;
             int index = bindings.IndexOf(binding);
             code += (ulong)index;
             result.Add(code);
@@ -129,12 +129,14 @@ public class Compiler {
         Sys.List<Jig.Form> literals,
         Sys.List<Binding> bindings,
         int startLine = 0,
-        bool tail = false) {
+        bool tail = false)
+    {
+        
         Sys.List<ulong> instructions = [];
 
         int lineNo = startLine;
         foreach (var x in sequence.Take(sequence.Length - 1)) {
-            instructions = instructions.Concat(Compile(x, ctEnv, literals, bindings, startLine, false)).ToList();
+            instructions = instructions.Concat(Compile(x, ctEnv, literals, bindings, lineNo, false)).ToList();
             lineNo += instructions.Count();
         }
         instructions = instructions.Concat(Compile(sequence[sequence.Length - 1], ctEnv, literals, bindings, lineNo, true)).ToList();
@@ -170,7 +172,7 @@ public class Compiler {
             bindings.Add(ctEnv.LookUpTopLevel(sym));
         }
         int index = bindings.FindIndex(b => Equals(b.Symbol, sym));
-        ulong code = (ulong)OpCode.Top << 56;
+        ulong code = (ulong)OpCode.Load << 56;
         code += (ulong)index;
         if (tail) {
             return [code, (ulong)OpCode.PopContinuation << 56];
@@ -186,13 +188,13 @@ public class Compiler {
         bool tail = false) {
 
         // TODO: we already found the bindings when we parsed/expanded
-        ulong code = (ulong)OpCode.LexVar << 56;
+        ulong code = (ulong)OpCode.Load << 56;
         Debug.Assert(ctEnv.LexVars[var.Binding.Index] is not null);
         var binding = ctEnv.LexVars[var.Binding.Index];
-        if (!bindings.Contains(binding)) {
-            bindings.Add(binding);
+        if (!bindings.Contains((Binding)binding)) {
+            bindings.Add((Binding)binding);
         }
-        code += (ulong)bindings.IndexOf(binding);
+        code += (ulong)bindings.IndexOf((Binding)binding);
         if (tail) {
             return [code, (ulong)OpCode.PopContinuation << 56];
         }
@@ -215,7 +217,7 @@ public class Compiler {
             (ulong)OpCode.Push << 56, // PUSH
             ((ulong)OpCode.Lit << 56) + (ulong)templateIndex, // LIT
             (ulong)OpCode.Push << 56, // PUSH
-            (ulong)OpCode.Closure << 56, // CLOS
+            (ulong)OpCode.Lambda << 56, // CLOS
         ];
         if (tail) {
             return result.Append((ulong)OpCode.PopContinuation << 56).ToArray();
@@ -240,8 +242,11 @@ public class Compiler {
         }
 
         if (lambdaExpr.Parameters.HasRest) {
+            var binding = new VM.Binding(lambdaExpr.Parameters.Rest.Binding);
+            bindings.Add(binding);
+            ctEnv.LexVars[lambdaExpr.Parameters.Rest.Binding.Index] = binding;
             var bindRest = (ulong)OpCode.BindRest << 56;
-            bindRest += (ulong)lambdaExpr.Parameters.Rest.Binding.Index;
+            bindRest += (ulong)bindings.IndexOf(binding);
             codes.Add(bindRest);
         }
 

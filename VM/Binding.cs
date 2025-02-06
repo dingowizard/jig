@@ -2,7 +2,7 @@ using Jig;
 
 namespace VM;
 
-public class Binding : Jig.Form {
+public class Binding {
 
     public Binding(Form.Symbol s, Form form) {
         Symbol = s;
@@ -16,10 +16,8 @@ public class Binding : Jig.Form {
     public Binding(Form.Symbol s) {
         Symbol = s;
     }
-    public Jig.Form.Symbol Symbol { get; }
-    public Jig.Form? Slot { get; set; }
 
-    public override string Print() {
-        return "<binding>";
-    }
+    public Jig.Form.Symbol Symbol;
+    public Jig.Form? Slot;
+
 }

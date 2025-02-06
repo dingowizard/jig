@@ -1,7 +1,7 @@
 using Jig;
 using Jig.IO;
 
-namespace JigTests.Core;
+namespace Tests.DLRRuntime.Core;
 
 [TestClass]
 public class Literals

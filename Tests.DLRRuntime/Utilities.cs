@@ -1,7 +1,7 @@
 using Jig;
 using Jig.IO;
 
-namespace JigTests;
+namespace Tests.DLRRuntime;
 
 [TestClass]
 public static class Utilities {
