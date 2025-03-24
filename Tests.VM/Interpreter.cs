@@ -38,14 +38,14 @@ public class Interpreter : IInterpreter {
         var ctEnv = new CompileTimeEnvironment(Expander.Bindings, Env);
         var code = compiler.CompileExprForREPL(program, ctEnv);
         TheVM.Load(code, Env);
-        return TheVM.Run().Print();
+        TheVM.Run();
+        return TheVM.VAL.Print();
     }
     
     public string InterpretSequence(string[] inputs) {
         throw new NotImplementedException();
     }
     public string InterpretSequenceReadSyntax(string[] inputs) {
-        var compiler = new Compiler(); // should class be static?
         Form result = Form.Void;
         foreach (var input in inputs) {
             Syntax? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
@@ -53,9 +53,11 @@ public class Interpreter : IInterpreter {
             MacroExpander me = new MacroExpander();
             var ctEnv = new CompileTimeEnvironment(me.Bindings, Env);
             Jig.ParsedExpr program = me.Expand(stx, ExEnv);
+            var compiler = new Compiler();
             var code = compiler.CompileExprForREPL(program, ctEnv);
             TheVM.Load(code, Env);
-            result =  TheVM.Run();
+            TheVM.Run();
+            result =  TheVM.VAL;
         }
 
         return result.Print();

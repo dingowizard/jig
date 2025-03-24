@@ -8,6 +8,9 @@ public enum OpCode : byte {
     PopContinuation,
     Call,
     Load,
+    Local,
+    DefLocal, // we don't need this and SetLex
+    SetLex,
     Bind,
     BindRest,
     Store,
@@ -15,10 +18,9 @@ public enum OpCode : byte {
     JumpIfFalse,
     Env,
     Lambda,
-    Cons,
-    Car,
-    Cdr,
-    NullP,
     Sum,
-    ZeroP
+    Product,
+    CallCC,
+    CallWValues,
+    Values,
 }

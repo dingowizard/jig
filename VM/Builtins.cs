@@ -1,60 +1,64 @@
-using Jig;
-
 namespace VM;
 
 public static class Builtins {
 
-    public static readonly Template Cons = new Template(
-        code: [
-            (ulong)OpCode.Cons << 56,
-            (ulong)OpCode.PopContinuation << 56,
-        ],
-        bindings: [],
-        lits: []
-    );
-
-    public static Template Car = new Template(
-        code: [
-            (ulong)OpCode.Car << 56,
-            (ulong)OpCode.PopContinuation << 56,
-        ],
-        bindings: [],
-        lits: []
-    );
-    
-    public static Template Cdr = new Template(
-        code: [
-            (ulong)OpCode.Cdr << 56,
-            (ulong)OpCode.PopContinuation << 56,
-        ],
-        bindings: [],
-        lits: []
-    );
-    
-    public static Template NullP = new Template(
-        code: [
-            (ulong)OpCode.NullP << 56,
-            (ulong)OpCode.PopContinuation << 56,
-        ],
-        bindings: [],
-        lits: []
-    );
-    
-    public static Template Sum = new Template(
+    public static readonly Template Sum = new Template(
+        0,
         code: [
             (ulong)OpCode.Sum << 56,
             (ulong)OpCode.PopContinuation << 56,
         ],
         bindings: [],
-        lits: []
+        lits: [],
+        0,
+        true
     );
     
-    public static Template ZeroP = new Template(
+    public static readonly Template Product = new Template(
+        0,
         code: [
-            (ulong)OpCode.ZeroP << 56,
+            (ulong)OpCode.Product << 56,
             (ulong)OpCode.PopContinuation << 56,
         ],
         bindings: [],
-        lits: []
+        lits: [],
+        0,
+        true
     );
+
+    public static Template Values = new Template(
+        0,
+        code: [
+            (ulong)OpCode.Values << 56,
+            (ulong)OpCode.PopContinuation << 56,
+        ],
+        bindings: [],
+        lits: [],
+        0,
+        true
+    );
+    
+    public static Template CallWithValues = new Template(
+        0,
+        code: [
+            (ulong)OpCode.CallWValues << 56,
+            (ulong)OpCode.PopContinuation << 56,
+        ],
+        bindings: [],
+        lits: [],
+        2,
+        false
+    );
+    
+    public static readonly Template CallCC = new Template(
+        0,
+        code: [
+            (ulong)OpCode.CallCC << 56,
+            (ulong)OpCode.PopContinuation << 56,
+        ],
+        bindings: [],
+        lits: [],
+        1,
+        false
+        );
 }

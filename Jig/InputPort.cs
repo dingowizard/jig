@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Jig.IO;
 
 public class InputPort : IDisposable {
@@ -37,6 +39,7 @@ public class InputPort : IDisposable {
 
     public int Read() {
         int read = _reader.Read();
+        Trace.WriteLine($"Reader.Read: {read.ToString()}");
         char result = (char) read;
         if (result == '\n') {
             Line ++;

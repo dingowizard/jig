@@ -1,4 +1,5 @@
 using Jig.IO;
+using System.Diagnostics;
 
 namespace Jig.Reader;
 
@@ -10,7 +11,20 @@ public static class Reader {
     }
 
     public static Syntax? ReadSyntax(InputPort port) {
-        if (port.Peek() == -1) return null;
+        Trace.WriteLine("ReadSyntax called");
+        Trace.Flush();
+        try {
+            if (port.Peek() == -1) return null;
+        }
+        catch (Exception x) {
+            Trace.WriteLine("ReadSyntax: exception while peeking:");
+            Trace.WriteLine(x.Message);
+            Trace.Flush();
+            return null;
+
+        }
+        Trace.WriteLine("ReadSyntax: peek was not -1");
+        Trace.Flush();
         return Parser.ParseSyntax(new TokenStream(port));
     }
 }

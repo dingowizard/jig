@@ -13,49 +13,58 @@ public static class Dissassembler {
         literals.Add("--------------------------");
         Sys.List<string> globals = ["***BINDINGS***"];
         for (int i = 0; i < template.Bindings.Length; i++) {
-            globals.Add($"{i:D5}\t{template.Bindings[i].Symbol.Print()}");
+            globals.Add($"{i:D5}\t{template.Bindings[i].Symbol.Print()} {(template.Bindings[i].Top ? "(top)" : "")}");
         }
         globals.Add("--------------------------");
-        Sys.List<string> instructions = ["***INSTRUCTIONS***"];
+        Sys.List<string> instructions = [
+            "***INSTRUCTIONS***",
+            "ADDR\tOPCODE\tARG",
+            "----\t------\t---"
+        ];
         for (int n = 0; n < template.Code.Length; n++) {
-            instructions.Add(Decode(n, template.Code[n]));
+            instructions.Add(Decode(n, template.Code[n], template.Slots, template.Bindings));
         }
         instructions.Add("--------------------------");
         return literals.Concat(globals).Concat(instructions).ToArray();
 
     }
     
-    public static string Decode(int lineNo, ulong instr) {
+    public static string Decode(int lineNo, ulong instr, Jig.Form[] literals, Binding[] bindings) {
         OpCode opCode = (OpCode)(instr >> 56);
+        ulong operand = instr & 0x00FFFFFFFFFFFFFF;
+        int index = (int)(instr & 0x00000000FFFFFFFF);
+        int depth = (int)(instr >> 32) & 0x00FFFFFF ;
         switch (opCode) {
             case OpCode.Push:
-                return $"{lineNo:D5}\tPUSH";
+                return $"{lineNo:D3}\tPUSH";
             case OpCode.Pop:
-                return $"{lineNo:D5}\tPOP";
+                return $"{lineNo:D3}\tPOP";
             case OpCode.Call:
-                return $"{lineNo:D5}\tCALL";
+                return $"{lineNo:D3}\tCALL";
             case OpCode.Lit:
-                return $"{lineNo:D5}\tLIT\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
+                return $"{lineNo:D3}\tLIT\t{operand:D3} ; {literals[operand].Print()}";
             case OpCode.PushContinuation:
-                return $"{lineNo:D5}\tSAVE\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
+                return $"{lineNo:D3}\tSAVE\t{operand:D3}";
             case OpCode.PopContinuation:
-                return $"{lineNo:D5}\tRET";
+                return $"{lineNo:D3}\tRET";
             case OpCode.Bind:
-                return $"{lineNo:D5}\tBIND\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
+                return $"{lineNo:D3}\tBIND\t{operand:D3}";
             case OpCode.BindRest:
-                return $"{lineNo:D5}\tBNDR\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
+                return $"{lineNo:D3}\tBNDR\t{operand:D3}";
             case OpCode.Env:
-                return $"{lineNo:D5}\tENVT";
+                return $"{lineNo:D3}\tENVT";
             case OpCode.Lambda:
-                return $"{lineNo:D5}\tLMBD";
+                return $"{lineNo:D3}\tLMBD";
             case OpCode.Load:
-                return $"{lineNo:D5}\tLOAD\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
+                return $"{lineNo:D3}\tLOAD\t{operand:D3}";
+            case OpCode.Local:
+                return $"{lineNo:D3}\tLOCAL\t{depth:D3}\t{index:D3}" ;
             case OpCode.Store:
-                return $"{lineNo:D5}\tSTORE\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
+                return $"{lineNo:D3}\tSTORE\t{operand:D3}";
             case OpCode.Jump:
-                return $"{lineNo:D5}\tJMP\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
+                return $"{lineNo:D3}\tJMP\t{operand:D3}";
             case OpCode.JumpIfFalse:
-                return $"{lineNo:D5}\tJIFF\t{instr & 0x00FFFFFFFFFFFFFF:D3}";
+                return $"{lineNo:D3}\tJIFF\t{operand:D3}";
             default:
                 return $"unhandled opcode: {opCode}";
         }

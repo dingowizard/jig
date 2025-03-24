@@ -15,46 +15,93 @@ public class Compiler {
     public Template CompileExprForREPL(
         ParsedExpr x,
         CompileTimeEnvironment ctEnv,
+        int scopeLevel = 0,
         int startLine = 0,
         bool tail = false) {
 
         Sys.List<Jig.Form> literals = [];
         Sys.List<Binding> bindings = [];
 
-        ulong[] code = Compile(x, ctEnv, literals, bindings, startLine, true); 
-        var result = new Template(code, bindings.ToArray(), literals.ToArray());
-        Array.ForEach(Dissassembler.Disassemble(result), Console.WriteLine);
+        ulong[] code = Compile(x, ctEnv, literals, bindings, scopeLevel, startLine, true); 
+        var result = new Template(0, code, bindings.ToArray(), literals.ToArray(), 0, false); // TODO: maybe there should be a different kind of template for this, since we don't need parameters
+        // Array.ForEach(Dissassembler.Disassemble(result), Console.WriteLine);
         return result;
 
     }
 
-    private ulong[] Compile(ParsedExpr x, CompileTimeEnvironment ctEnv, Sys.List<Jig.Form> literals, Sys.List<Binding> bindings, int startLine = 0,
+    private ulong[] Compile(
+        ParsedExpr x,
+        CompileTimeEnvironment ctEnv,
+        Sys.List<Jig.Form> literals,
+        Sys.List<Binding> bindings,
+        int scopeLevel,
+        int startLine = 0,
         bool tail = false) {
         switch (x) {
             case ParsedLiteral lit:
-                return Compile(lit, literals, tail);
+                return CompileLit(lit, literals, tail);
             case ParsedVariable.TopLevel top:
-                return Compile(top, ctEnv, bindings, tail);
+                return CompileTop(top, ctEnv, bindings, tail);
             case ParsedVariable.Lexical lexVar:
-                return Compile(lexVar, ctEnv, bindings, tail);
+                return CompileLexVar(lexVar, ctEnv, scopeLevel, tail);
             case ParsedIf ifExpr:
-                return Compile(ifExpr, ctEnv, literals, bindings, startLine, tail);
+                return CompileIfExpr(ifExpr, ctEnv, literals, bindings, scopeLevel, startLine, tail);
             case ParsedLambda le:
-                return Compile(le, ctEnv, literals, bindings, 0, tail);
+                return CompileLambdaExpr(le, ctEnv, literals,  scopeLevel, 0, tail);
             case ParsedList app:
-                return Compile(app, ctEnv, literals, bindings, startLine, tail);
+                return CompileApplication(app, ctEnv, literals, bindings, scopeLevel, startLine, tail);
             case ParsedDefine define:
-                return Compile(define, ctEnv, literals, bindings, startLine, tail);
+                return CompileDefinition(define, ctEnv, literals, bindings, scopeLevel, startLine, tail);
+            case ParsedSet set:
+                return CompileSet(set, ctEnv, literals, bindings, scopeLevel, startLine, tail);
             default:
                 throw new NotImplementedException($"{x.Print()} of type {x.GetType()} is not supported yet");
         }
     }
 
-    private ulong[] Compile(
+    private ulong[] CompileSet(
+        ParsedSet setForm,
+        CompileTimeEnvironment ctEnv,
+        Sys.List<Jig.Form> literals,
+        Sys.List<Binding> bindings,
+        int scopeLevel,
+        int startLine = 0,
+        bool tail = false)
+    {
+        Sys.List<ulong> result = new();
+        if (setForm.Variable is ParsedVariable.TopLevel topVar) {
+            var bing = ctEnv.LookUpTopLevel(topVar.Identifier.Symbol);
+            if (!bindings.Contains(bing)) {
+                bindings.Add(bing);
+            }
+            ulong code = (ulong)OpCode.Store << 56;
+            int index = bindings.IndexOf(bing);
+            code += (ulong)index;
+            result.Add(code);
+        } else {
+            var lexVar = (ParsedVariable.Lexical)setForm.Variable;
+            ulong code = (ulong)OpCode.SetLex << 56;
+            int depth = scopeLevel - lexVar.Binding.ScopeLevel;
+            code += ((ulong)depth) << 32; // TODO: this could be too big I suppose.
+            code += (ulong)lexVar.Binding.VarIndex;
+            result.Add(code);
+        }
+
+        // We have to compile the lambda function after the variable,
+        // because there might be a recursive call to a toplevel
+        result.InsertRange(0, Compile(setForm.Value, ctEnv, literals, bindings, scopeLevel, startLine, false));
+        if (tail) {
+            result.Add((ulong)OpCode.PopContinuation << 56);
+        }
+        return result.ToArray();
+    }
+    
+    private ulong[] CompileDefinition(
         ParsedDefine defForm,
         CompileTimeEnvironment ctEnv,
         Sys.List<Jig.Form> literals,
         Sys.List<Binding> bindings,
+        int scopeLevel,
         int startLine = 0,
         bool tail = false)
     {
@@ -70,18 +117,15 @@ public class Compiler {
             result.Add(code);
         } else {
             var lexVar = (ParsedVariable.Lexical)defForm.Variable;  
-            var binding = new VM.Binding(lexVar.Binding);
-            bindings.Add(binding);
-            ctEnv.LexVars[lexVar.Binding.Index] = binding;
-            ulong code = (ulong)OpCode.Store << 56;
-            int index = bindings.IndexOf(binding);
+            ulong code = (ulong)OpCode.DefLocal << 56;
+            int index = lexVar.Binding.VarIndex;
             code += (ulong)index;
             result.Add(code);
         }
 
         // We have to compile the lambda function after the variable,
         // because there might be a recursive call to a toplevel
-        result.InsertRange(0, Compile(defForm.Value, ctEnv, literals, bindings, startLine, false));
+        result.InsertRange(0, Compile(defForm.Value, ctEnv, literals, bindings, scopeLevel, startLine, false));
         if (tail) {
             result.Add((ulong)OpCode.PopContinuation << 56);
         }
@@ -90,26 +134,27 @@ public class Compiler {
 
     }
 
-    private ulong[] Compile(
+    private ulong[] CompileIfExpr(
         ParsedIf ifExpr,
         CompileTimeEnvironment ctEnv,
         Sys.List<Form> literals,
         Sys.List<Binding> bindings,
+        int scopeLevel,
         int startLine,
         bool tail)
     {
         int lineNo = startLine;
-        var condCodes = Compile(ifExpr.Condition, ctEnv, literals, bindings, startLine, false);
+        var condCodes = Compile(ifExpr.Condition, ctEnv, literals, bindings, scopeLevel, startLine, false);
         lineNo += condCodes.Length;
         lineNo++; // to account for JumpIfFalse instruction
-        var thenCodes = Compile(ifExpr.Then, ctEnv, literals, bindings, lineNo, tail); 
+        var thenCodes = Compile(ifExpr.Then, ctEnv, literals, bindings, scopeLevel, lineNo, tail); 
         lineNo += thenCodes.Length;
         lineNo++; // for unconditional jump to end
         // this is the start of the else code so JumpIfFalse should go here
         ulong jumpIfFalse = ((ulong)OpCode.JumpIfFalse << 56) + (ulong)lineNo;
         ulong[] elseCodes = [];
         if (ifExpr.Else is not null) {
-            elseCodes = Compile(ifExpr.Else, ctEnv, literals, bindings, lineNo, tail);
+            elseCodes = Compile(ifExpr.Else, ctEnv, literals, bindings, scopeLevel, lineNo, tail);
         } else {
             literals.Add(Form.Void);
             int index = literals.IndexOf(Form.Void);
@@ -128,6 +173,7 @@ public class Compiler {
         CompileTimeEnvironment ctEnv,
         Sys.List<Jig.Form> literals,
         Sys.List<Binding> bindings,
+        int scopeLevel,
         int startLine = 0,
         bool tail = false)
     {
@@ -136,14 +182,14 @@ public class Compiler {
 
         int lineNo = startLine;
         foreach (var x in sequence.Take(sequence.Length - 1)) {
-            instructions = instructions.Concat(Compile(x, ctEnv, literals, bindings, lineNo, false)).ToList();
+            instructions = instructions.Concat(Compile(x, ctEnv, literals, bindings, scopeLevel, lineNo, false)).ToList();
             lineNo += instructions.Count();
         }
-        instructions = instructions.Concat(Compile(sequence[sequence.Length - 1], ctEnv, literals, bindings, lineNo, true)).ToList();
-        return new Template(instructions.ToArray(), bindings.ToArray(), literals.ToArray());
+        instructions = instructions.Concat(Compile(sequence[sequence.Length - 1], ctEnv, literals, bindings, scopeLevel, lineNo, true)).ToList();
+        return new Template(0, instructions.ToArray(), bindings.ToArray(), literals.ToArray(), 0, false);
     }
 
-    public ulong[] Compile(
+    public ulong[] CompileLit(
         ParsedLiteral literal,
         Sys.List<Jig.Form> literals,
         bool tail = false)
@@ -161,12 +207,13 @@ public class Compiler {
         return [code];
     }
 
-    public ulong[] Compile(
+    public ulong[] CompileTop(
         ParsedVariable.TopLevel var,
         CompileTimeEnvironment ctEnv,
         Sys.List<Binding> bindings,
         bool tail = false)
     {
+        
         Form.Symbol sym = var.Identifier.Symbol;
         if (!bindings.Any(b => Equals(b.Symbol, sym))) {
             bindings.Add(ctEnv.LookUpTopLevel(sym));
@@ -181,35 +228,33 @@ public class Compiler {
 
     }
 
-    public ulong[] Compile(
+    public ulong[] CompileLexVar(
         ParsedVariable.Lexical var,
-        CompileTimeEnvironment ctEnv,
-        Sys.List<Binding> bindings,
+        CompileTimeEnvironment ctEnv, // TODO: should scope level be part of ct-env?
+        int scopeLevel,
         bool tail = false) {
 
         // TODO: we already found the bindings when we parsed/expanded
-        ulong code = (ulong)OpCode.Load << 56;
-        Debug.Assert(ctEnv.LexVars[var.Binding.Index] is not null);
-        var binding = ctEnv.LexVars[var.Binding.Index];
-        if (!bindings.Contains((Binding)binding)) {
-            bindings.Add((Binding)binding);
-        }
-        code += (ulong)bindings.IndexOf((Binding)binding);
+        ulong code = (ulong)OpCode.Local << 56;
+        int depth = scopeLevel - var.Binding.ScopeLevel;
+        code += ((ulong)depth) << 32; // TODO: this could be too big I suppose.
+        
+        code += (ulong)var.Binding.VarIndex;
         if (tail) {
             return [code, (ulong)OpCode.PopContinuation << 56];
         }
         return [code];
     }
 
-    public ulong[] Compile(
+    public ulong[] CompileLambdaExpr(
         ParsedLambda lambdaExpr,
         CompileTimeEnvironment ctEnv,
         Sys.List<Form> literals,
-        Sys.List<Binding> bindings,
+        int scopeLevel,
         int startLine = 0,
         bool tail = false) {
 
-        Template template = CompileLambdaTemplate(lambdaExpr, ctEnv);
+        Template template = CompileLambdaTemplate(lambdaExpr, ctEnv, scopeLevel);
         literals.Add(template);
         int templateIndex = literals.IndexOf(template);
         Sys.List<ulong> result = [
@@ -228,25 +273,33 @@ public class Compiler {
 
     private Template CompileLambdaTemplate(
         ParsedLambda lambdaExpr,
-        CompileTimeEnvironment ctEnv)
+        CompileTimeEnvironment ctEnv,
+        int scopeLevel)
     {
         var bindings = new Sys.List<VM.Binding>();
         Sys.List<ulong> codes = [];
         foreach (ParsedVariable.Lexical var in lambdaExpr.Parameters.Required) {
+            // TODO: get rid of all of this 
             var binding = new VM.Binding(var.Binding);
             bindings.Add(binding);
+            if (var.Binding.Index >= ctEnv.LexVars.Length) {
+                Console.WriteLine($"in CompileLambdaTemplate: compiling parameter: {var.Identifier.Symbol.Print()} in {Syntax.ToDatum(lambdaExpr).Print()}");
+                Console.WriteLine($"\tLexVars has length {ctEnv.LexVars.Length} but index is {var.Binding.Index}");
+            }
             ctEnv.LexVars[var.Binding.Index] = binding;
-            var bindCode = (ulong)OpCode.Bind << 56;
-            bindCode += (ulong)bindings.IndexOf(binding);
-            codes.Add(bindCode);
         }
+        
+        // TODO: should apply be responsible for this?
+        var bindCode = (ulong)OpCode.Bind << 56;
+        bindCode += (ulong)lambdaExpr.Parameters.Required.Length;
+        codes.Add(bindCode);
 
         if (lambdaExpr.Parameters.HasRest) {
             var binding = new VM.Binding(lambdaExpr.Parameters.Rest.Binding);
             bindings.Add(binding);
             ctEnv.LexVars[lambdaExpr.Parameters.Rest.Binding.Index] = binding;
             var bindRest = (ulong)OpCode.BindRest << 56;
-            bindRest += (ulong)bindings.IndexOf(binding);
+            bindRest += (ulong)lambdaExpr.Parameters.Required.Length;
             codes.Add(bindRest);
         }
 
@@ -256,20 +309,22 @@ public class Compiler {
             ctEnv,
             new Sys.List<Form>(),
             bindings,
+            ++scopeLevel,
             codes.Count());
 
-        var result = new Template(codes.Concat(body.Code).ToArray(), body.Bindings, body.Slots);
-        Console.WriteLine($"***** {lambdaExpr.Print()} compiled to: *****");
-        Array.ForEach(Dissassembler.Disassemble(result), Console.WriteLine);
+        var result = new Template(lambdaExpr.ScopeVarsCount, codes.Concat(body.Code).ToArray(), body.Bindings, body.Slots, lambdaExpr.Parameters.Required.Length, lambdaExpr.Parameters.HasRest);
+        // Console.WriteLine($"***** {Syntax.ToDatum(lambdaExpr).Print()} compiled to: *****");
+        // Array.ForEach(Dissassembler.Disassemble(result), Console.WriteLine);
         return result;
         
     }
 
-    public ulong[] Compile(
+    public ulong[] CompileApplication(
         ParsedList app,
         CompileTimeEnvironment ctEnv,
         Sys.List<Form> literals,
         Sys.List<Binding> bindings,
+        int scopeLevel,
         int startLine = 0,
         bool tail = false)
     {
@@ -280,13 +335,13 @@ public class Compiler {
         int lineNo = startLine;
         // eval and push for all args to the call
         for (int i = xs.Length - 1; i > 0; i--) {
-            var codes = Compile(xs[i], ctEnv, literals, bindings, tail ? lineNo : lineNo + 1, false).ToList();
+            var codes = Compile(xs[i], ctEnv, literals, bindings, scopeLevel, tail ? lineNo : lineNo + 1, false).ToList();
             codes.Add((ulong)OpCode.Push << 56);
             instructions = instructions.Concat(codes).ToList();
             lineNo += codes.Count();
         }
 
-        var codeForProc = Compile(xs[0], ctEnv, literals, bindings, lineNo, false);
+        var codeForProc = Compile(xs[0], ctEnv, literals, bindings, scopeLevel, lineNo, false);
         // don't push it. Call assumes the procedure is in VAL
         instructions.AddRange(codeForProc);
         lineNo += codeForProc.Length;

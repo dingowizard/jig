@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using Jig.IO;
 
@@ -313,7 +314,7 @@ public class TokenStream {
     private Token HashT(StringBuilder sb, SrcLoc startLoc)
     {
         if (AtTokenEnd()) {
-            return new Token.Bool(sb.ToString(), startLoc.Source, startLoc.Line, startLoc.Column, startLoc.Position, Port.Position);
+            return new Token.Bool(sb.ToString(), startLoc.Source, startLoc.Line, startLoc.Column, startLoc.Position, Port.Position - startLoc.Position);
         }
         char peeked = (char)Port.Peek();
         switch (peeked) {
@@ -447,7 +448,12 @@ public class TokenStream {
     private bool AtTokenEnd() {
         if (Port.Peek() == -1) return true; // EOF
         char peeked = (char)Port.Peek();
-        if (System.Char.IsWhiteSpace(peeked)) return true;
+        if (System.Char.IsWhiteSpace(peeked)) {
+            // while (System.Char.IsWhiteSpace((char)Port.Peek())) {
+            //     Port.Read();
+            // }
+            return true;
+        }
         switch (peeked) {
             case '(': return true;
             case ')': return true;

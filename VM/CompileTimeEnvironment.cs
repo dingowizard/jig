@@ -24,7 +24,7 @@ public class CompileTimeEnvironment {
         if (_toplevels.TryGetValue(identifierSymbol, out var value)) {
             return value;
         }
-        var binding = new Binding(identifierSymbol);
+        var binding = new Binding(identifierSymbol, true);
         _toplevels.Add(identifierSymbol, binding);
         return binding;
         

@@ -9,7 +9,13 @@ public class Procedure : Jig.Form {
     public Procedure(Environment env, Template template) {
         Template = template;
         Environment = env;
+        Required = template.RequiredParameterCount;
+        HasRest = template.HasRestParameter;
     }
+    
+    public int Required { get; }
+    
+    public bool HasRest { get; }
 
     public override string Print() {
         return "#<procedure>";

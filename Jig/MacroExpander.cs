@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
 
 namespace Jig;
 
@@ -9,12 +10,11 @@ public class MacroExpander {
 
     public MacroExpander() {
 
-        Binding.Reset();
         _bindings = new Dictionary<Syntax.Identifier, Binding>();
     }
 
-    public Binding[] Bindings => _bindings.Values.ToArray();
 
+    public Binding[] Bindings => _bindings.Values.ToArray();
 
     public void AddBinding(Syntax.Identifier id, Binding binding) {
         if (!_bindings.TryAdd(id, binding)) {
@@ -118,7 +118,7 @@ public class MacroExpander {
     {
         Syntax.Identifier id = stxList.ElementAt<Syntax>(1) as Syntax.Identifier ?? throw new Exception() ;
         // Console.WriteLine($"define-syntax: {id}");
-        id.Symbol.Binding = new Binding(id.Symbol);
+        id.Symbol.Binding = new Binding(id.Symbol, ee.ScopeLevel, ee.VarIndex++);
         _bindings.Add(id, id.Symbol.Binding);
         // TODO: use ParsedLambda.TryParse? (for vars in set! and define as well?)
         ParsedLambda expandedLambdaExpr = Expand(stxList.ElementAt<Syntax>(2), ee) as ParsedLambda ?? throw new Exception($"define-syntax: expected 2nd argument to be a transformer. Got {stxList.ElementAt<Syntax>(2)}");
@@ -185,6 +185,18 @@ public class ExpansionEnvironment {
     public ExpansionEnvironment(Dictionary<Form.Symbol, Transformer> dict) {
         _dict = dict;
     }
+
+    private ExpansionEnvironment(Dictionary<Form.Symbol, Transformer> dict, int scopeLevel) {
+        ScopeLevel = scopeLevel;
+        _dict = dict;
+    }
+    public ExpansionEnvironment Extend() {
+        return new ExpansionEnvironment(this._dict, ScopeLevel + 1);
+    }
+
+    public int ScopeLevel { get; }
+
+    public int VarIndex = 0;
 
     private static Thunk? match_macro(Delegate k, Form arg) {
         Syntax stx = arg as Syntax ?? throw new Exception($"match: expected syntax, got {arg.GetType()}");
@@ -604,18 +616,20 @@ public class ExpansionEnvironment {
 }
 
 public class Binding {
-    private static int count;
 
-    public Binding(Form.Symbol sym) {
-        Index = count++;
+    public Binding(Form.Symbol sym, int scopeLevel, int varIndex) {
+        // TODO: remove Index?
         Symbol = sym;
+        ScopeLevel = scopeLevel;
+        VarIndex = varIndex;
     }
-    
+
+    public int VarIndex { get; }
+
+    public int ScopeLevel { get;}
+
     public Form.Symbol Symbol { get; }
 
-    public static void Reset() {
-        count = 0;
-    }
 
     public int Index { get; }
     //TODO: why can't scope be like this? (scope needs a member to work. maybe because it has to define gethashcode and equals?)

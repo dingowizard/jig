@@ -49,7 +49,7 @@ public class Integer(int i) : Number<int>(i) {
         {
             Integer i2 => new Integer(i1.Value + i2.Value),
             Float d2 => new Float(i1.Value + d2.Value),
-            _ => throw new NotImplementedException(),
+            _ => throw new NotImplementedException($"n was a {(n is null ? "null" : n.GetType().Name)}"),
         };
     }
 
