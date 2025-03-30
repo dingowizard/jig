@@ -4,6 +4,11 @@ namespace VM;
 
 public class Machine {
 
+    public Machine(uint stacksize = 512) {
+        StackSize = stacksize;
+        Stack = new Form[stacksize];
+    }
+
     internal ulong IR;
     
     internal ulong PC;
@@ -49,38 +54,48 @@ public class Machine {
 
     internal Template Template;
 
-    internal List EvalStack = Jig.List.Null;
+    internal Form[] Stack;
+    
+    private uint StackSize;
+
+    private uint SP = 0;
+    private uint FP = 0;
 
     internal Continuation CONT;
 
     internal Environment ENVT;
 
     private Form Pop() {
-        if (EvalStack is not Jig.List.NonEmpty proper) throw new Exception("stack is empty");
-        Form result = (Form)proper.Car;
-        EvalStack = proper.Rest;
+        if (SP == 0) throw new Exception("stack is empty");
+        SP--;
+        Form result = Stack[SP];
         return result;
     }
 
     private void Push(Form val) {
-        EvalStack = Jig.List.Cons(val, EvalStack);
+        if (SP == StackSize) {
+            throw new Exception("stack is full");
+        }
+        Stack[SP] = val;
+        SP++;
     }
 
     private void ClearStack() {
-        EvalStack = Jig.List.Null;
+        SP = 0;
+        FP = 0;
     }
 
     private void Call() {
         
         if (VAL is Procedure proc) {
             if (proc.HasRest) {
-                if (EvalStack.Count() < proc.Required) {
+                if (SP - FP < proc.Required) {
                     throw new Exception(
-                        $"wrong num args: expected at least {proc.Required}, but got only {EvalStack.Count()}");
+                        $"wrong num args: expected at least {proc.Required}, but got only {SP - FP}");
                 }
             } else {
-                if (EvalStack.Count() != proc.Required) {
-                    throw new Exception($"wrong num args: expected {proc.Required}, but got {EvalStack.Count()}");
+                if (SP - FP != proc.Required) {
+                    throw new Exception($"wrong num args: expected {proc.Required}, but got {SP - FP}");
                 }  
             }
             if (proc.Environment is not null) {
@@ -96,12 +111,13 @@ public class Machine {
             Template = cont.Template;
             PC = cont.ReturnAddress;
             ENVT = cont.Environment;
-            if (EvalStack is Jig.List.NonEmpty properList) {
-                if (properList.Count() != 1)
+            if (SP - FP > 0) {
+                if (SP - FP != 1)
                     throw new Exception("continuations that take multiple values not currently supported");
-                VAL = (Form)properList.First;
+                // TODO: ???
+                VAL = Pop();
             }
-            EvalStack = cont.EvalStack;
+            FP = cont.FP;
             return;
         }
         throw new Exception($"VM: in Call @ {PC}: expected procedure or continuation, got {VAL.Print()}");
@@ -142,11 +158,12 @@ public class Machine {
                         Template,
                         IR & 0x00FFFFFFFFFFFFFF,
                         ENVT,
-                        EvalStack,
+                        SP,
+                        FP,
                         CONT,
                         1,
                         false);
-                    EvalStack = Jig.List.Null;
+                    FP = SP;
                     continue;
                 case OpCode.PopContinuation:
                     if (CONT is PartialContinuation pc) {
@@ -165,7 +182,6 @@ public class Machine {
                         }
                         PC = pc.ReturnAddress;
                         if (pc is PartialContinuationForCallWithValues) {
-                            Debug.Assert(EvalStack is IEmptyList);
                             int n = RC - 1;
                             if (n >= RN) {
                                 Stack<Form> stack = new Stack<Form>(RR);
@@ -179,7 +195,7 @@ public class Machine {
                             }
                             RC = 0;
                         } else {
-                            EvalStack = pc.EvalStack;
+                            FP = pc.FP;
                         }
 
                         if (pc is PartialContinuationForCallWithValues) {
@@ -202,10 +218,11 @@ public class Machine {
                     if (VAL is Primitive primitiveFn) {
                         // primitives don't have a return instruction, thus this ugliness:
                         Delegate del = primitiveFn.Delegate;
-                        VAL = (Form)del.DynamicInvoke(EvalStack.Cast<object>().ToArray());
+                        // TODO:
+                        // VAL = (Form)del.DynamicInvoke(EvalStack.Cast<object>().ToArray());
                         if (CONT is PartialContinuation pct) {
                             PC = pct.ReturnAddress;
-                            EvalStack = pct.EvalStack;
+                            FP = pct.FP;
                             ENVT = pct.Environment;
                             Template = pct.Template;
                             CONT = pct.Continuation;
@@ -216,7 +233,7 @@ public class Machine {
                     Call();
                     continue;
                 case OpCode.Values:
-                    while (EvalStack is not IEmptyList) {
+                    while (FP <= SP) {
                         if (RC < RN) {
                             R[RC++] = Pop();
 
@@ -233,7 +250,8 @@ public class Machine {
                         continuationProc.Template,
                         0,
                         continuationProc.Environment,
-                        EvalStack,
+                        SP,
+                        FP,
                         CONT,
                         continuationProc.Required,
                         continuationProc.HasRest);
@@ -254,7 +272,8 @@ public class Machine {
                 case OpCode.BindRest:
                     // bind zero should always be called first
                     int restIndex = (int)(IR & 0x00FFFFFFFFFFFFFF);
-                    ENVT.BindParameter(restIndex, EvalStack);
+                    // TODO:
+                    // ENVT.BindParameter(restIndex, EvalStack);
                     ClearStack();
                     continue;
                 case OpCode.Load:
@@ -297,14 +316,14 @@ public class Machine {
                     continue;
                 case OpCode.Sum:
                     VAL = Integer.Zero;
-                    while (EvalStack is not IEmptyList) {
+                    while (FP <= SP) {
                         VAL = (Number)VAL + (Number)Pop();
                     }
                     continue;
                 case OpCode.Product:
                     // Console.WriteLine($"* applied with args {EvalStack.Print()}");
                     VAL = Integer.One;
-                    while (EvalStack is not IEmptyList) {
+                    while (FP <= SP) {
                         Number p1 = (Number)Pop();
                         // Console.WriteLine($"multiplying {VAL} and {p1} ");
                         VAL = (Number)VAL * p1 ;
