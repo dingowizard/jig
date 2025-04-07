@@ -14,40 +14,12 @@ public class Machine {
     internal ulong PC;
 
 
-    public Form VAL {
-        get {
-            RC = 0;
-            return R[0];
-        }
-        internal set {
-            R[0] = value;
-            RC = 1;
-        }
-    }
-
-    internal const int RN = 8;
-    
-    public Form[] R = new Form[RN];
-
-    public int RC = 0;
-    
-    public Queue<Form> RR = new();
+    public Form VAL = Form.Void;
 
     public void DoResults(Action<Form> action) {
-        for (int i = 0; i < RC; ++i) {
-            if (i < RN) {
-                if (R[i] is not Form.VoidType) {
-                    action(R[i]);
-                }
-            } else {
-                var f = RR.Dequeue();
-                if (f is not Form.VoidType) {
-                    action(f);
-                }
-            }
+        while (SP > FP) {
+            action(Pop());
         }
-
-        RC = 0;
 
     }
 
@@ -169,44 +141,45 @@ public class Machine {
                     if (CONT is PartialContinuation pc) {
                         // check that continuation we are returning to expects the number of values
                         if (pc.Continuation.HasOptional) {
-                            if (RC < pc.Continuation.Required) {
+                            if (SP - FP < pc.Continuation.Required) {
                                 throw new Exception(
-                                    $"continuation expected at least {pc.Continuation.Required} values, but received {RC}");
+                                    $"continuation expected at least {pc.Continuation.Required} values, but received {SP - FP}");
                             }
                         } else {
-                            if (RC != pc.Continuation.Required) {
+                            if (SP - FP != pc.Continuation.Required) {
                                 throw new Exception(
-                                    $"continuation expected {pc.Continuation.Required} values, but received {RC}");
+                                    $"continuation expected {pc.Continuation.Required} values, but received {SP - FP}");
                             
                             }
                         }
                         PC = pc.ReturnAddress;
-                        if (pc is PartialContinuationForCallWithValues) {
-                            int n = RC - 1;
-                            if (n >= RN) {
-                                Stack<Form> stack = new Stack<Form>(RR);
-                                for (; n >= RN; n--) {
-                                    var fromQ = stack.Pop();
-                                    Push(fromQ);
-                                }
-                            } 
-                            for (; n >= 0; n--) {
-                                Push(R[n]);
-                            }
-                            RC = 0;
-                        } else {
+                        // if (pc is PartialContinuationForCallWithValues) {
+                        //     uint n = SP - FP - 1;
+                        //     if (n >= RN) {
+                        //         Stack<Form> stack = new Stack<Form>(RR);
+                        //         for (; n >= RN; n--) {
+                        //             var fromQ = stack.Pop();
+                        //             Push(fromQ);
+                        //         }
+                        //     } 
+                        //     for (; n >= 0; n--) {
+                        //         Push(R[n]);
+                        //     }
+                        //     RC = 0;
+                        // }
+                        // else {
                             FP = pc.FP;
-                        }
+                        // }
 
-                        if (pc is PartialContinuationForCallWithValues) {
-                            if (pc.Environment is not null) {
-                                // TODO: again why?
-                                // TODO: we are reproducing code from Call() :(
-                                ENVT = pc.Environment.Extend(pc.Template.NumVarsForScope);
-                            }
-                        } else {
+                        // if (pc is PartialContinuationForCallWithValues) {
+                        //     if (pc.Environment is not null) {
+                        //         // TODO: again why?
+                        //         // TODO: we are reproducing code from Call() :(
+                        //         ENVT = pc.Environment.Extend(pc.Template.NumVarsForScope);
+                        //     }
+                        // } else {
                             ENVT = pc.Environment;
-                        }
+                        // }
                         Template = pc.Template;
                         CONT = pc.Continuation;
                         // TODO: how does RC get set back to zero?
@@ -233,15 +206,15 @@ public class Machine {
                     Call();
                     continue;
                 case OpCode.Values:
-                    while (FP <= SP) {
-                        if (RC < RN) {
-                            R[RC++] = Pop();
-
-                        } else {
-                            RR.Enqueue(Pop());
-                            RC++;
-                        }
-                    }
+                    // while (FP <= SP) {
+                    //     if (RC < RN) {
+                    //         R[RC++] = Pop();
+                    //
+                    //     } else {
+                    //         RR.Enqueue(Pop());
+                    //         RC++;
+                    //     }
+                    // }
                     continue;
                 case OpCode.CallWValues:
                     var producer = (Procedure)Pop();

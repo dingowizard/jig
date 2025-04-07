@@ -191,12 +191,16 @@ public class Compiler {
            literals.Add(constExpr); 
         }
         int index = literals.IndexOf(constExpr);
-        ulong code = (ulong)OpCode.Lit << 56;
-        code += (ulong)index;
+        ulong lit = (ulong)OpCode.Lit << 56;
+        lit += (ulong)index;
         if (context == Context.Tail) {
-            return [code, (ulong)OpCode.PopContinuation << 56];
+            return [lit, (ulong)OpCode.Push << 56, (ulong)OpCode.PopContinuation << 56];
         }
-        return [code];
+
+        if (context == Context.Argument) {
+            return [lit, (ulong)OpCode.Push << 56];
+        }
+        return [lit];
     }
 
     public ulong[] CompileTop(
@@ -304,8 +308,8 @@ public class Compiler {
             codes.Count());
 
         var result = new Template(lambdaExpr.ScopeVarsCount, codes.Concat(body.Code).ToArray(), body.Bindings, body.Slots, lambdaExpr.Parameters.Required.Length, lambdaExpr.Parameters.HasRest);
-        // Console.WriteLine($"***** {Syntax.ToDatum(lambdaExpr).Print()} compiled to: *****");
-        // Array.ForEach(Dissassembler.Disassemble(result), Console.WriteLine);
+        Console.WriteLine($"***** {Syntax.ToDatum(lambdaExpr).Print()} compiled to: *****");
+        Array.ForEach(Dissassembler.Disassemble(result), Console.WriteLine);
         return result;
         
     }
