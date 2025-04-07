@@ -273,8 +273,11 @@ public class Machine {
                     // bind zero should always be called first
                     int restIndex = (int)(IR & 0x00FFFFFFFFFFFFFF);
                     // TODO:
-                    // ENVT.BindParameter(restIndex, EvalStack);
-                    ClearStack();
+                    var xs = new System.Collections.Generic.List<Form>();
+                    while (SP != FP) {
+                        xs.Add(Pop());
+                    }
+                    ENVT.BindParameter(restIndex, xs.ToJigList());
                     continue;
                 case OpCode.Load:
                     VAL = Template.Bindings[IR & 0x00FFFFFFFFFFFFFF].Slot;
@@ -316,16 +319,14 @@ public class Machine {
                     continue;
                 case OpCode.Sum:
                     VAL = Integer.Zero;
-                    while (FP <= SP) {
+                    while (FP < SP) {
                         VAL = (Number)VAL + (Number)Pop();
                     }
                     continue;
                 case OpCode.Product:
-                    // Console.WriteLine($"* applied with args {EvalStack.Print()}");
                     VAL = Integer.One;
-                    while (FP <= SP) {
+                    while (FP < SP) {
                         Number p1 = (Number)Pop();
-                        // Console.WriteLine($"multiplying {VAL} and {p1} ");
                         VAL = (Number)VAL * p1 ;
                     }
                     continue;
