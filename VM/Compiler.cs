@@ -218,8 +218,13 @@ public class Compiler {
         ulong code = (ulong)OpCode.Load << 56;
         code += (ulong)index;
         if (context == Context.Tail) {
-            return [code, (ulong)OpCode.PopContinuation << 56];
+            return [code, (ulong)OpCode.Push << 56, (ulong)OpCode.PopContinuation << 56];
         }
+
+        if (context == Context.Argument) {
+            return [code, (ulong)OpCode.Push << 56];
+        }
+        // TODO: maybe still emit even in the following case, since there should be a runtime error if lookup fails
         return [code];
 
     }
@@ -229,6 +234,8 @@ public class Compiler {
         Context context,
         int scopeLevel
     ) {
+        
+        
 
         // TODO: we already found the bindings when we parsed/expanded
         ulong code = (ulong)OpCode.Local << 56;
@@ -237,8 +244,13 @@ public class Compiler {
         
         code += (ulong)var.Binding.VarIndex;
         if (context == Context.Tail) {
-            return [code, (ulong)OpCode.PopContinuation << 56];
+            return [code, (ulong)OpCode.Push << 56, (ulong)OpCode.PopContinuation << 56];
         }
+
+        if (context == Context.Argument) {
+            return [code, (ulong)OpCode.Push << 56];
+        }
+        // TODO: probably don't emit anything if in a non-tail body
         return [code];
     }
 
@@ -259,9 +271,15 @@ public class Compiler {
             (ulong)OpCode.Push << 56, // PUSH
             (ulong)OpCode.Lambda << 56, // CLOS
         ];
+        
         if (context == Context.Tail) {
-            return result.Append((ulong)OpCode.PopContinuation << 56).ToArray();
+            return [.. result, (ulong)OpCode.Push << 56, (ulong)OpCode.PopContinuation << 56];
         }
+
+        if (context == Context.Argument) {
+            return [.. result, (ulong)OpCode.Push << 56];
+        }
+        // TODO: probably don't emit anything if in a non-tail body
         return result.ToArray();
 
     }
@@ -273,16 +291,16 @@ public class Compiler {
     {
         var bindings = new Sys.List<VM.Binding>();
         Sys.List<ulong> codes = [];
-        foreach (ParsedVariable.Lexical var in lambdaExpr.Parameters.Required) {
-            // TODO: get rid of all of this 
-            var binding = new VM.Binding(var.Binding);
-            bindings.Add(binding);
-            if (var.Binding.Index >= ctEnv.LexVars.Length) {
-                Console.WriteLine($"in CompileLambdaTemplate: compiling parameter: {var.Identifier.Symbol.Print()} in {Syntax.ToDatum(lambdaExpr).Print()}");
-                Console.WriteLine($"\tLexVars has length {ctEnv.LexVars.Length} but index is {var.Binding.Index}");
-            }
-            ctEnv.LexVars[var.Binding.Index] = binding;
-        }
+        // foreach (ParsedVariable.Lexical var in lambdaExpr.Parameters.Required) {
+        //     // TODO: get rid of all of this 
+        //     var binding = new VM.Binding(var.Binding);
+        //     bindings.Add(binding);
+        //     if (var.Binding.Index >= ctEnv.LexVars.Length) {
+        //         Console.WriteLine($"in CompileLambdaTemplate: compiling parameter: {var.Identifier.Symbol.Print()} in {Syntax.ToDatum(lambdaExpr).Print()}");
+        //         Console.WriteLine($"\tLexVars has length {ctEnv.LexVars.Length} but index is {var.Binding.Index}");
+        //     }
+        //     ctEnv.LexVars[var.Binding.Index] = binding;
+        // }
         
         // TODO: should apply be responsible for this?
         var bindCode = (ulong)OpCode.Bind << 56;
@@ -308,8 +326,8 @@ public class Compiler {
             codes.Count());
 
         var result = new Template(lambdaExpr.ScopeVarsCount, codes.Concat(body.Code).ToArray(), body.Bindings, body.Slots, lambdaExpr.Parameters.Required.Length, lambdaExpr.Parameters.HasRest);
-        Console.WriteLine($"***** {Syntax.ToDatum(lambdaExpr).Print()} compiled to: *****");
-        Array.ForEach(Dissassembler.Disassemble(result), Console.WriteLine);
+        // Console.WriteLine($"***** {Syntax.ToDatum(lambdaExpr).Print()} compiled to: *****");
+        // Array.ForEach(Dissassembler.Disassemble(result), Console.WriteLine);
         return result;
         
     }
@@ -330,7 +348,7 @@ public class Compiler {
         // eval and push for all args to the call
         for (int i = xs.Length - 1; i > 0; i--) {
             var codes = Compile(xs[i], ctEnv, literals, bindings, Context.Argument, scopeLevel, context == Context.Tail ? lineNo : lineNo + 1).ToList();
-            codes.Add((ulong)OpCode.Push << 56);
+            // codes.Add((ulong)OpCode.Push << 56);
             instructions = instructions.Concat(codes).ToList();
             lineNo += codes.Count();
         }
@@ -346,7 +364,7 @@ public class Compiler {
         
         if (context != Context.Tail) {
             // the call is not a context call, so we do want to save a continuation before we start
-            var pushContInstruction = (ulong)OpCode.PushContinuation << 56;
+            var pushContInstruction = (ulong)OpCode.PushContinuationForArg << 56;
             pushContInstruction += (ulong)lineNo + 1;
             instructions.Insert(0, pushContInstruction);
         }

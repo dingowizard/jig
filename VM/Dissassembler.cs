@@ -43,7 +43,7 @@ public static class Dissassembler {
                 return $"{lineNo:D3}\tCALL";
             case OpCode.Lit:
                 return $"{lineNo:D3}\tLIT\t{operand:D3} ; {literals[operand].Print()}";
-            case OpCode.PushContinuation:
+            case OpCode.PushContinuationForArg:
                 return $"{lineNo:D3}\tSAVE\t{operand:D3}";
             case OpCode.PopContinuation:
                 return $"{lineNo:D3}\tRET";

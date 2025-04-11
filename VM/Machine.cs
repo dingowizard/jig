@@ -41,6 +41,7 @@ public class Machine {
         if (SP == 0) throw new Exception("stack is empty");
         SP--;
         Form result = Stack[SP];
+        // Console.WriteLine($"popped {result.Print()}. stack = {StackToList().Print()}");
         return result;
     }
 
@@ -50,6 +51,7 @@ public class Machine {
         }
         Stack[SP] = val;
         SP++;
+        // Console.WriteLine($"pushed {val.Print()}. stack = {StackToList().Print()}");
     }
 
     private void ClearStack() {
@@ -95,6 +97,24 @@ public class Machine {
         throw new Exception($"VM: in Call @ {PC}: expected procedure or continuation, got {VAL.Print()}");
     }
 
+    private Jig.List StackToList() {
+        Jig.List result = List.Null;
+        for (int i = 0; i < SP; i++) {
+            result = Jig.List.Cons(Stack[i], result);
+        }
+        return result;
+    }
+
+    private Jig.List ConsumeStackFrameToList() {
+        Jig.List result = List.Null;
+        for (uint i = FP; i < SP; i++) {
+            result = Jig.List.Cons(Stack[i], result);
+        }
+
+        SP = FP;
+        // Console.WriteLine($"popped {result.Print()}. stack = {StackToList().Print()}");
+        return result;
+    }
     
 
     public void Run() {
@@ -116,7 +136,7 @@ public class Machine {
                 case OpCode.Lit:
                     VAL = Template.Slots[IR & 0x00FFFFFFFFFFFFFF];
                     continue;
-                case OpCode.PushContinuation:
+                case OpCode.PushContinuationForArg:
                     /* When a procedure performs a non-tail procedure call,
                      it packages its important state information up into a partial continuation;
                      this record saves the values of
@@ -188,11 +208,18 @@ public class Machine {
                     }
                     return;
                 case OpCode.Call:
+                    // TODO: VAL already has the procedure
+                    // seems silly to pop it into VAL again
+                    // but then we have to NOT push it onto stack
+                    
+                    // maybe by having another CompilationContext for operator
+                    VAL = Pop();
                     if (VAL is Primitive primitiveFn) {
                         // primitives don't have a return instruction, thus this ugliness:
                         Delegate del = primitiveFn.Delegate;
                         // TODO:
-                        // VAL = (Form)del.DynamicInvoke(EvalStack.Cast<object>().ToArray());
+                        VAL = (Form)del.DynamicInvoke(ConsumeStackFrameToList().Cast<object>().ToArray());
+                        Push(VAL);
                         if (CONT is PartialContinuation pct) {
                             PC = pct.ReturnAddress;
                             FP = pct.FP;
@@ -263,22 +290,20 @@ public class Machine {
                 case OpCode.SetLex:
                     int x = (int)(IR & 0x00000000FFFFFFFF);
                     int h = (int)(IR >> 32) & 0x00FFFFFF ;
-                    VAL = ENVT.SetLocal(h, x, VAL);
+                    VAL = ENVT.SetLocal(h, x, Pop());
                     continue;
                 case OpCode.Store:
-                    Template.Bindings[IR & 0x00FFFFFFFFFFFFFF].Slot = VAL;
-                    VAL = Form.Void;
+                    Template.Bindings[IR & 0x00FFFFFFFFFFFFFF].Slot = Pop();
                     continue;
                 case OpCode.DefLocal:
                     int i = (int)(IR & 0x00000000FFFFFFFF);
-                    ENVT.DefLocal(i, VAL);
-                    VAL = Form.Void;
+                    ENVT.DefLocal(i, Pop());
                     continue;
                 case OpCode.Jump:
                     PC = IR & 0x00FFFFFFFFFFFFFF;
                     continue;
                 case OpCode.JumpIfFalse:
-                    if (Bool.False.Equals(VAL)) {
+                    if (Bool.False.Equals(Pop())) {
                         PC = IR & 0x00FFFFFFFFFFFFFF;
                     }
                     continue;
@@ -295,6 +320,7 @@ public class Machine {
                     while (FP < SP) {
                         VAL = (Number)VAL + (Number)Pop();
                     }
+                    Push(VAL);
                     continue;
                 case OpCode.Product:
                     VAL = Integer.One;
@@ -302,6 +328,7 @@ public class Machine {
                         Number p1 = (Number)Pop();
                         VAL = (Number)VAL * p1 ;
                     }
+                    Push(VAL);
                     continue;
                 default: throw new Exception($"unhandled case {opCode} in Execute");
             }
