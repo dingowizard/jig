@@ -23,80 +23,80 @@
             (list? (cdr x))
             #f))))
 
-(define list-tail
-  (lambda (xs k)
-    (if (= k 0)
-        xs
-        (list-tail (cdr xs) (- k 1)))))
+;; (define list-tail
+;;   (lambda (xs k)
+;;     (if (= k 0)
+;;         xs
+;;         (list-tail (cdr xs) (- k 1)))))
 
-(define list-ref
-  (lambda (xs k)
-    (if (= k 0)
-        (car xs)
-        (list-ref (cdr xs) (- k 1)))))
+;; (define list-ref
+;;   (lambda (xs k)
+;;     (if (= k 0)
+;;         (car xs)
+;;         (list-ref (cdr xs) (- k 1)))))
 
 (define zero? (lambda (x) (= x 0)))
 
-(define positive? (lambda (n) (> n 0)))
+;; (define positive? (lambda (n) (> n 0)))
 
-(define negative? (lambda (n) (< n 0)))
+;; (define negative? (lambda (n) (< n 0)))
 
-(define abs (lambda (n) (if (< n 0) (- n) n)))
+;; (define abs (lambda (n) (if (< n 0) (- n) n)))
 
 (define not (lambda (x) (if x #f #t)))
 
-(define fold-left
-  (lambda (fn acc xs)
-    (if (null? xs)
-        acc
-        (fold-left fn (fn (car xs) acc) (cdr xs)))))
+;; (define fold-left
+;;   (lambda (fn acc xs)
+;;     (if (null? xs)
+;;         acc
+;;         (fold-left fn (fn (car xs) acc) (cdr xs)))))
 
-(define fold-right
-  (lambda (fn acc xs)
-    (if (null? xs)
-        acc
-        (fn (car xs) (fold-right fn acc (cdr xs))))))
+;; (define fold-right
+;;   (lambda (fn acc xs)
+;;     (if (null? xs)
+;;         acc
+;;         (fn (car xs) (fold-right fn acc (cdr xs))))))
 
-(define filter
-   (lambda (pred xs)
-      (if (null? xs)
-          '()
-          (if (pred (car xs))
-              (cons (car xs) (filter pred (cdr xs)))
-              (filter pred (cdr xs))))))
+;; (define filter
+;;    (lambda (pred xs)
+;;       (if (null? xs)
+;;           '()
+;;           (if (pred (car xs))
+;;               (cons (car xs) (filter pred (cdr xs)))
+;;               (filter pred (cdr xs))))))
 
-(define partition
-   (lambda (pred xs)
-      (define loop
-         (lambda (ts fs xs)
-            (if (null? xs)
-                (values (reverse ts) (reverse fs))
-                (if (pred (car xs))
-                    (loop (cons (car xs) ts) fs (cdr xs))
-                    (loop ts (cons (car xs) fs) (cdr xs))))))
-      (loop '() '() xs)))
+;; (define partition
+;;    (lambda (pred xs)
+;;       (define loop
+;;          (lambda (ts fs xs)
+;;             (if (null? xs)
+;;                 (values (reverse ts) (reverse fs))
+;;                 (if (pred (car xs))
+;;                     (loop (cons (car xs) ts) fs (cdr xs))
+;;                     (loop ts (cons (car xs) fs) (cdr xs))))))
+;;       (loop '() '() xs)))
 
-(define compose2
-    (lambda (f1 f2)
-      (lambda (x)
-        (f2 (f1 x)))))
+;; (define compose2
+;;     (lambda (f1 f2)
+;;       (lambda (x)
+;;         (f2 (f1 x)))))
 
-(define compose
-    (lambda xs
-      (fold-left compose2 (lambda (x) x) xs)))
+;; (define compose
+;;     (lambda xs
+;;       (fold-left compose2 (lambda (x) x) xs)))
 
-(define reverse
-  (lambda (xs)
-    (fold-left cons '() xs)))
+;; (define reverse
+;;   (lambda (xs)
+;;     (fold-left cons '() xs)))
 
-(define any
-   (lambda (pred xs)
-      (call/cc (lambda (return)
-                  (if (null? xs)
-                      #f
-                      (if (pred (car xs))
-                          (return #t)
-                          (any pred (cdr xs))))))))
+;; (define any
+;;    (lambda (pred xs)
+;;       (call/cc (lambda (return)
+;;                   (if (null? xs)
+;;                       #f
+;;                       (if (pred (car xs))
+;;                           (return #t)
+;;                           (any pred (cdr xs))))))))
 
 ; (define map
 ;   (lambda (fn xs . rest)
@@ -120,29 +120,29 @@
 
 (define cdddr (lambda (p) (cdr (cdr (cdr p)))))
 
-(define memv
-   (lambda (x xs)
-      (if (null? xs)
-          #f
-          (if (eqv? (car xs) x)
-              xs
-              (memv x (cdr xs))))))
+;; (define memv
+;;    (lambda (x xs)
+;;       (if (null? xs)
+;;           #f
+;;           (if (eqv? (car xs) x)
+;;               xs
+;;               (memv x (cdr xs))))))
 
-(define member
-   (lambda (x xs)
-      (if (null? xs)
-          #f
-          (if (equal? (car xs) x)
-              xs
-              (member x (cdr xs))))))
+;; (define member
+;;    (lambda (x xs)
+;;       (if (null? xs)
+;;           #f
+;;           (if (equal? (car xs) x)
+;;               xs
+;;               (member x (cdr xs))))))
 
-(define memq
-   (lambda (x xs)
-      (if (null? xs)
-          #f
-          (if (eq? (car xs) x)
-              xs
-              (memq x (cdr xs))))))
+;; (define memq
+;;    (lambda (x xs)
+;;       (if (null? xs)
+;;           #f
+;;           (if (eq? (car xs) x)
+;;               xs
+;;               (memq x (cdr xs))))))
 
 ; doesn't use quasiquote
 ; (define-syntax let
@@ -166,24 +166,24 @@
 ;             (cddr xs)))
 ;         (syntax->list stx))))
 
-(define odd?
-   (lambda (n)
-      (not (= (mod n 2) 0))))
+;; (define odd?
+;;    (lambda (n)
+;;       (not (= (mod n 2) 0))))
 
-(define even?
-   (lambda (n)
-      (= (mod n 2) 0)))
+;; (define even?
+;;    (lambda (n)
+;;       (= (mod n 2) 0)))
 
 ; note: syntax-rules depends on all
-(define all
-   (lambda (pred xs)
-      (if (null? xs)
-          #t
-          (if (pred (car xs)) (all pred (cdr xs)) #f))))
+;; (define all
+;;    (lambda (pred xs)
+;;       (if (null? xs)
+;;           #t
+;;           (if (pred (car xs)) (all pred (cdr xs)) #f))))
 
-(define-syntax let
-   (syntax-rules ()
-      ((let ((p x) ...) body0 bodies ...) ((lambda (p ...) body0 bodies ...) x ...))))
+;; (define-syntax let
+;;    (syntax-rules ()
+;;       ((let ((p x) ...) body0 bodies ...) ((lambda (p ...) body0 bodies ...) x ...))))
 
 ; --- or that doesn't use match
 ; (define-syntax or
@@ -205,11 +205,11 @@
 ;             ('() #f)
 ;             ((x) x)
 ;             ((x . rest) `(let ((tmp ,x)) (if tmp tmp (or ,@rest))))))))
-(define-syntax or
-   (syntax-rules ()
-      ((or) #f)
-      ((or x) x)
-      ((or a rest ...) (let ((tmp a)) (if tmp tmp (or rest ...))))))
+;; (define-syntax or
+;;    (syntax-rules ()
+;;       ((or) #f)
+;;       ((or x) x)
+;;       ((or a rest ...) (let ((tmp a)) (if tmp tmp (or rest ...))))))
 
 ; (define-syntax let*
 ;   (lambda (stx)
@@ -226,11 +226,11 @@
 ;                   `(let (,(car bindings)) (let* ,(cdr bindings) ,@body))))))))))
 
 
-(define-syntax let*
-   (syntax-rules ()
-      ((let* () body0 bodies ...) ((lambda () body0 bodies ...)))
-      ((let* ((p x)) body0 bodies ...) ((lambda (p) body0 bodies ...) x))
-      ((let* ((p1 x1) (p x) ...) body0 bodies ...) ((lambda (p1) (let* ((p x) ...) body0 bodies ...)) x1))))
+;; (define-syntax let*
+;;    (syntax-rules ()
+;;       ((let* () body0 bodies ...) ((lambda () body0 bodies ...)))
+;;       ((let* ((p x)) body0 bodies ...) ((lambda (p) body0 bodies ...) x))
+;;       ((let* ((p1 x1) (p x) ...) body0 bodies ...) ((lambda (p1) (let* ((p x) ...) body0 bodies ...)) x1))))
 
 (define void (lambda () (if #f #f)))
 
@@ -245,9 +245,9 @@
 ;        stx
 ;        `((lambda () ,@(map (lambda (p v) `(define ,p ,v)) ps vs) ,@body))))))
 
-(define-syntax letrec
-   (syntax-rules ()
-      ((letrec ((p x) ...) body0 bodies ...) ((lambda () (define p x) ... body0 bodies ...)))))
+;; (define-syntax letrec
+;;    (syntax-rules ()
+;;       ((letrec ((p x) ...) body0 bodies ...) ((lambda () (define p x) ... body0 bodies ...)))))
 ;----------------------------------------------------------------------------------------
 ; LEAVE COMMENTED
 ; ;; TODO: figure out why these two definitions of letrec, which work in racket, fail in Jig
@@ -317,52 +317,52 @@
 ; TODO: let-values from spec
 
 
-(define-syntax cond
-  (syntax-rules (else =>)
-    ((cond (else result1 result2 ...))
-     (begin result1 result2 ...))
-    ((cond (test => result))
-     (let ((temp test))
-       (if temp (result temp))))
-    ((cond (test => result) clause1 clause2 ...)
-     (let ((temp test))
-       (if temp
-           (result temp)
-           (cond clause1 clause2 ...))))
-    ((cond (test)) test)
-    ((cond (test) clause1 clause2 ...)
-     (let ((temp test))
-       (if temp
-           temp
-           (cond clause1 clause2 ...))))
-    ((cond (test result1 result2 ...))
-     (if test (begin result1 result2 ...)))
-    ((cond (test result1 result2 ...)
-           clause1 clause2 ...)
-     (if test
-         (begin result1 result2 ...)
-         (cond clause1 clause2 ...)))))
+;; (define-syntax cond
+;;   (syntax-rules (else =>)
+;;     ((cond (else result1 result2 ...))
+;;      (begin result1 result2 ...))
+;;     ((cond (test => result))
+;;      (let ((temp test))
+;;        (if temp (result temp))))
+;;     ((cond (test => result) clause1 clause2 ...)
+;;      (let ((temp test))
+;;        (if temp
+;;            (result temp)
+;;            (cond clause1 clause2 ...))))
+;;     ((cond (test)) test)
+;;     ((cond (test) clause1 clause2 ...)
+;;      (let ((temp test))
+;;        (if temp
+;;            temp
+;;            (cond clause1 clause2 ...))))
+;;     ((cond (test result1 result2 ...))
+;;      (if test (begin result1 result2 ...)))
+;;     ((cond (test result1 result2 ...)
+;;            clause1 clause2 ...)
+;;      (if test
+;;          (begin result1 result2 ...)
+;;          (cond clause1 clause2 ...)))))
 
 ; this is case from r5rs. The one from r6rs has stuff after ... in a pattern, which we can't handle yet
-(define-syntax case
-  (syntax-rules (else)
-    ((case (key ...)
-       clauses ...)
-     (let ((atom-key (key ...)))
-       (case atom-key clauses ...)))
-    ((case key
-       (else result1 result2 ...))
-     (begin result1 result2 ...))
-    ((case key
-       ((atoms ...) result1 result2 ...))
-     (if (memv key '(atoms ...))
-         (begin result1 result2 ...)))
-    ((case key
-       ((atoms ...) result1 result2 ...)
-       clause clauses ...)
-     (if (memv key '(atoms ...))
-         (begin result1 result2 ...)
-         (case key clause clauses ...)))))
+;; (define-syntax case
+;;   (syntax-rules (else)
+;;     ((case (key ...)
+;;        clauses ...)
+;;      (let ((atom-key (key ...)))
+;;        (case atom-key clauses ...)))
+;;     ((case key
+;;        (else result1 result2 ...))
+;;      (begin result1 result2 ...))
+;;     ((case key
+;;        ((atoms ...) result1 result2 ...))
+;;      (if (memv key '(atoms ...))
+;;          (begin result1 result2 ...)))
+;;     ((case key
+;;        ((atoms ...) result1 result2 ...)
+;;        clause clauses ...)
+;;      (if (memv key '(atoms ...))
+;;          (begin result1 result2 ...)
+;;          (case key clause clauses ...)))))
 ;
 ; (define-syntax when
 ;   (lambda (stx)
@@ -378,9 +378,9 @@
 ;          (match (cdr (syntax->list stx))
 ;             ((test . bodies) `(if ,test (begin ,@bodies)))))))
 
-(define-syntax when
-   (syntax-rules ()
-      ((when test body0 bodies ...) (if test (begin body0 bodies ...)))))
+;; (define-syntax when
+;;    (syntax-rules ()
+;;       ((when test body0 bodies ...) (if test (begin body0 bodies ...)))))
 
 ; (define-syntax do
 ;   (lambda (stx)
@@ -423,84 +423,84 @@
 ;                                    (loop ,@(cons incr (map (lambda (x) (caddr (syntax-e x))) vars)))))))
 ;                   (loop ,@(cons init (map (lambda (x) (cadr (syntax-e x))) vars))))))))))
 ; TODO: make step optional (see spec r6rs-lib)
-(define-syntax do
-   (syntax-rules ()
-      ((do ((var init step) ...)
-           (test expr ...)
-           command ...)
-       ((lambda ()
-           (define loop (lambda (var ...)
-                           (if test
-                               (begin
-                                  (void)
-                                  expr ...)
-                               (begin
-                                  command ...
-                                  (loop step ...)))))
-           (loop init ...))))))
+;; (define-syntax do
+;;    (syntax-rules ()
+;;       ((do ((var init step) ...)
+;;            (test expr ...)
+;;            command ...)
+;;        ((lambda ()
+;;            (define loop (lambda (var ...)
+;;                            (if test
+;;                                (begin
+;;                                   (void)
+;;                                   expr ...)
+;;                                (begin
+;;                                   command ...
+;;                                   (loop step ...)))))
+;;            (loop init ...))))))
 
 
-(define dynamic-wind #f)
+;; (define dynamic-wind #f)
 
-(let ((winders '()))
-  (define common-tail
-    (lambda (x y)
-      (let ((lx (length x)) (ly (length y)))
-        (do ((x (if (> lx ly) (list-tail x (- lx ly)) x) (cdr x))
-             (y (if (> ly lx) (list-tail y (- ly lx)) y) (cdr y)))
-            ((eq? x y) x)))))
-  (define do-wind
-    (lambda (new)
-      (let ((tail (common-tail new winders)))
-        (define f
-          (lambda (l)
-            (if (not (eq? l tail))
-                (begin
-                  (set! winders (cdr l))
-                  ((cdar l))
-                  (f (cdr l))))))
-        (f winders)
-        (define f
-          (lambda (l)
-            (if (not (eq? l tail))
-                (begin
-                  (f (cdr l))
-                  ((caar l))
-                  (set! winders l)))))
-        (f new))))
-  (set! call/cc
-    (let ((prim-callcc call/cc))
-      (lambda (f)
-        (prim-callcc (lambda (k)
-                      (f (let ((save winders))
-                           (lambda xs
-                             (if (not (eq? save winders)) (do-wind save))
-                             (apply k xs)))))))))
-  (set! call-with-current-continuation call/cc)
-  (set! dynamic-wind
-    (lambda (in body out)
-      (in)
-      (set! winders (cons (cons in out) winders))
-      (call-with-values
-          (lambda () (body))
-        (lambda ans
-          (set! winders (cdr winders))
-          (out)
-          (apply values ans))))))
+;; (let ((winders '()))
+;;   (define common-tail
+;;     (lambda (x y)
+;;       (let ((lx (length x)) (ly (length y)))
+;;         (do ((x (if (> lx ly) (list-tail x (- lx ly)) x) (cdr x))
+;;              (y (if (> ly lx) (list-tail y (- ly lx)) y) (cdr y)))
+;;             ((eq? x y) x)))))
+;;   (define do-wind
+;;     (lambda (new)
+;;       (let ((tail (common-tail new winders)))
+;;         (define f
+;;           (lambda (l)
+;;             (if (not (eq? l tail))
+;;                 (begin
+;;                   (set! winders (cdr l))
+;;                   ((cdar l))
+;;                   (f (cdr l))))))
+;;         (f winders)
+;;         (define f
+;;           (lambda (l)
+;;             (if (not (eq? l tail))
+;;                 (begin
+;;                   (f (cdr l))
+;;                   ((caar l))
+;;                   (set! winders l)))))
+;;         (f new))))
+;;   (set! call/cc
+;;     (let ((prim-callcc call/cc))
+;;       (lambda (f)
+;;         (prim-callcc (lambda (k)
+;;                       (f (let ((save winders))
+;;                            (lambda xs
+;;                              (if (not (eq? save winders)) (do-wind save))
+;;                              (apply k xs)))))))))
+;;   (set! call-with-current-continuation call/cc)
+;;   (set! dynamic-wind
+;;     (lambda (in body out)
+;;       (in)
+;;       (set! winders (cons (cons in out) winders))
+;;       (call-with-values
+;;           (lambda () (body))
+;;         (lambda ans
+;;           (set! winders (cdr winders))
+;;           (out)
+;;           (apply values ans))))))
 
-(define make-parameter
-  (lambda (init . o)
-    (let* ((converter (if (not (null? o)) (car o) (lambda (x) x)))
-           (value (converter init)))
-      (lambda args
-        (if (null? args)
-            value
-            (let ((len (length args)))
-              (cond ((= len 1)
-                     (set! value (converter (car args))))
-                    ((= len 2)
-                     (set! value ((cadr args) (car args))))
-                    (#t 'error))))))))
+;; (define make-parameter
+;;   (lambda (init . o)
+;;     (let* ((converter (if (not (null? o)) (car o) (lambda (x) x)))
+;;            (value (converter init)))
+;;       (lambda args
+;;         (if (null? args)
+;;             value
+;;             (let ((len (length args)))
+;;               (cond ((= len 1)
+;;                      (set! value (converter (car args))))
+;;                     ((= len 2)
+;;                      (set! value ((cadr args) (car args))))
+;;                     (#t 'error))))))))
 
 ; ; TODO: parameterize should handle multiple bindings
 ; ; TODO: in below, it shold be possible to write `(lambda () . ,bodies), but it expands incorrectly
@@ -520,67 +520,67 @@
 ;              (lambda () (,(car ps) old (lambda (x) x))))) (,(car ps)))))))
 
 ; TODO: make tests for make-parameter and parameterize
-(define-syntax parameterize
-   (syntax-rules ()
-      ((parameterize ((p v) ...) body0 body ...)
-       ((lambda olds
-           (dynamic-wind
-              (lambda () (p v) ...)
-              (lambda () body0 body ...)
-              (lambda () (map (lambda (pr old) (pr old (lambda (x) x))) (list p ...) olds)))) (p) ...))))
+;; (define-syntax parameterize
+;;    (syntax-rules ()
+;;       ((parameterize ((p v) ...) body0 body ...)
+;;        ((lambda olds
+;;            (dynamic-wind
+;;               (lambda () (p v) ...)
+;;               (lambda () body0 body ...)
+;;               (lambda () (map (lambda (pr old) (pr old (lambda (x) x))) (list p ...) olds)))) (p) ...))))
 
-(define with-exception-handler #f)
-(define raise #f)
-(define raise-continuable #f)
+;; (define with-exception-handler #f)
+;; (define raise #f)
+;; (define raise-continuable #f)
 
-(call/cc
- (lambda (k)
-   (define *current-exception-handlers*
-     (list (lambda (condition)
-             (display "unhandled exception ")
-             (display condition)
-             (newline)
-             (k (void)))))
-   (define with-exception-handlers
-       (lambda (new-handlers thunk)
-           (let ((previous-handlers *current-exception-handlers*))
-            (dynamic-wind
-                (lambda ()
-                 (set! *current-exception-handlers* new-handlers))
-                thunk
-                (lambda ()
-                 (set! *current-exception-handlers* previous-handlers))))))
-   (set! with-exception-handler
-       (lambda (handler thunk)
-           (with-exception-handlers (cons handler *current-exception-handlers*)
-                                   thunk)))
-   (set! raise
-       (lambda (obj)
-           (let ((handlers *current-exception-handlers*))
-            (with-exception-handlers (cdr handlers)
-                (lambda ()
-                 ((car handlers) obj)
-                 (abort "user-defined handler returned on non-continuable exception"
-                         (car handlers)
-                         obj))))))
-   (set! raise-continuable
-       (lambda (obj)
-           (let ((handlers *current-exception-handlers*))
-            (with-exception-handlers (cdr handlers)
-                (lambda ()
-                 ((car handlers) obj))))))))
+;; (call/cc
+;;  (lambda (k)
+;;    (define *current-exception-handlers*
+;;      (list (lambda (condition)
+;;              (display "unhandled exception ")
+;;              (display condition)
+;;              (newline)
+;;              (k (void)))))
+;;    (define with-exception-handlers
+;;        (lambda (new-handlers thunk)
+;;            (let ((previous-handlers *current-exception-handlers*))
+;;             (dynamic-wind
+;;                 (lambda ()
+;;                  (set! *current-exception-handlers* new-handlers))
+;;                 thunk
+;;                 (lambda ()
+;;                  (set! *current-exception-handlers* previous-handlers))))))
+;;    (set! with-exception-handler
+;;        (lambda (handler thunk)
+;;            (with-exception-handlers (cons handler *current-exception-handlers*)
+;;                                    thunk)))
+;;    (set! raise
+;;        (lambda (obj)
+;;            (let ((handlers *current-exception-handlers*))
+;;             (with-exception-handlers (cdr handlers)
+;;                 (lambda ()
+;;                  ((car handlers) obj)
+;;                  (abort "user-defined handler returned on non-continuable exception"
+;;                          (car handlers)
+;;                          obj))))))
+;;    (set! raise-continuable
+;;        (lambda (obj)
+;;            (let ((handlers *current-exception-handlers*))
+;;             (with-exception-handlers (cdr handlers)
+;;                 (lambda ()
+;;                  ((car handlers) obj))))))))
 
-(define error #f)
+;; (define error #f)
 
-; ; TODO: shouldn't this call raise or raise continuable?
-(call/cc
- (lambda (k)
-   (set! error
-         (lambda (msg . xs)
-           (display msg)
-           (newline)
-           (when (not (null? xs))
-              (display "    in:")
-              (display (car xs))
-              (newline))
-           (k (void))))))
+;; ; ; TODO: shouldn't this call raise or raise continuable?
+;; (call/cc
+;;  (lambda (k)
+;;    (set! error
+;;          (lambda (msg . xs)
+;;            (display msg)
+;;            (newline)
+;;            (when (not (null? xs))
+;;               (display "    in:")
+;;               (display (car xs))
+;;               (newline))
+;;            (k (void))))))

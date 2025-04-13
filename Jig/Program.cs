@@ -60,8 +60,8 @@ public static class Program {
             Console.Write("> ");
         }
         Syntax? input;
-        while (true) {
-            using (InputPort port = new InputPort(Console.In)) {
+        using (InputPort port = new InputPort(Console.In)) {
+            while (true) {
                 try {
                     input = Jig.Reader.Reader.ReadSyntax(port);
                     if (input is null) {
@@ -74,10 +74,8 @@ public static class Program {
                     Eval(print, input, TopLevel);
                 } catch (Exception x) {
                     Console.WriteLine(x);
-                    port.Dispose();
-                    break;
+                    // port.Dispose();
                 }
-
                 if (!quiet) {
                     Console.Write("> ");
                 }
