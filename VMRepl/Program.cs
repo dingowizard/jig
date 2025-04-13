@@ -73,7 +73,6 @@ public static class Program {
                         }
 
                         Eval(vm, input, TopLevel);
-                        vm.DoResults(f => Console.WriteLine(f.Print()));
 
                     } catch (Exception x) {
                         Console.Error.WriteLine(x);
@@ -93,7 +92,14 @@ public static class Program {
         var compiler = new VM.Compiler(); // should class be static?
         var ctEnv = new CompileTimeEnvironment(me.Bindings, env);
         var code = compiler.CompileExprForREPL(program, ctEnv);
-        vm.Load(code, env);
+        vm.Load(code, env, TopLevelContinuation);
         vm.Run();
+    }
+
+    private static void TopLevelContinuation(params Form[] forms) {
+        foreach (var form in forms) {
+            Console.WriteLine(form.Print());
+        }
+        
     }
 }

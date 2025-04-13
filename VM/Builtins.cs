@@ -29,7 +29,6 @@ public static class Builtins {
     public static Template Values = new Template(
         0,
         code: [
-            (ulong)OpCode.Values << 56,
             (ulong)OpCode.PopContinuation << 56,
         ],
         bindings: [],

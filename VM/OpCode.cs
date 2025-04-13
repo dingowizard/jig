@@ -23,5 +23,4 @@ public enum OpCode : byte {
     Product,
     CallCC,
     CallWValues,
-    Values,
 }

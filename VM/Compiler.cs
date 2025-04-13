@@ -234,10 +234,7 @@ public class Compiler {
         Context context,
         int scopeLevel
     ) {
-        
-        
 
-        // TODO: we already found the bindings when we parsed/expanded
         ulong code = (ulong)OpCode.Local << 56;
         int depth = scopeLevel - var.Binding.ScopeLevel;
         code += ((ulong)depth) << 32; // TODO: this could be too big I suppose.
