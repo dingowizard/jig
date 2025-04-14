@@ -63,10 +63,10 @@ public class Environment : Form {
 
     }
     
-    public Form SetLocal(int depth, int index, Form val) {
+    public void SetLocal(int depth, int index, Form val) {
         if (Locals != null) {
             Locals.SetLocal(depth, index, val);
-            return Form.Void;
+            return;
         }
 
         throw new Exception("tried to add local variable, but there is no scope");

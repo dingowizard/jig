@@ -55,11 +55,11 @@ public static class Dissassembler {
                 return $"{lineNo:D3}\tENVT";
             case OpCode.Lambda:
                 return $"{lineNo:D3}\tLMBD";
-            case OpCode.Load:
+            case OpCode.Top:
                 return $"{lineNo:D3}\tLOAD\t{operand:D3}";
-            case OpCode.Local:
+            case OpCode.Lex:
                 return $"{lineNo:D3}\tLOCAL\t{depth:D3}\t{index:D3}" ;
-            case OpCode.Store:
+            case OpCode.SetTop:
                 return $"{lineNo:D3}\tSTORE\t{operand:D3}";
             case OpCode.Jump:
                 return $"{lineNo:D3}\tJMP\t{operand:D3}";

@@ -70,7 +70,7 @@ public class Compiler {
             if (!bindings.Contains(bing)) {
                 bindings.Add(bing);
             }
-            ulong code = (ulong)OpCode.Store << 56;
+            ulong code = (ulong)OpCode.SetTop << 56;
             int index = bindings.IndexOf(bing);
             code += (ulong)index;
             result.Add(code);
@@ -106,13 +106,13 @@ public class Compiler {
             if (!bindings.Contains(bing)) {
                 bindings.Add(bing);
             }
-            ulong code = (ulong)OpCode.Store << 56;
+            ulong code = (ulong)OpCode.SetTop << 56;
             int index = bindings.IndexOf(bing);
             code += (ulong)index;
             result.Add(code);
         } else {
             var lexVar = (ParsedVariable.Lexical)defForm.Variable;  
-            ulong code = (ulong)OpCode.DefLocal << 56;
+            ulong code = (ulong)OpCode.SetLex << 56;
             int index = lexVar.Binding.VarIndex;
             code += (ulong)index;
             result.Add(code);
@@ -215,7 +215,7 @@ public class Compiler {
             bindings.Add(ctEnv.LookUpTopLevel(sym));
         }
         int index = bindings.FindIndex(b => Equals(b.Symbol, sym));
-        ulong code = (ulong)OpCode.Load << 56;
+        ulong code = (ulong)OpCode.Top << 56;
         code += (ulong)index;
         if (context == Context.Tail) {
             return [code, (ulong)OpCode.Push << 56, (ulong)OpCode.PopContinuation << 56];
@@ -235,7 +235,7 @@ public class Compiler {
         int scopeLevel
     ) {
 
-        ulong code = (ulong)OpCode.Local << 56;
+        ulong code = (ulong)OpCode.Lex << 56;
         int depth = scopeLevel - var.Binding.ScopeLevel;
         code += ((ulong)depth) << 32; // TODO: this could be too big I suppose.
         

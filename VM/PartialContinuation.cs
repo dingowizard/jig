@@ -114,6 +114,29 @@ public class PartialContinuationForCallWithValues : PartialContinuation {
         : base(continuationProcTemplate, i, envt, fp, cont, continuationProcRequired, continuationProcHasRest) {
         
     }
+
+    public override void Pop(Machine vm) {
+        vm.ENVT = vm.ENVT.Extend(Template.NumVarsForScope);
+        // Console.WriteLine($"Env extended with {Template.NumVarsForScope} slots");
+        // check that continuation we are returning to expects the number of values
+        if (this.HasOptional) {
+            // Console.WriteLine($"continuation expected at least {this.Required} values and received {vm.SP - vm.FP} (SP = {vm.SP} FP = {vm.FP} stack = {vm.StackToList()}");
+            if (vm.SP - vm.FP < this.Required) {
+                throw new Exception(
+                    $"continuation expected at least {this.Required} values, but received {vm.SP - vm.FP}");
+            }
+        } else {
+            // Console.WriteLine($"continuation expected exactly {this.Required} values and received {vm.SP - vm.FP}(SP = {vm.SP} FP = {vm.FP} stack = {vm.StackToList()}");
+            if (vm.SP - vm.FP != this.Required) {
+                throw new Exception(
+                    $"continuation expected exactly {this.Required} values, but received {vm.SP - vm.FP}");
+            }
+        }
+        vm.PC = this.ReturnAddress;
+        vm.FP = this.FP;
+        vm.Template = this.Template;
+        vm.CONT = this.Continuation;
+    }
 }
 
 public class SavedContinuation : Continuation {

@@ -229,9 +229,9 @@ public class ParsedLambda : ParsedExpr {
             xs.Add(bodyExpr);
         }
 
-        int numVars = ee.VarIndex == 0 ? ps.Required.Length + (ps.HasRequired ? 1 : 0) : ee.VarIndex + 1;
+        // int numVars = ee.VarIndex == 0 ? ps.Required.Length + (ps.HasRequired ? 1 : 0) : ee.VarIndex + 1;
         // TODO: ensure that bodies is non-empty here or in constructor
-        lambdaExpr = new ParsedLambda(xs.ElementAt(0), ps, numVars, (SyntaxList.NonEmpty)xs.Skip(2).ToSyntaxList(), stx.SrcLoc);
+        lambdaExpr = new ParsedLambda(xs.ElementAt(0), ps, ee.VarIndex, (SyntaxList.NonEmpty)xs.Skip(2).ToSyntaxList(), stx.SrcLoc);
         return true;
     }
 

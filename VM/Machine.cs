@@ -6,31 +6,23 @@ public delegate void ContinuationAny(params Form[] forms);
 
 public class Machine {
 
-    public Machine(uint stacksize = 512) {
-        StackSize = stacksize;
-        Stack = new Form[stacksize];
+    public Machine(uint stackSize = 512) {
+        StackSize = stackSize;
+        Stack = new Form[stackSize];
     }
 
-    internal ulong IR;
+    private ulong IR;
     
     internal ulong PC;
 
 
     public Form VAL = Form.Void;
 
-    public void DoResults(Action<Form> action) {
-        while (SP > FP) {
-            action(Pop());
-        }
-
-    }
-
-
     internal Template Template;
 
-    internal Form[] Stack;
+    internal readonly Form[] Stack;
     
-    private uint StackSize;
+    private readonly uint StackSize;
 
     internal uint SP = 0;
     internal uint FP = 0;
@@ -42,7 +34,7 @@ public class Machine {
     internal Form Pop() {
         if (SP == 0) throw new Exception("stack is empty");
         SP--;
-        Form result = Stack[SP];
+        var result = Stack[SP];
         // Console.WriteLine($"popped {result.Print()}. stack = {StackToList().Print()}");
         return result;
     }
@@ -87,7 +79,7 @@ public class Machine {
         throw new Exception($"VM: in Call @ {PC}: expected procedure or continuation, got {VAL.Print()}");
     }
 
-    Form[] SaveStackFrameToArray() {
+    private Form[] SaveStackFrameToArray() {
         var results = new Form[SP - FP];
         Array.Copy(Stack, FP, results, 0, results.Length);
         return results;
@@ -124,7 +116,7 @@ public class Machine {
             OpCode opCode = (OpCode)(IR >> 56);
             switch (opCode) {
                 case OpCode.Push:
-                    Push(VAL);
+                    Push(VAL!);
                     continue;
                 case OpCode.Pop:
                     VAL = Pop();
@@ -198,6 +190,9 @@ public class Machine {
                 case OpCode.CallWValues:
                     var producer = (Procedure)Pop();
                     var continuationProc = (Procedure)Pop();
+                    // Console.WriteLine($"in call-with-values: continuationProc:");
+                    // Array.ForEach(Dissassembler.Disassemble(continuationProc.Template), Console.WriteLine);
+                    // Console.WriteLine($"required params: {continuationProc.Required}. hasRest? {continuationProc.HasRest}");
                     CONT = new PartialContinuationForCallWithValues(
                         continuationProc.Template,
                         0,
@@ -234,10 +229,10 @@ public class Machine {
                     }
                     ENVT.BindParameter(restIndex, xs.ToJigList());
                     continue;
-                case OpCode.Load:
+                case OpCode.Top:
                     VAL = Template.Bindings[IR & 0x00FFFFFFFFFFFFFF].Slot;
                     continue;
-                case OpCode.Local:
+                case OpCode.Lex:
                     int index = (int)(IR & 0x00000000FFFFFFFF);
                     int depth = (int)(IR >> 32) & 0x00FFFFFF ;
                     VAL = ENVT.GetLocal(depth, index);
@@ -245,14 +240,10 @@ public class Machine {
                 case OpCode.SetLex:
                     int x = (int)(IR & 0x00000000FFFFFFFF);
                     int h = (int)(IR >> 32) & 0x00FFFFFF ;
-                    VAL = ENVT.SetLocal(h, x, Pop());
+                    ENVT.SetLocal(h, x, Pop());
                     continue;
-                case OpCode.Store:
+                case OpCode.SetTop:
                     Template.Bindings[IR & 0x00FFFFFFFFFFFFFF].Slot = Pop();
-                    continue;
-                case OpCode.DefLocal:
-                    int i = (int)(IR & 0x00000000FFFFFFFF);
-                    ENVT.DefLocal(i, Pop());
                     continue;
                 case OpCode.Jump:
                     PC = IR & 0x00FFFFFFFFFFFFFF;
