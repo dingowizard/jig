@@ -2,38 +2,6 @@ using Jig;
 
 namespace VM;
 
-public abstract class Continuation : Form {
-    public override string Print() => "#<continuation>";
-
-    public abstract void Pop(Machine machine);
-
-    public abstract int Required { get; }
-    
-    public abstract bool HasOptional { get; }
-}
-
-public class TopLevelContinuation : Continuation {
-    public TopLevelContinuation(ContinuationAny cont) {
-        Procedure = cont;
-    }
-
-    public override void Pop(Machine vm) {
-        var results = new System.Collections.Generic.List<Form>();
-        while (vm.SP > 0) {
-            results.Add(vm.Pop());
-        }
-
-        Procedure(results.ToArray());
-    }
-    
-    public override int Required => 0;
-    
-    public ContinuationAny Procedure { get; }
-    
-    public override bool HasOptional => true;
-
-}
-
 public class ContinuationForArg : PartialContinuation {
     public ContinuationForArg(Template template,
         ulong returnAddress,
@@ -48,6 +16,17 @@ public class ContinuationForNonTailBody : PartialContinuation {
         Environment env,
         uint fp,
         Continuation cont) : base(template, returnAddress, env, fp, cont, 0, true) {}
+
+    public override void Pop(Machine vm) {
+        // no need to check how many values were returned, because any are allowed
+        // set SP to current FP, erasing all values returned by this call
+        vm.SP = vm.FP;
+        vm.PC = this.ReturnAddress;
+        vm.FP = this.FP; // now set FP to old FP
+        vm.ENVT = this.Environment;
+        vm.Template = this.Template;
+        vm.CONT = this.Continuation;
+    }
 }
 public class PartialContinuation : Continuation {
 

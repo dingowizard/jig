@@ -44,7 +44,9 @@ public static class Dissassembler {
             case OpCode.Lit:
                 return $"{lineNo:D3}\tLIT\t{operand:D3} ; {literals[operand].Print()}";
             case OpCode.PushContinuationForArg:
-                return $"{lineNo:D3}\tSAVE\t{operand:D3}";
+                return $"{lineNo:D3}\tCONTA\t{operand:D3}";
+            case OpCode.PushContinuationForNonTailBody:
+                return $"{lineNo:D3}\tCONTNT\t{operand:D3}";
             case OpCode.PopContinuation:
                 return $"{lineNo:D3}\tRET";
             case OpCode.Bind:
@@ -56,11 +58,13 @@ public static class Dissassembler {
             case OpCode.Lambda:
                 return $"{lineNo:D3}\tLMBD";
             case OpCode.Top:
-                return $"{lineNo:D3}\tLOAD\t{operand:D3}";
+                return $"{lineNo:D3}\tTOP\t{operand:D3} ; {bindings[operand].Symbol.Print()}";
             case OpCode.Lex:
-                return $"{lineNo:D3}\tLOCAL\t{depth:D3}\t{index:D3}" ;
+                return $"{lineNo:D3}\tLEX\t{depth:D3}\t{index:D3}" ;
+            case OpCode.SetLex:
+                return $"{lineNo:D3}\tLEX!\t{depth:D3}\t{index:D3}" ;
             case OpCode.SetTop:
-                return $"{lineNo:D3}\tSTORE\t{operand:D3}";
+                return $"{lineNo:D3}\tTOP!\t{operand:D3} ; {bindings[operand].Symbol.Print()}";
             case OpCode.Jump:
                 return $"{lineNo:D3}\tJMP\t{operand:D3}";
             case OpCode.JumpIfFalse:

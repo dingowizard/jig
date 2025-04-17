@@ -361,11 +361,16 @@ public class Compiler {
         
         if (context != Context.Tail) {
             // the call is not a context call, so we do want to save a continuation before we start
-            var pushContInstruction = (ulong)OpCode.PushContinuationForArg << 56;
+            var pushContInstruction =
+                (context == Context.Argument
+                    ? (ulong)OpCode.PushContinuationForArg
+                    : (ulong)OpCode.PushContinuationForNonTailBody) << 56;
             pushContInstruction += (ulong)lineNo + 1;
             instructions.Insert(0, pushContInstruction);
+            return instructions.ToArray();
+        } else {
+            return instructions.ToArray();
         }
 
-        return instructions.ToArray();
     }
 }
