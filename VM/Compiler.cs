@@ -300,9 +300,11 @@ public class Compiler {
         // }
         
         // TODO: should apply be responsible for this?
-        var bindCode = (ulong)OpCode.Bind << 56;
-        bindCode += (ulong)lambdaExpr.Parameters.Required.Length;
-        codes.Add(bindCode);
+        if (lambdaExpr.Parameters.Required.Length != 0) {
+            var bindCode = (ulong)OpCode.Bind << 56;
+            bindCode += (ulong)lambdaExpr.Parameters.Required.Length;
+            codes.Add(bindCode);
+        }
 
         if (lambdaExpr.Parameters.HasRest) {
             var binding = new VM.Binding(lambdaExpr.Parameters.Rest.Binding);
@@ -368,9 +370,9 @@ public class Compiler {
             pushContInstruction += (ulong)lineNo + 1;
             instructions.Insert(0, pushContInstruction);
             return instructions.ToArray();
-        } else {
-            return instructions.ToArray();
         }
+
+        return instructions.ToArray();
 
     }
 }
