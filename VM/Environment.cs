@@ -20,20 +20,27 @@ public class Environment : Form {
         TopLevels = topLevels;
         Locals = scope;
     }
+    
+    public static Environment Default { get; private set; }
 
-    public static Environment Default { get; } = new Environment(new Dictionary<Form.Symbol, Binding> {
-        {new Form.Symbol("cons"), new Binding(new Form.Symbol("cons"), Primitives.Cons)},
-        {new Form.Symbol("car"), new Binding(new Form.Symbol("car"), Primitives.Car)},
-        // {new Form.Symbol("car"), new Binding(new Form.Symbol("car"), new Procedure(Default, VM.Builtins.Car))},
-        {new Form.Symbol("cdr"), new Binding(new Form.Symbol("cdr"), Primitives.Cdr)},
-        {new Form.Symbol("null?"), new Binding(new Form.Symbol("null?"), Primitives.NullP)},
-        {new Form.Symbol("zero?"), new Binding(new Form.Symbol("zero?"), Primitives.ZeroP)},
-        {new Form.Symbol("call/cc"), new Binding(new Form.Symbol("call/cc"), new Procedure(Default, VM.Builtins.CallCC))},
-        {new Form.Symbol("+"), new Binding(new Form.Symbol("+"), new Procedure(Default, VM.Builtins.Sum))},
-        {new Form.Symbol("values"), new Binding(new Form.Symbol("values"), new Procedure(Default, VM.Builtins.Values))},
-        {new Form.Symbol("call-with-values"), new Binding(new Form.Symbol("call-with-values"), new Procedure(Default, VM.Builtins.CallWithValues))},
-        {new Form.Symbol("*"), new Binding(new Form.Symbol("*"), new Procedure(Default, VM.Builtins.Product))},
-    });
+    static Environment() {
+        var initialBindings = new Dictionary<Symbol, Binding>();
+        Default = new Environment(initialBindings);
+        initialBindings[new Form.Symbol("cons")] = new Binding(new Form.Symbol("cons"), Primitives.Cons);
+        initialBindings[new Form.Symbol("car")] = new Binding(new Form.Symbol("car"), Primitives.Car);
+        // initialBindings[new Form.Symbol("car")] = new Binding(new Form.Symbol("car"), new Procedure(Default, VM.Builtins.Car));
+        initialBindings[new Form.Symbol("cdr")] = new Binding(new Form.Symbol("cdr"), Primitives.Cdr);
+        initialBindings[new Form.Symbol("null?")] = new Binding(new Form.Symbol("null?"), Primitives.NullP);
+        initialBindings[new Form.Symbol("zero?")] = new Binding(new Form.Symbol("zero?"), Primitives.ZeroP);
+        initialBindings[new Form.Symbol("call/cc")] = new Binding(new Form.Symbol("call/cc"), new Procedure(Default, VM.Builtins.CallCC));
+        initialBindings[new Form.Symbol("+")] = new Binding(new Form.Symbol("+"), new Procedure(Default, VM.Builtins.Sum));
+        initialBindings[new Form.Symbol("values")] = new Binding(new Form.Symbol("values"), new Procedure(Default, VM.Builtins.Values));
+        initialBindings[new Form.Symbol("call-with-values")] = new Binding(new Form.Symbol("call-with-values"), new Procedure(Default, VM.Builtins.CallWithValues));
+        // initialBindings[new Form.Symbol("dynamic-wind")] = new Binding(new Form.Symbol("dynamic-wind"), new Procedure(Default, VM.Builtins.DynamicWind));
+        initialBindings[new Form.Symbol("dynamic-wind")] = new Binding(new Form.Symbol("dynamic-wind"), new Procedure(Default, VM.Builtins.DynamicWind2));
+        initialBindings[new Form.Symbol("*")] = new Binding(new Form.Symbol("*"), new Procedure(Default, VM.Builtins.Product));
+    }
+
     
 
     public Environment Extend(int parameterNumber) {

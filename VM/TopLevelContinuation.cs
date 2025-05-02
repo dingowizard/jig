@@ -8,6 +8,7 @@ public class TopLevelContinuation : Continuation {
     }
 
     public override void Pop(Machine vm) {
+        // Console.WriteLine("Toplevel!");
         var results = new System.Collections.Generic.List<Form>();
         while (vm.SP > 0) {
             results.Add(vm.Pop());

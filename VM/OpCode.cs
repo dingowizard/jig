@@ -22,4 +22,11 @@ public enum OpCode : byte {
     Product,
     CallCC,
     CallWValues,
+    DWind,
+    PushWinder,
+    PushContinuationForBodyThunk,
+    PopWinder,
+    PushFP,
+    SPToFP,
+    PopFP
 }

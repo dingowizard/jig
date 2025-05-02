@@ -85,6 +85,8 @@ public static class Program {
             }
     
     }
+    // TODO: should Eval be a method of VM?
+    // TODO: should the toplevel continuation be a field of VM rather than an argument to load?
     public static void Eval(Machine vm, Jig.Syntax stx, VM.Environment? env = null) {
         env ??= Program.TopLevel;
         var me = new Jig.MacroExpander();

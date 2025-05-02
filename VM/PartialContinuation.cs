@@ -1,5 +1,3 @@
-using Jig;
-
 namespace VM;
 
 public class ContinuationForArg : PartialContinuation {
@@ -40,8 +38,13 @@ public class PartialContinuation : Continuation {
             }
         } else {
             if (vm.SP - vm.FP != this.Continuation.Required) {
+                
+                Console.WriteLine($"Error popping PartCont: popping to this template: {this.ReturnAddress}");
+                Array.ForEach(Dissassembler.Disassemble(this.Template), Console.WriteLine);
+                Console.WriteLine($"but checking stack against expected values for {this.Continuation.GetType()}");
+                
                 throw new Exception(
-                    $"continuation expected {this.Continuation.Required} values, but received {vm.SP - vm.FP}");
+                    $"continuation expected {this.Continuation.Required} values, but received {vm.SP - vm.FP}. stack = {vm.StackToList().Print()} SP = {vm.SP} FP = {vm.FP}");
             
             }
         }
@@ -55,6 +58,8 @@ public class PartialContinuation : Continuation {
     public PartialContinuation(Template template,
         ulong returnAddress,
         Environment environment, // TODO: should a continuation have an environment?
+                                 // atm the envt is used by DynamicWind, but it's not clear that it should
+                                 // there may be other ways it is used...
         uint fp,
         Continuation continuation,
         int requiredValues,
@@ -74,11 +79,12 @@ public class PartialContinuation : Continuation {
     public Continuation Continuation { get; }
 
     public uint FP;
+
     public virtual ulong ReturnAddress { get; }
     public override int Required { get; }
     public override bool HasOptional { get; }
 
-    public virtual Environment Environment { get; }
+    public virtual Environment Environment { get; protected set; }
     
 
 }
@@ -116,45 +122,4 @@ public class PartialContinuationForCallWithValues : PartialContinuation {
         vm.Template = this.Template;
         vm.CONT = this.Continuation;
     }
-}
-
-public class SavedContinuation : Continuation {
-
-    public SavedContinuation(Continuation cont, Form[] stack) {
-        Required = cont.Required;
-        HasOptional = cont.HasOptional;
-        Saved = cont;
-        Stack = stack;
-    }
-    
-    public override void Pop(Machine machine) {
-        int i = 0;
-        foreach (var form in Stack) {
-            machine.Stack[i] = form;
-            i++;
-        }
-        machine.SP = (uint)Stack.Length;
-        Saved.Pop(machine);
-    }
-
-    public void Apply(Machine vm, Form[] results) {
-        int i = 0;
-        foreach (var form in Stack) {
-            vm.Stack[i] = form;
-            i++;
-        }
-        vm.SP = (uint)Stack.Length;
-        vm.FP = vm.SP;
-        foreach (var result in results) {
-            vm.Push(result);
-        }
-        Saved.Pop(vm);
-        
-    }
-    
-    public Continuation Saved { get; }
-    public override int Required { get; }
-    public override bool HasOptional { get; }
-    
-    public Form[] Stack { get; }
 }

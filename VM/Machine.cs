@@ -4,12 +4,18 @@ namespace VM;
 
 public delegate void ContinuationAny(params Form[] forms);
 
-public class Machine {
+public class Machine
+{
+
+    internal bool Loud = false;
 
     public Machine(uint stackSize = 512) {
         StackSize = stackSize;
         Stack = new Form[stackSize];
     }
+
+    internal Winders Winders = new Winders();
+    
 
     private ulong IR;
     
@@ -53,7 +59,7 @@ public class Machine {
         FP = 0;
     }
 
-    private void Call() {
+    internal void Call() {
         
         if (VAL is Procedure proc) {
             if (proc.HasRest) {
@@ -68,18 +74,21 @@ public class Machine {
                     throw new Exception($"wrong num args: expected {proc.Required}, but got {SP - FP}. (SP = {SP}; FP = {FP}; stack = {StackToList()})");
                 }  
             }
-            if (proc.Environment is not null) {
-                // TODO: why is it possible for Environment to be null?
-                ENVT = proc.Environment.Extend(proc.Template.NumVarsForScope);
-            }
+            ENVT = proc.Environment.Extend(proc.Template.NumVarsForScope);
             Template = proc.Template;
             PC = 0ul;
             return;
         }
-        throw new Exception($"VM: in Call @ {PC}: expected procedure or continuation, got {VAL.Print()}");
+
+        if (VAL is SavedContinuation sc) {
+            sc.Apply(this);
+            return;
+
+        }
+        throw new Exception($"VM: in Call @ {PC - 1}: expected procedure or saved continuation, got {VAL.GetType()}");
     }
 
-    private Form[] SaveStackFrameToArray() {
+    internal Form[] SaveStackFrameToArray() {
         var results = new Form[SP - FP];
         Array.Copy(Stack, FP, results, 0, results.Length);
         return results;
@@ -105,21 +114,40 @@ public class Machine {
     }
     
 
-    public void Run() {
+    public void Run()
+    {
+        Loud = false;
         while (true) {
             // Fetch
-            Debug.Assert(PC < (ulong)Template.Code.Length,
-                $"PC was {PC} and Template length was {Template.Code.Length}");
+            // Debug.Assert(PC < (ulong)Template.Code.Length,
+            //     $"PC was {PC} and Template length was {Template.Code.Length}");
+            if (PC >= (ulong)Template.Code.Length)
+            {
+                
+                Console.WriteLine($"*** PC ({PC}) ran past template ***");
+                Array.ForEach(Dissassembler.Disassemble(Template), Console.WriteLine);
+                throw new Exception($"");
+            }
             IR = Template.Code[PC];
             PC++;
             // Execute
             OpCode opCode = (OpCode)(IR >> 56);
-            switch (opCode) {
+            if (Loud) Console.WriteLine(Dissassembler.Decode((int)PC - 1, IR, Template.Slots, Template.Bindings));
+            switch (opCode) { 
                 case OpCode.Push:
                     Push(VAL!);
                     continue;
                 case OpCode.Pop:
                     VAL = Pop();
+                    continue;
+                case OpCode.PushFP:
+                    Push(new Integer((int)FP)); // TODO: FP can be too big?
+                    continue;
+                case OpCode.PopFP:
+                    FP = (uint)((Integer)Pop()).Value;
+                    continue;
+                case OpCode.SPToFP:
+                    FP = SP;
                     continue;
                 case OpCode.Lit:
                     VAL = Template.Slots[IR & 0x00FFFFFFFFFFFFFF];
@@ -150,13 +178,39 @@ public class Machine {
                         CONT);
                     FP = SP;
                     continue;
+                case OpCode.PushContinuationForBodyThunk:
+                    // NOTE: unlike other PushContinuations,
+                    // we're not doing anything with the FP,
+                    // the surrounding code is responsible
+                    CONT = new PartialContinuation(
+                        Template,
+                        IR & 0x00FFFFFFFFFFFFFF,
+                        ENVT,
+                        FP,
+                        CONT,
+                        0,
+                        true);
+                    continue;
                 case OpCode.PopContinuation:
-                    if (CONT is PartialContinuation pc) {
-                        pc.Pop(this);
-                        continue;
+                    // Console.WriteLine(Dissassembler.Decode((int)PC, IR, Template.Slots, Template.Bindings));
+                    if (CONT is TopLevelContinuation)
+                    {
+                        CONT.Pop(this);
+                        // Console.WriteLine($"about to return from case OpCode.PopContinuation");
+                        return;
+                        
                     }
+
+                    if (CONT is WinderThunkCont.ThunkCont wtc && wtc.Continuation is WinderThunkCont.BaseCont bc &&
+                        bc.SavedContinuation.Saved is TopLevelContinuation)
+                    {
+                        wtc.Pop(this);
+                        return;
+
+                    }
+
                     CONT.Pop(this);
-                    return;
+                    continue;
                 case OpCode.Call:
                     // TODO: VAL already has the procedure
                     // seems silly to pop it into VAL again
@@ -175,11 +229,33 @@ public class Machine {
                             continue;
                         }
                         CONT.Pop(this);
+                        // Console.WriteLine($"about to return from case OpCode.Call, PrimitiveFn");
                         return;
                     }
                     if (VAL is SavedContinuation cont) {
-                        var results = SaveStackFrameToArray();
-                        cont.Apply(this, results);
+                        // Console.WriteLine($"applying a saved continuation");
+                        // Console.WriteLine($"\tcont.SavedWinders.Length = {cont.SavedWinders.Length} and Winders = {Winders.Length}");
+                        // Console.WriteLine($"\tthey are ReferenceEquals: {object.ReferenceEquals(cont.SavedWinders, Winders) }");
+                        if (!cont.SavedWinders.Equals(Winders)) { // TODO: ReferenceEquals?
+                            CONT = cont.SavedWinders.DoWinders(this, cont);
+                            if (CONT is WinderThunkCont.ThunkCont wThunk) {
+                                // winders need to be called with no arguments, but if we're applying a saved
+                                // continuation, there may be arguments
+                                // so we should save the frame pointer on the stack
+                                // set the fp to sp
+                                // then call the first thunk
+                                // when we get to the saved continuation itself, after doing the winders, 
+                                // we need to pop the fp off the stack
+                                Push(new Integer((int)FP));
+                                FP = SP;
+                                VAL = wThunk.Thunk;
+                                Call();
+                                continue;
+                            }
+                            throw new Exception("if winders aren't equal, we SHOULD have a WinderThunk");
+
+                        }
+                        cont.Apply(this);
                         if (cont.Saved is TopLevelContinuation) {
                             return;
                         }
@@ -206,12 +282,36 @@ public class Machine {
                     continue;
                 case OpCode.CallCC:
                     VAL = (Procedure)Pop(); // put the lambda expr or procedure in VAL
-                    Push(new SavedContinuation(CONT, Stack.Take((int)SP).ToArray()));
+                    Push(new SavedContinuation(CONT, Stack.Take((int)SP).ToArray(), Winders.Copy()));
                     // the following line is wrong because even though
                     // the call instruction expects procedure to be on the stack, the 
                     // Call function does not. Ew.
                     // Push(VAL);
                     Call();
+                    continue;
+                case OpCode.DWind:
+                    // there should be 3 args on stack, all callable
+                    // TODO: everything that could be an argument here should have 
+                    // an Apply method
+                    // for now let's just muddle through assuming the args are user-defined (lambda expressions)
+                    Procedure inThunk = (Procedure)Pop();
+                    Procedure body = (Procedure)Pop();
+                    Procedure outThunk = (Procedure)Pop();
+                    // using Call on any of these procedures won't work because that doesn't
+                    // run the actual procedure, just set it up to run
+                    // we need to make a continuation for inThunk and then call it
+                    // NOTE: it's important that ENVT here not be the ENVT extended by Call below
+                    CONT = ContinuationForDynamicWind.FromThunks(inThunk, body, outThunk, PC, CONT, ENVT, FP, Template);
+                    VAL = inThunk;
+                    Call();
+                    continue;
+                case OpCode.PushWinder:
+                    Procedure beforeThunk = (Procedure)Pop();
+                    Procedure afterThunk = (Procedure)Pop();
+                    this.Winders.Push(beforeThunk, afterThunk);
+                    continue;
+                case OpCode.PopWinder:
+                    this.Winders.Pop();
                     continue;
                 case OpCode.Bind:
                     int parameterNumber = (int)(IR & 0x00000000FFFFFFFF);

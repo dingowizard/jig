@@ -39,6 +39,12 @@ public static class Dissassembler {
                 return $"{lineNo:D3}\tPUSH";
             case OpCode.Pop:
                 return $"{lineNo:D3}\tPOP";
+            case OpCode.SPToFP:
+                return $"{lineNo:D3}\tSP2FP";
+            case OpCode.PopFP:
+                return $"{lineNo:D3}\tPOPFP";
+            case OpCode.PushFP:
+                return $"{lineNo:D3}\tPUSHFP";
             case OpCode.Call:
                 return $"{lineNo:D3}\tCALL";
             case OpCode.Lit:
@@ -47,6 +53,8 @@ public static class Dissassembler {
                 return $"{lineNo:D3}\tCONTA\t{operand:D3}";
             case OpCode.PushContinuationForNonTailBody:
                 return $"{lineNo:D3}\tCONTNT\t{operand:D3}";
+            case OpCode.PushContinuationForBodyThunk:
+                return $"{lineNo:D3}\tCONTBT\t{operand:D3}";
             case OpCode.PopContinuation:
                 return $"{lineNo:D3}\tRET";
             case OpCode.Bind:
@@ -69,6 +77,10 @@ public static class Dissassembler {
                 return $"{lineNo:D3}\tJMP\t{operand:D3}";
             case OpCode.JumpIfFalse:
                 return $"{lineNo:D3}\tJIFF\t{operand:D3}";
+            case OpCode.PopWinder:
+                return $"{lineNo:D3}\tPOPW";
+            case OpCode.PushWinder:
+                return $"{lineNo:D3}\tPUSHW";
             default:
                 return $"unhandled opcode: {opCode}";
         }
