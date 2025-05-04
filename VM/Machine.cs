@@ -289,22 +289,6 @@ public class Machine
                     // Push(VAL);
                     Call();
                     continue;
-                case OpCode.DWind:
-                    // there should be 3 args on stack, all callable
-                    // TODO: everything that could be an argument here should have 
-                    // an Apply method
-                    // for now let's just muddle through assuming the args are user-defined (lambda expressions)
-                    Procedure inThunk = (Procedure)Pop();
-                    Procedure body = (Procedure)Pop();
-                    Procedure outThunk = (Procedure)Pop();
-                    // using Call on any of these procedures won't work because that doesn't
-                    // run the actual procedure, just set it up to run
-                    // we need to make a continuation for inThunk and then call it
-                    // NOTE: it's important that ENVT here not be the ENVT extended by Call below
-                    CONT = ContinuationForDynamicWind.FromThunks(inThunk, body, outThunk, PC, CONT, ENVT, FP, Template);
-                    VAL = inThunk;
-                    Call();
-                    continue;
                 case OpCode.PushWinder:
                     Procedure beforeThunk = (Procedure)Pop();
                     Procedure afterThunk = (Procedure)Pop();

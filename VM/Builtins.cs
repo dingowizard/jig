@@ -50,18 +50,6 @@ public static class Builtins {
         false
     );
     
-    public static Template DynamicWind = new Template(
-        0,
-        code: [
-            (ulong)OpCode.DWind << 56,
-            (ulong)OpCode.PopContinuation << 56,
-        ],
-        bindings: [],
-        lits: [],
-        3,
-        false
-    );
-    
     public static readonly Template CallCC = new Template(
         0,
         code: [
