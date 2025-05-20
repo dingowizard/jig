@@ -5,7 +5,6 @@ namespace VM;
 
 public class Compiler {
 
-
     public Template CompileExprForREPL(ParsedExpr x,
         CompileTimeEnvironment ctEnv,
         int scopeLevel = 0,
@@ -16,7 +15,7 @@ public class Compiler {
 
         ulong[] code = Compile(x, ctEnv, literals, bindings, Context.Tail, scopeLevel, startLine); 
         var result = new Template(0, code, bindings.ToArray(), literals.ToArray(), 0, false); // TODO: maybe there should be a different kind of template for this, since we don't need parameters
-        // Array.ForEach(Dissassembler.Disassemble(result), Console.WriteLine);
+        // Array.ForEach(Disassembler.Disassemble(result), Console.WriteLine);
         return result;
 
     }
@@ -130,8 +129,6 @@ public class Compiler {
             result.Add((ulong)OpCode.PopContinuation << 56);
         }
         return result.ToArray();
-        
-
     }
 
     private ulong[] CompileIfExpr(ParsedIf ifExpr,
@@ -152,27 +149,9 @@ public class Compiler {
         // this is the start of the else code so JumpIfFalse should go here
         ulong jumpIfFalse = ((ulong)OpCode.JumpIfFalse << 56) + (ulong)lineNo;
         ulong[] elseCodes;
-        if (ifExpr.Else is not null) {
-            elseCodes = Compile(ifExpr.Else, ctEnv, literals, bindings, context, scopeLevel, lineNo);
-        } else {
-            // TODO: simpler and more DRY to call CompileLit(From.Void)
-            if (!literals.Contains(Form.Void)) {
-                literals.Add(Form.Void); 
-            }
-            int index = literals.IndexOf(Form.Void);
-            ulong lit = (ulong)OpCode.Lit << 56;
-            lit += (ulong)index;
-            if (context == Context.Tail) {
-                elseCodes = [lit, (ulong)OpCode.Push << 56, (ulong)OpCode.PopContinuation << 56];
-            } else if (context == Context.Argument) {
-                elseCodes = [lit, (ulong)OpCode.Push << 56];
-            }
-            else
-            {
-                elseCodes = [lit];
-                
-            }
-        }
+        elseCodes = ifExpr.Else is not null
+            ? Compile(ifExpr.Else, ctEnv, literals, bindings, context, scopeLevel, lineNo)
+            : CompileLit(ParsedLiteral.Void, literals, context);
         lineNo += elseCodes.Length;
         ulong jump = ((ulong)OpCode.Jump << 56) + (ulong)lineNo;
         return condCodes.Append(jumpIfFalse).Concat(thenCodes).Append(jump).Concat(elseCodes).ToArray();
@@ -292,9 +271,8 @@ public class Compiler {
         if (context == Context.Argument) {
             return [.. result, (ulong)OpCode.Push << 56];
         }
-        // TODO: probably don't emit anything if in a non-tail body
+        // TODO: maybe don't emit anything if in a non-tail body
         return result.ToArray();
-
     }
 
     private Template CompileLambdaTemplate(
@@ -311,18 +289,14 @@ public class Compiler {
             bindCode += (ulong)lambdaExpr.Parameters.Required.Length;
             codes.Add(bindCode);
         }
-
         if (lambdaExpr.Parameters.HasRest) {
-            var binding = new VM.Binding(lambdaExpr.Parameters.Rest!.Binding);
-            bindings.Add(binding);
             var bindRest = (ulong)OpCode.BindRest << 56;
             bindRest += (ulong)lambdaExpr.Parameters.Required.Length;
             codes.Add(bindRest);
         }
 
-        // TODO: likewise body of parsedlambda should be a collection of parsedexpr
         var body = CompileSequence(
-            lambdaExpr.Bodies.Cast<ParsedExpr>().ToArray(),
+            lambdaExpr.Bodies,
             ctEnv,
             new Sys.List<Form>(),
             bindings,

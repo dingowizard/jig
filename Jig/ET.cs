@@ -460,7 +460,7 @@ internal abstract class ET : Expression {
         static readonly ConstructorInfo procedureCstr = typeof(Procedure).GetConstructor([typeof(Delegate)]) ?? throw new Exception("could not find constructor for Procedure");
 
         public LambdaExprET(LexicalContext scope, ParsedLambda lambdaExpr) {
-            SyntaxList.NonEmpty lambdaBody = lambdaExpr.Bodies;
+            ParsedExpr[] lambdaBody = lambdaExpr.Bodies;
 
             var k = Expression.Parameter(typeof(Delegate), "k in LambdaExprET"); // this is the continuation parameter for the proc we are making
             // TODO: couldn't k be a more specific type than Delegate
@@ -633,7 +633,7 @@ internal abstract class ET : Expression {
                 new Expression[] {k}
             );
         }
-        private InvocationExpression LambdaBody(ParameterExpression k, LexicalContext scope, SyntaxList.NonEmpty exprs) {
+        private InvocationExpression LambdaBody(ParameterExpression k, LexicalContext scope, ParsedExpr[] exprs) {
             // TODO: why is this so much more complicated than just returning a block expr?
             // TODO: shouldn't this create a Block?
 
@@ -680,7 +680,7 @@ internal abstract class ET : Expression {
                         Expression.Constant(0))
                 });
         }
-        public BlockET(LexicalContext scope, SyntaxList.NonEmpty exprs)
+        public BlockET(LexicalContext scope, ParsedExpr[] exprs)
         {
             LexicalContext blockScope = scope.Extend();
             // analyze and reduce all but last expr

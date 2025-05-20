@@ -81,10 +81,12 @@ ParsedExpr((Form)Pair.Cons(keyword, SyntaxList.FromIEnumerable(forms)), srcLoc) 
 
 public class ParsedLiteral : ParsedExpr {
 
-    private ParsedLiteral(Syntax keyword, Syntax lit, SrcLoc? srcLoc)
+    private ParsedLiteral(Syntax keyword, Syntax lit, SrcLoc? srcLoc = null)
     : base (SyntaxList.FromParams(keyword, lit), srcLoc) {
         Quoted = lit;
     }
+    
+    public new static ParsedLiteral Void => new ParsedLiteral(new Syntax.Identifier(new Symbol("quote")), new Syntax(Form.Void));
 
     public Syntax Quoted {get;}
 
@@ -192,8 +194,8 @@ public class ParsedDefine : ParsedExpr {
 
 public class ParsedLambda : ParsedExpr {
 
-    private ParsedLambda(Syntax keyword, LambdaParameters parameters, int scopeVarsCount, SyntaxList.NonEmpty bodies, SrcLoc? srcLoc = null)
-      : base(Pair.Cons(keyword, Pair.Cons(parameters, bodies)), srcLoc)
+    private ParsedLambda(Syntax keyword, LambdaParameters parameters, int scopeVarsCount, ParsedExpr[] bodies, SrcLoc? srcLoc = null)
+      : base(Pair.Cons(keyword, Pair.Cons(parameters, (IForm)bodies.ToJigList())), srcLoc)
     {
         Parameters = parameters;
         Bodies = bodies;
@@ -205,7 +207,7 @@ public class ParsedLambda : ParsedExpr {
     // number of parameters and local variables declared in body
     public int  ScopeVarsCount {get;}
     
-    public SyntaxList.NonEmpty Bodies {get;}
+    public ParsedExpr[] Bodies {get;}
 
     public static bool TryParse(Syntax stx,
                                 MacroExpander expander,
@@ -232,15 +234,15 @@ public class ParsedLambda : ParsedExpr {
         LambdaParameters ps = LambdaParameters.Parse(parameters, expander, ee);
 
         xs.Add(parameters);
+        var bodies = new System.Collections.Generic.List<ParsedExpr>();
         foreach (var x in stxList.Skip<Syntax>(2)) {
             Syntax.AddScope(x, newScope);
-            Syntax bodyExpr = expander.Expand(x, ee);
-            xs.Add(bodyExpr);
+            bodies.Add(expander.Expand(x, ee));
         }
 
         // int numVars = ee.VarIndex == 0 ? ps.Required.Length + (ps.HasRequired ? 1 : 0) : ee.VarIndex + 1;
         // TODO: ensure that bodies is non-empty here or in constructor
-        lambdaExpr = new ParsedLambda(xs.ElementAt(0), ps, ee.VarIndex, (SyntaxList.NonEmpty)xs.Skip(2).ToSyntaxList(), stx.SrcLoc);
+        lambdaExpr = new ParsedLambda(xs.ElementAt(0), ps, ee.VarIndex, bodies.ToArray(), stx.SrcLoc);
         return true;
     }
 
