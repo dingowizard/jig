@@ -100,7 +100,7 @@ public static class Program {
 
     private static void TopLevelContinuation(params Form[] forms) {
         foreach (var form in forms) {
-            Console.WriteLine(form.Print());
+            if (form is not Form.VoidType) Console.WriteLine(form.Print());
         }
         
     }

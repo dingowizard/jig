@@ -144,8 +144,13 @@ public class ParsedDefine : ParsedExpr {
         Value = val;
     }
 
+    private ParsedDefine(Syntax keyword, ParsedVariable id, SrcLoc? srcLoc = null)
+        : base(SyntaxList.FromParams(keyword, id), srcLoc) {
+        Variable = id;
+        Value = null;
+    }
     public ParsedVariable Variable {get;}
-    public ParsedExpr Value {get;}
+    public ParsedExpr? Value {get;}
 
     public static bool TryParse(Syntax stx, MacroExpander expander, ExpansionEnvironment ee, [NotNullWhen(returnValue: true)] out ParsedDefine? defineExpr) {
         if (Syntax.E(stx) is not SyntaxList stxList) {
@@ -156,8 +161,7 @@ public class ParsedDefine : ParsedExpr {
             defineExpr = null;
             return false;
         }
-        Debug.Assert(stxList.Count<Syntax>() == 3); // TODO: this should be a syntax error
-        // TODO: (define x) is legal too
+        Debug.Assert(stxList.Count<Syntax>() == 3 || stxList.Count<Syntax>() == 2); // TODO: this should be a syntax error
         Syntax.Identifier id = stxList.ElementAt<Syntax>(1) as Syntax.Identifier
             ?? throw new Exception($"syntax error: malformed define: expected first argument to be an identifier. Got {stxList.ElementAt<Syntax>(1)}");
         // TODO: hm...
@@ -172,10 +176,15 @@ public class ParsedDefine : ParsedExpr {
                                         stx.SrcLoc);
             return true;
         }
-        defineExpr = new ParsedDefine(stxList.ElementAt<Syntax>(0),
-                                    new ParsedVariable.TopLevel(id, id.SrcLoc),
-                                    expander.Expand(stxList.ElementAt<Syntax>(2), ee, definesAllowed: false),
-                                    stx.SrcLoc);
+
+        defineExpr = stxList.Count<Syntax>() == 3
+            ? new ParsedDefine(stxList.ElementAt<Syntax>(0),
+                new ParsedVariable.TopLevel(id, id.SrcLoc),
+                expander.Expand(stxList.ElementAt<Syntax>(2), ee, definesAllowed: false),
+                stx.SrcLoc)
+            : new ParsedDefine(stxList.ElementAt<Syntax>(0),
+                new ParsedVariable.TopLevel(id, id.SrcLoc), stx.SrcLoc);
+            
         return true;
     }
 

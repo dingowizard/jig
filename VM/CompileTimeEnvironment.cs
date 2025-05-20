@@ -14,10 +14,8 @@ public class CompileTimeEnvironment {
 
     public CompileTimeEnvironment(Jig.Binding[] meBindings, Environment env) {
         _toplevels = env.TopLevels;
-        LexVars = new VM.Binding?[meBindings.Length];
     }
     
-    internal VM.Binding?[] LexVars { get; }
 
 
     public Binding DefineTopLevel(Form.Symbol identifierSymbol) {

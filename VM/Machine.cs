@@ -70,7 +70,7 @@ public class Machine
             } else {
                 if (SP - FP != proc.Required) {
                     
-                    Array.ForEach(Dissassembler.Disassemble(proc.Template), Console.WriteLine);
+                    Array.ForEach(Disassembler.Disassemble(proc.Template), Console.WriteLine);
                     throw new Exception($"wrong num args: expected {proc.Required}, but got {SP - FP}. (SP = {SP}; FP = {FP}; stack = {StackToList()})");
                 }  
             }
@@ -125,14 +125,14 @@ public class Machine
             {
                 
                 Console.WriteLine($"*** PC ({PC}) ran past template ***");
-                Array.ForEach(Dissassembler.Disassemble(Template), Console.WriteLine);
+                Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
                 throw new Exception($"");
             }
             IR = Template.Code[PC];
             PC++;
             // Execute
             OpCode opCode = (OpCode)(IR >> 56);
-            if (Loud) Console.WriteLine(Dissassembler.Decode((int)PC - 1, IR, Template.Slots, Template.Bindings));
+            if (Loud) Console.WriteLine(Disassembler.Decode((int)PC - 1, IR, Template.Slots, Template.Bindings));
             switch (opCode) { 
                 case OpCode.Push:
                     Push(VAL!);
@@ -327,6 +327,9 @@ public class Machine
                     ENVT.SetLocal(h, x, Pop());
                     continue;
                 case OpCode.SetTop:
+                    
+                    // Console.WriteLine($"VM: executing SetTop instruction");
+                    // Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
                     Template.Bindings[IR & 0x00FFFFFFFFFFFFFF].Slot = Pop();
                     continue;
                 case OpCode.Jump:

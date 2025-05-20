@@ -62,18 +62,7 @@ public static class WinderThunkCont
 
         public override void Pop(Machine vm)
         {
-            // this is the actual saved continuation that is being applied after all of the 
-            // winder thunks have been run
-            // Console.WriteLine($"Popping base cont.");
-            
-            // vm.Winders = SavedContinuation.SavedWinders.Copy();
-            // SavedContinuation.Apply(vm);
-            // we should have SP = FP after doing the winders
-            return;
-            // Console.WriteLine($"We've applied the SavedContinuation in BaseCont");
-            // Array.ForEach(Dissassembler.Disassemble(vm.Template), Console.WriteLine);
-            // Console.WriteLine($"I wonder what we're returning to.");
-            // Console.WriteLine($"vm.PC = {vm.PC} vm.CONT = {vm.CONT.GetType()}");
+            // TODO: why is there no code here?
 
         }
 

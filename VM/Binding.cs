@@ -20,8 +20,8 @@ public class Binding {
         Top = top;
     }
 
-    public Jig.Form.Symbol Symbol;
-    public Jig.Form? Slot;
-    public bool Top = false;
-
+    public readonly Form.Symbol Symbol;
+    public Form? Slot;
+    public readonly bool Top; // false
+ 
 }

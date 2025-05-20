@@ -27,7 +27,7 @@ public static class Builtins {
         true
     );
 
-    public static Template Values = new Template(
+    public static readonly Template Values = new Template(
         0,
         code: [
             (ulong)OpCode.PopContinuation << 56,
@@ -38,7 +38,7 @@ public static class Builtins {
         true
     );
     
-    public static Template CallWithValues = new Template(
+    public static readonly Template CallWithValues = new Template(
         0,
         code: [
             (ulong)OpCode.CallWValues << 56,

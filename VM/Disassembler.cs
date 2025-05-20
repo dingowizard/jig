@@ -2,28 +2,21 @@ using System.Text;
 using Sys = System.Collections.Generic;
 namespace VM;
 
-public static class Dissassembler {
+public static class Disassembler {
 
     public static string[] Disassemble(Template template) {
         Sys.List<string> literals = ["***LITERALS***"];
-        for (int i = 0; i < template.Slots.Length; i++) {
-            literals.Add($"{i:D5}\t{template.Slots[i].Print()}");
-            
-        }
+        literals.AddRange(template.Slots.Select((t, i) => $"{i:D5}\t{t.Print()}"));
         literals.Add("--------------------------");
         Sys.List<string> globals = ["***BINDINGS***"];
-        for (int i = 0; i < template.Bindings.Length; i++) {
-            globals.Add($"{i:D5}\t{template.Bindings[i].Symbol.Print()} {(template.Bindings[i].Top ? "(top)" : "")}");
-        }
+        globals.AddRange(template.Bindings.Select((t, i) => $"{i:D5}\t{t.Symbol.Print()} {(t.Top ? "(top)" : "")}"));
         globals.Add("--------------------------");
         Sys.List<string> instructions = [
             "***INSTRUCTIONS***",
             "ADDR\tOPCODE\tARG",
             "----\t------\t---"
         ];
-        for (int n = 0; n < template.Code.Length; n++) {
-            instructions.Add(Decode(n, template.Code[n], template.Slots, template.Bindings));
-        }
+        instructions.AddRange(template.Code.Select((t, n) => Decode(n, t, template.Slots, template.Bindings)));
         instructions.Add("--------------------------");
         return literals.Concat(globals).Concat(instructions).ToArray();
 

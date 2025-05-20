@@ -1,10 +1,4 @@
-using System.Diagnostics;
-using System.Linq.Expressions;
-using System.Net;
-using System.Runtime.CompilerServices;
-using System.Text;
 using Jig;
-using Microsoft.Scripting.Utils;
 using Sys = System.Collections.Generic;
 
 namespace VM;
@@ -17,7 +11,7 @@ public class Compiler {
         int scopeLevel = 0,
         int startLine = 0) {
 
-        Sys.List<Jig.Form> literals = [];
+        Sys.List<Form> literals = [];
         Sys.List<Binding> bindings = [];
 
         ulong[] code = Compile(x, ctEnv, literals, bindings, Context.Tail, scopeLevel, startLine); 
@@ -44,7 +38,7 @@ public class Compiler {
             case ParsedIf ifExpr:
                 return CompileIfExpr(ifExpr, ctEnv, literals, bindings, context, scopeLevel, startLine);
             case ParsedLambda le:
-                return CompileLambdaExpr(le, ctEnv, literals, context, scopeLevel, 0);
+                return CompileLambdaExpr(le, ctEnv, literals, context, scopeLevel);
             case ParsedList app:
                 return CompileApplication(app, ctEnv, literals, bindings, context, scopeLevel, startLine);
             case ParsedDefine define:
@@ -120,7 +114,18 @@ public class Compiler {
 
         // We have to compile the lambda function after the variable,
         // because there might be a recursive call to a toplevel
-        result.InsertRange(0, Compile(defForm.Value, ctEnv, literals, bindings, Context.Argument, scopeLevel, startLine));
+        if (defForm.Value is not null) {
+            result.InsertRange(0, Compile(defForm.Value, ctEnv, literals, bindings, Context.Argument, scopeLevel, startLine));
+        } else {
+            // push literal void in cases like "(define a)"
+            if (!literals.Contains(Form.Void)) {
+                literals.Add(Form.Void); 
+            }
+            int index = literals.IndexOf(Form.Void);
+            ulong lit = (ulong)OpCode.Lit << 56;
+            lit += (ulong)index;
+            result.InsertRange(0, [lit, (ulong)OpCode.Push << 56]);
+        }
         if (context == Context.Tail) {
             result.Add((ulong)OpCode.PopContinuation << 56);
         }
@@ -146,15 +151,26 @@ public class Compiler {
         lineNo++; // for unconditional jump to end
         // this is the start of the else code so JumpIfFalse should go here
         ulong jumpIfFalse = ((ulong)OpCode.JumpIfFalse << 56) + (ulong)lineNo;
-        ulong[] elseCodes = [];
+        ulong[] elseCodes;
         if (ifExpr.Else is not null) {
             elseCodes = Compile(ifExpr.Else, ctEnv, literals, bindings, context, scopeLevel, lineNo);
         } else {
-            literals.Add(Form.Void);
+            // TODO: simpler and more DRY to call CompileLit(From.Void)
+            if (!literals.Contains(Form.Void)) {
+                literals.Add(Form.Void); 
+            }
             int index = literals.IndexOf(Form.Void);
-            elseCodes = [((ulong)OpCode.Lit << 56) + (ulong)index];
+            ulong lit = (ulong)OpCode.Lit << 56;
+            lit += (ulong)index;
             if (context == Context.Tail) {
-                elseCodes = elseCodes.Append((ulong)OpCode.PopContinuation << 56).ToArray();
+                elseCodes = [lit, (ulong)OpCode.Push << 56, (ulong)OpCode.PopContinuation << 56];
+            } else if (context == Context.Argument) {
+                elseCodes = [lit, (ulong)OpCode.Push << 56];
+            }
+            else
+            {
+                elseCodes = [lit];
+                
             }
         }
         lineNo += elseCodes.Length;
@@ -183,7 +199,7 @@ public class Compiler {
 
     public ulong[] CompileLit(
         ParsedLiteral literal,
-        Sys.List<Jig.Form> literals,
+        Sys.List<Form> literals,
         Context context)
     {
         var constExpr = (Form)Syntax.ToDatum(literal.Quoted);
@@ -286,18 +302,8 @@ public class Compiler {
         CompileTimeEnvironment ctEnv,
         int scopeLevel)
     {
-        var bindings = new Sys.List<VM.Binding>();
+        var bindings = new Sys.List<Binding>();
         Sys.List<ulong> codes = [];
-        // foreach (ParsedVariable.Lexical var in lambdaExpr.Parameters.Required) {
-        //     // TODO: get rid of all of this 
-        //     var binding = new VM.Binding(var.Binding);
-        //     bindings.Add(binding);
-        //     if (var.Binding.Index >= ctEnv.LexVars.Length) {
-        //         Console.WriteLine($"in CompileLambdaTemplate: compiling parameter: {var.Identifier.Symbol.Print()} in {Syntax.ToDatum(lambdaExpr).Print()}");
-        //         Console.WriteLine($"\tLexVars has length {ctEnv.LexVars.Length} but index is {var.Binding.Index}");
-        //     }
-        //     ctEnv.LexVars[var.Binding.Index] = binding;
-        // }
         
         // TODO: should apply be responsible for this?
         if (lambdaExpr.Parameters.Required.Length != 0) {
@@ -307,9 +313,8 @@ public class Compiler {
         }
 
         if (lambdaExpr.Parameters.HasRest) {
-            var binding = new VM.Binding(lambdaExpr.Parameters.Rest.Binding);
+            var binding = new VM.Binding(lambdaExpr.Parameters.Rest!.Binding);
             bindings.Add(binding);
-            ctEnv.LexVars[lambdaExpr.Parameters.Rest.Binding.Index] = binding;
             var bindRest = (ulong)OpCode.BindRest << 56;
             bindRest += (ulong)lambdaExpr.Parameters.Required.Length;
             codes.Add(bindRest);
@@ -369,6 +374,7 @@ public class Compiler {
                     : (ulong)OpCode.PushContinuationForNonTailBody) << 56;
             pushContInstruction += (ulong)lineNo + 1;
             instructions.Insert(0, pushContInstruction);
+            // ReSharper disable once DuplicatedStatements
             return instructions.ToArray();
         }
 

@@ -1,12 +1,11 @@
 using System.Diagnostics;
 using Jig;
-using Microsoft.Scripting.Runtime;
 
 namespace VM;
 
 public class Environment : Form {
     
-    public Dictionary<Jig.Form.Symbol, Binding> TopLevels;
+    public Dictionary<Symbol, Binding> TopLevels;
 
     public override string Print() => "#<environment>";
     
@@ -28,7 +27,6 @@ public class Environment : Form {
         Default = new Environment(initialBindings);
         initialBindings[new Form.Symbol("cons")] = new Binding(new Form.Symbol("cons"), Primitives.Cons);
         initialBindings[new Form.Symbol("car")] = new Binding(new Form.Symbol("car"), Primitives.Car);
-        // initialBindings[new Form.Symbol("car")] = new Binding(new Form.Symbol("car"), new Procedure(Default, VM.Builtins.Car));
         initialBindings[new Form.Symbol("cdr")] = new Binding(new Form.Symbol("cdr"), Primitives.Cdr);
         initialBindings[new Form.Symbol("null?")] = new Binding(new Form.Symbol("null?"), Primitives.NullP);
         initialBindings[new Form.Symbol("zero?")] = new Binding(new Form.Symbol("zero?"), Primitives.ZeroP);

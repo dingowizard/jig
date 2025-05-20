@@ -40,7 +40,7 @@ public class PartialContinuation : Continuation {
             if (vm.SP - vm.FP != this.Continuation.Required) {
                 
                 Console.WriteLine($"Error popping PartCont: popping to this template: {this.ReturnAddress}");
-                Array.ForEach(Dissassembler.Disassemble(this.Template), Console.WriteLine);
+                Array.ForEach(Disassembler.Disassemble(this.Template), Console.WriteLine);
                 Console.WriteLine($"but checking stack against expected values for {this.Continuation.GetType()}");
                 
                 throw new Exception(
