@@ -38,6 +38,8 @@ public class Compiler {
                 return CompileIfExpr(ifExpr, ctEnv, literals, bindings, context, scopeLevel, startLine);
             case ParsedLambda le:
                 return CompileLambdaExpr(le, ctEnv, literals, context, scopeLevel);
+            case ParsedBegin begin:
+                return CompileBegin(begin, ctEnv, literals, bindings, context, scopeLevel, startLine);
             case ParsedList app:
                 return CompileApplication(app, ctEnv, literals, bindings, context, scopeLevel, startLine);
             case ParsedDefine define:
@@ -47,6 +49,23 @@ public class Compiler {
             default:
                 throw new NotImplementedException($"{x.Print()} of type {x.GetType()} is not supported yet");
         }
+    }
+
+    private ulong[] CompileBegin(ParsedBegin begin, CompileTimeEnvironment ctEnv, Sys.List<Form> literals,
+        Sys.List<Binding> bindings,
+        Context context, int scopeLevel, int startLine)
+    {
+        // NOTE: wrong type of begin in wrong context is assumed to have been caught as a syntax error
+        var sequence = begin.Forms;
+        Sys.List<ulong> instructions = [];
+
+        int lineNo = startLine;
+        foreach (var x in sequence.Take(sequence.Length - 1)) {
+            instructions = instructions.Concat(Compile(x, ctEnv, literals, bindings, Context.NonTailBody, scopeLevel, lineNo)).ToList();
+            lineNo += instructions.Count();
+        }
+        // add instruction for expr in tail position
+        return instructions.Concat(Compile(sequence[sequence.Length - 1], ctEnv, literals, bindings, context, scopeLevel, lineNo)).ToArray();
     }
 
     private ulong[] CompileSet(ParsedSet setForm,

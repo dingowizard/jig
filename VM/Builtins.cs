@@ -39,6 +39,7 @@ public static class Builtins {
     );
     
     public static readonly Template CallWithValues = new Template(
+        // TODO: can this by re-done more in the style of DynamicWind?
         0,
         code: [
             (ulong)OpCode.CallWValues << 56,
@@ -51,6 +52,7 @@ public static class Builtins {
     );
     
     public static readonly Template CallCC = new Template(
+        // TODO: can this by re-done more in the style of DynamicWind?
         0,
         code: [
             (ulong)OpCode.CallCC << 56,
@@ -62,7 +64,7 @@ public static class Builtins {
         false
         );
 
-    public static readonly Template DynamicWind2 = new(
+    public static readonly Template DynamicWind = new(
         numVarsForScope: 3,
         code: [
             ((ulong)OpCode.Bind << 56) + 3, //0

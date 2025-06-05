@@ -34,7 +34,7 @@ public class Environment : Form {
         initialBindings[new Form.Symbol("+")] = new Binding(new Form.Symbol("+"), new Procedure(Default, VM.Builtins.Sum));
         initialBindings[new Form.Symbol("values")] = new Binding(new Form.Symbol("values"), new Procedure(Default, VM.Builtins.Values));
         initialBindings[new Form.Symbol("call-with-values")] = new Binding(new Form.Symbol("call-with-values"), new Procedure(Default, VM.Builtins.CallWithValues));
-        initialBindings[new Form.Symbol("dynamic-wind")] = new Binding(new Form.Symbol("dynamic-wind"), new Procedure(Default, VM.Builtins.DynamicWind2));
+        initialBindings[new Form.Symbol("dynamic-wind")] = new Binding(new Form.Symbol("dynamic-wind"), new Procedure(Default, VM.Builtins.DynamicWind));
         initialBindings[new Form.Symbol("*")] = new Binding(new Form.Symbol("*"), new Procedure(Default, VM.Builtins.Product));
     }
 

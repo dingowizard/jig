@@ -246,8 +246,7 @@ public class Machine
                         if (!cont.SavedWinders.Equals(Winders)) { // TODO: ReferenceEquals?
                             CONT = cont.SavedWinders.DoWinders(this, cont);
                             if (CONT is not WinderThunkCont.ThunkCont wThunk)
-                                throw new Exception(
-                                    "if winders aren't equal, we SHOULD have a WinderThunk (or BaseCont?)");
+                                throw new Exception( "if winders aren't equal, we SHOULD have a WinderThunk (or BaseCont?)");
                             // winders need to be called with no arguments, but if we're applying a saved
                             // continuation, there may be arguments
                             // so we should save the frame pointer on the stack

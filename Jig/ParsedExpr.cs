@@ -51,7 +51,7 @@ public class ParsedSet : ParsedExpr {
 }
 
 public class ParsedBegin(Syntax keyword, ParsedExpr[] forms, SrcLoc? srcLoc = null) :
-ParsedExpr((Form)Pair.Cons(keyword, SyntaxList.FromIEnumerable(forms)), srcLoc) {
+    ParsedExpr((Form)Pair.Cons(keyword, SyntaxList.FromIEnumerable(forms)), srcLoc) {
     public ParsedExpr[] Forms {get;} = forms;
 
     public static bool TryParse(Syntax stx,

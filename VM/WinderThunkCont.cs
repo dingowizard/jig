@@ -29,21 +29,20 @@ public static class WinderThunkCont
 
         public override void Pop(Machine vm)
         {
+            // This represents return from an in- or out-thunk as part of applying a 
+            // saved continuation that was made inside dynamic-wind
             
             // no need to check how many values were returned, because any are allowed
             // set SP to current FP, erasing all values returned by this call
 
-            // Console.WriteLine($"ThunkCont.Pop");
-            // Console.WriteLine($"ThunkCont.Pop: current template:");
-            // Array.ForEach(Disassembler.Disassemble(vm.Template), Console.WriteLine);
-            vm.SP = vm.FP; // clear any results from last winder
+            vm.SP = vm.FP;
             vm.PC = this.ReturnAddress;
             vm.ENVT = this.Environment;
             vm.Template = this.Template;
             vm.CONT = this.Continuation;
             
-            // Console.WriteLine($"ThunkCont.Pop: new template:");
-            // Array.ForEach(Disassembler.Disassemble(vm.Template), Console.WriteLine);
+            // TODO: setting winders is supposed to happen _before_ out-thunks
+            // this is always setting winders after the thunk whether it is in or out
             vm.Winders = Winders;
             return;
             
@@ -61,9 +60,11 @@ public static class WinderThunkCont
 
         public override void Pop(Machine vm)
         {
+            // After we've done the out- and in-thunks when applying a continuation, this is the saved continuation:
+            
             // Console.WriteLine($"BaseCont.Pop:");
             // Array.ForEach(Disassembler.Disassemble(vm.Template), Console.WriteLine);
-            // we need to discard any results returned from the winder
+            // we need to discard any results returned from the last in- or out-thunk
             vm.SP = vm.FP;
             // and the stored FP should be just under the stack pointer
             vm.FP = (uint)((Integer)vm.Pop()).Value;
