@@ -148,8 +148,7 @@ public class Compiler {
         lineNo++; // for unconditional jump to end
         // this is the start of the else code so JumpIfFalse should go here
         ulong jumpIfFalse = ((ulong)OpCode.JumpIfFalse << 56) + (ulong)lineNo;
-        ulong[] elseCodes;
-        elseCodes = ifExpr.Else is not null
+        var elseCodes = ifExpr.Else is not null
             ? Compile(ifExpr.Else, ctEnv, literals, bindings, context, scopeLevel, lineNo)
             : CompileLit(ParsedLiteral.Void, literals, context);
         lineNo += elseCodes.Length;
@@ -172,6 +171,7 @@ public class Compiler {
             instructions = instructions.Concat(Compile(x, ctEnv, literals, bindings, Context.NonTailBody, scopeLevel, lineNo)).ToList();
             lineNo += instructions.Count();
         }
+        // add instruction for expr in tail position
         instructions = instructions.Concat(Compile(sequence[sequence.Length - 1], ctEnv, literals, bindings, Context.Tail, scopeLevel, lineNo)).ToList();
         return new Template(0, instructions.ToArray(), bindings.ToArray(), literals.ToArray(), 0, false);
     }
@@ -188,14 +188,7 @@ public class Compiler {
         int index = literals.IndexOf(constExpr);
         ulong lit = (ulong)OpCode.Lit << 56;
         lit += (ulong)index;
-        if (context == Context.Tail) {
-            return [lit, (ulong)OpCode.Push << 56, (ulong)OpCode.PopContinuation << 56];
-        }
-
-        if (context == Context.Argument) {
-            return [lit, (ulong)OpCode.Push << 56];
-        }
-        return [lit];
+        return CodeForContext(lit, context);
     }
 
     public ulong[] CompileTop(
@@ -212,6 +205,12 @@ public class Compiler {
         int index = bindings.FindIndex(b => Equals(b.Symbol, sym));
         ulong code = (ulong)OpCode.Top << 56;
         code += (ulong)index;
+        return CodeForContext(code, context);
+
+    }
+
+    private static ulong[] CodeForContext(ulong code, Context context)
+    {
         if (context == Context.Tail) {
             return [code, (ulong)OpCode.Push << 56, (ulong)OpCode.PopContinuation << 56];
         }
@@ -219,11 +218,24 @@ public class Compiler {
         if (context == Context.Argument) {
             return [code, (ulong)OpCode.Push << 56];
         }
-        // TODO: maybe still emit even in the following case, since there should be a runtime error if lookup fails
+        // NonTailBody. TODO: others? operator?
         return [code];
-
+        
     }
 
+    private static ulong[] CodeForContext(IEnumerable<ulong> codes, Context context)
+    {
+        if (context == Context.Tail) {
+            return [.. codes, (ulong)OpCode.Push << 56, (ulong)OpCode.PopContinuation << 56];
+        }
+
+        if (context == Context.Argument) {
+            return [.. codes, (ulong)OpCode.Push << 56];
+        }
+        // TODO: maybe don't emit anything if in a non-tail body
+        return codes.ToArray();
+        
+    }
     public ulong[] CompileLexVar(ParsedVariable.Lexical var,
         CompileTimeEnvironment ctEnv, // TODO: should scope level be part of ct-env?
         Context context,
@@ -235,15 +247,7 @@ public class Compiler {
         code += ((ulong)depth) << 32; // TODO: this could be too big I suppose.
         
         code += (ulong)var.Binding.VarIndex;
-        if (context == Context.Tail) {
-            return [code, (ulong)OpCode.Push << 56, (ulong)OpCode.PopContinuation << 56];
-        }
-
-        if (context == Context.Argument) {
-            return [code, (ulong)OpCode.Push << 56];
-        }
-        // TODO: probably don't emit anything if in a non-tail body
-        return [code];
+        return CodeForContext(code, context);
     }
 
     public ulong[] CompileLambdaExpr(ParsedLambda lambdaExpr,
@@ -263,16 +267,9 @@ public class Compiler {
             (ulong)OpCode.Push << 56, // PUSH
             (ulong)OpCode.Lambda << 56, // CLOS
         ];
-        
-        if (context == Context.Tail) {
-            return [.. result, (ulong)OpCode.Push << 56, (ulong)OpCode.PopContinuation << 56];
-        }
 
-        if (context == Context.Argument) {
-            return [.. result, (ulong)OpCode.Push << 56];
-        }
-        // TODO: maybe don't emit anything if in a non-tail body
-        return result.ToArray();
+        return CodeForContext(result, context);
+        
     }
 
     private Template CompileLambdaTemplate(
@@ -320,8 +317,8 @@ public class Compiler {
     {
         Sys.List<ulong> instructions = [];
         var xs = app.ParsedExprs.ToArray();
-        // we're going to wait til the end for the push continuation instr because we need to know the address
-        // we'll append it to the front
+        // we're going to wait til the end to make the push continuation instr because we need to know the address
+        // we'll insert it at the front
         int lineNo = startLine;
         // eval and push for all args to the call
         for (int i = xs.Length - 1; i > 0; i--) {
@@ -339,9 +336,8 @@ public class Compiler {
         instructions.Add((ulong)OpCode.Call << 56);
         lineNo++;
         
-        
         if (context != Context.Tail) {
-            // the call is not a context call, so we do want to save a continuation before we start
+            // the call is not a tail call, so we _do_ want to save a continuation before we start
             var pushContInstruction =
                 (context == Context.Argument
                     ? (ulong)OpCode.PushContinuationForArg

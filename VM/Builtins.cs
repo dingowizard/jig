@@ -69,12 +69,12 @@ public static class Builtins {
             ((ulong)OpCode.PushContinuationForNonTailBody << 56) + 5,
             ((ulong)OpCode.Lex << 56), // + 0 + 0 omitted.
             ((ulong)OpCode.Push << 56),
-            ((ulong)OpCode.Call << 56), //4
+            ((ulong)OpCode.Call << 56),
             // push winders
             ((ulong)OpCode.Lex << 56) + 2, // + 0 + 2 
             ((ulong)OpCode.Push << 56),
             ((ulong)OpCode.Lex << 56), // + 0 + 0 omitted.
-            ((ulong)OpCode.Push << 56), //8
+            ((ulong)OpCode.Push << 56),
             ((ulong)OpCode.PushWinder << 56),
             
             // results of in-thunk were discarded by ContinuationForNonTailBody
@@ -84,12 +84,12 @@ public static class Builtins {
                                                                      // or we need new instruction to do same below
                                                                     // before or after popwinder instr
             ((ulong)OpCode.Lex << 56) + 1, // + 0 + 1 omitted.
-            ((ulong)OpCode.Push << 56), // 12
+            ((ulong)OpCode.Push << 56),
             ((ulong)OpCode.Call << 56),
             (ulong)OpCode.PopWinder << 56,
             (ulong)OpCode.PushFP << 56, // save the frame pointer on the stack
             (ulong)OpCode.SPToFP << 56, // set current fp to sp
-            ((ulong)OpCode.PushContinuationForNonTailBody << 56) + 21, // 17
+            ((ulong)OpCode.PushContinuationForNonTailBody << 56) + 21,
             ((ulong)OpCode.Lex << 56) + 2, // + 0 + 2
             ((ulong)OpCode.Push << 56),
             ((ulong)OpCode.Call << 56),

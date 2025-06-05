@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
 using Jig;
 namespace VM;
 
@@ -201,12 +202,18 @@ public class Machine
                         
                     }
 
-                    if (CONT is WinderThunkCont.ThunkCont wtc && wtc.Continuation is WinderThunkCont.BaseCont bc &&
-                        bc.SavedContinuation.Saved is TopLevelContinuation)
+                    if (CONT is WinderThunkCont.ThunkCont wtc)
                     {
-                        wtc.Pop(this);
-                        return;
+                        // Console.WriteLine($"VM.PopContinuation: PC = {PC} wtc is {wtc.GetType()}");
 
+                        if (wtc.Continuation is WinderThunkCont.BaseCont bc &&
+                            bc.SavedContinuation.Saved is TopLevelContinuation)
+                        {
+                            wtc.Pop(this);
+                            return;
+
+                        }
+                        
                     }
 
                     CONT.Pop(this);
@@ -238,21 +245,22 @@ public class Machine
                         // Console.WriteLine($"\tthey are ReferenceEquals: {object.ReferenceEquals(cont.SavedWinders, Winders) }");
                         if (!cont.SavedWinders.Equals(Winders)) { // TODO: ReferenceEquals?
                             CONT = cont.SavedWinders.DoWinders(this, cont);
-                            if (CONT is WinderThunkCont.ThunkCont wThunk) {
-                                // winders need to be called with no arguments, but if we're applying a saved
-                                // continuation, there may be arguments
-                                // so we should save the frame pointer on the stack
-                                // set the fp to sp
-                                // then call the first thunk
-                                // when we get to the saved continuation itself, after doing the winders, 
-                                // we need to pop the fp off the stack
-                                Push(new Integer((int)FP));
-                                FP = SP;
-                                VAL = wThunk.Thunk;
-                                Call();
-                                continue;
-                            }
-                            throw new Exception("if winders aren't equal, we SHOULD have a WinderThunk");
+                            if (CONT is not WinderThunkCont.ThunkCont wThunk)
+                                throw new Exception(
+                                    "if winders aren't equal, we SHOULD have a WinderThunk (or BaseCont?)");
+                            // winders need to be called with no arguments, but if we're applying a saved
+                            // continuation, there may be arguments
+                            // so we should save the frame pointer on the stack
+                            // set the fp to sp
+                            // then call the first thunk
+                            // when we get to the saved continuation itself, after doing the winders, 
+                            // we need to pop the fp off the stack
+                            Push(new Integer((int)FP));
+                            FP = SP;
+                            CONT = wThunk.Continuation;
+                            VAL = wThunk.Thunk;
+                            Call();
+                            continue;
 
                         }
                         cont.Apply(this);

@@ -10,43 +10,42 @@ public static class WinderThunkCont
         return new BaseCont(cont);
     }
 
-    public static ThunkCont From(Procedure proc, uint fp, Continuation cont)
+    public static ThunkCont From(Procedure proc, uint fp, Continuation cont, Winders ws)
     {
         // TODO: is fp needed for anything?
-        return new ThunkCont(proc, proc.Template, 0, proc.Environment, fp, cont, 0, true);
+        return new ThunkCont(proc, proc.Template, 0, proc.Environment, fp, cont, 0, true, ws);
     }
 
     public class ThunkCont : PartialContinuation
     {
-        public ThunkCont(Procedure thunk, Template template, ulong returnAddress, Environment environment, uint fp, Continuation continuation, int requiredValues, bool hasOptional) : base(template, returnAddress, environment, fp, continuation, requiredValues, hasOptional) {
+        public ThunkCont(Procedure thunk, Template template, ulong returnAddress, Environment environment, uint fp, Continuation continuation, int requiredValues, bool hasOptional , Winders ws) : base(template, returnAddress, environment, fp, continuation, requiredValues, hasOptional) {
             Thunk = thunk;
+            Winders = ws;
         }
-        
+
+        public Winders Winders { get; set; }
+
         public Procedure Thunk { get; }
 
         public override void Pop(Machine vm)
         {
-            // Console.WriteLine($"Popping continuation for winder");
-            // Popping this continuation means transferring control to the winder thunk
             
             // no need to check how many values were returned, because any are allowed
             // set SP to current FP, erasing all values returned by this call
-            // Console.WriteLine($"The continuation of this continuation is a {this.Continuation.GetType()}");
-            if (this.Continuation is BaseCont b) {
-                
-                // we need to discard any results returned from the winder
-                vm.SP = vm.FP;
-                // and the stored FP should be just under the stack pointer
-                vm.FP = (uint)((Integer)vm.Pop()).Value;
-                vm.Winders = b.SavedContinuation.SavedWinders.Copy();
-                vm.VAL = b.SavedContinuation;
-                vm.Call();
-                return;
 
-            }
-
+            // Console.WriteLine($"ThunkCont.Pop");
+            // Console.WriteLine($"ThunkCont.Pop: current template:");
+            // Array.ForEach(Disassembler.Disassemble(vm.Template), Console.WriteLine);
             vm.SP = vm.FP; // clear any results from last winder
-            vm.VAL = Thunk;
+            vm.PC = this.ReturnAddress;
+            vm.ENVT = this.Environment;
+            vm.Template = this.Template;
+            vm.CONT = this.Continuation;
+            
+            // Console.WriteLine($"ThunkCont.Pop: new template:");
+            // Array.ForEach(Disassembler.Disassemble(vm.Template), Console.WriteLine);
+            vm.Winders = Winders;
+            return;
             
         }
     }
@@ -62,7 +61,16 @@ public static class WinderThunkCont
 
         public override void Pop(Machine vm)
         {
-            // TODO: why is there no code here?
+            // Console.WriteLine($"BaseCont.Pop:");
+            // Array.ForEach(Disassembler.Disassemble(vm.Template), Console.WriteLine);
+            // we need to discard any results returned from the winder
+            vm.SP = vm.FP;
+            // and the stored FP should be just under the stack pointer
+            vm.FP = (uint)((Integer)vm.Pop()).Value;
+            vm.Winders = SavedContinuation.SavedWinders.Copy();
+            vm.VAL = SavedContinuation;
+            vm.Call();
+            return;
 
         }
 
