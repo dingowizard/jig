@@ -225,12 +225,31 @@ public class Machine
                     
                     // maybe by having another CompilationContext for operator
                     VAL = Pop();
+                    if (VAL is Primitive2 primitiveProc)
+                    {
+                        primitiveProc.Apply(this);
+                        // NOTE: Primitive2 pushes it's result
+                        // TODO: grrr. do I have to repeat this business below?
+                        /*
+                        if (CONT is TopLevelContinuation) {
+                            return;
+                        }
+                        continue;
+                    */
+                        if (CONT is PartialContinuation pct) {
+                            pct.Pop(this);
+                            continue;
+                        }
+                        CONT.Pop(this);
+                        // Console.WriteLine($"about to return from case OpCode.Call, PrimitiveFn");
+                        return;
+                    }
                     if (VAL is Primitive primitiveFn) {
-                        // primitives don't have a return instruction, thus this ugliness:
                         Delegate del = primitiveFn.Delegate;
                         // TODO:
                         VAL = (Form)del.DynamicInvoke(ConsumeStackFrameToList().Cast<object>().ToArray());
                         Push(VAL);
+                        // primitives don't have a return instruction, thus this ugliness:
                         if (CONT is PartialContinuation pct) {
                             pct.Pop(this);
                             continue;

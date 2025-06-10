@@ -26,24 +26,125 @@ public static class Primitives {
 
     public static Primitive Cons { get; } = new Primitive(cons);
     
-    private static Form zerop(Form form) {
+    private static Form zerop(Form form)
+    {
         if (form is Number number) {
             return number == Integer.Zero;
         }
         throw new Exception("zero?: expected argument to be number, got {form}");
     }
 
-    public static Primitive ZeroP { get; } = new Primitive(zerop);
-    
-    private static Form nullp(Form form) {
-        if (form is List xs) {
-            return xs.NullP;
+    private static void numEq(Machine vm)
+    {
+        // TODO: what if args aren't numbers?
+        Number number1 = (Number)vm.Pop();
+        while (vm.SP > vm.FP)
+        {
+            Number number2 = (Number)vm.Pop();
+            if ((number1 != number2).Value)
+            {
+                // you don't have to keep testing arguments for equality
+                // so throw away rest of args to call
+                vm.SP = vm.FP;
+                vm.Push(Bool.False);
+                return;
+
+            }
+            
         }
-        return Bool.False;
+
+        vm.Push(Bool.True);
+        return;
 
     }
 
-    public static Primitive NullP { get; } = new Primitive(nullp);
+    // private static void callWValues(Machine vm)
+    // {
+    //     var producer = (Procedure)vm.Pop();
+    //     var continuationProc = (Procedure)vm.Pop();
+    //     vm.CONT = new PartialContinuationForCallWithValues(
+    //         continuationProc.Template,
+    //         0,
+    //         continuationProc.Environment,
+    //         vm.FP,
+    //         vm.CONT,
+    //         continuationProc.Required,
+    //         continuationProc.HasRest);
+    //     vm.VAL = producer;
+    //     vm.Call();
+    //     // this doesn't work because the procedure is expected to push its results, but it doesn't have any yet
+    //     
+    // } 
+
+    public static Primitive2 NumEq { get; } = new(numEq, 1, true);
+
+    // public static Primitive2 CallWValues { get; } = new(callWValues, 2, false);
+
+    public static Primitive ZeroP { get; } = new(zerop);
+    
+    private static void nullp(Machine vm)
+    {
+        Form form = vm.Pop();
+        if (form is List xs) {
+            vm.Push(vm.VAL = xs.NullP);
+            return;
+        }
+        vm.Push(vm.VAL = Bool.False);
+        return;
+    
+    }
+
+    // private static Form nullp(Form form)
+    // {
+    //     if (form is List xs)
+    //     {
+    //         return xs.NullP;
+    //
+    //     }
+    //
+    //     return Bool.False;
+    // }
+
+    // public static Primitive NullP { get; } = new(nullp);
+    public static Primitive2 NullP { get; } = new(nullp, 1, false);
+}
+
+public delegate void PrimitiveProcedure(Machine vm);
+
+public class Primitive2 : Form
+{
+
+    public Primitive2(PrimitiveProcedure proc, int required, bool hasRest)
+    {
+        Delegate = proc;
+        Required = required;
+        HasRest = hasRest;
+
+    }
+
+    public bool HasRest { get; }
+
+    public int Required { get;}
+
+    private PrimitiveProcedure Delegate { get; }
+
+    public void Apply(Machine vm)
+    {
+        if (HasRest) {
+            if (vm.SP - vm.FP < Required) {
+                throw new Exception(
+                    $"wrong num args: expected at least {Required}, but got only {vm.SP - vm.FP}");
+            }
+        } else {
+            if (vm.SP - vm.FP != Required) {
+                    
+                throw new Exception($"wrong num args: expected {Required}, but got {vm.SP - vm.FP}. (SP = {vm.SP}; FP = {vm.FP}; stack = {vm.StackToList()})");
+            }  
+        }
+        Delegate(vm);
+    }
+    public override string Print() => "#<procedure>";
+    
 }
 
 public class Primitive : Form {
