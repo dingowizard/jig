@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Jig.Expansion;
 
 namespace Jig;
 
@@ -9,8 +10,8 @@ public abstract class ParsedExpr : Syntax {
 
 }
 
-public class ParsedList : ParsedExpr {
-    public ParsedList(IEnumerable<ParsedExpr> stxList, SrcLoc? srcLoc) : base(stxList.ToSyntaxList(), srcLoc) {
+public class ParsedApplication : ParsedExpr {
+    public ParsedApplication(IEnumerable<ParsedExpr> stxList, SrcLoc? srcLoc) : base(stxList.ToSyntaxList(), srcLoc) {
         ParsedExprs = stxList.ToArray();
     }
 
@@ -19,7 +20,7 @@ public class ParsedList : ParsedExpr {
 
 public class ParsedSet : ParsedExpr {
 
-    private ParsedSet(Syntax keyword, ParsedVariable id, ParsedExpr val, SrcLoc? srcLoc = null)
+    internal ParsedSet(Syntax keyword, ParsedVariable id, ParsedExpr val, SrcLoc? srcLoc = null)
       : base(SyntaxList.FromParams(keyword, id, val), srcLoc) {
         Variable = id;
         Value = val;
@@ -80,8 +81,7 @@ public class ParsedBegin(Syntax keyword, ParsedExpr[] forms, SrcLoc? srcLoc = nu
 }
 
 public class ParsedLiteral : ParsedExpr {
-
-    private ParsedLiteral(Syntax keyword, Syntax lit, SrcLoc? srcLoc = null)
+    internal ParsedLiteral(Syntax keyword, Syntax lit, SrcLoc? srcLoc = null)
     : base (SyntaxList.FromParams(keyword, lit), srcLoc) {
         Quoted = lit;
     }
@@ -107,14 +107,14 @@ public class ParsedLiteral : ParsedExpr {
         return false;
     }
 
-    private static bool QuoteIsMalformed(SyntaxList stxList) => !(stxList.Count<Syntax>() == 2);
+    private static bool QuoteIsMalformed(SyntaxList stxList) => stxList.Count<Syntax>() != 2;
 
     private static bool IsQuote(Syntax stx) => Form.IsKeyword("quote", stx);
 
 }
 
 public class ParsedQuoteSyntax : ParsedExpr {
-    private ParsedQuoteSyntax(Syntax keyword, Syntax lit, SrcLoc? srcLoc)
+    internal ParsedQuoteSyntax(Syntax keyword, Syntax lit, SrcLoc? srcLoc)
     : base (SyntaxList.FromParams(keyword, lit), srcLoc) {
         Quoted = lit;
     }
@@ -140,13 +140,13 @@ public class ParsedQuoteSyntax : ParsedExpr {
 
 public class ParsedDefine : ParsedExpr {
 
-    private ParsedDefine(Syntax keyword, ParsedVariable id, ParsedExpr val, SrcLoc? srcLoc = null)
+    internal ParsedDefine(Syntax keyword, ParsedVariable id, ParsedExpr val, SrcLoc? srcLoc = null)
       : base(SyntaxList.FromParams(keyword, id, val), srcLoc) {
         Variable = id;
         Value = val;
     }
 
-    private ParsedDefine(Syntax keyword, ParsedVariable id, SrcLoc? srcLoc = null)
+    internal ParsedDefine(Syntax keyword, ParsedVariable id, SrcLoc? srcLoc = null)
         : base(SyntaxList.FromParams(keyword, id), srcLoc) {
         Variable = id;
         Value = null;
@@ -194,7 +194,7 @@ public class ParsedDefine : ParsedExpr {
 
 public class ParsedLambda : ParsedExpr {
 
-    private ParsedLambda(Syntax keyword, LambdaParameters parameters, int scopeVarsCount, ParsedExpr[] bodies, SrcLoc? srcLoc = null)
+    internal ParsedLambda(Syntax keyword, LambdaParameters parameters, int scopeVarsCount, ParsedExpr[] bodies, SrcLoc? srcLoc = null)
       : base(Pair.Cons(keyword, Pair.Cons(parameters, (IForm)bodies.ToJigList())), srcLoc)
     {
         Parameters = parameters;
@@ -317,7 +317,69 @@ public class ParsedLambda : ParsedExpr {
             }
             return new LambdaParameters(stx, required.ToArray(), rest);
         }
+public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
+            var namesSeen = new System.Collections.Generic.List<string>();
+            var required = new System.Collections.Generic.List<ParsedVariable.Lexical>();
+            ParsedVariable.Lexical? rest = null;
+            if (Syntax.E(stx) is SyntaxList psStxList) {
+                foreach(Syntax p in psStxList.Cast<Syntax>()) {
+                    Syntax.Identifier id = p as Syntax.Identifier ??
+                        throw new Exception($"lambda: expected parameters to be identifiers, but got {p} @ {p.SrcLoc?.ToString() ?? "?"}");
+                    if (namesSeen.Contains(id.Symbol.Name)) {
+                        throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
+                    }
+                    Binding binding = new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++);
+                    id.Symbol.Binding = binding;
+                    context.AddBinding(id, binding);
+                    namesSeen.Add(id.Symbol.Name);
+                    required.Add(new ParsedVariable.Lexical(id, binding, id.SrcLoc));
+                }
+            } else if (Syntax.E(stx) is IPair pair) {
+                Syntax.Identifier? id = pair.Car as Syntax.Identifier;
+                if (id is null) throw new Exception($"lambda: expected parameters to be identifiers, but got {pair.Car}");
+                if (namesSeen.Contains(id.Symbol.Name)) {
+                    throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
+                }
+                namesSeen.Add(id.Symbol.Name);
+                Binding binding = new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++);
+                id.Symbol.Binding = binding;
+                required.Add(new ParsedVariable.Lexical(id, binding, id.SrcLoc));
+                context.AddBinding(id, binding);
+                while (pair.Cdr is IPair cdrPair) {
+                    id = cdrPair.Car as Syntax.Identifier;
+                    if (id is null) throw new Exception($"lambda: expected parameters to be identifiers, but got {pair.Car}");
+                    if (namesSeen.Contains(id.Symbol.Name)) {
+                        throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
+                    }
+                    binding = new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++);
+                    id.Symbol.Binding = binding;
+                    context.AddBinding(id, binding);
+                    pair = cdrPair;
+                    namesSeen.Add(id.Symbol.Name);
+                    required.Add(new ParsedVariable.Lexical(id, binding, id.SrcLoc));
+                }
+                id = pair.Cdr as Syntax.Identifier;
+                if (id is null) throw new Exception($"lambda: expected parameters to be identifiers, but got {pair.Cdr}");
+                if (namesSeen.Contains(id.Symbol.Name)) {
+                    throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
+                }
+                binding = new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++);
+                id.Symbol.Binding = binding;
+                context.AddBinding(id, binding);
+                namesSeen.Add(id.Symbol.Name);
+                rest = new ParsedVariable.Lexical(id, binding, id.SrcLoc);
+            } else if (stx is Syntax.Identifier psId) {
+                    Binding binding = new Binding(psId.Symbol, context.ScopeLevel, context.VarIndex++);
+                    psId.Symbol.Binding = binding;
+                    context.AddBinding(psId, binding);
+                    rest = new ParsedVariable.Lexical(psId, binding, psId.SrcLoc);
+            } else if (Syntax.E(stx) is List.Empty) {
 
+            } else {
+                throw new Exception($"ExpandLambda: expected parameters to be list or identifier, got {Syntax.E(stx)}");
+            }
+            return new LambdaParameters(stx, required.ToArray(), rest);
+        }
         public bool HasRequired => Required.Length != 0;
 
         public bool HasRest => Rest is not null;
@@ -394,11 +456,11 @@ public class ParsedIf : ParsedExpr {
             ifExpr = null;
             return false;
         }
-        System.Collections.Generic.List<ParsedExpr> xs = [];
         if (!Form.IsKeyword("if", stx)) {
             ifExpr = null;
             return false;
         }
+        System.Collections.Generic.List<ParsedExpr> xs = [];
         foreach (var x in stxList.Skip<Syntax>(1)) {
             ParsedExpr bodyExpr = expander.Expand(x, ee, definesAllowed: false);
             xs.Add(bodyExpr);
@@ -421,7 +483,7 @@ public class ParsedIf : ParsedExpr {
     public ParsedExpr? Else {get; private set;}
 
 
-    private ParsedIf(Syntax kywd, ParsedExpr cond, ParsedExpr then, ParsedExpr @else, SrcLoc? srcLoc = null) :
+    internal ParsedIf(Syntax kywd, ParsedExpr cond, ParsedExpr then, ParsedExpr @else, SrcLoc? srcLoc = null) :
         base(SyntaxList.FromParams(kywd, cond, then, @else), srcLoc)
     {
         Condition = cond;
@@ -431,7 +493,7 @@ public class ParsedIf : ParsedExpr {
 
     }
 
-    private ParsedIf(Syntax kywd, ParsedExpr cond, ParsedExpr then, SrcLoc? srcLoc = null) :
+    internal ParsedIf(Syntax kywd, ParsedExpr cond, ParsedExpr then, SrcLoc? srcLoc = null) :
         base(SyntaxList.FromParams(kywd, cond, then), srcLoc)
     {
         Condition = cond;

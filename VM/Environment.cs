@@ -28,10 +28,15 @@ public class Environment : Form {
         initialBindings[new Form.Symbol("cons")] = new Binding(new Form.Symbol("cons"), Primitives.Cons);
         initialBindings[new Form.Symbol("car")] = new Binding(new Form.Symbol("car"), Primitives.Car);
         initialBindings[new Form.Symbol("cdr")] = new Binding(new Form.Symbol("cdr"), Primitives.Cdr);
+        initialBindings[new Form.Symbol("append")] = new Binding(new Form.Symbol("append"), Primitives.Append);
+        initialBindings[new Form.Symbol("pair?")] = new Binding(new Form.Symbol("pair?"), Primitives.PairP);
         initialBindings[new Form.Symbol("null?")] = new Binding(new Form.Symbol("null?"), Primitives.NullP);
         initialBindings[new Form.Symbol("zero?")] = new Binding(new Form.Symbol("zero?"), Primitives.ZeroP);
         initialBindings[new Form.Symbol("call/cc")] = new Binding(new Form.Symbol("call/cc"), new Procedure(Default, VM.Builtins.CallCC));
         initialBindings[new Form.Symbol("+")] = new Binding(new Form.Symbol("+"), new Procedure(Default, VM.Builtins.Sum));
+        initialBindings[new Form.Symbol(">")] = new Binding(new Form.Symbol(">"), Primitives.GT);
+        initialBindings[new Form.Symbol("<")] = new Binding(new Form.Symbol("<"), Primitives.LT);
+        initialBindings[new Form.Symbol("-")] = new Binding(new Form.Symbol("-"), Primitives.Minus);
         initialBindings[new Form.Symbol("*")] = new Binding(new Form.Symbol("*"), new Procedure(Default, VM.Builtins.Product));
         initialBindings[new Form.Symbol("=")] = new Binding(new Form.Symbol("="), Primitives.NumEq);
         initialBindings[new Form.Symbol("values")] = new Binding(new Form.Symbol("values"), new Procedure(Default, VM.Builtins.Values));

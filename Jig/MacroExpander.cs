@@ -168,13 +168,13 @@ public class MacroExpander {
         }
     }
 
-    private  ParsedList ExpandList(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
+    private  ParsedApplication ExpandList(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
         System.Collections.Generic.List<ParsedExpr> xs = [];
         foreach (Syntax x in stxList.Cast<Syntax>()) {
             ParsedExpr bodyExpr = Expand(x, ee, definesAllowed: false);
             xs.Add(bodyExpr);
         }
-        return new ParsedList(xs, srcLoc);
+        return new ParsedApplication(xs, srcLoc);
     }
 
 

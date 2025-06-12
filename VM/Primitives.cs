@@ -34,6 +34,26 @@ public static class Primitives {
         throw new Exception("zero?: expected argument to be number, got {form}");
     }
 
+    // private static void callWValues(Machine vm)
+    // {
+    //     var producer = (Procedure)vm.Pop();
+    //     var continuationProc = (Procedure)vm.Pop();
+    //     vm.CONT = new PartialContinuationForCallWithValues(
+    //         continuationProc.Template,
+    //         0,
+    //         continuationProc.Environment,
+    //         vm.FP,
+    //         vm.CONT,
+    //         continuationProc.Required,
+    //         continuationProc.HasRest);
+    //     vm.VAL = producer;
+    //     vm.Call();
+    //     // this doesn't work because the procedure is expected to push its results, but it doesn't have any yet
+    //     
+    // } 
+
+    public static Primitive2 NumEq { get; } = new(numEq, 1, true);
+
     private static void numEq(Machine vm)
     {
         // TODO: what if args aren't numbers?
@@ -58,28 +78,108 @@ public static class Primitives {
 
     }
 
-    // private static void callWValues(Machine vm)
-    // {
-    //     var producer = (Procedure)vm.Pop();
-    //     var continuationProc = (Procedure)vm.Pop();
-    //     vm.CONT = new PartialContinuationForCallWithValues(
-    //         continuationProc.Template,
-    //         0,
-    //         continuationProc.Environment,
-    //         vm.FP,
-    //         vm.CONT,
-    //         continuationProc.Required,
-    //         continuationProc.HasRest);
-    //     vm.VAL = producer;
-    //     vm.Call();
-    //     // this doesn't work because the procedure is expected to push its results, but it doesn't have any yet
-    //     
-    // } 
+    public static Primitive2 Append {get;} = new(append, 0, true);
 
-    public static Primitive2 NumEq { get; } = new(numEq, 1, true);
+    private static void append(Machine vm) {
+        IForm result = List.Null;
+        while (vm.SP > vm.FP) {
+            Form arg =  (Form)vm.Pop();
+            if (result is List xs) {
+                result = xs.Append(arg);
+            } else {
+                throw new Exception($"append: expected argument to be list, got {result}");
+            }
+
+        }
+        vm.VAL = (Form)result;
+        vm.Push(vm.VAL);
+    }
+
+    public static Primitive2 PairP {get;} = new(pair_p, 1, false);
+
+    private static void pair_p(Machine vm) {
+        Form arg = vm.Pop();
+        vm.VAL = arg is IPair ? Bool.True : Bool.False;
+        vm.Push(vm.VAL);
+        return;
+    }
+        
+    public static Primitive2 Minus {get;} = new(minus, 1, true);
+
+    private static void minus(Machine vm) {
+        if (vm.SP <= vm.FP) {
+            throw new Exception("-: expected at least one argument");
+        }
+        Form arg0 = vm.Pop();
+        if (vm.SP == vm.FP) {
+            vm.Push(vm.VAL = Integer.Zero - (Number)arg0 );
+            return;
+        }
+        while (vm.SP != vm.FP) {
+            Number n = (Number)vm.Pop();
+            arg0 = (Number)arg0 - n;
+        }
+        vm.Push(vm.VAL = arg0);
+        return;
+    }
+
+    public static Primitive2 GT {get;} = new(gt, 1, true);
 
     // public static Primitive2 CallWValues { get; } = new(callWValues, 2, false);
 
+    public static void gt(Machine vm) {
+        
+        if (vm.SP <= vm.FP) {
+            throw new Exception("<: expected at least one argument");
+        }
+        Number arg0 = (Number)vm.Pop();
+        if (vm.SP == vm.FP) {
+            vm.Push(vm.VAL = Bool.True);
+            return;
+        }
+        Form result = Bool.True;
+        while (vm.SP != vm.FP) {
+            Number n = (Number)vm.Pop();
+            if ((arg0 <= n).Value) {
+                // throw away rest of arguments
+                vm.SP = vm.FP;
+                vm.Push(vm.VAL = Bool.False);
+                return;
+            }
+            arg0 = n;
+        }
+        vm.Push(vm.VAL = Bool.True);
+        return;
+    }
+
+    public static Primitive2 LT {get;} = new(lt, 1, true);
+
+    // public static Primitive2 CallWValues { get; } = new(callWValues, 2, false);
+
+    public static void lt(Machine vm) {
+        
+        if (vm.SP <= vm.FP) {
+            throw new Exception("<: expected at least one argument");
+        }
+        Number arg0 = (Number)vm.Pop();
+        if (vm.SP == vm.FP) {
+            vm.Push(vm.VAL = Bool.True);
+            return;
+        }
+        Form result = Bool.True;
+        while (vm.SP != vm.FP) {
+            Number n = (Number)vm.Pop();
+            if ((arg0 >= n).Value) {
+                // throw away rest of arguments
+                vm.SP = vm.FP;
+                vm.Push(vm.VAL = Bool.False);
+                return;
+            }
+            arg0 = n;
+        }
+        vm.Push(vm.VAL = Bool.True);
+        return;
+    }
     public static Primitive ZeroP { get; } = new(zerop);
     
     private static void nullp(Machine vm)

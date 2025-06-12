@@ -40,7 +40,7 @@ public class Compiler {
                 return CompileLambdaExpr(le, ctEnv, literals, context, scopeLevel);
             case ParsedBegin begin:
                 return CompileBegin(begin, ctEnv, literals, bindings, context, scopeLevel, startLine);
-            case ParsedList app:
+            case ParsedApplication app:
                 return CompileApplication(app, ctEnv, literals, bindings, context, scopeLevel, startLine);
             case ParsedDefine define:
                 return CompileDefinition(define, ctEnv, literals, bindings, context, scopeLevel, startLine);
@@ -326,7 +326,7 @@ public class Compiler {
         
     }
 
-    public ulong[] CompileApplication(ParsedList app,
+    public ulong[] CompileApplication(ParsedApplication app,
         CompileTimeEnvironment ctEnv,
         Sys.List<Form> literals,
         Sys.List<Binding> bindings,
@@ -369,5 +369,21 @@ public class Compiler {
 
         return instructions.ToArray();
 
+    }
+    public Template CompileFile(ParsedExpr[] parsedFile, CompileTimeEnvironment cte) {
+        
+        Sys.List<Form> literals = [];
+        Sys.List<Binding> bindings = [];
+
+        Sys.List<ulong> instructions = [];
+
+        int lineNo = 0;
+        foreach (var x in parsedFile.Take(parsedFile.Length - 1)) {
+            instructions = instructions.Concat(Compile(x, cte, literals, bindings, Context.NonTailBody, 0, lineNo)).ToList();
+            lineNo += instructions.Count();
+        }
+        // add instruction for expr in tail position
+        instructions = instructions.Concat(Compile(parsedFile[parsedFile.Length - 1], cte, literals, bindings, Context.Tail, 0, lineNo)).ToList();
+        return new Template(0, instructions.ToArray(), bindings.ToArray(), literals.ToArray(), 0, false);
     }
 }

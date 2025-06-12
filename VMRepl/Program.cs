@@ -3,10 +3,12 @@ using Jig.IO;
 using VM;
 using Mono.Options;
 using System.Diagnostics;
+using Jig.Expansion;
 
 public static class Program {
 
     public static VM.Environment TopLevel = VM.Environment.Default;
+    public static Jig.Expansion.Expander DefaultExpander = new Jig.Expansion.Expander(); 
     public static Jig.ExpansionEnvironment ExEnv = Jig.ExpansionEnvironment.Default;
 
     static void Main(string[] args) {
@@ -41,6 +43,8 @@ public static class Program {
         }
         
         VM.Machine vm = new VM.Machine();
+        ExecuteFile("prelude.scm", vm, TopLevel);
+        
         if (expr != "") {
             using (InputPort port = InputPort.FromString(expr)) {
                 Syntax? stx = Jig.Reader.Reader.ReadSyntax(port);
@@ -89,12 +93,36 @@ public static class Program {
     // TODO: should the toplevel continuation be a field of VM rather than an argument to load?
     public static void Eval(Machine vm, Jig.Syntax stx, VM.Environment? env = null) {
         env ??= Program.TopLevel;
-        var me = new Jig.MacroExpander();
-        Jig.ParsedExpr program = me.Expand(stx, ExEnv);
+        
+        // var me = new Jig.MacroExpander();
+        // Jig.ParsedExpr program = me.Expand(stx, ExEnv);
+        var context = new ExpansionContext(vm, DefaultExpander);
+        var program = DefaultExpander.Expand(stx, context);
+        
         var compiler = new VM.Compiler(); // should class be static?
-        var ctEnv = new CompileTimeEnvironment(me.Bindings, env);
+        var ctEnv = new CompileTimeEnvironment(env); // TODO: why does the cte need these bindings?
         var code = compiler.CompileExprForREPL(program, ctEnv);
         vm.Load(code, env, TopLevelContinuation);
+        vm.Run();
+    }
+    
+    
+    public static void ExecuteFile(string path, Machine vm, VM.Environment? topLevel = null)
+    {
+        topLevel = topLevel ?? Program.TopLevel;
+        InputPort port = new InputPort(path);
+        // Continuation.ContinuationAny throwAwayResult = (xs) => null;
+        System.Collections.Generic.List<ParsedExpr> parsedFile = [];
+        Syntax? x = Jig.Reader.Reader.ReadSyntax(port);
+        while (x is not null) {
+            var context = new ExpansionContext(vm, DefaultExpander);
+            parsedFile.Add(DefaultExpander.Expand(x, context));
+            x = Jig.Reader.Reader.ReadSyntax(port);
+        }
+        var compiler = new VM.Compiler();
+        var cte = new CompileTimeEnvironment(topLevel);
+        var compiled = compiler.CompileFile(parsedFile.ToArray(), cte);
+        vm.Load(compiled, topLevel, ThrowAway);
         vm.Run();
     }
 
@@ -103,5 +131,9 @@ public static class Program {
             if (form is not Form.VoidType) Console.WriteLine(form.Print());
         }
         
+    }
+    private static void ThrowAway(params Form[] forms) {
+        return;
+
     }
 }

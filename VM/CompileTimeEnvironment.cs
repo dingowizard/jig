@@ -12,7 +12,7 @@ public class CompileTimeEnvironment {
         throw new Exception($"syntax error: undeclared variable {sym.Print()}");
     }
 
-    public CompileTimeEnvironment(Jig.Binding[] meBindings, Environment env) {
+    public CompileTimeEnvironment(Environment env) {
         _toplevels = env.TopLevels;
     }
     

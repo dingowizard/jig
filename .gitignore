@@ -2,6 +2,8 @@ ReaderTests/bin/
 ReaderTests/obj/
 PreludeTests/bin/
 PreludeTests/obj/
+JigTests/bin/
+JigTests/obj/
 Reader/bin/
 VM/bin/
 VM/obj/

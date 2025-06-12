@@ -322,7 +322,7 @@ public struct SrcLoc(string src, int line, int column, int position, int span)
                               (last.Position - first.Position) + last.Span);    }
 }
 
-internal struct Scope {
+public struct Scope {
     static int count = 0;
     int me;
     public Scope () {

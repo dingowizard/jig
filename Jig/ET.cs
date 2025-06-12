@@ -36,7 +36,7 @@ internal abstract class ET : Expression {
         ParsedLiteral litExpr => new LiteralET(litExpr),
         ParsedQuoteSyntax quoteSyntax => new SyntaxLiteralET(quoteSyntax),
         ParsedVariable variable => new SymbolET(scope, variable),
-        ParsedList list => new ProcAppET(scope, list),
+        ParsedApplication list => new ProcAppET(scope, list),
         _ => throw new NotImplementedException()
 
     };
@@ -63,7 +63,7 @@ internal abstract class ET : Expression {
         if (ast is ParsedVariable parsedVariable) {
             return new SymbolET(scope, parsedVariable);
         }
-        if (ast is ParsedList parsedList) {
+        if (ast is ParsedApplication parsedList) {
             return new ProcAppET(scope, parsedList);
         }
         if (ast is LiteralExpr || ast is Syntax.Literal) {
@@ -203,7 +203,7 @@ internal abstract class ET : Expression {
 
     private class ProcAppET : ET {
 
-        public ProcAppET(LexicalContext scope, ParsedList list) {
+        public ProcAppET(LexicalContext scope, ParsedApplication list) {
             // if (ListContainsY(list)) {
             //     Console.WriteLine($"ProcAppET: {list}");
             // }

@@ -1,11 +1,12 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using Jig;
+using Transformer = Jig.Expansion.Transformer;
 namespace VM;
 
 public delegate void ContinuationAny(params Form[] forms);
 
-public class Machine
+public class Machine : IRuntime
 {
 
     internal bool Loud = false;
@@ -404,4 +405,7 @@ public class Machine
     }
 
 
+    public Syntax ApplyTransformer(Jig.Expansion.Transformer transformer, Syntax syntax) {
+        throw new NotImplementedException();
+    }
 }

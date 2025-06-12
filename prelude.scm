@@ -23,39 +23,39 @@
             (list? (cdr x))
             #f))))
 
-;; (define list-tail
-;;   (lambda (xs k)
-;;     (if (= k 0)
-;;         xs
-;;         (list-tail (cdr xs) (- k 1)))))
+(define list-tail
+  (lambda (xs k)
+    (if (= k 0)
+        xs
+        (list-tail (cdr xs) (- k 1)))))
 
-;; (define list-ref
-;;   (lambda (xs k)
-;;     (if (= k 0)
-;;         (car xs)
-;;         (list-ref (cdr xs) (- k 1)))))
+(define list-ref
+  (lambda (xs k)
+    (if (= k 0)
+        (car xs)
+        (list-ref (cdr xs) (- k 1)))))
 
-(define zero? (lambda (x) (= x 0)))
+;; (define zero? (lambda (x) (= x 0)))
 
 ;; (define positive? (lambda (n) (> n 0)))
 
 ;; (define negative? (lambda (n) (< n 0)))
 
-;; (define abs (lambda (n) (if (< n 0) (- n) n)))
+(define abs (lambda (n) (if (< n 0) (- n) n)))
 
 (define not (lambda (x) (if x #f #t)))
 
-;; (define fold-left
-;;   (lambda (fn acc xs)
-;;     (if (null? xs)
-;;         acc
-;;         (fold-left fn (fn (car xs) acc) (cdr xs)))))
+(define fold-left
+  (lambda (fn acc xs)
+    (if (null? xs)
+        acc
+        (fold-left fn (fn (car xs) acc) (cdr xs)))))
 
-;; (define fold-right
-;;   (lambda (fn acc xs)
-;;     (if (null? xs)
-;;         acc
-;;         (fn (car xs) (fold-right fn acc (cdr xs))))))
+(define fold-right
+  (lambda (fn acc xs)
+    (if (null? xs)
+        acc
+        (fn (car xs) (fold-right fn acc (cdr xs))))))
 
 ;; (define filter
 ;;    (lambda (pred xs)
