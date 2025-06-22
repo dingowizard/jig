@@ -123,12 +123,23 @@ public static class Primitives {
         return;
     }
 
+    public static Primitive2 Apply {get;} = new(apply, 2, false);
+
+    private static void apply(Machine vm) {
+        var proc = vm.Pop();
+        if (vm.Pop() is not Jig.List<Form> args) {
+            throw new Exception("apply: expected argument to be list, got {args}");
+        }
+
+    }
+
     public static Primitive2 GT {get;} = new(gt, 1, true);
 
     // public static Primitive2 CallWValues { get; } = new(callWValues, 2, false);
 
-    public static void gt(Machine vm) {
+    private static void gt(Machine vm) {
         
+        // TODO: I think the argument cound was already checked, no?
         if (vm.SP <= vm.FP) {
             throw new Exception("<: expected at least one argument");
         }

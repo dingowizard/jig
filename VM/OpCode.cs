@@ -27,5 +27,6 @@ public enum OpCode : byte {
     PopWinder,
     PushFP,
     SPToFP,
-    PopFP
+    PopFP,
+    ArgToArgs, // takes list arg from stack and pushes each element onto stack. TODO: yuck
 }

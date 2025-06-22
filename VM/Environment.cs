@@ -34,6 +34,7 @@ public class Environment : Form {
         initialBindings[new Form.Symbol("zero?")] = new Binding(new Form.Symbol("zero?"), Primitives.ZeroP);
         initialBindings[new Form.Symbol("call/cc")] = new Binding(new Form.Symbol("call/cc"), new Procedure(Default, VM.Builtins.CallCC));
         initialBindings[new Form.Symbol("+")] = new Binding(new Form.Symbol("+"), new Procedure(Default, VM.Builtins.Sum));
+        initialBindings[new Form.Symbol("apply")] = new Binding(new Form.Symbol("apply"), new Procedure(Default, VM.Builtins.Apply));
         initialBindings[new Form.Symbol(">")] = new Binding(new Form.Symbol(">"), Primitives.GT);
         initialBindings[new Form.Symbol("<")] = new Binding(new Form.Symbol("<"), Primitives.LT);
         initialBindings[new Form.Symbol("-")] = new Binding(new Form.Symbol("-"), Primitives.Minus);

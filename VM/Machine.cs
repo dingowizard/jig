@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
+using System.Text;
 using Jig;
 using Transformer = Jig.Expansion.Transformer;
 namespace VM;
@@ -389,6 +390,16 @@ public class Machine : IRuntime
                         VAL = (Number)VAL * p1 ;
                     }
                     Push(VAL);
+                    continue;
+                case OpCode.ArgToArgs:
+                    var tmp = Pop();
+                    if (tmp is not IEnumerable<IForm> ys) {
+                        throw new Exception($"expected list argument but got {tmp}");
+                    }
+                    foreach (var form in ys.Reverse<IForm>()) {
+                        // TODO: barf
+                        Push((Form)form);
+                    }
                     continue;
                 default: throw new Exception($"unhandled case {opCode} in Execute");
             }

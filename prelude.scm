@@ -98,15 +98,15 @@
                           (return #t)
                           (any pred (cdr xs))))))))
 
-; (define map
-;   (lambda (fn xs . rest)
-;     ((lambda (ls)
-;         (if (not (apply = (fold-right (lambda (x acc) (cons (length x) acc)) '() ls)))
-;             (error "map: lists must be same length" ls))
-;       (if (any null? ls)
-;           '()
-;           (cons (apply fn (fold-right (lambda (x acc) (cons (car x) acc)) '() ls))
-;                 (apply map (cons fn (fold-right (lambda (x acc) (cons (cdr x) acc)) '() ls)))))) (cons xs rest))))
+(define map
+  (lambda (fn xs . rest)
+    ((lambda (ls)
+        (if (not (apply = (fold-right (lambda (x acc) (cons (length x) acc)) '() ls)))
+            (error "map: lists must be same length" ls))
+      (if (any null? ls)
+          '()
+          (cons (apply fn (fold-right (lambda (x acc) (cons (car x) acc)) '() ls))
+                (apply map (cons fn (fold-right (lambda (x acc) (cons (cdr x) acc)) '() ls)))))) (cons xs rest))))
 
 (define caar (lambda (p) (car (car p))))
 
@@ -584,7 +584,7 @@
 ;;                 (lambda ()
 ;;                  ((car handlers) obj))))))))
 
-;; (define error #f)
+(define error #f)
 
 ;; ; ; TODO: shouldn't this call raise or raise continuable?
 ;; (call/cc
@@ -598,3 +598,9 @@
 ;;               (display (car xs))
 ;;               (newline))
 ;;            (k (void))))))
+
+(call/cc
+ (lambda (k)
+   (set! error
+         (lambda args
+           (k 'error)))))

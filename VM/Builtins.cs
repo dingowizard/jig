@@ -37,6 +37,22 @@ public static class Builtins {
         0,
         true
     );
+
+    public static readonly Template Apply = new Template(
+        numVarsForScope: 0,
+        code: [
+            (ulong)OpCode.Pop << 56, // store proc in VAL
+            (ulong)OpCode.ArgToArgs << 56,
+            (ulong)OpCode.Push << 56, // put proc back on stack
+            (ulong)OpCode.Call << 56,
+            (ulong)OpCode.PopContinuation << 56,
+        
+        ],
+        bindings: [],
+        lits: [],
+        2,
+        false
+    );
     
     public static readonly Template CallWithValues = new Template(
         // TODO: can this by re-done more in the style of DynamicWind?
