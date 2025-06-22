@@ -114,6 +114,7 @@ public class Compiler {
     {
         Sys.List<ulong> result = new();
         if (defForm.Variable is ParsedVariable.TopLevel topVar) {
+            // TODO: this is not necessary when CompileDefinition is called by CompileBody
             var bing = ctEnv.DefineTopLevel(topVar.Identifier.Symbol);
             if (!bindings.Contains(bing)) {
                 bindings.Add(bing);
@@ -377,13 +378,33 @@ public class Compiler {
 
         Sys.List<ulong> instructions = [];
 
+        // NOTE: DoFirstPass is necessary for procedure definitions that have references
+        // to variables that will be defined later in the file,
+        // for example, in definitions of mutually recursive functions
+        // TODO: how can we have this in the repl?
+        
+        DoFirstPass(bindings, parsedFile,cte); // make bindings for toplevels in scope first
+
         int lineNo = 0;
         foreach (var x in parsedFile.Take(parsedFile.Length - 1)) {
             instructions = instructions.Concat(Compile(x, cte, literals, bindings, Context.NonTailBody, 0, lineNo)).ToList();
             lineNo += instructions.Count();
         }
         // add instruction for expr in tail position
-        instructions = instructions.Concat(Compile(parsedFile[parsedFile.Length - 1], cte, literals, bindings, Context.Tail, 0, lineNo)).ToList();
+        instructions = instructions.Concat(Compile(parsedFile[^1], cte, literals, bindings, Context.Tail, 0, lineNo)).ToList();
         return new Template(0, instructions.ToArray(), bindings.ToArray(), literals.ToArray(), 0, false);
+    }
+
+    private void DoFirstPass(Sys.List<Binding> bindings, ParsedExpr[] parsedFile, CompileTimeEnvironment ctEnv) {
+        foreach (var form in parsedFile) {
+            if (form is ParsedDefine def) {
+                var bing = ctEnv.DefineTopLevel(def.Variable.Identifier.Symbol);
+                if (!bindings.Contains(bing)) {
+                    bindings.Add(bing);
+                }
+                
+            }
+        }
+        
     }
 }

@@ -37,9 +37,9 @@
 
 ;; (define zero? (lambda (x) (= x 0)))
 
-;; (define positive? (lambda (n) (> n 0)))
+(define positive? (lambda (n) (> n 0)))
 
-;; (define negative? (lambda (n) (< n 0)))
+(define negative? (lambda (n) (< n 0)))
 
 (define abs (lambda (n) (if (< n 0) (- n) n)))
 
@@ -57,46 +57,46 @@
         acc
         (fn (car xs) (fold-right fn acc (cdr xs))))))
 
-;; (define filter
-;;    (lambda (pred xs)
-;;       (if (null? xs)
-;;           '()
-;;           (if (pred (car xs))
-;;               (cons (car xs) (filter pred (cdr xs)))
-;;               (filter pred (cdr xs))))))
+(define filter
+   (lambda (pred xs)
+      (if (null? xs)
+          '()
+          (if (pred (car xs))
+              (cons (car xs) (filter pred (cdr xs)))
+              (filter pred (cdr xs))))))
 
-;; (define partition
-;;    (lambda (pred xs)
-;;       (define loop
-;;          (lambda (ts fs xs)
-;;             (if (null? xs)
-;;                 (values (reverse ts) (reverse fs))
-;;                 (if (pred (car xs))
-;;                     (loop (cons (car xs) ts) fs (cdr xs))
-;;                     (loop ts (cons (car xs) fs) (cdr xs))))))
-;;       (loop '() '() xs)))
+(define partition
+   (lambda (pred xs)
+      (define loop
+         (lambda (ts fs xs)
+            (if (null? xs)
+                (values (reverse ts) (reverse fs))
+                (if (pred (car xs))
+                    (loop (cons (car xs) ts) fs (cdr xs))
+                    (loop ts (cons (car xs) fs) (cdr xs))))))
+      (loop '() '() xs)))
 
-;; (define compose2
-;;     (lambda (f1 f2)
-;;       (lambda (x)
-;;         (f2 (f1 x)))))
+(define compose2
+    (lambda (f1 f2)
+      (lambda (x)
+        (f2 (f1 x)))))
 
-;; (define compose
-;;     (lambda xs
-;;       (fold-left compose2 (lambda (x) x) xs)))
+(define compose
+    (lambda xs
+      (fold-left compose2 (lambda (x) x) xs)))
 
-;; (define reverse
-;;   (lambda (xs)
-;;     (fold-left cons '() xs)))
+(define reverse
+  (lambda (xs)
+    (fold-left cons '() xs)))
 
-;; (define any
-;;    (lambda (pred xs)
-;;       (call/cc (lambda (return)
-;;                   (if (null? xs)
-;;                       #f
-;;                       (if (pred (car xs))
-;;                           (return #t)
-;;                           (any pred (cdr xs))))))))
+(define any
+   (lambda (pred xs)
+      (call/cc (lambda (return)
+                  (if (null? xs)
+                      #f
+                      (if (pred (car xs))
+                          (return #t)
+                          (any pred (cdr xs))))))))
 
 ; (define map
 ;   (lambda (fn xs . rest)
@@ -170,16 +170,30 @@
 ;;    (lambda (n)
 ;;       (not (= (mod n 2) 0))))
 
+;; TODO: even?, odd? are here as trivial examples of mutual recursion for testing purposes
+;; replace efficient versions later
+(define odd?
+  (lambda (n)
+    (if (= n 0)
+        #f
+        (even? (- n 1)))))
+
 ;; (define even?
 ;;    (lambda (n)
 ;;       (= (mod n 2) 0)))
 
+(define even?
+  (lambda (n)
+    (if (= n 0)
+        #t
+        (odd? (- n 1)))))
+
 ; note: syntax-rules depends on all
-;; (define all
-;;    (lambda (pred xs)
-;;       (if (null? xs)
-;;           #t
-;;           (if (pred (car xs)) (all pred (cdr xs)) #f))))
+(define all
+   (lambda (pred xs)
+      (if (null? xs)
+          #t
+          (if (pred (car xs)) (all pred (cdr xs)) #f))))
 
 ;; (define-syntax let
 ;;    (syntax-rules ()
