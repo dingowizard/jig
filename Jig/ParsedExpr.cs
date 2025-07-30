@@ -167,25 +167,18 @@ public class ParsedDefine : ParsedExpr {
         Syntax.Identifier id = stxList.ElementAt<Syntax>(1) as Syntax.Identifier
             ?? throw new Exception($"syntax error: malformed define: expected first argument to be an identifier. Got {stxList.ElementAt<Syntax>(1)}");
         // TODO: hm...
-        if (id.ScopeSet.Count != 0) {
-            // not top level
-            var binding = new Binding(id.Symbol,  ee.ScopeLevel, ee.VarIndex++);
-            id.Symbol.Binding = binding ;
-            expander.AddBinding(id, id.Symbol.Binding);
-            defineExpr = new ParsedDefine(stxList.ElementAt<Syntax>(0),
-                                        new ParsedVariable.Lexical(id, binding, id.SrcLoc),
-                                        expander.Expand(stxList.ElementAt<Syntax>(2), ee, definesAllowed: false),
-                                        stx.SrcLoc);
-            return true;
-        }
+        var binding = new Binding(id.Symbol,  ee.ScopeLevel, ee.VarIndex++);
+        expander.AddBinding(id, binding);
+        ParsedVariable parsedVar = binding.ScopeLevel == 0 ?
+            new ParsedVariable.TopLevel(id, binding, id.SrcLoc) :
+            new ParsedVariable.Lexical(id, binding, id.SrcLoc);
 
         defineExpr = stxList.Count<Syntax>() == 3
             ? new ParsedDefine(stxList.ElementAt<Syntax>(0),
-                new ParsedVariable.TopLevel(id, id.SrcLoc),
+                parsedVar,
                 expander.Expand(stxList.ElementAt<Syntax>(2), ee, definesAllowed: false),
                 stx.SrcLoc)
-            : new ParsedDefine(stxList.ElementAt<Syntax>(0),
-                new ParsedVariable.TopLevel(id, id.SrcLoc), stx.SrcLoc);
+            : new ParsedDefine(stxList.ElementAt<Syntax>(0), parsedVar, stx.SrcLoc);
             
         return true;
     }
@@ -279,7 +272,6 @@ public class ParsedLambda : ParsedExpr {
                         throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
                     }
                     Binding binding = new Binding(id.Symbol, ee.ScopeLevel, ee.VarIndex++);
-                    id.Symbol.Binding = binding;
                     expander.AddBinding(id, binding);
                     namesSeen.Add(id.Symbol.Name);
                     required.Add(new ParsedVariable.Lexical(id, binding, id.SrcLoc));
@@ -292,7 +284,6 @@ public class ParsedLambda : ParsedExpr {
                 }
                 namesSeen.Add(id.Symbol.Name);
                 Binding binding = new Binding(id.Symbol, ee.ScopeLevel, ee.VarIndex++);
-                id.Symbol.Binding = binding;
                 required.Add(new ParsedVariable.Lexical(id, binding, id.SrcLoc));
                 expander.AddBinding(id, binding);
                 while (pair.Cdr is IPair cdrPair) {
@@ -302,7 +293,6 @@ public class ParsedLambda : ParsedExpr {
                         throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
                     }
                     binding = new Binding(id.Symbol, ee.ScopeLevel, ee.VarIndex++);
-                    id.Symbol.Binding = binding;
                     expander.AddBinding(id, binding);
                     pair = cdrPair;
                     namesSeen.Add(id.Symbol.Name);
@@ -314,13 +304,11 @@ public class ParsedLambda : ParsedExpr {
                     throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
                 }
                 binding = new Binding(id.Symbol, ee.ScopeLevel, ee.VarIndex++);
-                id.Symbol.Binding = binding;
                 expander.AddBinding(id, binding);
                 namesSeen.Add(id.Symbol.Name);
                 rest = new ParsedVariable.Lexical(id, binding, id.SrcLoc);
             } else if (stx is Syntax.Identifier psId) {
                     Binding binding = new Binding(psId.Symbol, ee.ScopeLevel, ee.VarIndex++);
-                    psId.Symbol.Binding = binding;
                     expander.AddBinding(psId, binding);
                     rest = new ParsedVariable.Lexical(psId, binding, psId.SrcLoc);
             } else if (Syntax.E(stx) is List.Empty) {
@@ -342,7 +330,6 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                         throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
                     }
                     Binding binding = new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++);
-                    id.Symbol.Binding = binding;
                     context.AddBinding(id, binding);
                     namesSeen.Add(id.Symbol.Name);
                     required.Add(new ParsedVariable.Lexical(id, binding, id.SrcLoc));
@@ -355,7 +342,6 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                 }
                 namesSeen.Add(id.Symbol.Name);
                 Binding binding = new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++);
-                id.Symbol.Binding = binding;
                 required.Add(new ParsedVariable.Lexical(id, binding, id.SrcLoc));
                 context.AddBinding(id, binding);
                 while (pair.Cdr is IPair cdrPair) {
@@ -365,7 +351,6 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                         throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
                     }
                     binding = new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++);
-                    id.Symbol.Binding = binding;
                     context.AddBinding(id, binding);
                     pair = cdrPair;
                     namesSeen.Add(id.Symbol.Name);
@@ -377,13 +362,11 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                     throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
                 }
                 binding = new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++);
-                id.Symbol.Binding = binding;
                 context.AddBinding(id, binding);
                 namesSeen.Add(id.Symbol.Name);
                 rest = new ParsedVariable.Lexical(id, binding, id.SrcLoc);
             } else if (stx is Syntax.Identifier psId) {
                     Binding binding = new Binding(psId.Symbol, context.ScopeLevel, context.VarIndex++);
-                    psId.Symbol.Binding = binding;
                     context.AddBinding(psId, binding);
                     rest = new ParsedVariable.Lexical(psId, binding, psId.SrcLoc);
             } else if (Syntax.E(stx) is List.Empty) {
@@ -422,18 +405,18 @@ public class ParsedVariable : ParsedExpr {
                 // if (id.Symbol.Name == "y") {
                 //     Console.WriteLine($"found binding for y: {binding}");
                 // }
-                id.Symbol.Binding = binding;
+                if (binding.ScopeLevel == 0) {
+                    parsedVariable = new ParsedVariable.TopLevel(id, binding, stx.SrcLoc);
+                    return true;
+                }
                 parsedVariable = new ParsedVariable.Lexical(id, binding, stx.SrcLoc);
                 return true;
-            } else {
+            }
                 // if (id.Symbol.Name == "y") {
                 //     Console.WriteLine("couldn't resolve y");
                 // }
-                
-                // TODO: toplevel vars still _do_ have a binding, right? a module binding?
-                parsedVariable = new ParsedVariable.TopLevel(id, stx.SrcLoc);
-                return true;
-            }
+
+                throw new Exception($"couldn't resolve identifier {id.Symbol.Print()}");
 
         } else {
             parsedVariable = null;
@@ -441,20 +424,20 @@ public class ParsedVariable : ParsedExpr {
         }
     }
 
-    private ParsedVariable(Syntax.Identifier id, SrcLoc? srcLoc) : base (id.Symbol, srcLoc) {
+    private ParsedVariable(Syntax.Identifier id, Binding binding, SrcLoc? srcLoc) : base (id.Symbol, srcLoc) {
         Identifier = id;
+        Binding = binding;
     }
+    
+    public Binding Binding { get; }
 
     public class TopLevel : ParsedVariable {
-        internal TopLevel(Syntax.Identifier id, SrcLoc? srcLoc) : base (id, srcLoc) {}
+        internal TopLevel(Syntax.Identifier id, Binding binding, SrcLoc? srcLoc) : base(id, binding, srcLoc) { }
     }
 
     public class Lexical : ParsedVariable {
-        internal Lexical(Syntax.Identifier id, Binding binding, SrcLoc? srcLoc) : base(id, srcLoc) {
-            Binding = binding;
-        }
+        internal Lexical(Syntax.Identifier id, Binding binding, SrcLoc? srcLoc) : base(id, binding, srcLoc) { }
         
-        public Binding Binding { get; }
 
     }
 

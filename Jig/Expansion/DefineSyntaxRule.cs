@@ -17,7 +17,7 @@ public partial class CoreParseRules {
         var binding = new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++); // TODO: should it create a new binding, or find one and create only if none?
         ParsedVariable var = id.ScopeSet.Count != 0
             ? new ParsedVariable.Lexical(id, new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++), id.SrcLoc)
-            : new ParsedVariable.TopLevel(id, id.SrcLoc);
+            : new ParsedVariable.TopLevel(id, binding, id.SrcLoc);
         // Expand third subform
         var transformerLambdaExpr = context.Expand(subForms[2]);
         var transformerProcedure = context.Runtime.EvaluateTransformerExpression(transformerLambdaExpr);

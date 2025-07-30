@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Jig;
+using Jig.Expansion;
 
 namespace VM;
 
@@ -13,12 +14,23 @@ public class Environment : Form {
     private Environment(Dictionary<Form.Symbol, Binding> dict) {
         TopLevels = dict;
         Locals = null;
+        Machine = new Machine();
     }
 
-    private Environment(Dictionary<Symbol, Binding> topLevels, Scope? scope) {
+    private Environment(Dictionary<Symbol, Binding> topLevels, Machine runtime,  Scope? scope) {
         TopLevels = topLevels;
         Locals = scope;
+        Machine = runtime;
     }
+    
+    public IRuntime Runtime => Machine;
+
+    public ExpansionContext GetExpansionContext() {
+        // TODO: should only have to do this once!
+        return new ExpansionContext(Machine, TopLevels.Keys);
+    } 
+
+    public Machine Machine {get;}
     
     public static Environment Default { get; private set; }
 
@@ -49,7 +61,7 @@ public class Environment : Form {
     
 
     public Environment Extend(int parameterNumber) {
-        return new Environment(this.TopLevels, new Scope(parameterNumber, Locals));
+        return new Environment(this.TopLevels, this.Machine,  new Scope(parameterNumber, Locals));
     }
 
     public void BindParameter(int i, Form pop) {

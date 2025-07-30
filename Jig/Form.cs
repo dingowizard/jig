@@ -28,13 +28,10 @@ public abstract class Form : IForm {
         public Symbol(string name) {
             Name = name;
         }
+        
+        public Binding? Binding {get; set;} 
 
-        public Symbol(string name, Binding binding) {
-            Name = name;
-            Binding = binding;
-        }
 
-        public Binding? Binding;
 
         public virtual string Name {get;}
 

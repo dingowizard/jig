@@ -6,6 +6,22 @@ namespace Jig.Expansion;
 
 public class ExpansionContext {
 
+    public ExpansionContext(IRuntime runtime, IEnumerable<Form.Symbol> topLevels) {
+        Runtime = runtime;
+        Expander = new Expander();
+        _syntaxEnvironment = SyntaxEnvironment.Default;
+        _bindings = new Dictionary<Syntax.Identifier, Binding>(); // TODO: this seems like it should be part of the environment
+        int i = 0;
+        foreach (var sym in topLevels) {
+            _bindings.Add(new Syntax.Identifier(sym), new Binding(sym, 0, i++));
+            
+        }
+        ScopeLevel = 0;
+        VarIndex = i;
+        DefinesAllowed = true;
+        
+    }
+
     public ExpansionContext(
         IRuntime runtime,
         Expander expander,
@@ -70,15 +86,23 @@ public class ExpansionContext {
         }
     }
 
+    public IEnumerable<Syntax.Identifier> Bound => _bindings.Keys;
+
     private Dictionary<Syntax.Identifier, Binding> _bindings {get;}
 
     IEnumerable<Syntax.Identifier> FindCandidateIdentifiers(Syntax.Identifier id) {
         IEnumerable<Syntax.Identifier> sameName = _bindings.Keys.Where(i => i.Symbol.Name == id.Symbol.Name);
-        // if (id.Symbol.Name == "y") {
+        // var name = "reverse";
+        // if (id.Symbol.Name == name) {
         //     Console.WriteLine($"The search id -- {id} -- has the following scope sets: {string.Join(',', id.ScopeSet)}");
         //     Console.WriteLine($"Found {sameName.Count()} bindings with same name.");
         //     foreach (var b in sameName) {
         //         Console.WriteLine($"\tscope sets: {string.Join(',', b.ScopeSet)}");
+        //         
+        //     }
+        //     Console.WriteLine("The bindings:");
+        //     foreach (var (i, b) in _bindings) {
+        //         Console.WriteLine($"\t{i}, {b}");
         //     }
         // }
         var result = sameName.Where(i => i.ScopeSet.IsSubsetOf(id.ScopeSet));
@@ -88,8 +112,9 @@ public class ExpansionContext {
     internal bool TryResolve(Syntax.Identifier id, [NotNullWhen(returnValue: true)] out Binding? binding) {
         var candidates = FindCandidateIdentifiers(id);
         var identifiers = candidates as Syntax.Identifier[] ?? candidates.ToArray();
-        // if (id.Symbol.Name == "y") {
-        //     Console.WriteLine($"TryResolve: found {identifiers.Length} candidates for 'y' at {id.SrcLoc} in {this.GetHashCode()}");
+        // var name = "reverse";
+        // if (id.Symbol.Name == name) {
+        //     Console.WriteLine($"TryResolve: found {identifiers.Length} candidates for '{name}' at {id.SrcLoc} in {this.GetHashCode()}");
         // }
         if (identifiers.Length == 0) {
             binding = null;

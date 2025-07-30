@@ -4,18 +4,17 @@ namespace Jig.Expansion;
 public class Expander {
 
     public IEnumerable<ParsedExpr> ExpandFile(IEnumerable<Syntax> syntaxes, ExpansionContext context) {
-        IEnumerable<Syntax> forSecondPass = DoFirstPass(syntaxes, context);
+        Syntax[] forSecondPass = DoFirstPass(syntaxes, context).ToArray();
         foreach (Syntax syntax in forSecondPass) {
-            var parsedForm = Expand(syntax, context);
-            yield return parsedForm;
+            yield return Expand(syntax, context);
         }
         
     }
     private IEnumerable<Syntax> DoFirstPass(IEnumerable<Syntax> syntaxes, ExpansionContext context) {
         foreach (var syntax in syntaxes) {
             var form = Syntax.E(syntax);
-            if (form is SyntaxList.NonEmpty {First: Syntax.Identifier id} stxList) {
-                switch (id.Symbol.Name) {
+            if (form is SyntaxList.NonEmpty {First: Syntax.Identifier kw} stxList) {
+                switch (kw.Symbol.Name) {
                     case "define":
                         if (stxList.Rest is not SyntaxList.NonEmpty {First: Syntax.Identifier variable} rest)
                             throw new Exception($"malformed define: {Syntax.ToDatum(syntax).Print()} ");
@@ -23,17 +22,15 @@ public class Expander {
                             variable.Symbol,
                             context.ScopeLevel,
                             context.VarIndex++);
-                        variable.Symbol.Binding = binding;
-                        context.AddBinding(variable, variable.Symbol.Binding);
-                        // TODO: this should handle lexical vars for first passes on lambda bodies
-                        var parsedVar = new ParsedVariable.TopLevel(variable, variable.SrcLoc);
+                        context.AddBinding(variable, binding);
+                        var parsedVar = new ParsedVariable.TopLevel(variable, binding, variable.SrcLoc);
                         yield return new Syntax(
                             SyntaxList
-                                .FromParams(id, parsedVar)
-                                .Concat<Syntax>(rest)
+                                .FromParams(kw, parsedVar)
+                                .Concat<Syntax>(rest.Rest)
                                 .ToSyntaxList(),
                             syntax.SrcLoc);
-                        throw new Exception($"malformed define: {Syntax.ToDatum(syntax).Print()} ");
+                        break;
                     default:
                         yield return syntax;
                         break;
@@ -54,15 +51,13 @@ public class Expander {
             // TODO: error if id is keyword in expansion env?
             // resolve id, return parsed var
             if(context.TryResolve(id, out var binding)) {
-                id.Symbol.Binding = binding; // TODO: shouldn't it only be the ParsedVar that has a binding?
                 if (binding.ScopeLevel == 0) {
-                    return new ParsedVariable.TopLevel(id, syntax.SrcLoc);
+                    return new ParsedVariable.TopLevel(id, binding, syntax.SrcLoc);
                 }
                 return new ParsedVariable.Lexical(id, binding, syntax.SrcLoc);
             }
-            // TODO: toplevel vars still _do_ have a binding, right? a module binding?
-            return new ParsedVariable.TopLevel(id, syntax.SrcLoc);
-            
+            throw new Exception($"could not resolve identifier {id.Symbol.Print()} @ {id.SrcLoc}");
+
         }
 
         if (Syntax.E(syntax) is SyntaxList.NonEmpty stxList) {

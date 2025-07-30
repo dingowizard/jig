@@ -4,12 +4,13 @@ using VM;
 using Mono.Options;
 using System.Diagnostics;
 using Jig.Expansion;
+using Jig.Reader;
+using Environment = Jig.Environment;
 
 public static class Program {
 
     public static VM.Environment TopLevel = VM.Environment.Default;
     public static Jig.Expansion.Expander DefaultExpander = new Jig.Expansion.Expander(); 
-    public static Jig.ExpansionEnvironment ExEnv = Jig.ExpansionEnvironment.Default;
 
     static void Main(string[] args) {
 
@@ -52,7 +53,7 @@ public static class Program {
                     Console.Error.WriteLine($"failed to read {expr}.");
                     System.Environment.Exit(-1);
                 }
-                Eval(vm, stx, TopLevel);
+                Eval(stx, TopLevel);
             }
             System.Environment.Exit(0);
         
@@ -76,7 +77,7 @@ public static class Program {
                             break;
                         }
 
-                        Eval(vm, input, TopLevel);
+                        Eval(input, TopLevel);
 
                     } catch (Exception x) {
                         Console.Error.WriteLine(x);
@@ -91,19 +92,19 @@ public static class Program {
     }
     // TODO: should Eval be a method of VM?
     // TODO: should the toplevel continuation be a field of VM rather than an argument to load?
-    public static void Eval(Machine vm, Jig.Syntax stx, VM.Environment? env = null) {
+    public static void Eval(Jig.Syntax stx, VM.Environment? env = null) {
         env ??= Program.TopLevel;
         
         // var me = new Jig.MacroExpander();
         // Jig.ParsedExpr program = me.Expand(stx, ExEnv);
-        var context = new ExpansionContext(vm, DefaultExpander);
-        var program = DefaultExpander.Expand(stx, context);
+        // var context = new ExpansionContext(vm, DefaultExpander);
+        var program = DefaultExpander.Expand(stx, env.GetExpansionContext());
         
         var compiler = new VM.Compiler(); // should class be static?
         var ctEnv = new CompileTimeEnvironment(env); // TODO: why does the cte need these bindings?
         var code = compiler.CompileExprForREPL(program, ctEnv);
-        vm.Load(code, env, TopLevelContinuation);
-        vm.Run();
+        env.Machine.Load(code, env, TopLevelContinuation);
+        env.Machine.Run();
     }
     
     
@@ -112,16 +113,11 @@ public static class Program {
         topLevel = topLevel ?? Program.TopLevel;
         InputPort port = new InputPort(path);
         // Continuation.ContinuationAny throwAwayResult = (xs) => null;
-        System.Collections.Generic.List<ParsedExpr> parsedFile = [];
-        Syntax? x = Jig.Reader.Reader.ReadSyntax(port);
-        while (x is not null) {
-            var context = new ExpansionContext(vm, DefaultExpander);
-            parsedFile.Add(DefaultExpander.Expand(x, context));
-            x = Jig.Reader.Reader.ReadSyntax(port);
-        }
+        var datums = Reader.ReadFileSyntax(port);
+        var parsedProgram = DefaultExpander.ExpandFile(datums, topLevel.GetExpansionContext());
         var compiler = new VM.Compiler();
         var cte = new CompileTimeEnvironment(topLevel);
-        var compiled = compiler.CompileFile(parsedFile.ToArray(), cte);
+        var compiled = compiler.CompileFile(parsedProgram.ToArray(), cte);
         vm.Load(compiled, topLevel, TopLevelContinuation);
         vm.Run();
     }
