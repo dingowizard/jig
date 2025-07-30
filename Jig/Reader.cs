@@ -6,6 +6,7 @@ namespace Jig.Reader;
 public static class Reader {
 
     public static IForm? Read(InputPort port) {
+        // TODO: all of these should return an EOF object rather than null
         if (port.Peek() == -1) return null;
         return Parser.ParseExpr(new TokenStream(port));
     }
@@ -26,5 +27,13 @@ public static class Reader {
         Trace.WriteLine("ReadSyntax: peek was not -1");
         Trace.Flush();
         return Parser.ParseSyntax(new TokenStream(port));
+    }
+    
+    public static IEnumerable<Syntax> ReadFileSyntax(InputPort port) {
+        while (true) {
+            var stx = ReadSyntax(port);
+            if (stx == null) break;
+            yield return stx;
+        }
     }
 }

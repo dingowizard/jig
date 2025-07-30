@@ -122,7 +122,7 @@ public static class Program {
         var compiler = new VM.Compiler();
         var cte = new CompileTimeEnvironment(topLevel);
         var compiled = compiler.CompileFile(parsedFile.ToArray(), cte);
-        vm.Load(compiled, topLevel, ThrowAway);
+        vm.Load(compiled, topLevel, TopLevelContinuation);
         vm.Run();
     }
 

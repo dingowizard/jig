@@ -50,17 +50,25 @@ public abstract class SyntaxEnvironment {
     }
 
     protected abstract Dictionary<Form.Symbol, IExpansionRule> _rules {get;}
+    public abstract void Add(Syntax.Identifier kw, IExpansionRule expansionRule);
+
 }
 
 public class TopLevelSyntaxEnvironment(Dictionary<Form.Symbol, IExpansionRule> rules) : SyntaxEnvironment {
 
     protected override Dictionary<Form.Symbol, IExpansionRule> _rules {get;} = rules;
+    public override void Add(Syntax.Identifier kw, IExpansionRule expansionRule) {
+        _rules.Add(kw.Symbol, expansionRule);
+    }
 
 }
 
 public class ScopedSyntaxEnvironment(SyntaxEnvironment parent, Dictionary<Form.Symbol, IExpansionRule> rules) : SyntaxEnvironment {
 
     protected override Dictionary<Form.Symbol, IExpansionRule> _rules {get;} = rules;
+    public override void Add(Syntax.Identifier kw, IExpansionRule expansionRule) {
+        _rules.Add(kw.Symbol, expansionRule);
+    }
 
     public SyntaxEnvironment Parent = parent;
 }

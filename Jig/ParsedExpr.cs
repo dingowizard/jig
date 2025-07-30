@@ -192,6 +192,19 @@ public class ParsedDefine : ParsedExpr {
 
 }
 
+public class ParsedDefineSyntax : ParsedExpr {
+
+    internal ParsedDefineSyntax(Syntax keyword, ParsedVariable id, ParsedExpr val, SrcLoc? srcLoc = null)
+      : base(SyntaxList.FromParams(keyword, id, val), srcLoc) {
+        Variable = id;
+        Value = val;
+    }
+
+    public ParsedVariable Variable {get;}
+    public ParsedExpr Value {get;}
+
+
+}
 public class ParsedLambda : ParsedExpr {
 
     internal ParsedLambda(Syntax keyword, LambdaParameters parameters, int scopeVarsCount, ParsedExpr[] bodies, SrcLoc? srcLoc = null)

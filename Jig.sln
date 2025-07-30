@@ -21,6 +21,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests.Common", "Tests.Commo
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "NewTypes", "NewTypes\NewTypes.fsproj", "{75F7FD9E-A848-444D-9888-E46C6C45C246}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NewNewTypes", "NewNewTypes\NewNewTypes.csproj", "{A8CE11B7-5101-4F02-B204-BDB1BC259DC4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchemeTypes", "SchemeTypes\SchemeTypes.csproj", "{6E07A596-51B2-40B9-B8D9-DFEAD53F2511}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -66,6 +70,14 @@ Global
 		{75F7FD9E-A848-444D-9888-E46C6C45C246}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{75F7FD9E-A848-444D-9888-E46C6C45C246}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{75F7FD9E-A848-444D-9888-E46C6C45C246}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A8CE11B7-5101-4F02-B204-BDB1BC259DC4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A8CE11B7-5101-4F02-B204-BDB1BC259DC4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A8CE11B7-5101-4F02-B204-BDB1BC259DC4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A8CE11B7-5101-4F02-B204-BDB1BC259DC4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6E07A596-51B2-40B9-B8D9-DFEAD53F2511}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6E07A596-51B2-40B9-B8D9-DFEAD53F2511}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6E07A596-51B2-40B9-B8D9-DFEAD53F2511}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6E07A596-51B2-40B9-B8D9-DFEAD53F2511}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 	EndGlobalSection

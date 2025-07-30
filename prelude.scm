@@ -108,6 +108,17 @@
           (cons (apply fn (fold-right (lambda (x acc) (cons (car x) acc)) '() ls))
                 (apply map (cons fn (fold-right (lambda (x acc) (cons (cdr x) acc)) '() ls)))))) (cons xs rest))))
 
+(define for-each
+  (lambda (fn xs . rest)
+    ((lambda (ls)
+        (if (not (apply = (fold-right (lambda (x acc) (cons (length x) acc)) '() ls)))
+            (error "for-each: lists must be same length" ls))
+      (if (any null? ls)
+          (void)
+          (begin
+            (apply fn (fold-right (lambda (x acc) (cons (car x) acc)) '() ls))
+            (apply for-each (cons fn (fold-right (lambda (x acc) (cons (cdr x) acc)) '() ls)))))) (cons xs rest))))
+
 (define caar (lambda (p) (car (car p))))
 
 (define cadr (lambda (p) (car (cdr p))))
@@ -120,13 +131,13 @@
 
 (define cdddr (lambda (p) (cdr (cdr (cdr p)))))
 
-;; (define memv
-;;    (lambda (x xs)
-;;       (if (null? xs)
-;;           #f
-;;           (if (eqv? (car xs) x)
-;;               xs
-;;               (memv x (cdr xs))))))
+(define memv
+   (lambda (x xs)
+      (if (null? xs)
+          #f
+          (if (eqv? (car xs) x)
+              xs
+              (memv x (cdr xs))))))
 
 ;; (define member
 ;;    (lambda (x xs)
@@ -171,7 +182,7 @@
 ;;       (not (= (mod n 2) 0))))
 
 ;; TODO: even?, odd? are here as trivial examples of mutual recursion for testing purposes
-;; replace efficient versions later
+;; replace with efficient versions later
 (define odd?
   (lambda (n)
     (if (= n 0)
@@ -601,6 +612,5 @@
 
 (call/cc
  (lambda (k)
-   (set! error
-         (lambda args
-           (k 'error)))))
+   (set! error (lambda args (k 'error)))
+   (void)))

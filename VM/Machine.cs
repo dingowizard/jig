@@ -419,4 +419,9 @@ public class Machine : IRuntime
     public Syntax ApplyTransformer(Jig.Expansion.Transformer transformer, Syntax syntax) {
         throw new NotImplementedException();
     }
+
+    public ITransformer EvaluateTransformerExpression(ParsedExpr transformerLambdaExpr)
+    {
+        throw new NotImplementedException();
+    }
 }

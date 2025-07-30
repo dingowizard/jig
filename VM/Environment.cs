@@ -40,6 +40,7 @@ public class Environment : Form {
         initialBindings[new Form.Symbol("-")] = new Binding(new Form.Symbol("-"), Primitives.Minus);
         initialBindings[new Form.Symbol("*")] = new Binding(new Form.Symbol("*"), new Procedure(Default, VM.Builtins.Product));
         initialBindings[new Form.Symbol("=")] = new Binding(new Form.Symbol("="), Primitives.NumEq);
+        initialBindings[new Form.Symbol("eqv?")] = new Binding(new Form.Symbol("eqv?"), Primitives.Eqvp);
         initialBindings[new Form.Symbol("values")] = new Binding(new Form.Symbol("values"), new Procedure(Default, VM.Builtins.Values));
         initialBindings[new Form.Symbol("call-with-values")] = new Binding(new Form.Symbol("call-with-values"), new Procedure(Default, VM.Builtins.CallWithValues));
         initialBindings[new Form.Symbol("dynamic-wind")] = new Binding(new Form.Symbol("dynamic-wind"), new Procedure(Default, VM.Builtins.DynamicWind));

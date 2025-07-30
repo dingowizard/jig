@@ -39,6 +39,11 @@ public class ExpansionContext {
         return false;
     }
 
+    public void AddKeyword(Syntax.Identifier kw, IExpansionRule expansionRule) {
+        _syntaxEnvironment.Add(kw, expansionRule);
+        
+    }
+
     public Syntax ApplyTransformer(Transformer transformer, Syntax syntax) {
         if (transformer is BuiltinTransformer builtin) {
             return builtin.Transform(syntax);
@@ -107,6 +112,10 @@ public class ExpansionContext {
             }
         }
 
+    }
+
+    public void DefineSyntax(Syntax.Identifier id, IExpansionRule rule) {
+        _syntaxEnvironment.Add(id, rule);
     }
 
     public ParsedExpr Expand(Syntax stx) => Expander.Expand(stx, this);

@@ -50,7 +50,16 @@ public static class Primitives {
     //     vm.Call();
     //     // this doesn't work because the procedure is expected to push its results, but it doesn't have any yet
     //     
-    // } 
+    // }
+    public static Primitive2 Eqvp {get;} = new(eqvp, 2, false);
+
+    private static void eqvp(Machine vm) {
+        Form form1 = vm.Pop();
+        Form form2 = vm.Pop();
+        vm.Push(vm.VAL = form1.Equals(form2) ? Bool.True : Bool.False);
+        return;
+    }
+        
 
     public static Primitive2 NumEq { get; } = new(numEq, 1, true);
 
