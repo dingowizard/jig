@@ -10,51 +10,54 @@ public class Expander {
         }
         
     }
+
+    private Syntax DoFirstPassOneForm(Syntax stx, ExpansionContext context) {
+        var form = Syntax.E(stx);
+        if (form is SyntaxList.NonEmpty { First: Syntax.Identifier kw } stxList) {
+            switch (kw.Symbol.Name) {
+                case "define":
+                    if (stxList.Rest is not SyntaxList.NonEmpty { First: Syntax.Identifier variable } rest)
+                        throw new Exception($"malformed define: {Syntax.ToDatum(stx).Print()} ");
+                    // TODO: there might already be a binding. We might be redefining ...
+                    var binding = new Binding(
+                        variable.Symbol,
+                        context.ScopeLevel,
+                        context.VarIndex++);
+                    context.AddBinding(variable, binding);
+                    var parsedVar = new ParsedVariable.TopLevel(variable, binding, variable.SrcLoc);
+                    return new Syntax(
+                        SyntaxList
+                            .FromParams(kw, parsedVar)
+                            .Concat<Syntax>(rest.Rest)
+                            .ToSyntaxList(),
+                        stx.SrcLoc);
+                case "define-syntax":
+                    if (stxList.Rest is not SyntaxList.NonEmpty { First: Syntax.Identifier vr } rt)
+                        throw new Exception($"malformed define: {Syntax.ToDatum(stx).Print()} ");
+                    var bg = new Binding(
+                        vr.Symbol,
+                        context.ScopeLevel,
+                        context.VarIndex++);
+                    context.AddBinding(vr, bg);
+                    var parsedKW = new ParsedVariable.TopLevel(vr, bg, vr.SrcLoc);
+                    context.DefineSyntax(parsedKW, rt.Rest);
+                    return new Syntax(
+                        SyntaxList
+                            .FromParams(kw, parsedKW)
+                            .Concat<Syntax>(rt.Rest)
+                            .ToSyntaxList(),
+                        stx.SrcLoc);
+                default:
+                    return stx;
+            }
+        }
+
+        return stx;
+    }
+
     private IEnumerable<Syntax> DoFirstPass(IEnumerable<Syntax> syntaxes, ExpansionContext context) {
         foreach (var syntax in syntaxes) {
-            var form = Syntax.E(syntax);
-            if (form is SyntaxList.NonEmpty {First: Syntax.Identifier kw} stxList) {
-                switch (kw.Symbol.Name) {
-                    case "define":
-                        if (stxList.Rest is not SyntaxList.NonEmpty {First: Syntax.Identifier variable} rest)
-                            throw new Exception($"malformed define: {Syntax.ToDatum(syntax).Print()} ");
-                        var binding = new Binding(
-                            variable.Symbol,
-                            context.ScopeLevel,
-                            context.VarIndex++);
-                        context.AddBinding(variable, binding);
-                        var parsedVar = new ParsedVariable.TopLevel(variable, binding, variable.SrcLoc);
-                        yield return new Syntax(
-                            SyntaxList
-                                .FromParams(kw, parsedVar)
-                                .Concat<Syntax>(rest.Rest)
-                                .ToSyntaxList(),
-                            syntax.SrcLoc);
-                        break;
-                    case "define-syntax":
-                        if (stxList.Rest is not SyntaxList.NonEmpty {First: Syntax.Identifier vr} rt)
-                            throw new Exception($"malformed define: {Syntax.ToDatum(syntax).Print()} ");
-                        var bg = new Binding(
-                            vr.Symbol,
-                            context.ScopeLevel,
-                            context.VarIndex++);
-                        context.AddBinding(vr, bg);
-                        var parsedKW = new ParsedVariable.TopLevel(vr, bg, vr.SrcLoc);
-                        context.DefineSyntax(parsedKW, rt.Rest);
-                        yield return new Syntax(
-                            SyntaxList
-                                .FromParams(kw, parsedKW)
-                                .Concat<Syntax>(rt.Rest)
-                                .ToSyntaxList(),
-                            syntax.SrcLoc);
-                        break;
-                    default:
-                        yield return syntax;
-                        break;
-                }
-            } else {
-                yield return syntax;
-            }
+            yield return DoFirstPassOneForm(syntax, context);
         }
     }
 
@@ -105,5 +108,8 @@ public class Expander {
             elements,
             srcLoc);
     }
-    
+
+    public ParsedForm ExpandREPLForm(Syntax stx, ExpansionContext context) {
+        return Expand(DoFirstPassOneForm(stx, context), context);
+    }
 }

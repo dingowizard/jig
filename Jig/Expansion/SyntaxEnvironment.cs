@@ -11,6 +11,7 @@ public abstract class SyntaxEnvironment {
         // TODO: the ids should have source locations -- names not rows and columns
         coreForms.Add(new Form.Symbol("begin"), new CoreSyntaxRule(CoreParseRules.ParseBeginForm));
         coreForms.Add(new Form.Symbol("define"), new CoreSyntaxRule(CoreParseRules.ParseDefineForm));
+        coreForms.Add(new Form.Symbol("define-syntax"), new CoreSyntaxRule(CoreParseRules.DefineSyntax));
         coreForms.Add(new Form.Symbol("if"), new CoreSyntaxRule(CoreParseRules.ParseIfForm));
         coreForms.Add(new Form.Symbol("lambda"), new CoreSyntaxRule(CoreParseRules.ParseLambdaForm));
         coreForms.Add(new Form.Symbol("quote"), new CoreSyntaxRule(CoreParseRules.ParseQuoteForm));

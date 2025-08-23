@@ -13,7 +13,10 @@ public class Compiler {
         Sys.List<Form> literals = [];
         Sys.List<Binding> bindings = [];
 
-        ulong[] code = Compile(x, ctEnv, literals, bindings, Context.Tail, scopeLevel, startLine); 
+        ulong[] code = Compile(x, ctEnv, literals, bindings, Context.Tail, scopeLevel, startLine);
+        if (code.Length == 0) {
+            code = [(ulong)OpCode.PopContinuation << 56];
+        }
         var result = new Template(0, code, bindings.ToArray(), literals.ToArray(), 0, false); // TODO: maybe there should be a different kind of template for this, since we don't need parameters
         // Array.ForEach(Disassembler.Disassemble(result), Console.WriteLine);
         return result;
@@ -46,9 +49,15 @@ public class Compiler {
                 return CompileDefinition(define, ctEnv, literals, bindings, context, scopeLevel, startLine);
             case ParsedSet set:
                 return CompileSet(set, ctEnv, literals, bindings, context, scopeLevel, startLine);
+            case ParsedDefineSyntax defineSyntax:
+                return CompileDefineSyntax(defineSyntax);
             default:
                 throw new NotImplementedException($"{x.Print()} of type {x.GetType()} is not supported yet");
         }
+    }
+
+    private ulong[] CompileDefineSyntax(ParsedDefineSyntax defineSyntax) {
+        return [];
     }
 
     private ulong[] CompileBegin(ParsedBegin begin, CompileTimeEnvironment ctEnv, Sys.List<Form> literals,

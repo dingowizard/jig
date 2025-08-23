@@ -331,7 +331,15 @@ public class Machine : IRuntime
                 case OpCode.Bind:
                     int parameterNumber = (int)(IR & 0x00000000FFFFFFFF);
                     for (int n = 0; n < parameterNumber; n++) {
-                        ENVT.BindParameter(n, Pop());
+                        try {
+                            ENVT.BindParameter(n, Pop());
+                        }
+                        catch (Exception exc) {
+                            Console.WriteLine($"VM @ {PC - 1}: trying to bind parameter in template:");
+                            Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
+                            Console.WriteLine($"Stack is {StackToList()}");
+                            
+                        }
                     }
                     continue;
                 case OpCode.BindRest:

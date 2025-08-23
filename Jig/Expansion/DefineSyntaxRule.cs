@@ -8,15 +8,9 @@ public partial class CoreParseRules {
         if (subForms.Length is not 3) {
             throw new Exception($"bad syntax in define-syntax @ {syntax.SrcLoc}: expected 3 sub-forms, got {formLength}");
         }
-        Syntax.Identifier id =
-            subForms[1] as Syntax.Identifier ?? throw new Exception($"bad syntax in define-syntax @ {syntax.SrcLoc}: expected first sub-form to be an identifier. Got {subForms[1]}");
-        
-        // TODO: I think we might need a ParsedKeyword type?
-
-        // TODO: This is not right.
-        var binding = new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++); // TODO: should it create a new binding, or find one and create only if none?
-        ParsedVariable var = subForms[1] as ParsedVariable ?? throw new Exception();
-
+        ParsedVariable var =
+            subForms[1] as ParsedVariable ?? throw new Exception($"bad syntax in define-syntax @ {syntax.SrcLoc}: expected first sub-form to be a parsed variable. Got {subForms[1]}, a {subForms[1].GetType()}");
+        // TODO: probably we should only need to check that the syntax is a parsed define syntax at this point
         return new ParsedDefineSyntax(subForms[0], var, subForms[2]);
 
         // TODO: expand and then evaluate the third sub-form

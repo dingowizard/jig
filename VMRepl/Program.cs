@@ -98,7 +98,7 @@ public static class Program {
         // var me = new Jig.MacroExpander();
         // Jig.ParsedExpr program = me.Expand(stx, ExEnv);
         // var context = new ExpansionContext(vm, DefaultExpander);
-        var program = DefaultExpander.Expand(stx, env.GetExpansionContext());
+        var program = DefaultExpander.ExpandREPLForm(stx, env.GetExpansionContext());
         
         var compiler = new VM.Compiler(); // should class be static?
         var ctEnv = new CompileTimeEnvironment(env); // TODO: why does the cte need these bindings?
