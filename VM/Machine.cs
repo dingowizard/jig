@@ -230,7 +230,7 @@ public class Machine : IRuntime
                     
                     // maybe by having another CompilationContext for operator
                     VAL = Pop();
-                    if (VAL is Primitive2 primitiveProc)
+                    if (VAL is Primitive primitiveProc)
                     {
                         primitiveProc.Apply(this);
                         // NOTE: Primitive2 pushes it's result
@@ -249,20 +249,7 @@ public class Machine : IRuntime
                         // Console.WriteLine($"about to return from case OpCode.Call, PrimitiveFn");
                         return;
                     }
-                    if (VAL is Primitive primitiveFn) {
-                        Delegate del = primitiveFn.Delegate;
-                        // TODO:
-                        VAL = (Form)del.DynamicInvoke(ConsumeStackFrameToList().Cast<object>().ToArray());
-                        Push(VAL);
-                        // primitives don't have a return instruction, thus this ugliness:
-                        if (CONT is PartialContinuation pct) {
-                            pct.Pop(this);
-                            continue;
-                        }
-                        CONT.Pop(this);
-                        // Console.WriteLine($"about to return from case OpCode.Call, PrimitiveFn");
-                        return;
-                    }
+                    
                     if (VAL is SavedContinuation cont) {
                         // Console.WriteLine($"applying a saved continuation");
                         // Console.WriteLine($"\tcont.SavedWinders.Length = {cont.SavedWinders.Length} and Winders = {Winders.Length}");

@@ -3,35 +3,38 @@ using Jig;
 namespace VM;
 
 public static class Primitives {
-    private static Form car(Form form) {
-        if (form is IPair p) {
-            return (Form)p.Car;
-        }
-        throw new Exception("car: expected argument to be pair, got {form}");
+    private static void car(Machine vm) {
+        Form arg = vm.Pop();
+        IPair? pair = arg as IPair;
+        if (pair is null) throw new Exception("car: expected argument to be a pair. Got ${arg}");
+        vm.Push(vm.VAL = (Form)pair.Car);
     }
-    public static Primitive Car { get; } = new Primitive(car);
+    public static Primitive Car { get; } = new(car, 1, false);
 
-    private static Form cdr(Form form) {
-        if (form is IPair p) {
-            return (Form)p.Cdr;
-        }
-        throw new Exception("cdr: expected argument to be pair, got {form}");
+    private static void cdr(Machine vm) {
+        Form arg = vm.Pop();
+        IPair? pair = arg as IPair;
+        if (pair is null) throw new Exception("cdr: expected argument to be a pair. Got ${arg}");
+        vm.Push(vm.VAL = (Form)pair.Cdr);
     }
 
-    public static Primitive Cdr { get; } = new Primitive(cdr);
+    public static Primitive Cdr { get; } = new (cdr, 1, false);
     
-    private static Form cons(Form car, Form cdr) {
-        return (Form)Pair.Cons(car, cdr);
+    private static void cons(Machine vm) {
+        Form car  = vm.Pop();
+        Form cdr  = vm.Pop();
+        vm.Push(vm.VAL = (Form)Pair.Cons(car, cdr));
     }
 
-    public static Primitive Cons { get; } = new Primitive(cons);
+    public static Primitive Cons { get; } = new (cons, 2, false);
     
-    private static Form zerop(Form form)
-    {
+    private static void zerop(Machine vm) {
+        Form form = vm.Pop();
         if (form is Number number) {
-            return number == Integer.Zero;
+            vm.Push(vm.VAL = (number == Integer.Zero));
+            return;
         }
-        throw new Exception("zero?: expected argument to be number, got {form}");
+        throw new Exception($"zero?: expected argument to be number, got {form}");
     }
 
     // private static void callWValues(Machine vm)
@@ -51,7 +54,7 @@ public static class Primitives {
     //     // this doesn't work because the procedure is expected to push its results, but it doesn't have any yet
     //     
     // }
-    public static Primitive2 Eqvp {get;} = new(eqvp, 2, false);
+    public static Primitive Eqvp {get;} = new(eqvp, 2, false);
 
     private static void eqvp(Machine vm) {
         Form form1 = vm.Pop();
@@ -60,7 +63,7 @@ public static class Primitives {
         return;
     }
 
-    public static Primitive2 DatumToSyntax {get;} = new(datumToSyntax, 2, false);
+    public static Primitive DatumToSyntax {get;} = new(datumToSyntax, 2, false);
 
     private static void datumToSyntax(Machine vm) {
 
@@ -71,7 +74,7 @@ public static class Primitives {
     }
         
 
-    public static Primitive2 SyntaxToList {get;} = new(syntaxToList, 1, false);
+    public static Primitive SyntaxToList {get;} = new(syntaxToList, 1, false);
 
     private static void syntaxToList(Machine vm) {
 
@@ -81,7 +84,7 @@ public static class Primitives {
         return;
 
     }
-    public static Primitive2 NumEq { get; } = new(numEq, 1, true);
+    public static Primitive NumEq { get; } = new(numEq, 1, true);
 
     private static void numEq(Machine vm)
     {
@@ -107,7 +110,7 @@ public static class Primitives {
 
     }
 
-    public static Primitive2 Append {get;} = new(append, 0, true);
+    public static Primitive Append {get;} = new(append, 0, true);
 
     private static void append(Machine vm) {
         IForm result = List.Null;
@@ -124,7 +127,7 @@ public static class Primitives {
         vm.Push(vm.VAL);
     }
 
-    public static Primitive2 PairP {get;} = new(pair_p, 1, false);
+    public static Primitive PairP {get;} = new(pair_p, 1, false);
 
     private static void pair_p(Machine vm) {
         Form arg = vm.Pop();
@@ -133,7 +136,7 @@ public static class Primitives {
         return;
     }
         
-    public static Primitive2 Minus {get;} = new(minus, 1, true);
+    public static Primitive Minus {get;} = new(minus, 1, true);
 
     private static void minus(Machine vm) {
         if (vm.SP <= vm.FP) {
@@ -152,7 +155,7 @@ public static class Primitives {
         return;
     }
 
-    public static Primitive2 Apply {get;} = new(apply, 2, false);
+    public static Primitive Apply {get;} = new(apply, 2, false);
 
     private static void apply(Machine vm) {
         var proc = vm.Pop();
@@ -162,7 +165,7 @@ public static class Primitives {
 
     }
 
-    public static Primitive2 GT {get;} = new(gt, 1, true);
+    public static Primitive GT {get;} = new(gt, 1, true);
 
     // public static Primitive2 CallWValues { get; } = new(callWValues, 2, false);
 
@@ -192,7 +195,7 @@ public static class Primitives {
         return;
     }
 
-    public static Primitive2 LT {get;} = new(lt, 1, true);
+    public static Primitive LT {get;} = new(lt, 1, true);
 
     // public static Primitive2 CallWValues { get; } = new(callWValues, 2, false);
 
@@ -220,7 +223,7 @@ public static class Primitives {
         vm.Push(vm.VAL = Bool.True);
         return;
     }
-    public static Primitive ZeroP { get; } = new(zerop);
+    public static Primitive ZeroP { get; } = new(zerop, 1, false);
     
     private static void nullp(Machine vm)
     {
@@ -246,15 +249,15 @@ public static class Primitives {
     // }
 
     // public static Primitive NullP { get; } = new(nullp);
-    public static Primitive2 NullP { get; } = new(nullp, 1, false);
+    public static Primitive NullP { get; } = new(nullp, 1, false);
 }
 
 public delegate void PrimitiveProcedure(Machine vm);
 
-public class Primitive2 : Form
+public class Primitive : Form
 {
 
-    public Primitive2(PrimitiveProcedure proc, int required, bool hasRest)
+    public Primitive(PrimitiveProcedure proc, int required, bool hasRest)
     {
         Delegate = proc;
         Required = required;
@@ -285,14 +288,4 @@ public class Primitive2 : Form
     }
     public override string Print() => "#<procedure>";
     
-}
-
-public class Primitive : Form {
-    public Primitive(Delegate fn) {
-        Delegate = fn;
-    }
-
-    public Delegate Delegate { get;}
-    public override string Print() => "#<procedure>";
-
 }

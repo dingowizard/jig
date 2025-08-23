@@ -8,7 +8,7 @@ public static class Disassembler {
         Sys.List<string> literals = ["***LITERALS***"];
         literals.AddRange(template.Slots.Select((t, i) => $"{i:D5}\t{t.Print()}"));
         literals.Add("--------------------------");
-        Sys.List<string> globals = ["***BINDINGS***"];
+        Sys.List<string> globals = ["***TOP LEVEL VARS***"];
         globals.AddRange(template.Bindings.Select((t, i) => $"{i:D5}\t{t.Symbol.Print()} {(t.Top ? "(top)" : "")}"));
         globals.Add("--------------------------");
         Sys.List<string> instructions = [
