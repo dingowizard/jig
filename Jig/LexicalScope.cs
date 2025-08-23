@@ -29,7 +29,7 @@ internal class LexicalContext {
     }
 
     public ParameterExpression ParameterForDefine(IForm x) {
-        Symbol sym = x is Syntax.Identifier id ? id.Symbol : (Symbol)x;
+        Symbol sym = x is Identifier id ? id.Symbol : (Symbol)x;
         ParameterExpression? pe = Symbols.Find(tup => tup.Item1.Equals(sym))?.Item2;
         if (pe is null) {
             pe = Expression.Parameter(typeof(IForm), sym.Name);

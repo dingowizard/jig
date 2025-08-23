@@ -17,7 +17,7 @@ public abstract class Form : IForm {
     {
         switch (ast) {
             case Symbol:
-            case Syntax.Identifier:
+            case Identifier:
                 return true;
             default:
                 return false;
@@ -42,7 +42,7 @@ public abstract class Form : IForm {
                 if (list is IEmptyList) {
                     throw new Exception($"IsKeyword: ast is ()");
                 }
-                if (list.ElementAt(0) is Syntax.Identifier id) {
+                if (list.ElementAt(0) is Identifier id) {
                     return id.Symbol.Name == name;
                 } return false;
             }
@@ -81,7 +81,7 @@ public abstract class Keyword : Symbol {
         public Quote() : base("quote") {}
     }
     public static bool Is<T>(Form car) where T : Keyword => car switch {
-            Syntax.Identifier id => id.Symbol is T,
+            Identifier id => id.Symbol is T,
             Symbol symbol => symbol is T,
             _ => false,
         };

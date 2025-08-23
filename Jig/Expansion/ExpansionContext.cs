@@ -10,10 +10,10 @@ public class ExpansionContext {
         Runtime = runtime;
         Expander = new Expander();
         _syntaxEnvironment = SyntaxEnvironment.Default;
-        _bindings = new Dictionary<Syntax.Identifier, Binding>(); // TODO: this seems like it should be part of the environment
+        _bindings = new Dictionary<Identifier, Binding>(); // TODO: this seems like it should be part of the environment
         int i = 0;
         foreach (var sym in topLevels) {
-            _bindings.Add(new Syntax.Identifier(sym), new Binding(sym, 0, i++));
+            _bindings.Add(new Identifier(sym), new Binding(sym, 0, i++));
             
         }
         ScopeLevel = 0;
@@ -26,7 +26,7 @@ public class ExpansionContext {
         IRuntime runtime,
         Expander expander,
         SyntaxEnvironment? env = null,
-        Dictionary<Syntax.Identifier, Binding>? bindings = null,
+        Dictionary<Identifier, Binding>? bindings = null,
         int scopeLevel = 0,
         int varIndex = 0,
         bool definesAllowed = true) {
@@ -34,7 +34,7 @@ public class ExpansionContext {
         Runtime = runtime;
         Expander = expander;
         _syntaxEnvironment = env ?? SyntaxEnvironment.Default;
-        _bindings = bindings ?? new Dictionary<Syntax.Identifier, Binding>(); // TODO: this seems like it should be part of the environment
+        _bindings = bindings ?? new Dictionary<Identifier, Binding>(); // TODO: this seems like it should be part of the environment
         ScopeLevel = scopeLevel;
         VarIndex = varIndex;
         DefinesAllowed = definesAllowed;
@@ -48,14 +48,14 @@ public class ExpansionContext {
     }
     public Expander Expander {get;}
 
-    public bool TryFindKeyword(Syntax.Identifier kw, [NotNullWhen(returnValue: true)] out IExpansionRule? expansionRule) {
+    public bool TryFindKeyword(Identifier kw, [NotNullWhen(returnValue: true)] out IExpansionRule? expansionRule) {
         if (_syntaxEnvironment.TryFind(kw, out expansionRule)) {
             return true;
         }
         return false;
     }
 
-    public void AddKeyword(Syntax.Identifier kw, IExpansionRule expansionRule) {
+    public void AddKeyword(Identifier kw, IExpansionRule expansionRule) {
         _syntaxEnvironment.Add(kw, expansionRule);
         
     }
@@ -69,7 +69,7 @@ public class ExpansionContext {
 
     public Binding[] Bindings => _bindings.Values.ToArray();
 
-    public void AddBinding(Syntax.Identifier id, Binding binding, [CallerMemberName] string name = "", [CallerFilePath] string path = "", [CallerLineNumber] int line = 0) {
+    public void AddBinding(Identifier id, Binding binding, [CallerMemberName] string name = "", [CallerFilePath] string path = "", [CallerLineNumber] int line = 0) {
         
         if (!_bindings.TryAdd(id, binding)) {
             foreach (var kvp in _bindings) {
@@ -86,12 +86,12 @@ public class ExpansionContext {
         }
     }
 
-    public IEnumerable<Syntax.Identifier> Bound => _bindings.Keys;
+    public IEnumerable<Identifier> Bound => _bindings.Keys;
 
-    private Dictionary<Syntax.Identifier, Binding> _bindings {get;}
+    private Dictionary<Identifier, Binding> _bindings {get;}
 
-    IEnumerable<Syntax.Identifier> FindCandidateIdentifiers(Syntax.Identifier id) {
-        IEnumerable<Syntax.Identifier> sameName = _bindings.Keys.Where(i => i.Symbol.Name == id.Symbol.Name);
+    IEnumerable<Identifier> FindCandidateIdentifiers(Identifier id) {
+        IEnumerable<Identifier> sameName = _bindings.Keys.Where(i => i.Symbol.Name == id.Symbol.Name);
         // var name = "reverse";
         // if (id.Symbol.Name == name) {
         //     Console.WriteLine($"The search id -- {id} -- has the following scope sets: {string.Join(',', id.ScopeSet)}");
@@ -109,9 +109,9 @@ public class ExpansionContext {
         return result;
     }
 
-    internal bool TryResolve(Syntax.Identifier id, [NotNullWhen(returnValue: true)] out Binding? binding) {
+    internal bool TryResolve(Identifier id, [NotNullWhen(returnValue: true)] out Binding? binding) {
         var candidates = FindCandidateIdentifiers(id);
-        var identifiers = candidates as Syntax.Identifier[] ?? candidates.ToArray();
+        var identifiers = candidates as Identifier[] ?? candidates.ToArray();
         // var name = "reverse";
         // if (id.Symbol.Name == name) {
         //     Console.WriteLine($"TryResolve: found {identifiers.Length} candidates for '{name}' at {id.SrcLoc} in {this.GetHashCode()}");
@@ -121,7 +121,7 @@ public class ExpansionContext {
             return false;
         }
         #pragma warning disable CS8600
-        Syntax.Identifier maxID = identifiers.MaxBy(i => i.ScopeSet.Count);// ?? throw new Exception("impossible");
+        Identifier maxID = identifiers.MaxBy(i => i.ScopeSet.Count);// ?? throw new Exception("impossible");
         Debug.Assert(maxID is not null);
         #pragma warning restore CS8600
         CheckUnambiguous(maxID, identifiers);
@@ -129,7 +129,7 @@ public class ExpansionContext {
         return true;
     }
 
-    static void CheckUnambiguous(Syntax.Identifier maxID, IEnumerable<Syntax.Identifier> candidates) {
+    static void CheckUnambiguous(Identifier maxID, IEnumerable<Identifier> candidates) {
         // TODO: understand this better
         foreach (var candidate in candidates) {
             if (!candidate.ScopeSet.IsSubsetOf(maxID.ScopeSet)) {

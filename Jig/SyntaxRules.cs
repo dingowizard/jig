@@ -124,7 +124,7 @@ internal static partial class Builtins {
 
             private Env EnvFromPattern(Form arg, Syntax pattern, int depth)
             {
-                if (pattern is Syntax.Identifier id)
+                if (pattern is Identifier id)
                 {
                     return EnvFromPattern(arg, id, depth);
                 }
@@ -195,7 +195,7 @@ internal static partial class Builtins {
                     .ToList();
             }
 
-            private Env EnvFromPattern(Form arg, Syntax.Identifier id, int depth)
+            private Env EnvFromPattern(Form arg, Identifier id, int depth)
             {
                 if (id.Symbol.Name != "_") {
                     return [new EnvEntry(id.Symbol, arg, depth)];
@@ -231,7 +231,7 @@ internal static partial class Builtins {
                             .Select(tup => tup.Item2)).ToJigList();
                 }
                 switch (stx) {
-                    case Syntax.Identifier id:
+                    case Identifier id:
                         return Template(id, env);
                     case Syntax.Literal lit:
                         return lit;
@@ -323,7 +323,7 @@ internal static partial class Builtins {
             private static int HowManyDotDotDots(SyntaxList.NonEmpty stxList) {
                 var array = stxList.Skip<Syntax>(2).ToArray(); // we know the list has at least (a ... )
                 int result = 1;
-                while (result - 1 < array.Length && array[result - 1] is Syntax.Identifier { Symbol.Name: "..." }) {
+                while (result - 1 < array.Length && array[result - 1] is Identifier { Symbol.Name: "..." }) {
                     result++;
                 }
 
@@ -340,10 +340,10 @@ internal static partial class Builtins {
 
             private static bool CadrIsDotDotDot(SyntaxList stxList) {
                 if (stxList.Count<Syntax>() < 2) return false;
-                return stxList.ElementAt<Syntax>(1) is Syntax.Identifier { Symbol.Name: "..." };
+                return stxList.ElementAt<Syntax>(1) is Identifier { Symbol.Name: "..." };
             }
 
-            private static Form Template(Syntax.Identifier id, Env env) {
+            private static Form Template(Identifier id, Env env) {
                 if (env.Any(tup => Equals(tup.Item1, id.Symbol))) {
                     var tup = env.First(tup => Equals(tup.Item1, id.Symbol));
                     if (tup.Item3 > 0) {
@@ -367,7 +367,7 @@ internal static partial class Builtins {
 
             private bool IsEllipsisPattern(SyntaxList pattern) {
                 if (pattern.Count<Syntax>() != 2) return false;
-                if (pattern.ElementAt<Syntax>(1) is not Syntax.Identifier id) return false;
+                if (pattern.ElementAt<Syntax>(1) is not Identifier id) return false;
                 return id.Symbol.Name == "...";
             }
 
@@ -404,7 +404,7 @@ internal static partial class Builtins {
                     
                     case IEmptyList: return NewList(NewSym("null?"), NewList(NewSym("syntax-e"), toMatch));
                     case Symbol sym:
-                        Syntax.Identifier? lit = (Syntax.Identifier?)Literals.FirstOrDefault<Syntax>(stx => stx is Syntax.Identifier id && id.Symbol.Name == sym.Name);
+                        Identifier? lit = (Identifier?)Literals.FirstOrDefault<Syntax>(stx => stx is Identifier id && id.Symbol.Name == sym.Name);
                         if (lit is not null) {
                             // TODO: probably should test with something other than symbol=?
                             return NewList(

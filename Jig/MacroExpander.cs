@@ -10,13 +10,13 @@ public class MacroExpander {
 
     public MacroExpander() {
 
-        _bindings = new Dictionary<Syntax.Identifier, Binding>();
+        _bindings = new Dictionary<Identifier, Binding>();
     }
 
 
     public Binding[] Bindings => _bindings.Values.ToArray();
 
-    public void AddBinding(Syntax.Identifier id, Binding binding) {
+    public void AddBinding(Identifier id, Binding binding) {
         if (!_bindings.TryAdd(id, binding)) {
             Console.Error.WriteLine($"Expander.AddBinding: Duplicate binding '{id}'");
             foreach (var kvp in _bindings) {
@@ -33,10 +33,10 @@ public class MacroExpander {
         }
     }
 
-    private Dictionary<Syntax.Identifier, Binding> _bindings {get;}
+    private Dictionary<Identifier, Binding> _bindings {get;}
 
-    IEnumerable<Syntax.Identifier> FindCandidateIdentifiers(Syntax.Identifier id) {
-        IEnumerable<Syntax.Identifier> sameName = _bindings.Keys.Where(i => i.Symbol.Name == id.Symbol.Name);
+    IEnumerable<Identifier> FindCandidateIdentifiers(Identifier id) {
+        IEnumerable<Identifier> sameName = _bindings.Keys.Where(i => i.Symbol.Name == id.Symbol.Name);
         // if (id.Symbol.Name == "y") {
         //     Console.WriteLine($"The search id -- {id} -- has the following scope sets: {string.Join(',', id.ScopeSet)}");
         //     Console.WriteLine($"Found {sameName.Count()} bindings with same name.");
@@ -48,9 +48,9 @@ public class MacroExpander {
         return result;
     }
 
-    internal bool TryResolve(Syntax.Identifier id, [NotNullWhen(returnValue: true)] out Binding? binding) {
+    internal bool TryResolve(Identifier id, [NotNullWhen(returnValue: true)] out Binding? binding) {
         var candidates = FindCandidateIdentifiers(id);
-        var identifiers = candidates as Syntax.Identifier[] ?? candidates.ToArray();
+        var identifiers = candidates as Identifier[] ?? candidates.ToArray();
         // if (id.Symbol.Name == "y") {
         //     Console.WriteLine($"TryResolve: found {identifiers.Length} candidates for 'y' at {id.SrcLoc} in {this.GetHashCode()}");
         // }
@@ -59,7 +59,7 @@ public class MacroExpander {
             return false;
         }
         #pragma warning disable CS8600
-        Syntax.Identifier maxID = identifiers.MaxBy(i => i.ScopeSet.Count);// ?? throw new Exception("impossible");
+        Identifier maxID = identifiers.MaxBy(i => i.ScopeSet.Count);// ?? throw new Exception("impossible");
         Debug.Assert(maxID is not null);
         #pragma warning restore CS8600
         CheckUnambiguous(maxID, identifiers);
@@ -67,7 +67,7 @@ public class MacroExpander {
         return true;
     }
 
-    static void CheckUnambiguous(Syntax.Identifier maxID, IEnumerable<Syntax.Identifier> candidates) {
+    static void CheckUnambiguous(Identifier maxID, IEnumerable<Identifier> candidates) {
         // TODO: understand this better
         foreach (var candidate in candidates) {
             if (!candidate.ScopeSet.IsSubsetOf(maxID.ScopeSet)) {
@@ -116,7 +116,7 @@ public class MacroExpander {
 
     private  ParsedForm ExpandDefineSyntax(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
-        Syntax.Identifier id = stxList.ElementAt<Syntax>(1) as Syntax.Identifier ?? throw new Exception() ;
+        Identifier id = stxList.ElementAt<Syntax>(1) as Identifier ?? throw new Exception() ;
         // Console.WriteLine($"define-syntax: {id}");
         var binding = new Binding(id.Symbol, ee.ScopeLevel, ee.VarIndex++);
         _bindings.Add(id, binding);
@@ -124,7 +124,7 @@ public class MacroExpander {
         ParsedLambda expandedLambdaExpr = Expand(stxList.ElementAt<Syntax>(2), ee) as ParsedLambda ?? throw new Exception($"define-syntax: expected 2nd argument to be a transformer. Got {stxList.ElementAt<Syntax>(2)}");
         Transformer transformer = EvaluateTransformer(expandedLambdaExpr); // TODO: should this part actually happen at runtime? then eval would need expansion env
         ee.AddTransformer(id.Symbol, transformer);
-        Syntax result = new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("quote")), id), srcLoc);
+        Syntax result = new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("quote")), id), srcLoc);
         if (ParsedLiteral.TryParse(result, out ParsedLiteral? lit)) {
             return lit;
         } else {
@@ -143,7 +143,7 @@ public class MacroExpander {
 
     private  ParsedForm ExpandApplication(Syntax stx, SyntaxList stxList, ExpansionEnvironment ee, bool once = false)
     {
-        if (stxList.ElementAt<Syntax>(0) is Syntax.Identifier id && ee.TryFindTransformer(id.Symbol, out Transformer? transformer)) {
+        if (stxList.ElementAt<Syntax>(0) is Identifier id && ee.TryFindTransformer(id.Symbol, out Transformer? transformer)) {
             Scope macroExpansionScope = new Scope();
             
             Syntax.AddScope(stx, macroExpansionScope);
@@ -154,7 +154,7 @@ public class MacroExpander {
             Syntax.ToggleScope(output, macroExpansionScope);
             // Console.WriteLine($"\t => {output}");
             if (once) {
-                if (ParsedQuoteSyntax.TryParse(new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("quote-syntax")), output)),
+                if (ParsedQuoteSyntax.TryParse(new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("quote-syntax")), output)),
                                                out ParsedQuoteSyntax? quoteSyntax)) {
                     return quoteSyntax;
                 } else {
@@ -203,12 +203,12 @@ public class ExpansionEnvironment {
         SyntaxList stxList = Syntax.E(stx) as SyntaxList ?? throw new Exception("match: syntax should expand to list");
         if (stxList.Count<Syntax>() < 2) throw new Exception(); // TODO: this should be a syntax error
         Syntax expr = stxList.ElementAt<Syntax>(1);
-        Syntax.Identifier x = new (new Symbol("x"));
+        Identifier x = new (new Symbol("x"));
         Syntax result = new Syntax(
             SyntaxList.FromParams(
                 new Syntax(
                     SyntaxList.FromParams(
-                        new Syntax.Identifier(new Symbol("lambda")),
+                        new Identifier(new Symbol("lambda")),
                         new Syntax(SyntaxList.FromParams(x)),
                         LambdaBodyForMatch(x, stxList.Skip<Syntax>(2))
                     )),
@@ -232,7 +232,7 @@ public class ExpansionEnvironment {
         var elseBranch =
             enumerable.Length == 1 ?
             new Syntax(SyntaxList.FromParams(
-                new Syntax.Identifier(new Symbol("error")),
+                new Identifier(new Symbol("error")),
                 new Syntax.Literal(new String("match: couldn't find a match."))
             )) : 
             new Syntax(MakeIfs(x, enumerable.Skip(1)));
@@ -240,7 +240,7 @@ public class ExpansionEnvironment {
         var thisClause =
             Syntax.E(enumerable.ElementAt(0)) as SyntaxList.NonEmpty ?? throw new Exception(); // TODO: should be syntax error
         return SyntaxList.FromParams(
-            new Syntax.Identifier(new Symbol("if")),
+            new Identifier(new Symbol("if")),
             MakeConditionForMatchClause(x, thisClause.First),
             MakeThenForMatchClause(x, thisClause.First, thisClause.Rest),
             elseBranch
@@ -254,7 +254,7 @@ public class ExpansionEnvironment {
             new System.Collections.Generic.List<Syntax> {
                 new(new System.Collections.Generic.List<Syntax>
                 {
-                    new Syntax.Identifier(new Symbol("lambda")),
+                    new Identifier(new Symbol("lambda")),
                     ParamsForLambdaForMatchClauseThen(pattern)
                 }.Concat(bodies.Cast<Syntax>()).ToSyntaxList())
             }.ToSyntaxList();
@@ -277,10 +277,10 @@ public class ExpansionEnvironment {
     }
 
     private static List ArgsForLambdaForMatchClauseThen(Syntax x, SyntaxList patterns) {
-        if (patterns.ElementAt<Syntax>(0) is Syntax.Identifier id && id.Symbol.Name == "quote") {
+        if (patterns.ElementAt<Syntax>(0) is Identifier id && id.Symbol.Name == "quote") {
             return SyntaxList.Null;
         }
-        if (patterns.ElementAt<Syntax>(0) is Syntax.Identifier q && q.Symbol.Name == "quote-syntax") {
+        if (patterns.ElementAt<Syntax>(0) is Identifier q && q.Symbol.Name == "quote-syntax") {
             return SyntaxList.Null;
         }
         System.Collections.Generic.List<IForm> result = [];
@@ -308,12 +308,12 @@ public class ExpansionEnvironment {
         return Pair.Cons(
                 ArgsForLambdaForMatchClauseThen(
                     x: new Syntax(SyntaxList.FromParams(
-                        new Syntax.Identifier(new Symbol("car")),
+                        new Identifier(new Symbol("car")),
                         x)),
                     pattern: pair.Car),
                 ArgsForLambdaForMatchClauseThen(
                     x: new Syntax(SyntaxList.FromParams(
-                        new Syntax.Identifier(new Symbol("cdr")),
+                        new Identifier(new Symbol("cdr")),
                         x)),
                     pattern: pair.Cdr));
     }
@@ -375,30 +375,30 @@ public class ExpansionEnvironment {
     }
 
     private static Syntax MakeConditionForMatchClause(Syntax x, SyntaxList pattern) {
-        if (pattern.ElementAt<Syntax>(0) is Syntax.Identifier id && id.Symbol.Name == "quote") {
+        if (pattern.ElementAt<Syntax>(0) is Identifier id && id.Symbol.Name == "quote") {
             return new Syntax(
                 SyntaxList.FromParams(
-                    new Syntax.Identifier(new Symbol("eqv?")),
+                    new Identifier(new Symbol("eqv?")),
                     x,
                     new Syntax(pattern)));
         }
-        if (pattern.ElementAt<Syntax>(0) is Syntax.Identifier q && q.Symbol.Name == "quote-syntax") {
+        if (pattern.ElementAt<Syntax>(0) is Identifier q && q.Symbol.Name == "quote-syntax") {
             return new Syntax(
                 SyntaxList.FromParams(
-                    new Syntax.Identifier(new Symbol("eqv?")),
+                    new Identifier(new Symbol("eqv?")),
                     x,
                     new Syntax(pattern)));
         }
         System.Collections.Generic.List<Syntax> firstPart = [
-            new Syntax.Identifier(new Symbol("and")),
+            new Identifier(new Symbol("and")),
             new Syntax(SyntaxList.FromParams(
-                new Syntax.Identifier(new Symbol("list?")),
+                new Identifier(new Symbol("list?")),
                 x
             )),
             new Syntax(SyntaxList.FromParams(
-                new Syntax.Identifier(new Symbol("=")),
+                new Identifier(new Symbol("=")),
                     new Syntax(SyntaxList.FromParams(
-                        new Syntax.Identifier(new Symbol("length")),
+                        new Identifier(new Symbol("length")),
                         x
                     )),
                     new Syntax.Literal(new Integer(pattern.Count<Syntax>()))))
@@ -412,10 +412,10 @@ public class ExpansionEnvironment {
 
     private static Syntax NthElementOfList(int i, Syntax x) {
         while (i > 0) {
-            x = new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("cdr")), x));
+            x = new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("cdr")), x));
             i--;
         }
-        return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("car")), x));
+        return new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("car")), x));
     }
 
     private static Syntax MakeConditionForMatchClause(Syntax x, IForm car, IForm cdr) {
@@ -424,27 +424,27 @@ public class ExpansionEnvironment {
         if (cdr is Syntax cdrSyntax) {
             return new Syntax(
                 SyntaxList.FromParams(
-                    new Syntax.Identifier(new Symbol("and")),
+                    new Identifier(new Symbol("and")),
                     new Syntax(SyntaxList.FromParams(
-                        new Syntax.Identifier(new Symbol("pair?")),
+                        new Identifier(new Symbol("pair?")),
                         x
                     )),
-                    MakeConditionForMatchClause(new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("car")), x)), carSyntax),
-                    MakeConditionForMatchClause(new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("cdr")), x)), cdrSyntax))
+                    MakeConditionForMatchClause(new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("car")), x)), carSyntax),
+                    MakeConditionForMatchClause(new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("cdr")), x)), cdrSyntax))
             );
         } else {
             if (cdr is IPair p) {
                 return new Syntax(
                     SyntaxList.FromParams(
-                        new Syntax.Identifier(new Symbol("and")),
+                        new Identifier(new Symbol("and")),
                         new Syntax(SyntaxList.FromParams(
-                            new Syntax.Identifier(new Symbol("pair?")),
+                            new Identifier(new Symbol("pair?")),
                             x
                         )),
-                        MakeConditionForMatchClause(new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("car")), x)), carSyntax),
+                        MakeConditionForMatchClause(new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("car")), x)), carSyntax),
                         MakeConditionForMatchClause(
                             new Syntax(
-                                SyntaxList.FromParams(new Syntax.Identifier(new Symbol("cdr")), x)),
+                                SyntaxList.FromParams(new Identifier(new Symbol("cdr")), x)),
                                 p.Car,
                                 p.Cdr))
                 );
@@ -457,7 +457,7 @@ public class ExpansionEnvironment {
     private static Syntax MakeNullTest(Syntax x) {
         return new Syntax(
             SyntaxList.FromParams(
-                new Syntax.Identifier(new Symbol("null?")),
+                new Identifier(new Symbol("null?")),
                 x
         ));
     }
@@ -466,8 +466,8 @@ public class ExpansionEnvironment {
         return Syntax.E(pattern) switch
         {
             Number => MakeNumEqTest(pattern, x),
-            Bool => new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("eqv?")), pattern, x)),
-            Syntax => new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("eqv?")), pattern, x)),
+            Bool => new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("eqv?")), pattern, x)),
+            Syntax => new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("eqv?")), pattern, x)),
             List.Empty => MakeNullTest(x),
             Symbol => new Syntax.Literal(Bool.True),
             SyntaxList syntaxList => MakeConditionForMatchClause(x, syntaxList),
@@ -480,7 +480,7 @@ public class ExpansionEnvironment {
     {
         return new Syntax(
             SyntaxList.FromParams(
-                new Syntax.Identifier(new Symbol("=")),
+                new Identifier(new Symbol("=")),
                 x,
                 n
         ));
@@ -500,11 +500,11 @@ public class ExpansionEnvironment {
         }
         Syntax first = stxList.ElementAt<Syntax>(1);
         result = new Syntax(
-            SyntaxList.FromParams(new Syntax.Identifier(new Symbol("if")),
+            SyntaxList.FromParams(new Identifier(new Symbol("if")),
                                     first,
                                     new Syntax(
                                     SyntaxList.FromIEnumerable(new System.Collections.Generic.List<Syntax>{
-                                        new Syntax.Identifier(new Symbol("and"))
+                                        new Identifier(new Symbol("and"))
                                                                             }.Concat(stxList.Skip<Syntax>(2))),
 
                                     new SrcLoc()),
@@ -525,7 +525,7 @@ public class ExpansionEnvironment {
         IForm argE = Syntax.E(arg);
         if (argE is List.Empty ||
             argE is not IPair) {
-            result = new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("quote")),
+            result = new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("quote")),
                                                       arg),
                                 stx.SrcLoc);
         } else if (argE is SyntaxList stxListArg) {
@@ -537,11 +537,11 @@ public class ExpansionEnvironment {
                 }
             } else if (Syntax.E(stxListArg.ElementAt<Syntax>(0)) is not SyntaxList) { // (quasiquote (x . rest)) where x is not a pair
                                                                        // => (cons (quote x) (quasiquote rest))
-                result = new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("cons")),
-                                                          new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("quote")),
+                result = new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("cons")),
+                                                          new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("quote")),
                                                                                            stxListArg.ElementAt<Syntax>(0)),
                                                                      new SrcLoc()),
-                                                          new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("quasiquote")),
+                                                          new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("quasiquote")),
                                                                                            new Syntax(SyntaxList.FromIEnumerable(stxListArg.Skip<Syntax>(1)))),
                                                                      new SrcLoc())),
                                     stx.SrcLoc);
@@ -556,20 +556,20 @@ public class ExpansionEnvironment {
                     // if (Syntax.E(listToSpliceStx) is not SyntaxList) {
                     //     throw new Exception("unquote-splicing: expected a list argument");
                     // }
-                    result = new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("append")),
+                    result = new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("append")),
                                                               listToSpliceStx,
-                                                              new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("quasiquote")),
+                                                              new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("quasiquote")),
                                                                                            new Syntax(SyntaxList.FromIEnumerable(stxListArg.Skip<Syntax>(1)))),
                                                                      new SrcLoc())),
                                     stx.SrcLoc);
 
                 } else {
                     // (cons (quasiquote slist) (quasiquote rest))
-                    result = new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("cons")),
-                                                          new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("quasiquote")),
+                    result = new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("cons")),
+                                                          new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("quasiquote")),
                                                                                            stxListArg.ElementAt<Syntax>(0)),
                                                                      new SrcLoc()),
-                                                          new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("quasiquote")),
+                                                          new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("quasiquote")),
                                                                                            new Syntax(SyntaxList.FromIEnumerable(stxListArg.Skip<Syntax>(1)))),
                                                                      new SrcLoc())),
                                     stx.SrcLoc);

@@ -20,7 +20,7 @@ public class Parser {
                 tokenStream.Read();
                 IForm? arg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
-                   return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Symbol.FromName("quote"), quoteToken.SrcLoc),
+                   return new Syntax(SyntaxList.FromParams(new Identifier(Symbol.FromName("quote"), quoteToken.SrcLoc),
                                                            (Syntax)arg),
                        ((Syntax)arg).SrcLoc);
                 } else {
@@ -30,7 +30,7 @@ public class Parser {
                 tokenStream.Read();
                 IForm? quasiArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
-                   return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Symbol.FromName("quasiquote"), quasiquoteToken.SrcLoc),
+                   return new Syntax(SyntaxList.FromParams(new Identifier(Symbol.FromName("quasiquote"), quasiquoteToken.SrcLoc),
                                                            (Syntax)quasiArg),
                        ((Syntax)quasiArg).SrcLoc);
                 } else {
@@ -40,7 +40,7 @@ public class Parser {
                 tokenStream.Read();
                 IForm? unquoteArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
-                   return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Symbol.FromName("unquote"), unquoteToken.SrcLoc),
+                   return new Syntax(SyntaxList.FromParams(new Identifier(Symbol.FromName("unquote"), unquoteToken.SrcLoc),
                                                            (Syntax)unquoteArg),
                        ((Syntax)unquoteArg).SrcLoc);
                 } else {
@@ -50,7 +50,7 @@ public class Parser {
                 tokenStream.Read();
                 IForm? unquoteSplicingArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
-                   return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(Symbol.FromName("unquote-splicing"), unquoteSplicingToken.SrcLoc),
+                   return new Syntax(SyntaxList.FromParams(new Identifier(Symbol.FromName("unquote-splicing"), unquoteSplicingToken.SrcLoc),
                                                            (Syntax)unquoteSplicingArg),
                        ((Syntax)unquoteSplicingArg).SrcLoc);
                 } else {
@@ -165,7 +165,7 @@ public class Parser {
         var tok = tokenStream.Read();
         Debug.Assert(tok is Token.Identifier);
         Symbol sym = Symbol.FromName(id.Text);
-        return syntax ? new Syntax.Identifier(sym, id.SrcLoc) : sym;
+        return syntax ? new Identifier(sym, id.SrcLoc) : sym;
     }
 
     static IPair ParsePair(TokenStream tokenStream, bool syntax) {

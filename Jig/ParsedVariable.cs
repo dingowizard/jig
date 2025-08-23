@@ -17,7 +17,7 @@ public class ParsedVariable : ParsedForm {
 
         // }
         // TODO: make binding a required field for parsed variables
-        if (stx is Syntax.Identifier id) {
+        if (stx is Identifier id) {
             if(expander.TryResolve(id, out var binding)) {
                 // if (id.Symbol.Name == "y") {
                 //     Console.WriteLine($"found binding for y: {binding}");
@@ -38,17 +38,17 @@ public class ParsedVariable : ParsedForm {
         return false;
     }
 
-    private ParsedVariable(Syntax.Identifier id, Binding binding, SrcLoc? srcLoc) : base (id.Symbol, srcLoc) {
+    private ParsedVariable(Identifier id, Binding binding, SrcLoc? srcLoc) : base (id.Symbol, srcLoc) {
         Binding = binding;
         Identifier = id;
     }
 
     public class TopLevel : ParsedVariable {
-        internal TopLevel(Syntax.Identifier id, Binding binding, SrcLoc? srcLoc) : base (id, binding, srcLoc) {}
+        internal TopLevel(Identifier id, Binding binding, SrcLoc? srcLoc) : base (id, binding, srcLoc) {}
     }
 
     public class Lexical : ParsedVariable {
-        internal Lexical(Syntax.Identifier id, Binding binding, SrcLoc? srcLoc) : base(id, binding, srcLoc) {
+        internal Lexical(Identifier id, Binding binding, SrcLoc? srcLoc) : base(id, binding, srcLoc) {
         }
         
 

@@ -28,7 +28,7 @@ public abstract class SyntaxEnvironment {
     public static TopLevelSyntaxEnvironment CoreForms {get;}
     public static TopLevelSyntaxEnvironment Default {get;}
 
-    public bool TryFind(Syntax.Identifier keyword, [NotNullWhen(returnValue: true)] out IExpansionRule expansionRule) {
+    public bool TryFind(Identifier keyword, [NotNullWhen(returnValue: true)] out IExpansionRule expansionRule) {
         if (_rules.TryGetValue(keyword.Symbol, out var rule)) {
             expansionRule = rule;
             return true;
@@ -51,14 +51,14 @@ public abstract class SyntaxEnvironment {
     }
 
     protected abstract Dictionary<Symbol, IExpansionRule> _rules {get;}
-    public abstract void Add(Syntax.Identifier kw, IExpansionRule expansionRule);
+    public abstract void Add(Identifier kw, IExpansionRule expansionRule);
 
 }
 
 public class TopLevelSyntaxEnvironment(Dictionary<Symbol, IExpansionRule> rules) : SyntaxEnvironment {
 
     protected override Dictionary<Symbol, IExpansionRule> _rules {get;} = rules;
-    public override void Add(Syntax.Identifier kw, IExpansionRule expansionRule) {
+    public override void Add(Identifier kw, IExpansionRule expansionRule) {
         _rules.Add(kw.Symbol, expansionRule);
     }
 
@@ -67,7 +67,7 @@ public class TopLevelSyntaxEnvironment(Dictionary<Symbol, IExpansionRule> rules)
 public class ScopedSyntaxEnvironment(SyntaxEnvironment parent, Dictionary<Symbol, IExpansionRule> rules) : SyntaxEnvironment {
 
     protected override Dictionary<Symbol, IExpansionRule> _rules {get;} = rules;
-    public override void Add(Syntax.Identifier kw, IExpansionRule expansionRule) {
+    public override void Add(Identifier kw, IExpansionRule expansionRule) {
         _rules.Add(kw.Symbol, expansionRule);
     }
 

@@ -93,7 +93,7 @@ public class ParserTests {
         Assert.IsNotNull(stxPair);
         INonEmptyList? rest = stxPair.Cdr as INonEmptyList;
         Assert.IsNotNull(rest);
-        Syntax.Identifier? id = rest.Car as Syntax.Identifier;
+        Identifier? id = rest.Car as Identifier;
         Assert.IsNotNull(id);
         Assert.AreEqual(new Symbol("def"), id.Symbol);
     }

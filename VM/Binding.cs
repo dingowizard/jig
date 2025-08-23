@@ -10,11 +10,6 @@ public class Binding : IRuntimeBinding {
         Top = top;
     }
 
-    public Binding(Jig.Binding binding, bool top = false) {
-        Symbol = binding.Symbol;
-        Top = top;
-    }
-
     public Binding(Symbol s, bool top = false) {
         Symbol = s;
         Top = top;

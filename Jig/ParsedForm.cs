@@ -38,8 +38,8 @@ public class ParsedSet : ParsedForm {
             return false;
         }
         Debug.Assert(stxList.Count<Syntax>() == 3); // TODO: this should be a syntax error
-        Syntax.Identifier id = stxList.ElementAt<Syntax>(1) as Syntax.Identifier
-            ?? throw new Exception($"syntax error: malformed set!: expected first argument to be an identifier. Got {stxList.ElementAt<Syntax>(1)}");
+        Identifier id = stxList.ElementAt<Syntax>(1) as Identifier
+                        ?? throw new Exception($"syntax error: malformed set!: expected first argument to be an identifier. Got {stxList.ElementAt<Syntax>(1)}");
         var x = stxList.ElementAt<Syntax>(2);
 
         setExpr = new ParsedSet(stxList.ElementAt<Syntax>(0),
@@ -86,16 +86,16 @@ public class ParsedLiteral : ParsedForm {
         Quoted = lit;
     }
     
-    public new static ParsedLiteral Void => new ParsedLiteral(new Syntax.Identifier(new Symbol("quote")), new Syntax(Form.Void));
+    public new static ParsedLiteral Void => new ParsedLiteral(new Identifier(new Symbol("quote")), new Syntax(Form.Void));
 
     public Syntax Quoted {get;}
 
     public static bool TryParse(Syntax stx, [NotNullWhen(returnValue: true)] out ParsedLiteral? parsedLiteral) {
         if (stx is Literal literal) {
-            parsedLiteral = new ParsedLiteral(new Syntax.Identifier(new Symbol("quote")), literal, stx.SrcLoc);
+            parsedLiteral = new ParsedLiteral(new Identifier(new Symbol("quote")), literal, stx.SrcLoc);
             return true;
         } else if (Syntax.E(stx) is Form.VoidType) {
-            parsedLiteral = new ParsedLiteral(new Syntax.Identifier(new Symbol("quote")), new Syntax(Form.Void), stx.SrcLoc);
+            parsedLiteral = new ParsedLiteral(new Identifier(new Symbol("quote")), new Syntax(Form.Void), stx.SrcLoc);
             return true;
         } else if (IsQuote(stx)) {
             SyntaxList stxList = (SyntaxList)Syntax.E(stx);
@@ -206,8 +206,8 @@ public class ParsedLambda : ParsedForm {
             ParsedVariable.Lexical? rest = null;
             if (Syntax.E(stx) is SyntaxList psStxList) {
                 foreach(Syntax p in psStxList.Cast<Syntax>()) {
-                    Syntax.Identifier id = p as Syntax.Identifier ??
-                        throw new Exception($"lambda: expected parameters to be identifiers, but got {p} @ {p.SrcLoc?.ToString() ?? "?"}");
+                    Identifier id = p as Identifier ??
+                                    throw new Exception($"lambda: expected parameters to be identifiers, but got {p} @ {p.SrcLoc?.ToString() ?? "?"}");
                     if (namesSeen.Contains(id.Symbol.Name)) {
                         throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
                     }
@@ -218,7 +218,7 @@ public class ParsedLambda : ParsedForm {
                     required.Add(new ParsedVariable.Lexical(id, binding, id.SrcLoc));
                 }
             } else if (Syntax.E(stx) is IPair pair) {
-                Syntax.Identifier? id = pair.Car as Syntax.Identifier;
+                Identifier? id = pair.Car as Identifier;
                 if (id is null) throw new Exception($"lambda: expected parameters to be identifiers, but got {pair.Car}");
                 if (namesSeen.Contains(id.Symbol.Name)) {
                     throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
@@ -229,7 +229,7 @@ public class ParsedLambda : ParsedForm {
                 required.Add(new ParsedVariable.Lexical(id, binding, id.SrcLoc));
                 expander.AddBinding(id, binding);
                 while (pair.Cdr is IPair cdrPair) {
-                    id = cdrPair.Car as Syntax.Identifier;
+                    id = cdrPair.Car as Identifier;
                     if (id is null) throw new Exception($"lambda: expected parameters to be identifiers, but got {pair.Car}");
                     if (namesSeen.Contains(id.Symbol.Name)) {
                         throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
@@ -241,7 +241,7 @@ public class ParsedLambda : ParsedForm {
                     namesSeen.Add(id.Symbol.Name);
                     required.Add(new ParsedVariable.Lexical(id, binding, id.SrcLoc));
                 }
-                id = pair.Cdr as Syntax.Identifier;
+                id = pair.Cdr as Identifier;
                 if (id is null) throw new Exception($"lambda: expected parameters to be identifiers, but got {pair.Cdr}");
                 if (namesSeen.Contains(id.Symbol.Name)) {
                     throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
@@ -251,7 +251,7 @@ public class ParsedLambda : ParsedForm {
                 expander.AddBinding(id, binding);
                 namesSeen.Add(id.Symbol.Name);
                 rest = new ParsedVariable.Lexical(id, binding, id.SrcLoc);
-            } else if (stx is Syntax.Identifier psId) {
+            } else if (stx is Identifier psId) {
                     Binding binding = new Binding(psId.Symbol, ee.ScopeLevel, ee.VarIndex++);
                     psId.Symbol.Binding = binding;
                     expander.AddBinding(psId, binding);
@@ -269,8 +269,8 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
             ParsedVariable.Lexical? rest = null;
             if (Syntax.E(stx) is SyntaxList psStxList) {
                 foreach(Syntax p in psStxList.Cast<Syntax>()) {
-                    Syntax.Identifier id = p as Syntax.Identifier ??
-                        throw new Exception($"lambda: expected parameters to be identifiers, but got {p} @ {p.SrcLoc?.ToString() ?? "?"}");
+                    Identifier id = p as Identifier ??
+                                    throw new Exception($"lambda: expected parameters to be identifiers, but got {p} @ {p.SrcLoc?.ToString() ?? "?"}");
                     if (namesSeen.Contains(id.Symbol.Name)) {
                         throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
                     }
@@ -281,7 +281,7 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                     required.Add(new ParsedVariable.Lexical(id, binding, id.SrcLoc));
                 }
             } else if (Syntax.E(stx) is IPair pair) {
-                Syntax.Identifier? id = pair.Car as Syntax.Identifier;
+                Identifier? id = pair.Car as Identifier;
                 if (id is null) throw new Exception($"lambda: expected parameters to be identifiers, but got {pair.Car}");
                 if (namesSeen.Contains(id.Symbol.Name)) {
                     throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
@@ -292,7 +292,7 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                 required.Add(new ParsedVariable.Lexical(id, binding, id.SrcLoc));
                 context.AddBinding(id, binding);
                 while (pair.Cdr is IPair cdrPair) {
-                    id = cdrPair.Car as Syntax.Identifier;
+                    id = cdrPair.Car as Identifier;
                     if (id is null) throw new Exception($"lambda: expected parameters to be identifiers, but got {pair.Car}");
                     if (namesSeen.Contains(id.Symbol.Name)) {
                         throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
@@ -304,7 +304,7 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                     namesSeen.Add(id.Symbol.Name);
                     required.Add(new ParsedVariable.Lexical(id, binding, id.SrcLoc));
                 }
-                id = pair.Cdr as Syntax.Identifier;
+                id = pair.Cdr as Identifier;
                 if (id is null) throw new Exception($"lambda: expected parameters to be identifiers, but got {pair.Cdr}");
                 if (namesSeen.Contains(id.Symbol.Name)) {
                     throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
@@ -314,7 +314,7 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                 context.AddBinding(id, binding);
                 namesSeen.Add(id.Symbol.Name);
                 rest = new ParsedVariable.Lexical(id, binding, id.SrcLoc);
-            } else if (stx is Syntax.Identifier psId) {
+            } else if (stx is Identifier psId) {
                     Binding binding = new Binding(psId.Symbol, context.ScopeLevel, context.VarIndex++);
                     psId.Symbol.Binding = binding;
                     context.AddBinding(psId, binding);

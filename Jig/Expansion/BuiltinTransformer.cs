@@ -22,11 +22,11 @@ public class BuiltinTransformer  : Transformer {
         }
         Syntax first = stxList.ElementAt<Syntax>(1);
         return new Syntax(
-            SyntaxList.FromParams(new Syntax.Identifier(new Symbol("if")),
+            SyntaxList.FromParams(new Identifier(new Symbol("if")),
                 first,
                 new Syntax(
                     SyntaxList.FromIEnumerable(new System.Collections.Generic.List<Syntax>{
-                        new Syntax.Identifier(new Symbol("and"))
+                        new Identifier(new Symbol("and"))
                     }.Concat(stxList.Skip<Syntax>(2))),
 
                     new SrcLoc()),
@@ -44,7 +44,7 @@ public class BuiltinTransformer  : Transformer {
         IForm argE = Syntax.E(arg);
         if (argE is List.Empty ||
             argE is not IPair) {
-            return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("quote")),
+            return new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("quote")),
                                                       arg),
                                 stx.SrcLoc);
         } else if (argE is SyntaxList stxListArg) {
@@ -56,11 +56,11 @@ public class BuiltinTransformer  : Transformer {
                 }
             } else if (Syntax.E(stxListArg.ElementAt<Syntax>(0)) is not SyntaxList) { // (quasiquote (x . rest)) where x is not a pair
                                                                        // => (cons (quote x) (quasiquote rest))
-                return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("cons")),
-                                                          new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("quote")),
+                return new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("cons")),
+                                                          new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("quote")),
                                                                                            stxListArg.ElementAt<Syntax>(0)),
                                                                      new SrcLoc()),
-                                                          new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("quasiquote")),
+                                                          new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("quasiquote")),
                                                                                            new Syntax(SyntaxList.FromIEnumerable(stxListArg.Skip<Syntax>(1)))),
                                                                      new SrcLoc())),
                                     stx.SrcLoc);
@@ -75,20 +75,20 @@ public class BuiltinTransformer  : Transformer {
                     // if (Syntax.E(listToSpliceStx) is not SyntaxList) {
                     //     throw new Exception("unquote-splicing: expected a list argument");
                     // }
-                    return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("append")),
+                    return new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("append")),
                                                               listToSpliceStx,
-                                                              new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("quasiquote")),
+                                                              new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("quasiquote")),
                                                                                            new Syntax(SyntaxList.FromIEnumerable(stxListArg.Skip<Syntax>(1)))),
                                                                      new SrcLoc())),
                                     stx.SrcLoc);
 
                 } else {
                     // (cons (quasiquote slist) (quasiquote rest))
-                    return new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("cons")),
-                                                          new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("quasiquote")),
+                    return new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("cons")),
+                                                          new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("quasiquote")),
                                                                                            stxListArg.ElementAt<Syntax>(0)),
                                                                      new SrcLoc()),
-                                                          new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("quasiquote")),
+                                                          new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("quasiquote")),
                                                                                            new Syntax(SyntaxList.FromIEnumerable(stxListArg.Skip<Syntax>(1)))),
                                                                      new SrcLoc())),
                                     stx.SrcLoc);

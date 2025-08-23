@@ -10,7 +10,7 @@ public partial class CoreParseRules {
             throw new Exception($"bad syntax in define @ {syntax.SrcLoc}: expected 2 or 3 sub-forms, got {formLength}: {Syntax.ToDatum(syntax).Print()}");
         }
 
-        if (subForms[1] is Syntax.Identifier id) {
+        if (subForms[1] is Identifier id) {
             // TODO: I'd like to only be in this path when expanding forms from the REPL
             var binding = new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++);
             context.AddBinding(id, binding);

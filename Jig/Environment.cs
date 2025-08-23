@@ -104,7 +104,7 @@ public class Environment : IEnvironment {
     public Form this[Symbol symbol] => _dict[symbol];
 
     public Thunk? Set(Delegate k, Form sym, Form v) {
-        Syntax.Identifier? id = sym as Syntax.Identifier;
+        Identifier? id = sym as Identifier;
         Symbol s = id is not null ? id.Symbol : (Symbol) sym;
         if (!_dict.ContainsKey(s)) {
             throw new Exception($"unbound variable: {s.Name} {(id is not null ? id.SrcLoc.ToString() : "")}");
@@ -115,7 +115,7 @@ public class Environment : IEnvironment {
     }
 
     public Thunk? Define (Delegate k, Form sym, Form v) {
-        var s = sym is Syntax.Identifier i ? i.Symbol : ((Symbol) sym);
+        var s = sym is Identifier i ? i.Symbol : ((Symbol) sym);
         if (_dict.TryAdd(s, v)) return Continuation.ApplyDelegate(k, Form.Void);
         _dict[s] = v;
         return Continuation.ApplyDelegate(k, Form.Void);
@@ -123,7 +123,7 @@ public class Environment : IEnvironment {
     }
 
     public Thunk? LookUp (Delegate k, Form expr) {
-        Syntax.Identifier? id = expr as Syntax.Identifier;
+        Identifier? id = expr as Identifier;
         Symbol symbol = id is not null ? id.Symbol : (Symbol) expr;
         if (_dict.TryGetValue(symbol, out Form? result)) {
             return Continuation.ApplyDelegate(k, result);

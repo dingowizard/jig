@@ -29,8 +29,8 @@ public class ParsedDefine : ParsedForm {
             return false;
         }
         Debug.Assert(stxList.Count<Syntax>() == 3 || stxList.Count<Syntax>() == 2); // TODO: this should be a syntax error
-        Syntax.Identifier id = stxList.ElementAt<Syntax>(1) as Syntax.Identifier
-                               ?? throw new Exception($"syntax error: malformed define: expected first argument to be an identifier. Got {stxList.ElementAt<Syntax>(1)}");
+        Identifier id = stxList.ElementAt<Syntax>(1) as Identifier
+                        ?? throw new Exception($"syntax error: malformed define: expected first argument to be an identifier. Got {stxList.ElementAt<Syntax>(1)}");
         // TODO: hm...
         var binding = new Binding(id.Symbol,  ee.ScopeLevel, ee.VarIndex++);
         id.Symbol.Binding = binding ;

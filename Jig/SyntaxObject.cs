@@ -68,7 +68,7 @@ public class Syntax : Form {
     }
 
     internal static void AddScope(Syntax stx, Scope scope) {
-        if (stx is Syntax.Identifier id) {
+        if (stx is Identifier id) {
             id.AddScope(scope);
             return;
         }
@@ -97,7 +97,7 @@ public class Syntax : Form {
     }
 
     internal static void RemoveScope(Syntax stx, Scope scope) {
-        if (stx is Syntax.Identifier id) {
+        if (stx is Identifier id) {
             id.ScopeSet.Remove(scope);
             return;
         }
@@ -125,7 +125,7 @@ public class Syntax : Form {
 
     }
     internal static void ToggleScope(Syntax stx, Scope scope) {
-        if (stx is Syntax.Identifier id) {
+        if (stx is Identifier id) {
             if (!id.ScopeSet.Remove(scope)) {
                 id.ScopeSet.Add(scope);
             } 
@@ -230,63 +230,6 @@ public class Syntax : Form {
 
     public class Literal : Syntax {
         internal Literal(IForm x, SrcLoc? srcLoc = null) : base (x, srcLoc) {}
-    }
-
-    public class Identifier : Syntax {
-        internal Identifier(Symbol symbol, SrcLoc? srcLoc = null) : base (symbol, srcLoc) {
-            ScopeSet = new HashSet<Scope>();
-        }
-        
-
-        // public static implicit operator Expr.Symbol(Identifier i) => i.Symbol;
-
-        internal void AddScope(Scope sc) {
-            
-            bool added = ScopeSet.Add(sc);
-            // if (added && id.Symbol.Name == "a") {
-            //     Console.WriteLine($"AddScope: {scope} was added to {stx}.");
-            //         Console.WriteLine($"\tat {id.SrcLoc.ToString() ?? "null"}");
-                // Console.WriteLine($"AddScope: ScopeSet contains {id.ScopeSet.Count}");
-                // foreach (var sc in id.ScopeSet) {
-                //     Console.WriteLine ($"{sc} in ScopeSet Equals scope to add: {sc.Equals(scope)}");
-                //     Console.WriteLine ($"sc.GetHashCode == scope.GetHashCode() : {sc.GetHashCode() == scope.GetHashCode()}");
-                // }
-            // }
-        }
-
-        public new Symbol Symbol {
-            get {
-                return (Symbol)Expression;
-            }
-        }
-
-        public override bool Equals(object? obj) {
-            // if (Symbol.Name == "stx") {
-            //     Console.WriteLine($"Equals: we're here!");
-            // }
-            if (obj is Identifier id) {
-                if (!Symbol.Equals(id.Symbol)) return false;
-                if (!ScopeSet.Equals(id.ScopeSet)) return false;
-                return true;
-
-            } else {
-                return false;
-            }
-
-        }
-
-        public override int GetHashCode() {
-            // if (Symbol.Name == "stx") {
-                // Console.WriteLine($"GetHashCode: we're here!");
-            // }
-            int hash = Symbol.GetHashCode();
-            unchecked {
-                hash = hash * 31 + ScopeSet.GetHashCode();
-            }
-            return hash;
-        }
-
-        internal HashSet<Scope> ScopeSet {get; private set;}
     }
 
     public override string Print() => StxPrint();

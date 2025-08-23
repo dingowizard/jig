@@ -13,10 +13,10 @@ public class Expander {
 
     private Syntax DoFirstPassOneForm(Syntax stx, ExpansionContext context) {
         var form = Syntax.E(stx);
-        if (form is SyntaxList.NonEmpty { First: Syntax.Identifier kw } stxList) {
+        if (form is SyntaxList.NonEmpty { First: Identifier kw } stxList) {
             switch (kw.Symbol.Name) {
                 case "define":
-                    if (stxList.Rest is not SyntaxList.NonEmpty { First: Syntax.Identifier variable } rest)
+                    if (stxList.Rest is not SyntaxList.NonEmpty { First: Identifier variable } rest)
                         throw new Exception($"malformed define: {Syntax.ToDatum(stx).Print()} ");
                     // TODO: there might already be a binding. We might be redefining ...
                     var binding = new Binding(
@@ -32,7 +32,7 @@ public class Expander {
                             .ToSyntaxList(),
                         stx.SrcLoc);
                 case "define-syntax":
-                    if (stxList.Rest is not SyntaxList.NonEmpty { First: Syntax.Identifier vr } rt)
+                    if (stxList.Rest is not SyntaxList.NonEmpty { First: Identifier vr } rt)
                         throw new Exception($"malformed define: {Syntax.ToDatum(stx).Print()} ");
                     var bg = new Binding(
                         vr.Symbol,
@@ -65,9 +65,9 @@ public class Expander {
 
         if (syntax is Syntax.Literal lit) {
             // TODO: something about void. See ParsedLiteral.TryParse ... Not really sure how/why it could be here _as_syntax_ ... 
-            return new ParsedLiteral(new Syntax.Identifier(new Symbol("quote")), lit, syntax.SrcLoc);
+            return new ParsedLiteral(new Identifier(new Symbol("quote")), lit, syntax.SrcLoc);
         }
-        if (syntax is Syntax.Identifier id) {
+        if (syntax is Identifier id) {
             // TODO: error if id is keyword in expansion env?
             // resolve id, return parsed var
             if(context.TryResolve(id, out var binding)) {
@@ -81,7 +81,7 @@ public class Expander {
         }
 
         if (Syntax.E(syntax) is SyntaxList.NonEmpty stxList) {
-            if (stxList.First is Syntax.Identifier kw) {
+            if (stxList.First is Identifier kw) {
                 if (context.TryFindKeyword(kw, out IExpansionRule? rule)) {
                     return rule.Expand(syntax, context);
                 } else {

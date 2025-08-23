@@ -353,7 +353,7 @@ internal abstract class ET : Expression {
         private static MethodInfo _setMethod {get;} = typeof(IEnvironment).GetMethod("Set") ?? throw new Exception("while initializeing SetBangET, could not find 'Set' method on IEnvironment");
 
         public SetBangET(LexicalContext lexVars, ParsedSet setExpr) {
-            Syntax.Identifier sym = setExpr.Variable.Identifier;
+            Identifier sym = setExpr.Variable.Identifier;
             // if (id.Symbol.Name == "z") {
             //     Console.WriteLine("set!");
             // }
@@ -405,7 +405,7 @@ internal abstract class ET : Expression {
         private static MethodInfo _defineMethod {get;} = typeof(IEnvironment).GetMethod("Define") ?? throw new Exception("while initializing DefineET, could not find 'Define' method on IEnvironment");
 
         public DefineET(LexicalContext lexVars, ParsedDefine defineExpr) {
-            Syntax.Identifier id = defineExpr.Variable.Identifier;
+            Identifier id = defineExpr.Variable.Identifier;
             Syntax valExpr = defineExpr.Value;
             ParameterExpression val = Expression.Parameter(typeof(Form), "val");
             Expression contBody;
@@ -572,16 +572,16 @@ internal abstract class ET : Expression {
         private static System.Collections.Generic.List<Symbol> ValidateAndConvertToSymbols(IPair parameters) {
             var result = new System.Collections.Generic.List<Symbol>();
             IForm car = parameters.Car;
-            Symbol sym = car is Syntax.Identifier id ? id.Symbol : car is Symbol s ? s : throw new Exception($"lambda: all parameters must be symbols (given {car}");
+            Symbol sym = car is Identifier id ? id.Symbol : car is Symbol s ? s : throw new Exception($"lambda: all parameters must be symbols (given {car}");
             result.Add(sym);
             IForm cdr = parameters.Cdr;
             while (cdr is IPair pairCdr) {
                 car = pairCdr.Car;
-                sym = car is Syntax.Identifier i ? i.Symbol : car is Symbol sm ? sm : throw new Exception($"lambda: all parameters must be symbols (given {car}");
+                sym = car is Identifier i ? i.Symbol : car is Symbol sm ? sm : throw new Exception($"lambda: all parameters must be symbols (given {car}");
                 result.Add(sym);
                 cdr = pairCdr.Cdr;
             }
-            sym = cdr is Syntax.Identifier idf ? idf.Symbol : cdr is Symbol symbol ? symbol : throw new Exception($"lambda: all parameters must be symbols (given {cdr})");
+            sym = cdr is Identifier idf ? idf.Symbol : cdr is Symbol symbol ? symbol : throw new Exception($"lambda: all parameters must be symbols (given {cdr})");
             result.Add(sym);
             return result;
 
