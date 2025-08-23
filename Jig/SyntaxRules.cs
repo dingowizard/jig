@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
-using EnvEntry = System.Tuple<Jig.Form.Symbol, Jig.Form, int>;
-using Env = System.Collections.Generic.List<System.Tuple<Jig.Form.Symbol, Jig.Form, int>>;
+using EnvEntry = System.Tuple<Jig.Symbol, Jig.Form, int>;
+using Env = System.Collections.Generic.List<System.Tuple<Jig.Symbol, Jig.Form, int>>;
 
 namespace Jig;
 
@@ -63,7 +63,7 @@ internal static partial class Builtins {
         
 
 
-        private Form.Symbol Var {get;}
+        private Symbol Var {get;}
 
         private IEnumerable<Clause> Clauses {get;}
 
@@ -76,7 +76,7 @@ internal static partial class Builtins {
                 NewList(Var),
                 IfsFromClauses(Var, Clauses));
         }
-        private static List IfsFromClauses(Form.Symbol toMatch, IEnumerable<Clause> clauses) {
+        private static List IfsFromClauses(Symbol toMatch, IEnumerable<Clause> clauses) {
             var enumerable = clauses as Clause[] ?? clauses.ToArray();
             Form elseBranch =
             enumerable.Length == 1 ?
@@ -93,7 +93,7 @@ internal static partial class Builtins {
         }
 
         internal class Clause {
-            public Clause(Form.Symbol toMatch, SyntaxList literals, SyntaxList.NonEmpty pattern, Syntax templateSyntax) {
+            public Clause(Symbol toMatch, SyntaxList literals, SyntaxList.NonEmpty pattern, Syntax templateSyntax) {
 
                 VarForInput = toMatch;
                 Pattern = pattern;
@@ -289,7 +289,7 @@ internal static partial class Builtins {
 
             private static bool InPattern(Syntax pattern, EnvEntry entry) {
                 switch (Syntax.E(pattern)) {
-                    case Form.Symbol symbol:
+                    case Symbol symbol:
                         return Equals(entry.Item1, symbol) && entry.Item3 == 0;
                     case SyntaxList stxList:
                         return stxList.Any<Syntax>(tup => InPattern(tup, entry));
@@ -403,14 +403,14 @@ internal static partial class Builtins {
                 {
                     
                     case IEmptyList: return NewList(NewSym("null?"), NewList(NewSym("syntax-e"), toMatch));
-                    case Form.Symbol sym:
+                    case Symbol sym:
                         Syntax.Identifier? lit = (Syntax.Identifier?)Literals.FirstOrDefault<Syntax>(stx => stx is Syntax.Identifier id && id.Symbol.Name == sym.Name);
                         if (lit is not null) {
                             // TODO: probably should test with something other than symbol=?
                             return NewList(
                                 NewSym("if"),
                                 NewList(NewSym("symbol?"), NewList(NewSym("syntax-e"), toMatch)),
-                                NewList(new Form.Symbol("symbol=?"), NewList(NewSym("quote"), sym), NewList(NewSym("syntax-e"), toMatch)),
+                                NewList(new Symbol("symbol=?"), NewList(NewSym("quote"), sym), NewList(NewSym("syntax-e"), toMatch)),
                                 NewLit(false));
                         } 
                         return NewLit(true);
@@ -496,7 +496,7 @@ internal static partial class Builtins {
 
 
             private readonly Env  PatternVars;
-            private Form.Symbol VarForInput {get;}
+            private Symbol VarForInput {get;}
             private SyntaxList.NonEmpty Pattern {get;}
             private Syntax TemplateSyntax {get;}
         }
@@ -504,8 +504,8 @@ internal static partial class Builtins {
     }
 
 
-    private static Form.Symbol NewSym(string name) {
-        return new Form.Symbol(name);
+    private static Symbol NewSym(string name) {
+        return new Symbol(name);
     }
 
     private static List NewList(params Form[] forms) {

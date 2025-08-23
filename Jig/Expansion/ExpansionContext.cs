@@ -6,7 +6,7 @@ namespace Jig.Expansion;
 
 public class ExpansionContext {
 
-    public ExpansionContext(IRuntime runtime, IEnumerable<Form.Symbol> topLevels) {
+    public ExpansionContext(IRuntime runtime, IEnumerable<Symbol> topLevels) {
         Runtime = runtime;
         Expander = new Expander();
         _syntaxEnvironment = SyntaxEnvironment.Default;

@@ -227,7 +227,7 @@ public class Compiler {
         Context context)
     {
         
-        Form.Symbol sym = var.Identifier.Symbol;
+        Symbol sym = var.Identifier.Symbol;
         if (!bindings.Any(b => Equals(b.Symbol, sym))) {
             bindings.Add(ctEnv.LookUpTopLevel(sym));
         }

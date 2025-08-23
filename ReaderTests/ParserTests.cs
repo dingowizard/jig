@@ -30,7 +30,7 @@ public class ParserTests {
     public void ParseOneItemList() {
         var tokenStream = new TokenStream(InputPort.FromString("(abc)"));
         var actual = Parser.ParseExpr(tokenStream);
-        Assert.AreEqual(List.NewList(new Form.Symbol("abc")), actual);
+        Assert.AreEqual(List.NewList(new Symbol("abc")), actual);
     }
 
     [TestMethod]
@@ -44,7 +44,7 @@ public class ParserTests {
         IForm car = ((IPair)x).Car;
         Assert.IsInstanceOfType(car, typeof(Syntax));
         Syntax so = (Syntax)car;
-        Assert.AreEqual(new Form.Symbol("abc"), Syntax.ToDatum(so));
+        Assert.AreEqual(new Symbol("abc"), Syntax.ToDatum(so));
     }
 
     [TestMethod]
@@ -81,7 +81,7 @@ public class ParserTests {
     public void ParseTwoItemList() {
         var tokenStream = new TokenStream(InputPort.FromString("(abc def)"));
         var actual = Parser.ParseExpr(tokenStream);
-        Assert.AreEqual(List.NewList(new Form.Symbol("abc"), new Form.Symbol("def")), actual);
+        Assert.AreEqual(List.NewList(new Symbol("abc"), new Symbol("def")), actual);
     }
 
     [TestMethod]
@@ -95,7 +95,7 @@ public class ParserTests {
         Assert.IsNotNull(rest);
         Syntax.Identifier? id = rest.Car as Syntax.Identifier;
         Assert.IsNotNull(id);
-        Assert.AreEqual(new Form.Symbol("def"), id.Symbol);
+        Assert.AreEqual(new Symbol("def"), id.Symbol);
     }
 
     [TestMethod]
@@ -115,17 +115,17 @@ public class ParserTests {
         Assert.IsNotNull(stxPairCarCdr);
         Syntax? abc = stxPairCarCdr.Car as Syntax;
         Assert.IsNotNull(abc);
-        Assert.AreEqual(new Form.Symbol("abc"), Syntax.ToDatum(abc));
-        Assert.AreEqual(List.NewList(new Form.Symbol("abc"), new Form.Symbol("def")), Syntax.ToDatum(carCdr));
+        Assert.AreEqual(new Symbol("abc"), Syntax.ToDatum(abc));
+        Assert.AreEqual(List.NewList(new Symbol("abc"), new Symbol("def")), Syntax.ToDatum(carCdr));
     }
 
     [TestMethod]
     public void ParseQuotedList() {
         var tokenStream = new TokenStream(InputPort.FromString("(quote (abc def))"));
         var actual = Parser.ParseExpr(tokenStream);
-        Assert.AreEqual(List.NewList(new Form.Symbol("quote"),
-                                     List.NewList(new Form.Symbol("abc"),
-                                                  new Form.Symbol("def"))),
+        Assert.AreEqual(List.NewList(new Symbol("quote"),
+                                     List.NewList(new Symbol("abc"),
+                                                  new Symbol("def"))),
                         actual);
     }
 
@@ -133,10 +133,10 @@ public class ParserTests {
     public void ParseFourItemList() {
         var tokenStream = new TokenStream(InputPort.FromString("(abc def ghi jkl)"));
         var actual = Parser.ParseExpr(tokenStream);
-        Assert.AreEqual(List.NewList(new Form.Symbol("abc"),
-                                     new Form.Symbol("def"),
-                                     new Form.Symbol("ghi"),
-                                     new Form.Symbol("jkl")),
+        Assert.AreEqual(List.NewList(new Symbol("abc"),
+                                     new Symbol("def"),
+                                     new Symbol("ghi"),
+                                     new Symbol("jkl")),
                         actual);
     }
 
@@ -144,10 +144,10 @@ public class ParserTests {
     public void ParseListCar() {
         var tokenStream = new TokenStream(InputPort.FromString("((abc def) ghi jkl)"));
         var actual = Parser.ParseExpr(tokenStream);
-        Assert.AreEqual(List.NewList(List.NewList(new Form.Symbol("abc"),
-                                                  new Form.Symbol("def")),
-                                     new Form.Symbol("ghi"),
-                                     new Form.Symbol("jkl")),
+        Assert.AreEqual(List.NewList(List.NewList(new Symbol("abc"),
+                                                  new Symbol("def")),
+                                     new Symbol("ghi"),
+                                     new Symbol("jkl")),
                         actual);
     }
 
@@ -155,31 +155,31 @@ public class ParserTests {
     public void ParseListInList() {
         var tokenStream = new TokenStream(InputPort.FromString("(abc (def ghi) jkl)"));
         var actual = Parser.ParseExpr(tokenStream);
-        Assert.AreEqual(List.NewList(new Form.Symbol("abc"),
-                                     List.NewList(new Form.Symbol("def"),
-                                                  new Form.Symbol("ghi")),
-                                     new Form.Symbol("jkl")),
+        Assert.AreEqual(List.NewList(new Symbol("abc"),
+                                     List.NewList(new Symbol("def"),
+                                                  new Symbol("ghi")),
+                                     new Symbol("jkl")),
                         actual);
     }
     [TestMethod]
     public void ParsePair() {
         var tokenStream = new TokenStream(InputPort.FromString("(abc . def)"));
         var actual = Parser.ParseExpr(tokenStream);
-        Assert.AreEqual(Pair.Cons(new Form.Symbol("abc"), new Form.Symbol("def")), actual);
+        Assert.AreEqual(Pair.Cons(new Symbol("abc"), new Symbol("def")), actual);
     }
 
     [TestMethod]
     public void ParseImproperList() {
         var tokenStream = new TokenStream(InputPort.FromString("(abc . (def . ghi))"));
         var actual = Parser.ParseExpr(tokenStream);
-        Assert.AreEqual(Pair.Cons(new Form.Symbol("abc"), (Pair) Pair.Cons(new Form.Symbol("def"), new Form.Symbol("ghi"))), actual);
+        Assert.AreEqual(Pair.Cons(new Symbol("abc"), (Pair) Pair.Cons(new Symbol("def"), new Symbol("ghi"))), actual);
     }
 
     [TestMethod]
     public void ParseImproperListExpressedDifferently() {
         var lexer = new TokenStream(InputPort.FromString("(abc  def . ghi)"));
         var actual = Parser.ParseExpr(lexer);
-        Assert.AreEqual(Pair.Cons(new Form.Symbol("abc"), (Pair) Pair.Cons(new Form.Symbol("def"), new Form.Symbol("ghi"))), actual);
+        Assert.AreEqual(Pair.Cons(new Symbol("abc"), (Pair) Pair.Cons(new Symbol("def"), new Symbol("ghi"))), actual);
     }
 
     [TestMethod]
@@ -214,7 +214,7 @@ public class ParserTests {
     public void ParseListWithSymbolAndInt() {
         var lexer = new TokenStream(InputPort.FromString("(succ 0)"));
         var actual = Parser.ParseExpr(lexer);
-        Assert.AreEqual(List.NewList(new Form.Symbol("succ"), new Integer(0)), actual);
+        Assert.AreEqual(List.NewList(new Symbol("succ"), new Integer(0)), actual);
 
     }
 
@@ -229,7 +229,7 @@ public class ParserTests {
     public void ParseListWithSymbolAndBool() {
         var lexer = new TokenStream(InputPort.FromString("(not #f)"));
         var actual = Parser.ParseExpr(lexer);
-        Assert.AreEqual(List.NewList(new Form.Symbol("not"), Bool.False), actual);
+        Assert.AreEqual(List.NewList(new Symbol("not"), Bool.False), actual);
 
     }
 

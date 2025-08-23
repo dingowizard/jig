@@ -253,17 +253,17 @@ internal static partial class Builtins {
             if (properList.Count() < 2) {
                 return Error(k, "symbol=?: expected two or more arguments.");
             }
-            if (properList.Car is not Form.Symbol sym1){
+            if (properList.Car is not Symbol sym1){
                 return Error(k, $"symbol=?: expected all arguments to be symbols, but got {properList.Car}");
             }
             List rest = properList.Rest;
-            if (rest.ElementAt(0) is not Form.Symbol sym2) return Error(k, $"symbol=?: expected all arguments to be symbols, but got {rest.ElementAt(0)}");
+            if (rest.ElementAt(0) is not Symbol sym2) return Error(k, $"symbol=?: expected all arguments to be symbols, but got {rest.ElementAt(0)}");
             while (rest is List.NonEmpty nonEmpty) {
                 if (!sym1.Equals(sym2)) {
                     return Continuation.ApplyDelegate(k, Bool.False);
                 }
                 sym1 = sym2;
-                if (nonEmpty.Car is Form.Symbol s) {
+                if (nonEmpty.Car is Symbol s) {
                     sym2 = s;
                 }
                 else {
@@ -287,7 +287,7 @@ internal static partial class Builtins {
             if (properList.Count() != 1) {
                 return Error(k, "symbol?: expected one argument.");
             }
-            return Continuation.ApplyDelegate(k, properList.Car is Form.Symbol ? Bool.True : Bool.False);
+            return Continuation.ApplyDelegate(k, properList.Car is Symbol ? Bool.True : Bool.False);
         } else {
             return Error(k, "symbol?: expected one argument.");
         }
@@ -314,7 +314,7 @@ internal static partial class Builtins {
             if (properList.Count() != 1) {
                 return Error(k, "symbol->string: expected one argument.");
             }
-            if (properList.Car is Form.Symbol symbol) {
+            if (properList.Car is Symbol symbol) {
                 return Continuation.ApplyDelegate(k, new String(symbol.Name));
             } else {
                 return Error(k, "symbol->string: expected its argument to be a symbol.");
@@ -331,7 +331,7 @@ internal static partial class Builtins {
                 return Error(k, "string->symbol: expected one argument.");
             }
             if (properList.Car is String str) {
-                return Continuation.ApplyDelegate(k, new Form.Symbol(str.Value));
+                return Continuation.ApplyDelegate(k, new Symbol(str.Value));
             } else {
                 return Error(k, "string->symbol: expected its argument to be a string.");
             }
@@ -475,7 +475,7 @@ internal static partial class Builtins {
         //
         // TODO: should we use raise or raise-continuable in builtins instead?
         // TODO: cache this search somehow
-        Form errorExpr = Program.TopLevel[new Form.Symbol("error")];
+        Form errorExpr = Program.TopLevel[new Symbol("error")];
         if (errorExpr is Procedure proc) {
             return proc.Apply(k, List.NewList(new String(msg)));
         } else {

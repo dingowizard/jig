@@ -47,7 +47,7 @@ public class Record : Vector {
                 throw new Exception($"make-record-type-descriptor: expected six arguments, got {fields.Print()}");
             }
 
-            if (fields.ElementAt(0) is not Form.Symbol name) {
+            if (fields.ElementAt(0) is not Symbol name) {
                 throw new Exception("make-record-type-descriptor: expected first argument to be a symbol");
             }
             Name = name;
@@ -65,7 +65,7 @@ public class Record : Vector {
             if (fields.ElementAt(5) is not Vector fs) {
                 throw new Exception("in TypeDescriptor cstor: expected second field to be a Vector");
             }
-            System.Collections.Generic.List<Tuple<Form.Symbol, bool>> listFields = [];
+            System.Collections.Generic.List<Tuple<Symbol, bool>> listFields = [];
             foreach (var f in fs) {
                 if (f is not List.NonEmpty listField) {
                     throw new Exception();
@@ -73,18 +73,18 @@ public class Record : Vector {
                 if (listField.Count() != 2) {
                     throw new Exception("field spec should have two members");
                 }
-                if (listField.ElementAt(0) is not Form.Symbol mutability) {
+                if (listField.ElementAt(0) is not Symbol mutability) {
                     throw new Exception("expected a symbol value for field mutability");
                 }
-                if (listField.ElementAt(1) is not Form.Symbol fieldName) {
+                if (listField.ElementAt(1) is not Symbol fieldName) {
                     throw new Exception("expected a symbol value for field mutability");
                 }
-                bool mut = mutability.Equals(new Form.Symbol("mutable")) || (mutability.Equals(new Form.Symbol("immutable")) ? false : throw new Exception());
-                listFields.Add(new Tuple<Form.Symbol, bool>(fieldName, mut));
+                bool mut = mutability.Equals(new Symbol("mutable")) || (mutability.Equals(new Symbol("immutable")) ? false : throw new Exception());
+                listFields.Add(new Tuple<Symbol, bool>(fieldName, mut));
             }
             Fields = [.. listFields];
         }
-        public Tuple<Form.Symbol, bool>[] Fields {get;}
+        public Tuple<Symbol, bool>[] Fields {get;}
         public new TypeDescriptor? Parent {get;} = null;
 
         private Thunk? IsOfMe(Delegate k, Record record) {
@@ -148,13 +148,13 @@ public class Record : Vector {
 
         }
 
-        public Form.Symbol Name {get;}
+        public Symbol Name {get;}
         public readonly static TypeDescriptor Base = new BaseType();
 
 
         private class BaseType : TypeDescriptor  {
             public BaseType() : base(List.NewList(
-                new Form.Symbol("base-rtd"),
+                new Symbol("base-rtd"),
                 Bool.False,
                 Bool.False,
                 Bool.False,
@@ -228,7 +228,7 @@ public class Record : Vector {
         public readonly static TypeDescriptor TypeDescriptorForConstructor =
             new TypeDescriptor(
                 List.NewList(
-                    new Form.Symbol("rcd"),
+                    new Symbol("rcd"),
                     Bool.False,
                     Bool.False,
                     Bool.False,

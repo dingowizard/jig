@@ -7,12 +7,12 @@ internal static partial class Builtins {
         SyntaxList stxList = Syntax.E(stx) as SyntaxList ?? throw new Exception("match-syntax: syntax should expand to list");
         if (stxList.Count<Syntax>() < 2) throw new Exception(); // TODO: this should be a syntax error
         Syntax expr = stxList.ElementAt<Syntax>(1);
-        Syntax.Identifier x = new (new Form.Symbol("x"));
+        Syntax.Identifier x = new (new Symbol("x"));
         Syntax result = new Syntax(
             SyntaxList.FromParams(
                 new Syntax(
                     SyntaxList.FromParams(
-                        new Syntax.Identifier(new Form.Symbol("lambda")),
+                        new Syntax.Identifier(new Symbol("lambda")),
                         new Syntax(SyntaxList.FromParams(x)),
                         LambdaBodyForMatch(x, stxList.Skip<Syntax>(2))
                     )),
@@ -37,7 +37,7 @@ internal static partial class Builtins {
         var elseBranch =
             clauses.Length == 1 ?
             new Syntax(SyntaxList.FromParams(
-                new Syntax.Identifier(new Form.Symbol("error")),
+                new Syntax.Identifier(new Symbol("error")),
                 new Syntax.Literal(new String("match: couldn't find a match."))
             )) : 
             new Syntax(MakeIfs(x, clauses.Skip(1)));
@@ -45,7 +45,7 @@ internal static partial class Builtins {
         var thisClause = Syntax.E(clauses[0]) as SyntaxList.NonEmpty
                          ?? throw new Exception(); // TODO: should be syntax error
         return SyntaxList.FromParams(
-            new Syntax.Identifier(new Form.Symbol("if")),
+            new Syntax.Identifier(new Symbol("if")),
             MakeConditionForMatchClause(x, thisClause.First),
             MakeThenForMatchClause(x, thisClause.First, thisClause.Rest),
             elseBranch
@@ -58,7 +58,7 @@ internal static partial class Builtins {
             case Number: return List.Null;
             case Bool: return List.Null;
             case List.Empty: return List.Null;
-            case Form.Symbol: return pattern;
+            case Symbol: return pattern;
             case SyntaxList stxList:
                 if (Form.IsKeyword("quote", pattern)) {
                     return List.Null;
@@ -104,7 +104,7 @@ internal static partial class Builtins {
             new System.Collections.Generic.List<Syntax> {
                 new(new System.Collections.Generic.List<Syntax>
                 {
-                    new Syntax.Identifier(new Form.Symbol("lambda")),
+                    new Syntax.Identifier(new Symbol("lambda")),
                     ParamsForLambdaForMatchClauseThen(pattern)
                 }.Concat(bodies.Cast<Syntax>()).ToSyntaxList())
             }.ToSyntaxList();
@@ -127,7 +127,7 @@ internal static partial class Builtins {
 
     private static Syntax MakeCallFromName(string functionName, params Syntax[] args) {
         var syntaxList = new System.Collections.Generic.List<Syntax>{
-            new Syntax.Identifier(new Form.Symbol(functionName))
+            new Syntax.Identifier(new Symbol(functionName))
         }.Concat(args).ToSyntaxList();
         return new Syntax(syntaxList);
     }
@@ -139,7 +139,7 @@ internal static partial class Builtins {
             Bool => MakeCallFromName("eqv?", pattern, x),
             Syntax => MakeCallFromName("eqv?", pattern, x),
             IEmptyList => MakeCallFromName("null?", x),
-            Form.Symbol => new Syntax.Literal(Bool.True),
+            Symbol => new Syntax.Literal(Bool.True),
             SyntaxList syntaxList => MakeConditionForMatchClause(MakeCallFromName("syntax-e", x), syntaxList),
             IPair pair => MakeConditionForMatchClause(MakeCallFromName("syntax-e", x), pair.Car, pair.Cdr),
             _ => throw new NotImplementedException($"x = {x.Print()} and pattern = {pattern.Print()}"),
@@ -176,7 +176,7 @@ internal static partial class Builtins {
             return MakeCallFromName("eqv?", x, new Syntax(pattern));
         }
         System.Collections.Generic.List<Syntax> firstPart = [
-            new Syntax.Identifier(new Form.Symbol("and")),
+            new Syntax.Identifier(new Symbol("and")),
             MakeCallFromName("list?", x),
             MakeCallFromName("=", MakeCallFromName("length", x), new Syntax.Literal(new Integer(pattern.Count<Syntax>())))
         ];
@@ -190,15 +190,15 @@ internal static partial class Builtins {
     private static Syntax NthElementOfList(int i, Syntax x) {
         return MakeCallFromName("list-ref", x, new Syntax.Literal(new Integer(i)));
         // while (i > 0) {
-        //     x = new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Form.Symbol("cdr")), x));
+        //     x = new Syntax(SyntaxList.FromParams(new Syntax.Identifier(new Symbol("cdr")), x));
         //     i--;
         // }
         // return new Syntax(
         //     SyntaxList.FromParams(
-        //         new Syntax.Identifier(new Form.Symbol("syntax-e")),
+        //         new Syntax.Identifier(new Symbol("syntax-e")),
         //         new Syntax(
         //             SyntaxList.FromParams(
-        //                 new Syntax.Identifier(new Form.Symbol("car")),
+        //                 new Syntax.Identifier(new Symbol("car")),
         //                 x))));
     }
 
@@ -225,7 +225,7 @@ internal static partial class Builtins {
             List.Empty => SyntaxList.Null,
             Number => SyntaxList.Null,
             Bool => SyntaxList.Null,
-            Form.Symbol => x,
+            Symbol => x,
             SyntaxList stxList => ArgsForLambdaForMatchClauseThen(MakeCallFromName("syntax-e", x), stxList),
             IPair pair => ArgsForLambdaForMatchClauseThen(MakeCallFromName("syntax-e", x), pair),
             _ => throw new NotImplementedException(),

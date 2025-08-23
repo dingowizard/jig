@@ -470,7 +470,7 @@ internal abstract class ET : Expression {
             if (rest is not null) {
                 if (parameters.HasRequired) {
                     // parameters are something like (a b . c)
-                    IEnumerable<Form.Symbol> symbols = parameters.Required.Select(v => v.Identifier.Symbol).Append(rest.Identifier.Symbol);
+                    IEnumerable<Symbol> symbols = parameters.Required.Select(v => v.Identifier.Symbol).Append(rest.Identifier.Symbol);
                     lambdaScope = scope.Extend(symbols);
                     LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
                     LambdaExpressionParams = [k, .. lambdaScope.Parameters];
@@ -524,7 +524,7 @@ internal abstract class ET : Expression {
             LexicalContext lambdaScope;
             switch (lambdaParameters) {
                 case List properList:
-                    IEnumerable<Form.Symbol> properListSymbols = properList.Cast<Form.Symbol>() ?? throw new Exception($"malformed lambda: expected parameters to be symbols but got {properList}");
+                    IEnumerable<Symbol> properListSymbols = properList.Cast<Symbol>() ?? throw new Exception($"malformed lambda: expected parameters to be symbols but got {properList}");
                     lambdaScope = scope.Extend(properListSymbols);
                     LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
                     LambdaExpressionParams = new[] {k}.Concat(lambdaScope.Parameters).ToArray();
@@ -536,7 +536,7 @@ internal abstract class ET : Expression {
                                            parameters: LambdaExpressionParams))),
                             typeof(Thunk));
                     return;
-                case Form.Symbol onlyRestSymbol: // cases like (lambda x x)
+                case Symbol onlyRestSymbol: // cases like (lambda x x)
                     lambdaScope = scope.Extend([onlyRestSymbol]);
                     LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
                     LambdaExpressionParams = new[] {k}.Concat(lambdaScope.Parameters).ToArray();
@@ -547,7 +547,7 @@ internal abstract class ET : Expression {
                                                                 parameters: LambdaExpressionParams))), typeof(Thunk));
                     return;
                 case IPair andRest: // cases like (lambda (proc l . ls))
-                    IEnumerable<Form.Symbol> symbols = ValidateAndConvertToSymbols(andRest);
+                    IEnumerable<Symbol> symbols = ValidateAndConvertToSymbols(andRest);
                     lambdaScope = scope.Extend(symbols);
                     LambdaExpressionBody = LambdaBody(k, lambdaScope, lambdaBody);
                     LambdaExpressionParams = new[] {k}.Concat(lambdaScope.Parameters).ToArray();
@@ -569,19 +569,19 @@ internal abstract class ET : Expression {
 
         protected override Expression Body {get;}
 
-        private static System.Collections.Generic.List<Form.Symbol> ValidateAndConvertToSymbols(IPair parameters) {
-            var result = new System.Collections.Generic.List<Form.Symbol>();
+        private static System.Collections.Generic.List<Symbol> ValidateAndConvertToSymbols(IPair parameters) {
+            var result = new System.Collections.Generic.List<Symbol>();
             IForm car = parameters.Car;
-            Form.Symbol sym = car is Syntax.Identifier id ? id.Symbol : car is Form.Symbol s ? s : throw new Exception($"lambda: all parameters must be symbols (given {car}");
+            Symbol sym = car is Syntax.Identifier id ? id.Symbol : car is Symbol s ? s : throw new Exception($"lambda: all parameters must be symbols (given {car}");
             result.Add(sym);
             IForm cdr = parameters.Cdr;
             while (cdr is IPair pairCdr) {
                 car = pairCdr.Car;
-                sym = car is Syntax.Identifier i ? i.Symbol : car is Form.Symbol sm ? sm : throw new Exception($"lambda: all parameters must be symbols (given {car}");
+                sym = car is Syntax.Identifier i ? i.Symbol : car is Symbol sm ? sm : throw new Exception($"lambda: all parameters must be symbols (given {car}");
                 result.Add(sym);
                 cdr = pairCdr.Cdr;
             }
-            sym = cdr is Syntax.Identifier idf ? idf.Symbol : cdr is Form.Symbol symbol ? symbol : throw new Exception($"lambda: all parameters must be symbols (given {cdr})");
+            sym = cdr is Syntax.Identifier idf ? idf.Symbol : cdr is Symbol symbol ? symbol : throw new Exception($"lambda: all parameters must be symbols (given {cdr})");
             result.Add(sym);
             return result;
 

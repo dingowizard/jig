@@ -4,7 +4,7 @@ namespace VM;
 
 public class Binding : IRuntimeBinding {
 
-    public Binding(Form.Symbol s, Form form, bool top = false) {
+    public Binding(Symbol s, Form form, bool top = false) {
         Symbol = s;
         Slot = form;
         Top = top;
@@ -15,13 +15,13 @@ public class Binding : IRuntimeBinding {
         Top = top;
     }
 
-    public Binding(Form.Symbol s, bool top = false) {
+    public Binding(Symbol s, bool top = false) {
         Symbol = s;
         Top = top;
     }
 
     public readonly bool Top; // false
 
-    public Form.Symbol Symbol {get;}
+    public Symbol Symbol {get;}
     public Form? Slot {get; set; }
 }

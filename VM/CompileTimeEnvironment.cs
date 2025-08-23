@@ -5,8 +5,8 @@ namespace VM;
 public class CompileTimeEnvironment {
     
     // TODO: should this be a dictionary to IRuntimeBindings?
-    private readonly Dictionary<Form.Symbol, Binding> _toplevels;
-    public Binding LookUpTopLevel(Form.Symbol sym) {
+    private readonly Dictionary<Symbol, Binding> _toplevels;
+    public Binding LookUpTopLevel(Symbol sym) {
         if (_toplevels.TryGetValue(sym, out var value)) {
             return value;
         }
@@ -22,7 +22,7 @@ public class CompileTimeEnvironment {
     
 
 
-    public Binding DefineTopLevel(Form.Symbol identifierSymbol) {
+    public Binding DefineTopLevel(Symbol identifierSymbol) {
         if (_toplevels.TryGetValue(identifierSymbol, out var value)) {
             return value;
         }

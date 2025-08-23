@@ -65,7 +65,7 @@ public class Expander {
 
         if (syntax is Syntax.Literal lit) {
             // TODO: something about void. See ParsedLiteral.TryParse ... Not really sure how/why it could be here _as_syntax_ ... 
-            return new ParsedLiteral(new Syntax.Identifier(new Form.Symbol("quote")), lit, syntax.SrcLoc);
+            return new ParsedLiteral(new Syntax.Identifier(new Symbol("quote")), lit, syntax.SrcLoc);
         }
         if (syntax is Syntax.Identifier id) {
             // TODO: error if id is keyword in expansion env?

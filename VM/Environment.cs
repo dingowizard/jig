@@ -11,7 +11,7 @@ public class Environment : Form, IRuntimeEnvironment {
     public override string Print() => "#<environment>";
     
 
-    private Environment(Dictionary<Form.Symbol, Binding> dict) {
+    private Environment(Dictionary<Symbol, Binding> dict) {
         TopLevels = dict;
         Locals = null;
         Machine = new Machine(this);
@@ -37,27 +37,27 @@ public class Environment : Form, IRuntimeEnvironment {
     static Environment() {
         var initialBindings = new Dictionary<Symbol, Binding>();
         Default = new Environment(initialBindings);
-        initialBindings[new Form.Symbol("cons")] = new Binding(new Form.Symbol("cons"), Primitives.Cons);
-        initialBindings[new Form.Symbol("car")] = new Binding(new Form.Symbol("car"), Primitives.Car);
-        initialBindings[new Form.Symbol("cdr")] = new Binding(new Form.Symbol("cdr"), Primitives.Cdr);
-        initialBindings[new Form.Symbol("append")] = new Binding(new Form.Symbol("append"), Primitives.Append);
-        initialBindings[new Form.Symbol("pair?")] = new Binding(new Form.Symbol("pair?"), Primitives.PairP);
-        initialBindings[new Form.Symbol("null?")] = new Binding(new Form.Symbol("null?"), Primitives.NullP);
-        initialBindings[new Form.Symbol("zero?")] = new Binding(new Form.Symbol("zero?"), Primitives.ZeroP);
-        initialBindings[new Form.Symbol("call/cc")] = new Binding(new Form.Symbol("call/cc"), new Procedure(Default, VM.Builtins.CallCC));
-        initialBindings[new Form.Symbol("+")] = new Binding(new Form.Symbol("+"), new Procedure(Default, VM.Builtins.Sum));
-        initialBindings[new Form.Symbol("apply")] = new Binding(new Form.Symbol("apply"), new Procedure(Default, VM.Builtins.Apply));
-        initialBindings[new Form.Symbol(">")] = new Binding(new Form.Symbol(">"), Primitives.GT);
-        initialBindings[new Form.Symbol("<")] = new Binding(new Form.Symbol("<"), Primitives.LT);
-        initialBindings[new Form.Symbol("-")] = new Binding(new Form.Symbol("-"), Primitives.Minus);
-        initialBindings[new Form.Symbol("*")] = new Binding(new Form.Symbol("*"), new Procedure(Default, VM.Builtins.Product));
-        initialBindings[new Form.Symbol("=")] = new Binding(new Form.Symbol("="), Primitives.NumEq);
-        initialBindings[new Form.Symbol("eqv?")] = new Binding(new Form.Symbol("eqv?"), Primitives.Eqvp);
-        initialBindings[new Form.Symbol("values")] = new Binding(new Form.Symbol("values"), new Procedure(Default, VM.Builtins.Values));
-        initialBindings[new Form.Symbol("call-with-values")] = new Binding(new Form.Symbol("call-with-values"), new Procedure(Default, VM.Builtins.CallWithValues));
-        initialBindings[new Form.Symbol("dynamic-wind")] = new Binding(new Form.Symbol("dynamic-wind"), new Procedure(Default, VM.Builtins.DynamicWind));
-        initialBindings[new Form.Symbol("datum->syntax")] = new Binding(new Form.Symbol("datum->syntax"), Primitives.DatumToSyntax);
-        initialBindings[new Form.Symbol("syntax->list")] = new Binding(new Form.Symbol("syntax->list"), Primitives.SyntaxToList);
+        initialBindings[new Symbol("cons")] = new Binding(new Symbol("cons"), Primitives.Cons);
+        initialBindings[new Symbol("car")] = new Binding(new Symbol("car"), Primitives.Car);
+        initialBindings[new Symbol("cdr")] = new Binding(new Symbol("cdr"), Primitives.Cdr);
+        initialBindings[new Symbol("append")] = new Binding(new Symbol("append"), Primitives.Append);
+        initialBindings[new Symbol("pair?")] = new Binding(new Symbol("pair?"), Primitives.PairP);
+        initialBindings[new Symbol("null?")] = new Binding(new Symbol("null?"), Primitives.NullP);
+        initialBindings[new Symbol("zero?")] = new Binding(new Symbol("zero?"), Primitives.ZeroP);
+        initialBindings[new Symbol("call/cc")] = new Binding(new Symbol("call/cc"), new Procedure(Default, VM.Builtins.CallCC));
+        initialBindings[new Symbol("+")] = new Binding(new Symbol("+"), new Procedure(Default, VM.Builtins.Sum));
+        initialBindings[new Symbol("apply")] = new Binding(new Symbol("apply"), new Procedure(Default, VM.Builtins.Apply));
+        initialBindings[new Symbol(">")] = new Binding(new Symbol(">"), Primitives.GT);
+        initialBindings[new Symbol("<")] = new Binding(new Symbol("<"), Primitives.LT);
+        initialBindings[new Symbol("-")] = new Binding(new Symbol("-"), Primitives.Minus);
+        initialBindings[new Symbol("*")] = new Binding(new Symbol("*"), new Procedure(Default, VM.Builtins.Product));
+        initialBindings[new Symbol("=")] = new Binding(new Symbol("="), Primitives.NumEq);
+        initialBindings[new Symbol("eqv?")] = new Binding(new Symbol("eqv?"), Primitives.Eqvp);
+        initialBindings[new Symbol("values")] = new Binding(new Symbol("values"), new Procedure(Default, VM.Builtins.Values));
+        initialBindings[new Symbol("call-with-values")] = new Binding(new Symbol("call-with-values"), new Procedure(Default, VM.Builtins.CallWithValues));
+        initialBindings[new Symbol("dynamic-wind")] = new Binding(new Symbol("dynamic-wind"), new Procedure(Default, VM.Builtins.DynamicWind));
+        initialBindings[new Symbol("datum->syntax")] = new Binding(new Symbol("datum->syntax"), Primitives.DatumToSyntax);
+        initialBindings[new Symbol("syntax->list")] = new Binding(new Symbol("syntax->list"), Primitives.SyntaxToList);
     }
 
     

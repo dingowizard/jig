@@ -166,7 +166,7 @@ public class Syntax : Form {
 
     internal void InnerStxPrint(StringBuilder sb) {
         switch (Expression) {
-            case Form.Symbol sym:
+            case Symbol sym:
                 sb.Append(sym.Name);
                 break;
             case SyntaxList stxList:
@@ -233,7 +233,7 @@ public class Syntax : Form {
     }
 
     public class Identifier : Syntax {
-        internal Identifier(Form.Symbol symbol, SrcLoc? srcLoc = null) : base (symbol, srcLoc) {
+        internal Identifier(Symbol symbol, SrcLoc? srcLoc = null) : base (symbol, srcLoc) {
             ScopeSet = new HashSet<Scope>();
         }
         
@@ -254,7 +254,7 @@ public class Syntax : Form {
             // }
         }
 
-        public new Form.Symbol Symbol {
+        public new Symbol Symbol {
             get {
                 return (Symbol)Expression;
             }
