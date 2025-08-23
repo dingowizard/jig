@@ -4,30 +4,30 @@ using Jig.Expansion;
 
 namespace Jig;
 
-public abstract class ParsedExpr : Syntax {
+public abstract class ParsedForm : Syntax {
 
-    protected ParsedExpr(IForm x, SrcLoc? srcLoc = null) : base(x, srcLoc) {}
+    protected ParsedForm(IForm x, SrcLoc? srcLoc = null) : base(x, srcLoc) {}
 
 }
 
-public class ParsedApplication : ParsedExpr {
-    public ParsedApplication(IEnumerable<ParsedExpr> stxList, SrcLoc? srcLoc) : base(stxList.ToSyntaxList(), srcLoc) {
+public class ParsedApplication : ParsedForm {
+    public ParsedApplication(IEnumerable<ParsedForm> stxList, SrcLoc? srcLoc) : base(stxList.ToSyntaxList(), srcLoc) {
         ParsedExprs = stxList.ToArray();
     }
 
-    public IEnumerable<ParsedExpr> ParsedExprs {get;}
+    public IEnumerable<ParsedForm> ParsedExprs {get;}
 }
 
-public class ParsedSet : ParsedExpr {
+public class ParsedSet : ParsedForm {
 
-    internal ParsedSet(Syntax keyword, ParsedVariable id, ParsedExpr val, SrcLoc? srcLoc = null)
+    internal ParsedSet(Syntax keyword, ParsedVariable id, ParsedForm val, SrcLoc? srcLoc = null)
       : base(SyntaxList.FromParams(keyword, id, val), srcLoc) {
         Variable = id;
         Value = val;
     }
 
     public ParsedVariable Variable {get;}
-    public ParsedExpr Value {get;}
+    public ParsedForm Value {get;}
     public static bool TryParse(Syntax stx, MacroExpander expander, ExpansionEnvironment ee, [NotNullWhen(returnValue: true)] out ParsedSet? setExpr) {
         if (Syntax.E(stx) is not SyntaxList stxList) {
             setExpr = null;
@@ -51,9 +51,9 @@ public class ParsedSet : ParsedExpr {
 
 }
 
-public class ParsedBegin(Syntax keyword, ParsedExpr[] forms, SrcLoc? srcLoc = null) :
-    ParsedExpr((Form)Pair.Cons(keyword, SyntaxList.FromIEnumerable(forms)), srcLoc) {
-    public ParsedExpr[] Forms {get;} = forms;
+public class ParsedBegin(Syntax keyword, ParsedForm[] forms, SrcLoc? srcLoc = null) :
+    ParsedForm((Form)Pair.Cons(keyword, SyntaxList.FromIEnumerable(forms)), srcLoc) {
+    public ParsedForm[] Forms {get;} = forms;
 
     public static bool TryParse(Syntax stx,
                                 MacroExpander expander,
@@ -70,7 +70,7 @@ public class ParsedBegin(Syntax keyword, ParsedExpr[] forms, SrcLoc? srcLoc = nu
             beginExpr = null;
             return false;
         }
-        System.Collections.Generic.List<ParsedExpr> forms = [];
+        System.Collections.Generic.List<ParsedForm> forms = [];
         foreach (var x in stxList.Skip<Syntax>(1)) {
             forms.Add(expander.Expand(x, ee, definesAllowed));
         }
@@ -80,7 +80,7 @@ public class ParsedBegin(Syntax keyword, ParsedExpr[] forms, SrcLoc? srcLoc = nu
 
 }
 
-public class ParsedLiteral : ParsedExpr {
+public class ParsedLiteral : ParsedForm {
     internal ParsedLiteral(Syntax keyword, Syntax lit, SrcLoc? srcLoc = null)
     : base (SyntaxList.FromParams(keyword, lit), srcLoc) {
         Quoted = lit;
@@ -113,7 +113,7 @@ public class ParsedLiteral : ParsedExpr {
 
 }
 
-public class ParsedQuoteSyntax : ParsedExpr {
+public class ParsedQuoteSyntax : ParsedForm {
     internal ParsedQuoteSyntax(Syntax keyword, Syntax lit, SrcLoc? srcLoc)
     : base (SyntaxList.FromParams(keyword, lit), srcLoc) {
         Quoted = lit;
@@ -138,69 +138,9 @@ public class ParsedQuoteSyntax : ParsedExpr {
 
 }
 
-public class ParsedDefine : ParsedExpr {
+public class ParsedLambda : ParsedForm {
 
-    internal ParsedDefine(Syntax keyword, ParsedVariable id, ParsedExpr val, SrcLoc? srcLoc = null)
-      : base(SyntaxList.FromParams(keyword, id, val), srcLoc) {
-        Variable = id;
-        Value = val;
-    }
-
-    internal ParsedDefine(Syntax keyword, ParsedVariable id, SrcLoc? srcLoc = null)
-        : base(SyntaxList.FromParams(keyword, id), srcLoc) {
-        Variable = id;
-        Value = null;
-    }
-    public ParsedVariable Variable {get;}
-    public ParsedExpr? Value {get;}
-
-    public static bool TryParse(Syntax stx, MacroExpander expander, ExpansionEnvironment ee, [NotNullWhen(returnValue: true)] out ParsedDefine? defineExpr) {
-        if (Syntax.E(stx) is not SyntaxList stxList) {
-            defineExpr = null;
-            return false;
-        }
-        if (!Form.IsKeyword("define", stx)) {
-            defineExpr = null;
-            return false;
-        }
-        Debug.Assert(stxList.Count<Syntax>() == 3 || stxList.Count<Syntax>() == 2); // TODO: this should be a syntax error
-        Syntax.Identifier id = stxList.ElementAt<Syntax>(1) as Syntax.Identifier
-            ?? throw new Exception($"syntax error: malformed define: expected first argument to be an identifier. Got {stxList.ElementAt<Syntax>(1)}");
-        // TODO: hm...
-        var binding = new Binding(id.Symbol,  ee.ScopeLevel, ee.VarIndex++);
-        expander.AddBinding(id, binding);
-        ParsedVariable parsedVar = binding.ScopeLevel == 0 ?
-            new ParsedVariable.TopLevel(id, binding, id.SrcLoc) :
-            new ParsedVariable.Lexical(id, binding, id.SrcLoc);
-
-        defineExpr = stxList.Count<Syntax>() == 3
-            ? new ParsedDefine(stxList.ElementAt<Syntax>(0),
-                parsedVar,
-                expander.Expand(stxList.ElementAt<Syntax>(2), ee, definesAllowed: false),
-                stx.SrcLoc)
-            : new ParsedDefine(stxList.ElementAt<Syntax>(0), parsedVar, stx.SrcLoc);
-            
-        return true;
-    }
-
-}
-
-public class ParsedDefineSyntax : ParsedExpr {
-
-    internal ParsedDefineSyntax(Syntax keyword, ParsedVariable id, ParsedExpr val, SrcLoc? srcLoc = null)
-      : base(SyntaxList.FromParams(keyword, id, val), srcLoc) {
-        Variable = id;
-        Value = val;
-    }
-
-    public ParsedVariable Variable {get;}
-    public ParsedExpr Value {get;}
-
-
-}
-public class ParsedLambda : ParsedExpr {
-
-    internal ParsedLambda(Syntax keyword, LambdaParameters parameters, int scopeVarsCount, ParsedExpr[] bodies, SrcLoc? srcLoc = null)
+    internal ParsedLambda(Syntax keyword, LambdaParameters parameters, int scopeVarsCount, ParsedForm[] bodies, SrcLoc? srcLoc = null)
       : base(Pair.Cons(keyword, Pair.Cons(parameters, (IForm)bodies.ToJigList())), srcLoc)
     {
         Parameters = parameters;
@@ -213,7 +153,7 @@ public class ParsedLambda : ParsedExpr {
     // number of parameters and local variables declared in body
     public int  ScopeVarsCount {get;}
     
-    public ParsedExpr[] Bodies {get;}
+    public ParsedForm[] Bodies {get;}
 
     public static bool TryParse(Syntax stx,
                                 MacroExpander expander,
@@ -240,7 +180,7 @@ public class ParsedLambda : ParsedExpr {
         LambdaParameters ps = LambdaParameters.Parse(parameters, expander, ee);
 
         xs.Add(parameters);
-        var bodies = new System.Collections.Generic.List<ParsedExpr>();
+        var bodies = new System.Collections.Generic.List<ParsedForm>();
         foreach (var x in stxList.Skip<Syntax>(2)) {
             Syntax.AddScope(x, newScope);
             bodies.Add(expander.Expand(x, ee));
@@ -272,6 +212,7 @@ public class ParsedLambda : ParsedExpr {
                         throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
                     }
                     Binding binding = new Binding(id.Symbol, ee.ScopeLevel, ee.VarIndex++);
+                    id.Symbol.Binding = binding;
                     expander.AddBinding(id, binding);
                     namesSeen.Add(id.Symbol.Name);
                     required.Add(new ParsedVariable.Lexical(id, binding, id.SrcLoc));
@@ -284,6 +225,7 @@ public class ParsedLambda : ParsedExpr {
                 }
                 namesSeen.Add(id.Symbol.Name);
                 Binding binding = new Binding(id.Symbol, ee.ScopeLevel, ee.VarIndex++);
+                id.Symbol.Binding = binding;
                 required.Add(new ParsedVariable.Lexical(id, binding, id.SrcLoc));
                 expander.AddBinding(id, binding);
                 while (pair.Cdr is IPair cdrPair) {
@@ -293,6 +235,7 @@ public class ParsedLambda : ParsedExpr {
                         throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
                     }
                     binding = new Binding(id.Symbol, ee.ScopeLevel, ee.VarIndex++);
+                    id.Symbol.Binding = binding;
                     expander.AddBinding(id, binding);
                     pair = cdrPair;
                     namesSeen.Add(id.Symbol.Name);
@@ -304,11 +247,13 @@ public class ParsedLambda : ParsedExpr {
                     throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
                 }
                 binding = new Binding(id.Symbol, ee.ScopeLevel, ee.VarIndex++);
+                id.Symbol.Binding = binding;
                 expander.AddBinding(id, binding);
                 namesSeen.Add(id.Symbol.Name);
                 rest = new ParsedVariable.Lexical(id, binding, id.SrcLoc);
             } else if (stx is Syntax.Identifier psId) {
                     Binding binding = new Binding(psId.Symbol, ee.ScopeLevel, ee.VarIndex++);
+                    psId.Symbol.Binding = binding;
                     expander.AddBinding(psId, binding);
                     rest = new ParsedVariable.Lexical(psId, binding, psId.SrcLoc);
             } else if (Syntax.E(stx) is List.Empty) {
@@ -330,6 +275,7 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                         throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
                     }
                     Binding binding = new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++);
+                    id.Symbol.Binding = binding;
                     context.AddBinding(id, binding);
                     namesSeen.Add(id.Symbol.Name);
                     required.Add(new ParsedVariable.Lexical(id, binding, id.SrcLoc));
@@ -342,6 +288,7 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                 }
                 namesSeen.Add(id.Symbol.Name);
                 Binding binding = new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++);
+                id.Symbol.Binding = binding;
                 required.Add(new ParsedVariable.Lexical(id, binding, id.SrcLoc));
                 context.AddBinding(id, binding);
                 while (pair.Cdr is IPair cdrPair) {
@@ -351,6 +298,7 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                         throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
                     }
                     binding = new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++);
+                    id.Symbol.Binding = binding;
                     context.AddBinding(id, binding);
                     pair = cdrPair;
                     namesSeen.Add(id.Symbol.Name);
@@ -362,11 +310,13 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                     throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
                 }
                 binding = new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++);
+                id.Symbol.Binding = binding;
                 context.AddBinding(id, binding);
                 namesSeen.Add(id.Symbol.Name);
                 rest = new ParsedVariable.Lexical(id, binding, id.SrcLoc);
             } else if (stx is Syntax.Identifier psId) {
                     Binding binding = new Binding(psId.Symbol, context.ScopeLevel, context.VarIndex++);
+                    psId.Symbol.Binding = binding;
                     context.AddBinding(psId, binding);
                     rest = new ParsedVariable.Lexical(psId, binding, psId.SrcLoc);
             } else if (Syntax.E(stx) is List.Empty) {
@@ -385,66 +335,7 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
     }
 }
 
-public class ParsedVariable : ParsedExpr {
-
-    public static bool TryParse(Syntax stx, MacroExpander expander, [NotNullWhen(returnValue: true)] out ParsedVariable? parsedVariable) {
-        // if (stx is ParsedVariable pvar) {
-        //     if(expander.TryResolve(pvar.Identifier, out Binding? binding)) {
-        //         pvar.Identifier.Symbol.Binding = binding;
-        //         parsedVariable = new ParsedVariable.Lexical(pvar.Identifier, stx.SrcLoc);
-        //         return true;
-        //     } else {
-        //         parsedVariable = pvar;
-        //         return true;
-        //     }
-
-        // }
-        // TODO: make binding a required field for parsed variables
-        if (stx is Syntax.Identifier id) {
-            if(expander.TryResolve(id, out var binding)) {
-                // if (id.Symbol.Name == "y") {
-                //     Console.WriteLine($"found binding for y: {binding}");
-                // }
-                if (binding.ScopeLevel == 0) {
-                    parsedVariable = new ParsedVariable.TopLevel(id, binding, stx.SrcLoc);
-                    return true;
-                }
-                parsedVariable = new ParsedVariable.Lexical(id, binding, stx.SrcLoc);
-                return true;
-            }
-                // if (id.Symbol.Name == "y") {
-                //     Console.WriteLine("couldn't resolve y");
-                // }
-
-                throw new Exception($"couldn't resolve identifier {id.Symbol.Print()}");
-
-        } else {
-            parsedVariable = null;
-            return false;
-        }
-    }
-
-    private ParsedVariable(Syntax.Identifier id, Binding binding, SrcLoc? srcLoc) : base (id.Symbol, srcLoc) {
-        Identifier = id;
-        Binding = binding;
-    }
-    
-    public Binding Binding { get; }
-
-    public class TopLevel : ParsedVariable {
-        internal TopLevel(Syntax.Identifier id, Binding binding, SrcLoc? srcLoc) : base(id, binding, srcLoc) { }
-    }
-
-    public class Lexical : ParsedVariable {
-        internal Lexical(Syntax.Identifier id, Binding binding, SrcLoc? srcLoc) : base(id, binding, srcLoc) { }
-        
-
-    }
-
-    public Identifier Identifier { get; }
-}
-
-public class ParsedIf : ParsedExpr {
+public class ParsedIf : ParsedForm {
 
     public static bool TryParse(Syntax stx, MacroExpander expander, ExpansionEnvironment ee, [NotNullWhen(returnValue: true)] out ParsedIf? ifExpr) {
         if (Syntax.E(stx) is not SyntaxList stxList)
@@ -456,9 +347,9 @@ public class ParsedIf : ParsedExpr {
             ifExpr = null;
             return false;
         }
-        System.Collections.Generic.List<ParsedExpr> xs = [];
+        System.Collections.Generic.List<ParsedForm> xs = [];
         foreach (var x in stxList.Skip<Syntax>(1)) {
-            ParsedExpr bodyExpr = expander.Expand(x, ee, definesAllowed: false);
+            ParsedForm bodyExpr = expander.Expand(x, ee, definesAllowed: false);
             xs.Add(bodyExpr);
         }
         if (xs.Count == 2) {
@@ -472,14 +363,14 @@ public class ParsedIf : ParsedExpr {
         }
     }
 
-    public ParsedExpr Condition {get; private set;}
+    public ParsedForm Condition {get; private set;}
 
-    public ParsedExpr Then {get; private set;}
+    public ParsedForm Then {get; private set;}
 
-    public ParsedExpr? Else {get; private set;}
+    public ParsedForm? Else {get; private set;}
 
 
-    internal ParsedIf(Syntax kywd, ParsedExpr cond, ParsedExpr then, ParsedExpr @else, SrcLoc? srcLoc = null) :
+    internal ParsedIf(Syntax kywd, ParsedForm cond, ParsedForm then, ParsedForm @else, SrcLoc? srcLoc = null) :
         base(SyntaxList.FromParams(kywd, cond, then, @else), srcLoc)
     {
         Condition = cond;
@@ -489,7 +380,7 @@ public class ParsedIf : ParsedExpr {
 
     }
 
-    internal ParsedIf(Syntax kywd, ParsedExpr cond, ParsedExpr then, SrcLoc? srcLoc = null) :
+    internal ParsedIf(Syntax kywd, ParsedForm cond, ParsedForm then, SrcLoc? srcLoc = null) :
         base(SyntaxList.FromParams(kywd, cond, then), srcLoc)
     {
         Condition = cond;

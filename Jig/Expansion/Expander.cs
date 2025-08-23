@@ -3,7 +3,7 @@ namespace Jig.Expansion;
 
 public class Expander {
 
-    public IEnumerable<ParsedExpr> ExpandFile(IEnumerable<Syntax> syntaxes, ExpansionContext context) {
+    public IEnumerable<ParsedForm> ExpandFile(IEnumerable<Syntax> syntaxes, ExpansionContext context) {
         Syntax[] forSecondPass = DoFirstPass(syntaxes, context).ToArray();
         foreach (Syntax syntax in forSecondPass) {
             yield return Expand(syntax, context);
@@ -31,6 +31,23 @@ public class Expander {
                                 .ToSyntaxList(),
                             syntax.SrcLoc);
                         break;
+                    case "define-syntax":
+                        if (stxList.Rest is not SyntaxList.NonEmpty {First: Syntax.Identifier vr} rt)
+                            throw new Exception($"malformed define: {Syntax.ToDatum(syntax).Print()} ");
+                        var bg = new Binding(
+                            vr.Symbol,
+                            context.ScopeLevel,
+                            context.VarIndex++);
+                        context.AddBinding(vr, bg);
+                        var parsedKW = new ParsedVariable.TopLevel(vr, bg, vr.SrcLoc);
+                        context.DefineSyntax(parsedKW, rt.Rest);
+                        yield return new Syntax(
+                            SyntaxList
+                                .FromParams(kw, parsedKW)
+                                .Concat<Syntax>(rt.Rest)
+                                .ToSyntaxList(),
+                            syntax.SrcLoc);
+                        break;
                     default:
                         yield return syntax;
                         break;
@@ -41,7 +58,7 @@ public class Expander {
         }
     }
 
-    public ParsedExpr Expand(Syntax syntax, ExpansionContext context) {
+    public ParsedForm Expand(Syntax syntax, ExpansionContext context) {
 
         if (syntax is Syntax.Literal lit) {
             // TODO: something about void. See ParsedLiteral.TryParse ... Not really sure how/why it could be here _as_syntax_ ... 
@@ -82,7 +99,7 @@ public class Expander {
         
         // NOTE: idk why but passing ParsedApplication stxList.Select(Expand) causes a very weird bug
         // in which the lambda expression gets evaluated twice and chokes on adding the binding for the parameters twice
-        System.Collections.Generic.List<ParsedExpr> elements = [];
+        System.Collections.Generic.List<ParsedForm> elements = [];
         elements.AddRange(stxList.Cast<Syntax>().Select(stx => Expand(stx, context)));
         return new ParsedApplication(
             elements,

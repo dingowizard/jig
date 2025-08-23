@@ -4,7 +4,7 @@ using Jig.Expansion;
 
 namespace VM;
 
-public class Environment : Form {
+public class Environment : Form, IRuntimeEnvironment {
     
     public Dictionary<Symbol, Binding> TopLevels;
 
@@ -14,7 +14,7 @@ public class Environment : Form {
     private Environment(Dictionary<Form.Symbol, Binding> dict) {
         TopLevels = dict;
         Locals = null;
-        Machine = new Machine();
+        Machine = new Machine(this);
     }
 
     private Environment(Dictionary<Symbol, Binding> topLevels, Machine runtime,  Scope? scope) {
@@ -56,6 +56,8 @@ public class Environment : Form {
         initialBindings[new Form.Symbol("values")] = new Binding(new Form.Symbol("values"), new Procedure(Default, VM.Builtins.Values));
         initialBindings[new Form.Symbol("call-with-values")] = new Binding(new Form.Symbol("call-with-values"), new Procedure(Default, VM.Builtins.CallWithValues));
         initialBindings[new Form.Symbol("dynamic-wind")] = new Binding(new Form.Symbol("dynamic-wind"), new Procedure(Default, VM.Builtins.DynamicWind));
+        initialBindings[new Form.Symbol("datum->syntax")] = new Binding(new Form.Symbol("datum->syntax"), Primitives.DatumToSyntax);
+        initialBindings[new Form.Symbol("syntax->list")] = new Binding(new Form.Symbol("syntax->list"), Primitives.SyntaxToList);
     }
 
     
@@ -151,5 +153,7 @@ public class Environment : Form {
         }
     }
 
+    Dictionary<Symbol, IRuntimeBinding> IRuntimeEnvironment.TopLevels =>
+        this.TopLevels.ToDictionary(pair => pair.Key, pair => (IRuntimeBinding)pair.Value );
 }
 

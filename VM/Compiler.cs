@@ -5,7 +5,7 @@ namespace VM;
 
 public class Compiler {
 
-    public Template CompileExprForREPL(ParsedExpr x,
+    public Template CompileExprForREPL(ParsedForm x,
         CompileTimeEnvironment ctEnv,
         int scopeLevel = 0,
         int startLine = 0) {
@@ -20,7 +20,7 @@ public class Compiler {
 
     }
 
-    private ulong[] Compile(ParsedExpr x,
+    private ulong[] Compile(ParsedForm x,
         CompileTimeEnvironment ctEnv,
         Sys.List<Form> literals,
         Sys.List<Binding> bindings,
@@ -176,7 +176,7 @@ public class Compiler {
         return condCodes.Append(jumpIfFalse).Concat(thenCodes).Append(jump).Concat(elseCodes).ToArray();
     }
 
-    public Template CompileSequence(ParsedExpr[] sequence,
+    public Template CompileSequence(ParsedForm[] sequence,
         CompileTimeEnvironment ctEnv,
         Sys.List<Form> literals,
         Sys.List<Binding> bindings,
@@ -371,7 +371,7 @@ public class Compiler {
         return instructions.ToArray();
 
     }
-    public Template CompileFile(ParsedExpr[] parsedFile, CompileTimeEnvironment cte) {
+    public Template CompileFile(ParsedForm[] parsedFile, CompileTimeEnvironment cte) {
         
         Sys.List<Form> literals = [];
         Sys.List<Binding> bindings = [];
@@ -395,7 +395,7 @@ public class Compiler {
         return new Template(0, instructions.ToArray(), bindings.ToArray(), literals.ToArray(), 0, false);
     }
 
-    private void DoFirstPass(Sys.List<Binding> bindings, ParsedExpr[] parsedFile, CompileTimeEnvironment ctEnv) {
+    private void DoFirstPass(Sys.List<Binding> bindings, ParsedForm[] parsedFile, CompileTimeEnvironment ctEnv) {
         foreach (var form in parsedFile) {
             if (form is ParsedDefine def) {
                 var bing = ctEnv.DefineTopLevel(def.Variable.Identifier.Symbol);

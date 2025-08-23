@@ -139,11 +139,25 @@ public class ExpansionContext {
 
     }
 
-    public void DefineSyntax(Syntax.Identifier id, IExpansionRule rule) {
-        _syntaxEnvironment.Add(id, rule);
+    public void DefineSyntax(ParsedVariable kw, SyntaxList stxs) {
+        // _syntaxEnvironment.Add(id, rule);
+        if (stxs is not SyntaxList.NonEmpty stxList) {
+            throw new Exception($"malformed define-syntax:expected a third subform");
+        }
+        Syntax transformerStx =
+            stxList.First;
+        
+        // TODO: I think we might need a ParsedKeyword type?
+
+        // Expand third subform
+        ParsedLambda transformerLambdaExpr = this.Expand(transformerStx) as ParsedLambda ?? throw new Exception(); // TODO: actually this should use the phase 1 runtime
+        var transformerProcedure = this.Runtime.EvaluateTransformerExpression(transformerLambdaExpr, this); // TODO: ditto
+        // TODO: should it use ParsedVar rather than id? for define as well?
+        _syntaxEnvironment.Add(kw.Identifier, transformerProcedure);
+            
     }
 
-    public ParsedExpr Expand(Syntax stx) => Expander.Expand(stx, this);
+    public ParsedForm Expand(Syntax stx) => Expander.Expand(stx, this);
 
     public bool DefinesAllowed {get;}
     public int VarIndex {get; set;} // TODO: this should be private, but clients are currently setting it. Bah.

@@ -2,7 +2,7 @@ namespace Jig.Expansion;
 
 public partial class CoreParseRules
 {
-    public static ParsedExpr ParseBeginForm(Syntax syntax, ExpansionContext context) {
+    public static ParsedForm ParseBeginForm(Syntax syntax, ExpansionContext context) {
         var stxList = ((SyntaxList)Syntax.E(syntax)).ToArray<Syntax>();
         if (!context.DefinesAllowed) {
             if (stxList.Length < 2) {

@@ -1,7 +1,10 @@
+using Jig.Expansion;
 namespace Jig;
 
 public interface IRuntime {
     Syntax ApplyTransformer(Jig.Expansion.Transformer transformer, Syntax syntax);
 
-    ITransformer EvaluateTransformerExpression(ParsedExpr transformerLambdaExpr);
+    IExpansionRule EvaluateTransformerExpression(ParsedLambda transformerLambdaExpr, ExpansionContext context);
+    
+    IRuntimeEnvironment RuntimeEnvironment { get; }
 }

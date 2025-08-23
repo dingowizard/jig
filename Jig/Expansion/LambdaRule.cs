@@ -2,7 +2,7 @@ namespace Jig.Expansion;
 
 public partial class CoreParseRules {
 
-    public static ParsedExpr ParseLambdaForm(Syntax syntax, ExpansionContext context) {
+    public static ParsedForm ParseLambdaForm(Syntax syntax, ExpansionContext context) {
 
         var subForms = ((SyntaxList)Syntax.E(syntax)).ToArray<Syntax>();
         var lambdaScope = new Scope();

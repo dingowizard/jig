@@ -13,7 +13,7 @@ public class Interpreter : IInterpreter {
         ExEnv = Jig.ExpansionEnvironment.Default;
         Expander = new Jig.MacroExpander();
         Comp = new Compiler();
-        TheVM = new Machine();
+        TheVM = new Machine(Env);
     }
 
     public Machine TheVM { get; set; }
@@ -33,7 +33,7 @@ public class Interpreter : IInterpreter {
     public string InterpretUsingReadSyntax(string input) {
         Syntax? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
         Assert.IsNotNull(stx);
-        Jig.ParsedExpr program = Expander.Expand(stx, ExEnv);
+        Jig.ParsedForm program = Expander.Expand(stx, ExEnv);
         var compiler = new Compiler(); // should class be static?
         var ctEnv = new CompileTimeEnvironment(Env);
         var code = compiler.CompileExprForREPL(program, ctEnv);
@@ -52,7 +52,7 @@ public class Interpreter : IInterpreter {
             Assert.IsNotNull(stx);
             MacroExpander me = new MacroExpander();
             var ctEnv = new CompileTimeEnvironment(Env);
-            Jig.ParsedExpr program = me.Expand(stx, ExEnv);
+            Jig.ParsedForm program = me.Expand(stx, ExEnv);
             var compiler = new Compiler();
             var code = compiler.CompileExprForREPL(program, ctEnv);
             TheVM.Load(code, Env, DoNothing);

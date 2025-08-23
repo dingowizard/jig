@@ -109,7 +109,7 @@ public static class Program {
         if (ast is Syntax stx) {
             // TODO: shouldn't we be able to macro-expand syntactic-data as well as syntax objects?
             var me = new MacroExpander();
-            ParsedExpr program = me.Expand(stx, ExEnv);
+            ParsedForm program = me.Expand(stx, ExEnv);
             var bindings = me.Bindings;
             // if (bindings.Length != 0) {
             //     Console.WriteLine($"There were {bindings.Length} lexical vars in that expression: {string.Join(", ", bindings.Select(b => b.Index.ToString()))}");

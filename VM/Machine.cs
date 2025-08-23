@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using Jig;
+using Jig.Expansion;
 using Transformer = Jig.Expansion.Transformer;
 namespace VM;
 
@@ -12,8 +13,10 @@ public class Machine : IRuntime
 
     internal bool Loud = false;
 
-    public Machine(uint stackSize = 512) {
+    public Machine(Environment env, uint stackSize = 512) {
         StackSize = stackSize;
+        ENVT = env;
+        RuntimeEnvironment = ENVT;
         Stack = new Form[stackSize];
     }
 
@@ -417,11 +420,32 @@ public class Machine : IRuntime
 
 
     public Syntax ApplyTransformer(Jig.Expansion.Transformer transformer, Syntax syntax) {
+        // return transformer.Apply(syntax);
         throw new NotImplementedException();
     }
 
-    public ITransformer EvaluateTransformerExpression(ParsedExpr transformerLambdaExpr)
+    public IExpansionRule EvaluateTransformerExpression(ParsedLambda transformerLambdaExpr, ExpansionContext context)
     {
-        throw new NotImplementedException();
+        
+        // TODO: needs a compiler, a compile-time environment
+        if (ENVT is null) throw new Exception($"unable to evaluate transformer expression: ENVT was null.");
+        var ctEnv = new CompileTimeEnvironment(ENVT); // TODO: why does the cte need these bindings?
+        var compiled = new Compiler().CompileExprForREPL(transformerLambdaExpr, ctEnv);
+        var compiler = new VM.Compiler(); // should class be static?
+        var code = compiler.CompileExprForREPL(transformerLambdaExpr, ctEnv);
+        // TODO: this logic of having the runtime evaluate one expr and return one result
+        // should be collected into a method
+        IForm result = List.Null;
+        this.Load(code, ENVT, Cont);
+        this.Run();
+        Procedure proc = result as Procedure ?? throw new Exception("a transformer shold evaluate to a procedure");
+        return new Transformer(proc, this);
+        
+        void Cont(Form[] forms) => result = forms[0];
+    }
+
+    public IRuntimeEnvironment RuntimeEnvironment {
+        get => ENVT;
+        private init => ENVT = (Environment)value;
     }
 }

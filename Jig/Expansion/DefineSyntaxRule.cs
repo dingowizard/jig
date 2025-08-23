@@ -2,7 +2,7 @@ namespace Jig.Expansion;
 
 public partial class CoreParseRules {
 
-    public static ParsedExpr DefineSyntax(Syntax syntax, ExpansionContext context) {
+    public static ParsedForm DefineSyntax(Syntax syntax, ExpansionContext context) {
         var subForms = ((SyntaxList)Syntax.E(syntax)).ToArray<Syntax>();
         int formLength = subForms.Length;
         if (subForms.Length is not 3) {
@@ -15,18 +15,12 @@ public partial class CoreParseRules {
 
         // TODO: This is not right.
         var binding = new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++); // TODO: should it create a new binding, or find one and create only if none?
-        ParsedVariable var = id.ScopeSet.Count != 0
-            ? new ParsedVariable.Lexical(id, new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++), id.SrcLoc)
-            : new ParsedVariable.TopLevel(id, binding, id.SrcLoc);
-        // Expand third subform
-        var transformerLambdaExpr = context.Expand(subForms[2]);
-        var transformerProcedure = context.Runtime.EvaluateTransformerExpression(transformerLambdaExpr);
-        // TODO: should it use ParsedVar rather than id? for define as well?
-        context.DefineSyntax(id, transformerProcedure);
-            
-        return new ParsedDefineSyntax(subForms[0],  var, context.Expand(subForms[2]));
+        ParsedVariable var = subForms[1] as ParsedVariable ?? throw new Exception();
+
+        return new ParsedDefineSyntax(subForms[0], var, subForms[2]);
 
         // TODO: expand and then evaluate the third sub-form
     }
     
 }
+

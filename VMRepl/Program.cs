@@ -43,7 +43,7 @@ public static class Program {
             System.Environment.Exit(0);
         }
         
-        VM.Machine vm = new VM.Machine();
+        VM.Machine vm = new VM.Machine(TopLevel);
         ExecuteFile("prelude.scm", vm, TopLevel);
         
         if (expr != "") {

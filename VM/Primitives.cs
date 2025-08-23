@@ -59,8 +59,28 @@ public static class Primitives {
         vm.Push(vm.VAL = form1.Equals(form2) ? Bool.True : Bool.False);
         return;
     }
+
+    public static Primitive2 DatumToSyntax {get;} = new(datumToSyntax, 2, false);
+
+    private static void datumToSyntax(Machine vm) {
+
+        Syntax source = vm.Pop() as Syntax ?? throw new Exception();
+        IForm f = vm.Pop();
+        vm.Push(vm.VAL = Syntax.FromDatum(source.SrcLoc, f));
+        
+    }
         
 
+    public static Primitive2 SyntaxToList {get;} = new(syntaxToList, 1, false);
+
+    private static void syntaxToList(Machine vm) {
+
+        Syntax stx = vm.Pop() as Syntax ?? throw new Exception();
+        if (Syntax.E(stx) is not SyntaxList syntaxList) throw new Exception();
+        vm.Push(vm.VAL = syntaxList);
+        return;
+
+    }
     public static Primitive2 NumEq { get; } = new(numEq, 1, true);
 
     private static void numEq(Machine vm)

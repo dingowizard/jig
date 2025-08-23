@@ -1,7 +1,7 @@
 namespace Jig.Expansion;
 
 public partial class CoreParseRules {
-    public static ParsedExpr ParseSetForm(Syntax syntax, ExpansionContext context) {
+    public static ParsedForm ParseSetForm(Syntax syntax, ExpansionContext context) {
         
         var subForms = ((SyntaxList)Syntax.E(syntax)).ToArray<Syntax>();
         if (subForms.Length != 3) {

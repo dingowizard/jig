@@ -77,7 +77,7 @@ public class MacroExpander {
 
     }
 
-    public  ParsedExpr Expand(Syntax stx, ExpansionEnvironment ee, bool definesAllowed = true, bool once = false) {
+    public  ParsedForm Expand(Syntax stx, ExpansionEnvironment ee, bool definesAllowed = true, bool once = false) {
         // Console.WriteLine($"Expanding {stx}");
         if (ParsedVariable.TryParse(stx, this, out ParsedVariable? parsedVar)) {
             return parsedVar;
@@ -114,7 +114,7 @@ public class MacroExpander {
     }
 
 
-    private  ParsedExpr ExpandDefineSyntax(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
+    private  ParsedForm ExpandDefineSyntax(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee)
     {
         Syntax.Identifier id = stxList.ElementAt<Syntax>(1) as Syntax.Identifier ?? throw new Exception() ;
         // Console.WriteLine($"define-syntax: {id}");
@@ -141,7 +141,7 @@ public class MacroExpander {
     }
 
 
-    private  ParsedExpr ExpandApplication(Syntax stx, SyntaxList stxList, ExpansionEnvironment ee, bool once = false)
+    private  ParsedForm ExpandApplication(Syntax stx, SyntaxList stxList, ExpansionEnvironment ee, bool once = false)
     {
         if (stxList.ElementAt<Syntax>(0) is Syntax.Identifier id && ee.TryFindTransformer(id.Symbol, out Transformer? transformer)) {
             Scope macroExpansionScope = new Scope();
@@ -169,9 +169,9 @@ public class MacroExpander {
     }
 
     private  ParsedApplication ExpandList(SrcLoc? srcLoc, SyntaxList stxList, ExpansionEnvironment ee) {
-        System.Collections.Generic.List<ParsedExpr> xs = [];
+        System.Collections.Generic.List<ParsedForm> xs = [];
         foreach (Syntax x in stxList.Cast<Syntax>()) {
-            ParsedExpr bodyExpr = Expand(x, ee, definesAllowed: false);
+            ParsedForm bodyExpr = Expand(x, ee, definesAllowed: false);
             xs.Add(bodyExpr);
         }
         return new ParsedApplication(xs, srcLoc);

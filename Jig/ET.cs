@@ -26,7 +26,7 @@ internal abstract class ET : Expression {
         envParam = Expression.Parameter(typeof(IEnvironment));
     }
 
-    public static ET Analyze(LexicalContext scope, ParsedExpr x) =>
+    public static ET Analyze(LexicalContext scope, ParsedForm x) =>
         x switch {
         ParsedBegin parsedBegin => new BeginET(scope, parsedBegin),
         ParsedLambda lambdaExpr => new LambdaExprET(scope, lambdaExpr),
@@ -261,11 +261,11 @@ internal abstract class ET : Expression {
 
         public IfET(LexicalContext lexVars, ParsedIf ifExpr) {
 
-            ParsedExpr cond = ifExpr.Condition;
+            ParsedForm cond = ifExpr.Condition;
             Expression<CompiledCode> condCC = (Expression<CompiledCode>)Analyze(lexVars, cond).Reduce();
-            ParsedExpr consq = ifExpr.Then;
+            ParsedForm consq = ifExpr.Then;
             Expression<CompiledCode> consqCC = (Expression<CompiledCode>)Analyze(lexVars, consq).Reduce();
-            ParsedExpr alt;
+            ParsedForm alt;
             if (ifExpr.Else is not null) {
                 alt = ifExpr.Else;
             } else {
@@ -460,7 +460,7 @@ internal abstract class ET : Expression {
         static readonly ConstructorInfo procedureCstr = typeof(Procedure).GetConstructor([typeof(Delegate)]) ?? throw new Exception("could not find constructor for Procedure");
 
         public LambdaExprET(LexicalContext scope, ParsedLambda lambdaExpr) {
-            ParsedExpr[] lambdaBody = lambdaExpr.Bodies;
+            ParsedForm[] lambdaBody = lambdaExpr.Bodies;
 
             var k = Expression.Parameter(typeof(Delegate), "k in LambdaExprET"); // this is the continuation parameter for the proc we are making
             // TODO: couldn't k be a more specific type than Delegate
@@ -633,7 +633,7 @@ internal abstract class ET : Expression {
                 new Expression[] {k}
             );
         }
-        private InvocationExpression LambdaBody(ParameterExpression k, LexicalContext scope, ParsedExpr[] exprs) {
+        private InvocationExpression LambdaBody(ParameterExpression k, LexicalContext scope, ParsedForm[] exprs) {
             // TODO: why is this so much more complicated than just returning a block expr?
             // TODO: shouldn't this create a Block?
 
@@ -680,7 +680,7 @@ internal abstract class ET : Expression {
                         Expression.Constant(0))
                 });
         }
-        public BlockET(LexicalContext scope, ParsedExpr[] exprs)
+        public BlockET(LexicalContext scope, ParsedForm[] exprs)
         {
             LexicalContext blockScope = scope.Extend();
             // analyze and reduce all but last expr
@@ -688,7 +688,7 @@ internal abstract class ET : Expression {
                 .Take<Syntax>(exprs.Count<Syntax>() - 1)
                 .Select(x => (Expression<CompiledCode>)Analyze(blockScope, x).Reduce()).ToArray<Expression>();
             // forcing to array to deal with weird bug where things were done out of order when handled as IEnumerable
-            Expression<CompiledCode> lastExprCC = (Expression<CompiledCode>)Analyze(blockScope, (ParsedExpr)exprs.Last<Syntax>()).Reduce();
+            Expression<CompiledCode> lastExprCC = (Expression<CompiledCode>)Analyze(blockScope, (ParsedForm)exprs.Last<Syntax>()).Reduce();
             Expression thunkExpr = Expression.Lambda<Thunk>(Expression.Convert(Expression.Invoke(lastExprCC, kParam, envParam), typeof(Thunk)));
             Expression<CompiledCode> last = Expression.Lambda<CompiledCode>(thunkExpr, kParam, envParam);
             analyzed = [.. analyzed, last];

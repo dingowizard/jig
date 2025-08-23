@@ -166,16 +166,18 @@
 ;                (cddr (syntax->list stx)))
 ;        (map (lambda (b) (cadr (syntax->list b))) (syntax->list (cadr (syntax->list stx))))))))
 
-; (define-syntax let
-;    (lambda (stx)
-;     ((lambda (xs)
-;         ((lambda (bindings bodies)
-;             (datum->syntax
-;                stx
-;                `((lambda ,(map car bindings) ,@bodies) ,@(map cadr bindings))))
-;             (map syntax->list (syntax->list (cadr xs)))
-;             (cddr xs)))
-;         (syntax->list stx))))
+;; (define-syntax let
+;;    (lambda (stx)
+;;     ((lambda (xs)
+;;         ((lambda (bindings bodies)
+;;             (datum->syntax
+;;                stx
+;;                `((lambda ,(map car bindings) ,@bodies) ,@(map cadr bindings))))
+;;             ;; (map syntax->list (syntax->list (cadr xs)))
+;;             ;; (cddr xs)))
+;;             (map syntax->list (syntax->list (car (cdr xs))))
+;;             (cdr (cdr xs))))
+;;         (syntax->list stx))))
 
 ;; (define odd?
 ;;    (lambda (n)

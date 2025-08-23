@@ -2,16 +2,16 @@ namespace Jig.Expansion;
 
 public partial class CoreParseRules {
 
-    public static ParsedExpr ParseIfForm(Syntax syntax, ExpansionContext context) {
+    public static ParsedForm ParseIfForm(Syntax syntax, ExpansionContext context) {
 
         var subForms = ((SyntaxList)Syntax.E(syntax)).ToArray<Syntax>();
-        System.Collections.Generic.List<ParsedExpr> xs = [];
+        System.Collections.Generic.List<ParsedForm> xs = [];
         context = context.ExtendWithExpressionContext();
         // TODO: a definition wouldn't be allowed for any of the subforms,
         // but a begin with definitions would be allowed, just not a splicing begin
         // and it would have to have at least one expression and end with an expression
         foreach (var x in subForms.Skip<Syntax>(1)) {
-            ParsedExpr bodyExpr = context.Expand(x);
+            ParsedForm bodyExpr = context.Expand(x);
             xs.Add(bodyExpr);
         }
         if (xs.Count == 2) {

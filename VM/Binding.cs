@@ -2,7 +2,7 @@ using Jig;
 
 namespace VM;
 
-public class Binding {
+public class Binding : IRuntimeBinding {
 
     public Binding(Form.Symbol s, Form form, bool top = false) {
         Symbol = s;
@@ -20,8 +20,8 @@ public class Binding {
         Top = top;
     }
 
-    public readonly Form.Symbol Symbol;
-    public Form? Slot;
     public readonly bool Top; // false
- 
+
+    public Form.Symbol Symbol {get;}
+    public Form? Slot {get; set; }
 }

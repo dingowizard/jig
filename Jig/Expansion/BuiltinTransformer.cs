@@ -7,7 +7,7 @@ public class BuiltinTransformer  : Transformer {
         Procedure = transformerProcedure;
     }
     public BuiltinTransformerDelegate Procedure {get;}
-    public Syntax Transform(Syntax syntax) {
+    public override Syntax Transform(Syntax syntax) {
         return Procedure(syntax);
     }
 
