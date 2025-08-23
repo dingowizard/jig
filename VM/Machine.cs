@@ -437,10 +437,9 @@ public class Machine : IRuntime
         
         // TODO: needs a compiler, a compile-time environment
         if (ENVT is null) throw new Exception($"unable to evaluate transformer expression: ENVT was null.");
-        var ctEnv = new CompileTimeEnvironment(ENVT); // TODO: why does the cte need these bindings?
-        var compiled = new Compiler().CompileExprForREPL(transformerLambdaExpr, ctEnv);
+        var compiled = new Compiler().CompileExprForREPL(transformerLambdaExpr, ENVT);
         var compiler = new VM.Compiler(); // should class be static?
-        var code = compiler.CompileExprForREPL(transformerLambdaExpr, ctEnv);
+        var code = compiler.CompileExprForREPL(transformerLambdaExpr, ENVT);
         // TODO: this logic of having the runtime evaluate one expr and return one result
         // should be collected into a method
         IForm result = List.Null;

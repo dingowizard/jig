@@ -101,8 +101,7 @@ public static class Program {
         var program = DefaultExpander.ExpandREPLForm(stx, env.GetExpansionContext());
         
         var compiler = new VM.Compiler(); // should class be static?
-        var ctEnv = new CompileTimeEnvironment(env); // TODO: why does the cte need these bindings?
-        var code = compiler.CompileExprForREPL(program, ctEnv);
+        var code = compiler.CompileExprForREPL(program, env);
         env.Machine.Load(code, env, TopLevelContinuation);
         env.Machine.Run();
     }
@@ -116,8 +115,7 @@ public static class Program {
         var datums = Reader.ReadFileSyntax(port);
         var parsedProgram = DefaultExpander.ExpandFile(datums, topLevel.GetExpansionContext());
         var compiler = new VM.Compiler();
-        var cte = new CompileTimeEnvironment(topLevel);
-        var compiled = compiler.CompileFile(parsedProgram.ToArray(), cte);
+        var compiled = compiler.CompileFile(parsedProgram.ToArray(), topLevel);
         vm.Load(compiled, topLevel, TopLevelContinuation);
         vm.Run();
     }

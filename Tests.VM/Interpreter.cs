@@ -35,8 +35,7 @@ public class Interpreter : IInterpreter {
         Assert.IsNotNull(stx);
         Jig.ParsedForm program = Expander.Expand(stx, ExEnv);
         var compiler = new Compiler(); // should class be static?
-        var ctEnv = new CompileTimeEnvironment(Env);
-        var code = compiler.CompileExprForREPL(program, ctEnv);
+        var code = compiler.CompileExprForREPL(program, Env);
         TheVM.Load(code, Env, DoNothing);
         TheVM.Run();
         return TheVM.VAL.Print();
@@ -51,10 +50,9 @@ public class Interpreter : IInterpreter {
             Syntax? stx = Jig.Reader.Reader.ReadSyntax(InputPort.FromString(input));
             Assert.IsNotNull(stx);
             MacroExpander me = new MacroExpander();
-            var ctEnv = new CompileTimeEnvironment(Env);
             Jig.ParsedForm program = me.Expand(stx, ExEnv);
             var compiler = new Compiler();
-            var code = compiler.CompileExprForREPL(program, ctEnv);
+            var code = compiler.CompileExprForREPL(program, Env);
             TheVM.Load(code, Env, DoNothing);
             TheVM.Run();
             result =  TheVM.VAL;

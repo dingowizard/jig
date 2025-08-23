@@ -79,16 +79,6 @@ public class Environment : Form, IRuntimeEnvironment {
         return Locals.Get(depth, index);
     }
 
-    public void DefLocal(int index, Form val) {
-        if (Locals != null) {
-            Locals.DefLocal(index, val);
-            return;
-        }
-
-        throw new Exception("tried to add local variable, but there is no scope");
-
-    }
-    
     public void SetLocal(int depth, int index, Form val) {
         if (Locals != null) {
             Locals.SetLocal(depth, index, val);
@@ -134,12 +124,6 @@ public class Environment : Form, IRuntimeEnvironment {
         public Scope? EnclosingScope { get; }
 
         public Form?[] Variables;
-
-        public void DefLocal(int index, Form val) {
-            Debug.Assert(index == Variables.Length);
-            Array.Resize(ref Variables, index + 1);
-            Variables[index] = val;
-        }
 
         public void SetLocal(int depth, int index, Form val) {
             Scope scope = this;
