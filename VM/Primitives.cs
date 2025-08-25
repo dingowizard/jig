@@ -37,23 +37,6 @@ public static class Primitives {
         throw new Exception($"zero?: expected argument to be number, got {form}");
     }
 
-    // private static void callWValues(Machine vm)
-    // {
-    //     var producer = (Procedure)vm.Pop();
-    //     var continuationProc = (Procedure)vm.Pop();
-    //     vm.CONT = new PartialContinuationForCallWithValues(
-    //         continuationProc.Template,
-    //         0,
-    //         continuationProc.Environment,
-    //         vm.FP,
-    //         vm.CONT,
-    //         continuationProc.Required,
-    //         continuationProc.HasRest);
-    //     vm.VAL = producer;
-    //     vm.Call();
-    //     // this doesn't work because the procedure is expected to push its results, but it doesn't have any yet
-    //     
-    // }
     public static Primitive Eqvp {get;} = new(eqvp, 2, false);
 
     private static void eqvp(Machine vm) {

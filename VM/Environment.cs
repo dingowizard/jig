@@ -76,7 +76,11 @@ public class Environment : Form, IRuntimeEnvironment {
     }
 
     public Form GetLocal(int depth, int index) {
-        return Locals.Get(depth, index);
+        if (Locals is not null) {
+            return Locals.Get(depth, index);
+        }
+
+        throw new Exception();
     }
 
     public void SetLocal(int depth, int index, Form val) {
@@ -104,7 +108,7 @@ public class Environment : Form, IRuntimeEnvironment {
             }
 
             if (index >= scope.Variables.Length) throw new Exception("index past bounds of array");
-            return scope.Variables[index];
+            return scope.Variables[index] ?? throw new InvalidOperationException();
         }
 
         public Scope(int numVars,  Scope? enclosingScope) {
