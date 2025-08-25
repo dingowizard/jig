@@ -22,7 +22,7 @@ public class Identifier : Syntax {
         // }
     }
 
-    public new Symbol Symbol {
+    public Symbol Symbol {
         get {
             return (Symbol)Expression;
         }

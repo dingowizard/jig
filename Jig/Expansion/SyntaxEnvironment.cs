@@ -5,7 +5,6 @@ public abstract class SyntaxEnvironment {
 
     static SyntaxEnvironment() {
         var coreForms = new Dictionary<Symbol, IExpansionRule>();
-        CoreForms = new TopLevelSyntaxEnvironment(coreForms);
         // TODO: these should be identifiers, not symbols, but they need to be resolved correctly
         // TODO: probably we don't want to create new identifiers and symbols ...
         // TODO: the ids should have source locations -- names not rows and columns
@@ -25,29 +24,26 @@ public abstract class SyntaxEnvironment {
         Default = new TopLevelSyntaxEnvironment(coreForms.Concat(defaultTransformers).ToDictionary(kv => kv.Key, kv => kv.Value));
 
     }
-    public static TopLevelSyntaxEnvironment CoreForms {get;}
     public static TopLevelSyntaxEnvironment Default {get;}
 
-    public bool TryFind(Identifier keyword, [NotNullWhen(returnValue: true)] out IExpansionRule expansionRule) {
+    public bool TryFind(Identifier keyword, [NotNullWhen(returnValue: true)] out IExpansionRule? expansionRule) {
         if (_rules.TryGetValue(keyword.Symbol, out var rule)) {
             expansionRule = rule;
             return true;
-        }
-        if (this is ScopedSyntaxEnvironment nested) {
-            return nested.Parent.TryFind(keyword, out expansionRule);
         } else {
-            expansionRule = null;
-            return false;
+            if (this is ScopedSyntaxEnvironment nested) {
+                return nested.Parent.TryFind(keyword, out expansionRule);
+            } else {
+                expansionRule = null;
+                return false;
+            }
+            
         }
 
     }
 
     public SyntaxEnvironment Extend() {
         return new ScopedSyntaxEnvironment(this, new Dictionary<Symbol, IExpansionRule>());
-    }
-
-    public SyntaxEnvironment Extend(Dictionary<Symbol, IExpansionRule> rules) {
-        return new ScopedSyntaxEnvironment(this, rules);
     }
 
     protected abstract Dictionary<Symbol, IExpansionRule> _rules {get;}
