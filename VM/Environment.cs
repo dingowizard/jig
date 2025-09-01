@@ -42,6 +42,7 @@ public class Environment : Form, IRuntimeEnvironment {
         initialBindings[new Symbol("cdr")] = new Binding(new Symbol("cdr"), Primitives.Cdr);
         initialBindings[new Symbol("append")] = new Binding(new Symbol("append"), Primitives.Append);
         initialBindings[new Symbol("pair?")] = new Binding(new Symbol("pair?"), Primitives.PairP);
+        initialBindings[new Symbol("list?")] = new Binding(new Symbol("list?"), Primitives.ListP);
         initialBindings[new Symbol("null?")] = new Binding(new Symbol("null?"), Primitives.NullP);
         initialBindings[new Symbol("zero?")] = new Binding(new Symbol("zero?"), Primitives.ZeroP);
         initialBindings[new Symbol("call/cc")] = new Binding(new Symbol("call/cc"), new Procedure(Default, VM.Builtins.CallCC));
@@ -57,7 +58,11 @@ public class Environment : Form, IRuntimeEnvironment {
         initialBindings[new Symbol("call-with-values")] = new Binding(new Symbol("call-with-values"), new Procedure(Default, VM.Builtins.CallWithValues));
         initialBindings[new Symbol("dynamic-wind")] = new Binding(new Symbol("dynamic-wind"), new Procedure(Default, VM.Builtins.DynamicWind));
         initialBindings[new Symbol("datum->syntax")] = new Binding(new Symbol("datum->syntax"), Primitives.DatumToSyntax);
+        initialBindings[new Symbol("syntax->datum")] = new Binding(new Symbol("syntax->datum"), Primitives.SyntaxToDatum);
         initialBindings[new Symbol("syntax->list")] = new Binding(new Symbol("syntax->list"), Primitives.SyntaxToList);
+        initialBindings[new Symbol("syntax-e")] = new Binding(new Symbol("syntax-e"), Primitives.SyntaxE);
+        initialBindings[new Symbol("symbol?")] = new Binding(new Symbol("symbol?"), Primitives.SymbolP);
+        initialBindings[new Symbol("symbol=?")] = new Binding(new Symbol("symbol=?"), Primitives.SymbolEqualP);
     }
 
     

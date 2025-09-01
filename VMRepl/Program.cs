@@ -44,6 +44,10 @@ public static class Program {
         }
         
         VM.Machine vm = new VM.Machine(TopLevel);
+        // this is just a kludge while libraries aren't implemented
+        // need to have evaluated certain functions in order to
+        // expand the rhs of define-syntaxes
+        ExecuteFile("prelude-1.scm", vm, TopLevel);
         ExecuteFile("prelude.scm", vm, TopLevel);
         
         if (expr != "") {

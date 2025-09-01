@@ -1,27 +1,18 @@
 (define list (lambda xs xs))
 
-(define length
-    (lambda (l)
-      (define loop
-        (lambda (acc l)
-          (if (null? l)
-              acc
-              (loop (+ 1 acc) (cdr l)))))
-      (loop 0 l)))
-
 ; (define length
 ;    (lambda (xs)
 ;       (if (null? xs)
 ;           0
 ;           (+ 1 (length (cdr xs))))))
 
-(define list?
-  (lambda (x)
-    (if (null? x)
-        #t
-        (if (pair? x)
-            (list? (cdr x))
-            #f))))
+;; (define list?
+;;   (lambda (x)
+;;     (if (null? x)
+;;         #t
+;;         (if (pair? x)
+;;             (list? (cdr x))
+;;             #f))))
 
 (define list-tail
   (lambda (xs k)
@@ -43,19 +34,12 @@
 
 (define abs (lambda (n) (if (< n 0) (- n) n)))
 
-(define not (lambda (x) (if x #f #t)))
-
 (define fold-left
   (lambda (fn acc xs)
     (if (null? xs)
         acc
         (fold-left fn (fn (car xs) acc) (cdr xs)))))
 
-(define fold-right
-  (lambda (fn acc xs)
-    (if (null? xs)
-        acc
-        (fn (car xs) (fold-right fn acc (cdr xs))))))
 
 (define filter
    (lambda (pred xs)
@@ -88,25 +72,6 @@
 (define reverse
   (lambda (xs)
     (fold-left cons '() xs)))
-
-(define any
-   (lambda (pred xs)
-      (call/cc (lambda (return)
-                  (if (null? xs)
-                      #f
-                      (if (pred (car xs))
-                          (return #t)
-                          (any pred (cdr xs))))))))
-
-(define map
-  (lambda (fn xs . rest)
-    ((lambda (ls)
-        (if (not (apply = (fold-right (lambda (x acc) (cons (length x) acc)) '() ls)))
-            (error "map: lists must be same length" ls))
-      (if (any null? ls)
-          '()
-          (cons (apply fn (fold-right (lambda (x acc) (cons (car x) acc)) '() ls))
-                (apply map (cons fn (fold-right (lambda (x acc) (cons (cdr x) acc)) '() ls)))))) (cons xs rest))))
 
 (define for-each
   (lambda (fn xs . rest)
@@ -147,16 +112,16 @@
 ;;               xs
 ;;               (member x (cdr xs))))))
 ;;
-(define-syntax macro
-  (lambda (stx)
-    (datum->syntax
-     stx
-     (car (cdr (syntax->list stx))))))
+;; (define-syntax macro
+;;   (lambda (stx)
+;;     (datum->syntax
+;;      stx
+;;      (car (cdr (syntax->list stx))))))
 
-(define-syntax or2
-    (lambda (stx)
-      (datum->syntax stx
-        `((lambda (x) (if x x ,(car (cdr (cdr (syntax->list stx)))))) ,(car (cdr (syntax->list stx)))))))
+;; (define-syntax or2
+;;     (lambda (stx)
+;;       (datum->syntax stx
+;;         `((lambda (x) (if x x ,(car (cdr (cdr (syntax->list stx)))))) ,(car (cdr (syntax->list stx)))))))
 ;; (define memq
 ;;    (lambda (x xs)
 ;;       (if (null? xs)
@@ -212,15 +177,16 @@
         (odd? (- n 1)))))
 
 ; note: syntax-rules depends on all
-(define all
-   (lambda (pred xs)
-      (if (null? xs)
-          #t
-          (if (pred (car xs)) (all pred (cdr xs)) #f))))
+;; (define all
+;;    (lambda (pred xs)
+;;       (if (null? xs)
+;;           #t
+;;           (if (pred (car xs)) (all pred (cdr xs)) #f))))
 
-;; (define-syntax let
-;;    (syntax-rules ()
-;;       ((let ((p x) ...) body0 bodies ...) ((lambda (p ...) body0 bodies ...) x ...))))
+
+(define-syntax let
+   (syntax-rules ()
+      ((let ((p x) ...) body0 bodies ...) ((lambda (p ...) body0 bodies ...) x ...))))
 
 ; --- or that doesn't use match
 ; (define-syntax or
@@ -242,11 +208,11 @@
 ;             ('() #f)
 ;             ((x) x)
 ;             ((x . rest) `(let ((tmp ,x)) (if tmp tmp (or ,@rest))))))))
-;; (define-syntax or
-;;    (syntax-rules ()
-;;       ((or) #f)
-;;       ((or x) x)
-;;       ((or a rest ...) (let ((tmp a)) (if tmp tmp (or rest ...))))))
+(define-syntax or
+   (syntax-rules ()
+      ((or) #f)
+      ((or x) x)
+      ((or a rest ...) (let ((tmp a)) (if tmp tmp (or rest ...))))))
 
 ; (define-syntax let*
 ;   (lambda (stx)
@@ -263,13 +229,12 @@
 ;                   `(let (,(car bindings)) (let* ,(cdr bindings) ,@body))))))))))
 
 
-;; (define-syntax let*
-;;    (syntax-rules ()
-;;       ((let* () body0 bodies ...) ((lambda () body0 bodies ...)))
-;;       ((let* ((p x)) body0 bodies ...) ((lambda (p) body0 bodies ...) x))
-;;       ((let* ((p1 x1) (p x) ...) body0 bodies ...) ((lambda (p1) (let* ((p x) ...) body0 bodies ...)) x1))))
+(define-syntax let*
+   (syntax-rules ()
+      ((let* () body0 bodies ...) ((lambda () body0 bodies ...)))
+      ((let* ((p x)) body0 bodies ...) ((lambda (p) body0 bodies ...) x))
+      ((let* ((p1 x1) (p x) ...) body0 bodies ...) ((lambda (p1) (let* ((p x) ...) body0 bodies ...)) x1))))
 
-(define void (lambda () (if #f #f)))
 
 ; (define-syntax letrec
 ;   (lambda (stx)
@@ -282,9 +247,9 @@
 ;        stx
 ;        `((lambda () ,@(map (lambda (p v) `(define ,p ,v)) ps vs) ,@body))))))
 
-;; (define-syntax letrec
-;;    (syntax-rules ()
-;;       ((letrec ((p x) ...) body0 bodies ...) ((lambda () (define p x) ... body0 bodies ...)))))
+(define-syntax letrec
+   (syntax-rules ()
+      ((letrec ((p x) ...) body0 bodies ...) ((lambda () (define p x) ... body0 bodies ...)))))
 ;----------------------------------------------------------------------------------------
 ; LEAVE COMMENTED
 ; ;; TODO: figure out why these two definitions of letrec, which work in racket, fail in Jig
@@ -354,31 +319,31 @@
 ; TODO: let-values from spec
 
 
-;; (define-syntax cond
-;;   (syntax-rules (else =>)
-;;     ((cond (else result1 result2 ...))
-;;      (begin result1 result2 ...))
-;;     ((cond (test => result))
-;;      (let ((temp test))
-;;        (if temp (result temp))))
-;;     ((cond (test => result) clause1 clause2 ...)
-;;      (let ((temp test))
-;;        (if temp
-;;            (result temp)
-;;            (cond clause1 clause2 ...))))
-;;     ((cond (test)) test)
-;;     ((cond (test) clause1 clause2 ...)
-;;      (let ((temp test))
-;;        (if temp
-;;            temp
-;;            (cond clause1 clause2 ...))))
-;;     ((cond (test result1 result2 ...))
-;;      (if test (begin result1 result2 ...)))
-;;     ((cond (test result1 result2 ...)
-;;            clause1 clause2 ...)
-;;      (if test
-;;          (begin result1 result2 ...)
-;;          (cond clause1 clause2 ...)))))
+(define-syntax cond
+  (syntax-rules (else =>)
+    ((cond (else result1 result2 ...))
+     (begin result1 result2 ...))
+    ((cond (test => result))
+     (let ((temp test))
+       (if temp (result temp))))
+    ((cond (test => result) clause1 clause2 ...)
+     (let ((temp test))
+       (if temp
+           (result temp)
+           (cond clause1 clause2 ...))))
+    ((cond (test)) test)
+    ((cond (test) clause1 clause2 ...)
+     (let ((temp test))
+       (if temp
+           temp
+           (cond clause1 clause2 ...))))
+    ((cond (test result1 result2 ...))
+     (if test (begin result1 result2 ...)))
+    ((cond (test result1 result2 ...)
+           clause1 clause2 ...)
+     (if test
+         (begin result1 result2 ...)
+         (cond clause1 clause2 ...)))))
 
 ; this is case from r5rs. The one from r6rs has stuff after ... in a pattern, which we can't handle yet
 ;; (define-syntax case
@@ -415,9 +380,9 @@
 ;          (match (cdr (syntax->list stx))
 ;             ((test . bodies) `(if ,test (begin ,@bodies)))))))
 
-;; (define-syntax when
-;;    (syntax-rules ()
-;;       ((when test body0 bodies ...) (if test (begin body0 bodies ...)))))
+(define-syntax when
+   (syntax-rules ()
+      ((when test body0 bodies ...) (if test (begin body0 bodies ...)))))
 
 ; (define-syntax do
 ;   (lambda (stx)
@@ -607,22 +572,3 @@
 ;;                 (lambda ()
 ;;                  ((car handlers) obj))))))))
 
-(define error #f)
-
-;; ; ; TODO: shouldn't this call raise or raise continuable?
-;; (call/cc
-;;  (lambda (k)
-;;    (set! error
-;;          (lambda (msg . xs)
-;;            (display msg)
-;;            (newline)
-;;            (when (not (null? xs))
-;;               (display "    in:")
-;;               (display (car xs))
-;;               (newline))
-;;            (k (void))))))
-
-(call/cc
- (lambda (k)
-   (set! error (lambda args (k 'error)))
-   (void)))

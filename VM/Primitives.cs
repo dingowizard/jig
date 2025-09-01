@@ -14,7 +14,7 @@ public static class Primitives {
     private static void cdr(Machine vm) {
         Form arg = vm.Pop();
         IPair? pair = arg as IPair;
-        if (pair is null) throw new Exception("cdr: expected argument to be a pair. Got ${arg}");
+        if (pair is null) throw new Exception($"cdr: expected argument to be a pair. Got {arg}");
         vm.Push(vm.VAL = (Form)pair.Cdr);
     }
 
@@ -55,6 +55,16 @@ public static class Primitives {
         vm.Push(vm.VAL = Syntax.FromDatum(source.SrcLoc, f));
         
     }
+
+    private static void syntaxToDatum(Machine vm)
+    {
+        Form arg = vm.Pop();
+        Syntax stx = arg as Syntax ?? throw new Exception($"syntax->datum: expected a syntax argument, but got {arg}, a {arg.GetType()}");
+        vm.Push(vm.VAL = (Form)Syntax.ToDatum(stx));
+        
+    }
+
+    public static Primitive SyntaxToDatum { get; } = new(syntaxToDatum, 1, false);
         
 
     public static Primitive SyntaxToList {get;} = new(syntaxToList, 1, false);
@@ -62,8 +72,21 @@ public static class Primitives {
     private static void syntaxToList(Machine vm) {
 
         Syntax stx = vm.Pop() as Syntax ?? throw new Exception();
-        if (Syntax.E(stx) is not SyntaxList syntaxList) throw new Exception();
+        if (Syntax.E(stx) is not SyntaxList syntaxList) {
+            vm.Push(vm.VAL = Bool.False);
+            return;
+        }
         vm.Push(vm.VAL = syntaxList);
+        return;
+
+    }
+    public static Primitive SyntaxE {get;} = new(syntaxE, 1, false);
+
+    private static void syntaxE(Machine vm) {
+
+        Form arg = vm.Pop();
+        Syntax stx = arg as Syntax ?? throw new Exception($"syntax-e: expected a syntax argument, but got {arg}, a {arg.GetType()}");
+        vm.Push(vm.VAL = (Form)Syntax.E(stx));
         return;
 
     }
@@ -119,6 +142,14 @@ public static class Primitives {
         return;
     }
         
+    public static Primitive ListP {get;} = new(list_p, 1, false);
+
+    private static void list_p(Machine vm) {
+        Form arg = vm.Pop();
+        vm.VAL = arg is IList ? Bool.True : Bool.False;
+        vm.Push(vm.VAL);
+        return;
+    }
     public static Primitive Minus {get;} = new(minus, 1, true);
 
     private static void minus(Machine vm) {
@@ -233,6 +264,28 @@ public static class Primitives {
 
     // public static Primitive NullP { get; } = new(nullp);
     public static Primitive NullP { get; } = new(nullp, 1, false);
+    public static Primitive SymbolP { get; } = new(symbolp, 1, false);
+
+    private static void symbolp(Machine vm) {
+        Form arg = vm.Pop();
+        vm.VAL = arg is Symbol ? Bool.True : Bool.False;
+        vm.Push(vm.VAL);
+        return;
+        
+    }
+    
+    public static Primitive SymbolEqualP { get; } = new(symbolEqualP, 2, false);
+
+    private static void symbolEqualP(Machine vm) {
+        Form arg1 = vm.Pop();
+        Form arg2 = vm.Pop();
+        Symbol sym1 = arg1 as Symbol ?? throw new Exception("symbol=?: expected both arguments to be symbols");
+        Symbol sym2 = arg2 as Symbol ?? throw new Exception("symbol=?: expected both arguments to be symbols");
+        vm.VAL = sym1.Equals(sym2) ? Bool.True : Bool.False;
+        vm.Push(vm.VAL);
+        return;
+
+    }
 }
 
 public delegate void PrimitiveProcedure(Machine vm);

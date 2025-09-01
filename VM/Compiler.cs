@@ -403,7 +403,13 @@ public class Compiler {
             lineNo += instructions.Count();
         }
         // add instruction for expr in tail position
-        instructions = instructions.Concat(Compile(parsedFile[^1], cte, literals, bindings, Context.Tail, 0, lineNo)).ToList();
+        var last = Compile(parsedFile[^1], cte, literals, bindings, Context.Tail, 0, lineNo);
+        if (last.Length == 0)
+        {
+            // NOTE: the last form might be something that compiles to no instructions, like define-syntax
+            last = [(ulong)OpCode.PopContinuation << 56];
+        }
+        instructions = instructions.Concat(last).ToList();
         return new Template(0, instructions.ToArray(), bindings.ToArray(), literals.ToArray(), 0, false);
     }
 

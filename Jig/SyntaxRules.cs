@@ -55,7 +55,7 @@ internal static partial class Builtins {
 
         }
 
-        private SyntaxRules(SyntaxList literals, IEnumerable<Tuple<SyntaxList.NonEmpty, Syntax>> clauses) {
+        internal SyntaxRules(SyntaxList literals, IEnumerable<Tuple<SyntaxList.NonEmpty, Syntax>> clauses) {
             Var = NewSym("x");
             Clauses = clauses.Select<Tuple<SyntaxList.NonEmpty, Syntax>, Clause>(clause => new Clause(Var, literals, clause.Item1, clause.Item2)).ToList();
 
@@ -67,7 +67,7 @@ internal static partial class Builtins {
 
         private IEnumerable<Clause> Clauses {get;}
 
-        private List LambdaFromClauses() {
+        internal List LambdaFromClauses() {
             // makes:
             // (lambda (x) ...)
             // where x will be bound to (syntax-e stx)
@@ -504,16 +504,16 @@ internal static partial class Builtins {
     }
 
 
-    private static Symbol NewSym(string name) {
+    internal static Symbol NewSym(string name) {
         return new Symbol(name);
     }
 
-    private static List NewList(params Form[] forms) {
+    internal static List NewList(params Form[] forms) {
         return forms.ToJigList();
 
     }
 
-    private static Bool NewLit(bool b) {
+    internal static Bool NewLit(bool b) {
         return b ? Bool.True : Bool.False;
     }
 

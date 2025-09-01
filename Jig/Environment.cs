@@ -4,11 +4,6 @@ public class Environment : IEnvironment {
 
     private readonly Environment? Parent;
 
-    public Environment Import(Library library) {
-        var env = new Environment(this.Parent);
-        return env.Extend(library.Exports);
-
-    }
 
     public Environment Extend(IEnumerable<Tuple<Symbol, Form>> bindings) {
         

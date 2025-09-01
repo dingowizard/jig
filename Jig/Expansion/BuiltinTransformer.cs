@@ -103,4 +103,46 @@ public class BuiltinTransformer  : Transformer {
             throw new Exception($"malformed quasiquote: {stx}");
         }
     }
+    internal static Syntax syntax_rules(Syntax stx) {
+            if (Syntax.E(stx) is not SyntaxList.NonEmpty stxList) {
+                throw new Exception($"syntax-rules: bad syntax {stx.Print()}");
+            }
+            if (stxList.Rest is not SyntaxList.NonEmpty macroArgs) {
+                throw new Exception($"syntax-rules: expected subforms, but got none");
+            }
+            if (Syntax.E(macroArgs.First) is not SyntaxList literals) {
+                if (Syntax.E(macroArgs.First) is not IEmptyList) {
+                    throw new Exception($"syntax-rules: expected first subform to be a list, but got {Syntax.E(macroArgs.First).Print()}");
+                }
+                literals = SyntaxList.FromParams();
+
+            }
+            var clauses = new System.Collections.Generic.List<Tuple<SyntaxList.NonEmpty, Syntax>>();
+            foreach (var clause in macroArgs.Rest.Cast<Syntax>()) {
+                if (Syntax.E(clause) is SyntaxList.NonEmpty clauseStxList) {
+                    if (Syntax.E(clauseStxList.First) is not SyntaxList.NonEmpty pattern) {
+                        throw new Exception($"syntax-rules: malformed clause: {clause.Print()}. Pattern should be a list, but got {clauseStxList.First}");
+                    }
+                    if (clauseStxList.Rest is not SyntaxList.NonEmpty rest) {
+                        throw new Exception($"syntax-rules: malformed clause: {clause.Print()}. Expected template.");
+                    }
+                    if (rest.Rest is not SyntaxList.Empty) {
+                        throw new Exception($"syntax-rules: malformed clause: {clause.Print()}. Expected one template.");
+                    }
+                    clauses.Add(new Tuple<SyntaxList.NonEmpty,Syntax>(pattern, rest.First));
+
+                } else {
+                    throw new Exception($"syntax-rules: malformed clause: {clause.Print()}");
+                }
+            }
+            var stxParam = Builtins.NewSym("stx");
+            var result = Builtins.NewList( // (lambda (stx) ((lambda (x) ...) (syntax-e stx)))
+                Builtins.NewSym("lambda"),
+                Builtins.NewList(stxParam),
+                Builtins.NewList(
+                    new Builtins.SyntaxRules(literals.ToSyntaxList(), clauses).LambdaFromClauses(),
+                    Builtins.NewList(Builtins.NewSym("syntax-e"), stxParam)));
+            return Syntax.FromDatum(stx.SrcLoc, result);
+
+        }
 }

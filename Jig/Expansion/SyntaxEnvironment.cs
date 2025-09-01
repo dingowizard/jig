@@ -21,6 +21,7 @@ public abstract class SyntaxEnvironment {
         // add builtin macros here
         defaultTransformers.Add(new Symbol("and"), new BuiltinTransformer(BuiltinTransformer.and));
         defaultTransformers.Add(new Symbol("quasiquote"), new BuiltinTransformer(BuiltinTransformer.quasiquote));
+        defaultTransformers.Add(new Symbol("syntax-rules"), new BuiltinTransformer(BuiltinTransformer.syntax_rules));
         Default = new TopLevelSyntaxEnvironment(coreForms.Concat(defaultTransformers).ToDictionary(kv => kv.Key, kv => kv.Value));
 
     }
