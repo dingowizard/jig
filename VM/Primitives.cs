@@ -276,6 +276,25 @@ public static class Primitives {
         return;
 
     }
+
+    public static Primitive Expand { get; } = new("expand", expand, 1, false);
+
+    private static void expand(Machine vm) {
+        Form arg = vm.Pop();
+        Syntax? stx = arg as Syntax;
+        if (stx is null) {
+            stx = Syntax.FromDatum(new SrcLoc(), arg);
+        }
+
+        var result = vm.Expander.Expand(stx, vm);
+        Console.WriteLine($"expand result = {result.Print()}");
+        vm.VAL = result;
+        vm.Push(vm.VAL);
+        Console.WriteLine($"expanded. VAL = {vm.VAL} and stack = {vm.StackToList().Print()}");
+        return;
+
+
+    }
 }
 
 public delegate void PrimitiveProcedure(Machine vm);

@@ -40,6 +40,7 @@ public class Environment : Form, IRuntimeEnvironment {
         initialBindings[new Symbol("call/cc")] = new Binding(new Symbol("call/cc"), new Procedure(Default, VM.Builtins.CallCC));
         initialBindings[new Symbol("+")] = new Binding(new Symbol("+"), new Procedure(Default, VM.Builtins.Sum));
         initialBindings[new Symbol("apply")] = new Binding(new Symbol("apply"), new Procedure(Default, VM.Builtins.Apply));
+        initialBindings[new Symbol("expand")] = new Binding(new Symbol("expand"), Primitives.Expand);
         initialBindings[new Symbol(">")] = new Binding(new Symbol(">"), Primitives.GT);
         initialBindings[new Symbol("<")] = new Binding(new Symbol("<"), Primitives.LT);
         initialBindings[new Symbol("-")] = new Binding(new Symbol("-"), Primitives.Minus);

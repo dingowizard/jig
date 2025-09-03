@@ -61,6 +61,12 @@ public class Expander {
         }
     }
 
+    public ParsedForm Expand(Syntax stx, IRuntime runtime) {
+        // TODO: it's kind of silly that we have to pass around the runtime like this. Maybe
+        // the Expander should have a reference to a toplevel expansion context?
+        return Expand(stx, new ExpansionContext(runtime, runtime.RuntimeEnvironment.TopLevels.Keys));
+    }
+
     public ParsedForm Expand(Syntax syntax, ExpansionContext context) {
 
         if (syntax is Syntax.Literal lit) {
