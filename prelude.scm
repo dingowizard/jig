@@ -84,18 +84,6 @@
             (apply fn (fold-right (lambda (x acc) (cons (car x) acc)) '() ls))
             (apply for-each (cons fn (fold-right (lambda (x acc) (cons (cdr x) acc)) '() ls)))))) (cons xs rest))))
 
-(define caar (lambda (p) (car (car p))))
-
-(define cadr (lambda (p) (car (cdr p))))
-
-(define cdar (lambda (p) (cdr (car p))))
-
-(define cddr (lambda (p) (cdr (cdr p))))
-
-(define caddr (lambda (p) (car (cdr (cdr p)))))
-
-(define cdddr (lambda (p) (cdr (cdr (cdr p)))))
-
 (define memv
    (lambda (x xs)
       (if (null? xs)
@@ -214,27 +202,28 @@
       ((or x) x)
       ((or a rest ...) (let ((tmp a)) (if tmp tmp (or rest ...))))))
 
-; (define-syntax let*
-;   (lambda (stx)
-;     (let ((syntax-list (syntax->list stx)))
-;       (let ((bindings (syntax->list (cadr syntax-list))))
-;         (datum->syntax
-;          stx
-;          (let ((len (length bindings))
-;                (body (cddr syntax-list)))
-;           (if (= len 0)
-;               `((lambda () ,@body))
-;               (if (= len 1)
-;                   `(let (,(car bindings)) ,@body)
-;                   `(let (,(car bindings)) (let* ,(cdr bindings) ,@body))))))))))
+;; (define-syntax let*
+;;   (lambda (stx)
+;;     (let ((syntax-list (syntax->list stx)))
+;;       (let ((bindings (syntax->list (cadr syntax-list))))
+;;         (datum->syntax
+;;          stx
+;;          (let ((len (length bindings))
+;;                (body (cddr syntax-list)))
+;;           (if (= len 0)
+;;               `((lambda () ,@body))
+;;               (if (= len 1)
+;;                   `(let (,(car bindings)) ,@body)
+;;                   `(let (,(car bindings)) (let* ,(cdr bindings) ,@body))))))))))
 
 
 (define-syntax let*
-   (syntax-rules ()
-      ((let* () body0 bodies ...) ((lambda () body0 bodies ...)))
-      ((let* ((p x)) body0 bodies ...) ((lambda (p) body0 bodies ...) x))
-      ((let* ((p1 x1) (p x) ...) body0 bodies ...) ((lambda (p1) (let* ((p x) ...) body0 bodies ...)) x1))))
-
+  (syntax-rules ()
+    ((let* () body1 body2 ...)
+     (let () body1 body2 ...))
+    ((let* ((name1 expr1) (name2 expr2) ...) body1 body2 ...)
+     (let ((name1 expr1))
+       (let* ((name2 expr2) ...) body1 body2 ...)))))
 
 ; (define-syntax letrec
 ;   (lambda (stx)
@@ -425,21 +414,21 @@
 ;                                    (loop ,@(cons incr (map (lambda (x) (caddr (syntax-e x))) vars)))))))
 ;                   (loop ,@(cons init (map (lambda (x) (cadr (syntax-e x))) vars))))))))))
 ; TODO: make step optional (see spec r6rs-lib)
-;; (define-syntax do
-;;    (syntax-rules ()
-;;       ((do ((var init step) ...)
-;;            (test expr ...)
-;;            command ...)
-;;        ((lambda ()
-;;            (define loop (lambda (var ...)
-;;                            (if test
-;;                                (begin
-;;                                   (void)
-;;                                   expr ...)
-;;                                (begin
-;;                                   command ...
-;;                                   (loop step ...)))))
-;;            (loop init ...))))))
+(define-syntax do
+   (syntax-rules ()
+      ((do ((var init step) ...)
+           (test expr ...)
+           command ...)
+       ((lambda ()
+           (define loop (lambda (var ...)
+                           (if test
+                               (begin
+                                  (void)
+                                  expr ...)
+                               (begin
+                                  command ...
+                                  (loop step ...)))))
+           (loop init ...))))))
 
 
 ;; (define dynamic-wind #f)
@@ -490,22 +479,20 @@
 ;;           (out)
 ;;           (apply values ans))))))
 
-;; (define make-parameter
-;;   (lambda (init . o)
-;;     (let* ((converter (if (not (null? o)) (car o) (lambda (x) x)))
-;;            (value (converter init)))
-;;       (lambda args
-;;         (if (null? args)
-;;             value
-;;             (let ((len (length args)))
-;;               (cond ((= len 1)
-;;                      (set! value (converter (car args))))
-;;                     ((= len 2)
-;;                      (set! value ((cadr args) (car args))))
-;;                     (#t 'error))))))))
+(define make-parameter
+  (lambda (init . o)
+    (let* ((converter (if (not (null? o)) (car o) (lambda (x) x)))
+           (value (converter init)))
+      (lambda args
+        (if (null? args)
+            value
+            (let ((len (length args)))
+              (cond ((= len 1)
+                     (set! value (converter (car args))))
+                    ((= len 2)
+                     (set! value ((cadr args) (car args))))
+                    (#t 'error))))))))
 
-; ; TODO: parameterize should handle multiple bindings
-; ; TODO: in below, it shold be possible to write `(lambda () . ,bodies), but it expands incorrectly
 ; (define-syntax parameterize
 ;   (lambda (stx)
 ;     (let* ((stx-list (syntax->list stx))
@@ -522,14 +509,14 @@
 ;              (lambda () (,(car ps) old (lambda (x) x))))) (,(car ps)))))))
 
 ; TODO: make tests for make-parameter and parameterize
-;; (define-syntax parameterize
-;;    (syntax-rules ()
-;;       ((parameterize ((p v) ...) body0 body ...)
-;;        ((lambda olds
-;;            (dynamic-wind
-;;               (lambda () (p v) ...)
-;;               (lambda () body0 body ...)
-;;               (lambda () (map (lambda (pr old) (pr old (lambda (x) x))) (list p ...) olds)))) (p) ...))))
+(define-syntax parameterize
+   (syntax-rules ()
+      ((parameterize ((p0 v0) (p v) ...) body0 body ...)
+       ((lambda olds
+           (dynamic-wind
+              (lambda () (p0 v0) (p v) ...)
+              (lambda () body0 body ...)
+              (lambda () (map (lambda (pr old) (pr old (lambda (x) x))) (list p0 p ...) olds)))) (p0) (p) ...))))
 
 ;; (define with-exception-handler #f)
 ;; (define raise #f)

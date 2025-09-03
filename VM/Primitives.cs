@@ -9,7 +9,7 @@ public static class Primitives {
         if (pair is null) throw new Exception("car: expected argument to be a pair. Got ${arg}");
         vm.Push(vm.VAL = (Form)pair.Car);
     }
-    public static Primitive Car { get; } = new(car, 1, false);
+    public static Primitive Car { get; } = new("car", car, 1, false);
 
     private static void cdr(Machine vm) {
         Form arg = vm.Pop();
@@ -18,7 +18,7 @@ public static class Primitives {
         vm.Push(vm.VAL = (Form)pair.Cdr);
     }
 
-    public static Primitive Cdr { get; } = new (cdr, 1, false);
+    public static Primitive Cdr { get; } = new ("cdr", cdr, 1, false);
     
     private static void cons(Machine vm) {
         Form car  = vm.Pop();
@@ -26,7 +26,7 @@ public static class Primitives {
         vm.Push(vm.VAL = (Form)Pair.Cons(car, cdr));
     }
 
-    public static Primitive Cons { get; } = new (cons, 2, false);
+    public static Primitive Cons { get; } = new ("cons", cons, 2, false);
     
     private static void zerop(Machine vm) {
         Form form = vm.Pop();
@@ -37,7 +37,7 @@ public static class Primitives {
         throw new Exception($"zero?: expected argument to be number, got {form}");
     }
 
-    public static Primitive Eqvp {get;} = new(eqvp, 2, false);
+    public static Primitive Eqvp {get;} = new("eqv?", eqvp, 2, false);
 
     private static void eqvp(Machine vm) {
         Form form1 = vm.Pop();
@@ -46,7 +46,7 @@ public static class Primitives {
         return;
     }
 
-    public static Primitive DatumToSyntax {get;} = new(datumToSyntax, 2, false);
+    public static Primitive DatumToSyntax {get;} = new("datum->syntax", datumToSyntax, 2, false);
 
     private static void datumToSyntax(Machine vm) {
 
@@ -64,10 +64,10 @@ public static class Primitives {
         
     }
 
-    public static Primitive SyntaxToDatum { get; } = new(syntaxToDatum, 1, false);
+    public static Primitive SyntaxToDatum { get; } = new("syntax->datum", syntaxToDatum, 1, false);
         
 
-    public static Primitive SyntaxToList {get;} = new(syntaxToList, 1, false);
+    public static Primitive SyntaxToList {get;} = new("syntax->list", syntaxToList, 1, false);
 
     private static void syntaxToList(Machine vm) {
 
@@ -80,7 +80,7 @@ public static class Primitives {
         return;
 
     }
-    public static Primitive SyntaxE {get;} = new(syntaxE, 1, false);
+    public static Primitive SyntaxE {get;} = new("syntax-e", syntaxE, 1, false);
 
     private static void syntaxE(Machine vm) {
 
@@ -90,7 +90,7 @@ public static class Primitives {
         return;
 
     }
-    public static Primitive NumEq { get; } = new(numEq, 1, true);
+    public static Primitive NumEq { get; } = new("=", numEq, 1, true);
 
     private static void numEq(Machine vm)
     {
@@ -116,7 +116,7 @@ public static class Primitives {
 
     }
 
-    public static Primitive Append {get;} = new(append, 0, true);
+    public static Primitive Append {get;} = new("append", append, 0, true);
 
     private static void append(Machine vm) {
         IForm result = List.Null;
@@ -133,7 +133,7 @@ public static class Primitives {
         vm.Push(vm.VAL);
     }
 
-    public static Primitive PairP {get;} = new(pair_p, 1, false);
+    public static Primitive PairP {get;} = new("pair?", pair_p, 1, false);
 
     private static void pair_p(Machine vm) {
         Form arg = vm.Pop();
@@ -142,7 +142,7 @@ public static class Primitives {
         return;
     }
         
-    public static Primitive ListP {get;} = new(list_p, 1, false);
+    public static Primitive ListP {get;} = new("list?", list_p, 1, false);
 
     private static void list_p(Machine vm) {
         Form arg = vm.Pop();
@@ -150,7 +150,7 @@ public static class Primitives {
         vm.Push(vm.VAL);
         return;
     }
-    public static Primitive Minus {get;} = new(minus, 1, true);
+    public static Primitive Minus {get;} = new("-", minus, 1, true);
 
     private static void minus(Machine vm) {
         if (vm.SP <= vm.FP) {
@@ -169,7 +169,7 @@ public static class Primitives {
         return;
     }
 
-    public static Primitive Apply {get;} = new(apply, 2, false);
+    public static Primitive Apply {get;} = new("apply", apply, 2, false);
 
     private static void apply(Machine vm) {
         var proc = vm.Pop();
@@ -179,22 +179,17 @@ public static class Primitives {
 
     }
 
-    public static Primitive GT {get;} = new(gt, 1, true);
+    public static Primitive GT {get;} = new(">", gt, 1, true);
 
     // public static Primitive2 CallWValues { get; } = new(callWValues, 2, false);
 
     private static void gt(Machine vm) {
         
-        // TODO: I think the argument cound was already checked, no?
-        if (vm.SP <= vm.FP) {
-            throw new Exception("<: expected at least one argument");
-        }
         Number arg0 = (Number)vm.Pop();
         if (vm.SP == vm.FP) {
             vm.Push(vm.VAL = Bool.True);
             return;
         }
-        Form result = Bool.True;
         while (vm.SP != vm.FP) {
             Number n = (Number)vm.Pop();
             if ((arg0 <= n).Value) {
@@ -209,15 +204,11 @@ public static class Primitives {
         return;
     }
 
-    public static Primitive LT {get;} = new(lt, 1, true);
+    public static Primitive LT {get;} = new("<", lt, 1, true);
 
-    // public static Primitive2 CallWValues { get; } = new(callWValues, 2, false);
 
     public static void lt(Machine vm) {
         
-        if (vm.SP <= vm.FP) {
-            throw new Exception("<: expected at least one argument");
-        }
         Number arg0 = (Number)vm.Pop();
         if (vm.SP == vm.FP) {
             vm.Push(vm.VAL = Bool.True);
@@ -237,10 +228,9 @@ public static class Primitives {
         vm.Push(vm.VAL = Bool.True);
         return;
     }
-    public static Primitive ZeroP { get; } = new(zerop, 1, false);
+    public static Primitive ZeroP { get; } = new("zero?", zerop, 1, false);
     
-    private static void nullp(Machine vm)
-    {
+    private static void nullp(Machine vm) {
         Form form = vm.Pop();
         if (form is List xs) {
             vm.Push(vm.VAL = xs.NullP);
@@ -263,8 +253,8 @@ public static class Primitives {
     // }
 
     // public static Primitive NullP { get; } = new(nullp);
-    public static Primitive NullP { get; } = new(nullp, 1, false);
-    public static Primitive SymbolP { get; } = new(symbolp, 1, false);
+    public static Primitive NullP { get; } = new("null?", nullp, 1, false);
+    public static Primitive SymbolP { get; } = new("symbol?", symbolp, 1, false);
 
     private static void symbolp(Machine vm) {
         Form arg = vm.Pop();
@@ -274,7 +264,7 @@ public static class Primitives {
         
     }
     
-    public static Primitive SymbolEqualP { get; } = new(symbolEqualP, 2, false);
+    public static Primitive SymbolEqualP { get; } = new("symbol=?", symbolEqualP, 2, false);
 
     private static void symbolEqualP(Machine vm) {
         Form arg1 = vm.Pop();
@@ -293,13 +283,16 @@ public delegate void PrimitiveProcedure(Machine vm);
 public class Primitive : Form
 {
 
-    public Primitive(PrimitiveProcedure proc, int required, bool hasRest)
+    public Primitive(string name, PrimitiveProcedure proc, int required, bool hasRest)
     {
+        Name = name;
         Delegate = proc;
         Required = required;
         HasRest = hasRest;
 
     }
+    
+    public string Name { get; }
 
     public bool HasRest { get; }
 
@@ -317,7 +310,7 @@ public class Primitive : Form
         } else {
             if (vm.SP - vm.FP != Required) {
                     
-                throw new Exception($"wrong num args: expected {Required}, but got {vm.SP - vm.FP}. (SP = {vm.SP}; FP = {vm.FP}; stack = {vm.StackToList()})");
+                throw new Exception($"{this.Name}: wrong num args: expected {Required}, but got {vm.SP - vm.FP}. (SP = {vm.SP}; FP = {vm.FP}; stack = {vm.StackToList()})");
             }  
         }
         Delegate(vm);

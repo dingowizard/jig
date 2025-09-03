@@ -3,6 +3,8 @@ using System.Security.Cryptography;
 using System.Text;
 using Jig;
 using Jig.Expansion;
+using Jig.IO;
+using Jig.Reader;
 using Transformer = Jig.Expansion.Transformer;
 namespace VM;
 
@@ -13,11 +15,14 @@ public class Machine : IRuntime
 
     internal bool Loud = false;
 
-    public Machine(Environment env, uint stackSize = 512) {
-        StackSize = stackSize;
+    public Machine(Environment env, ContinuationAny cont, uint stackSize = 512) {
+        _stackSize = stackSize;
         ENVT = env;
+        CONT = new TopLevelContinuation(cont);
+        Expander = new Expander();
         RuntimeEnvironment = ENVT;
         Stack = new Form[stackSize];
+        Template = Template.Empty;
     }
 
     internal Winders Winders = new Winders();
@@ -34,7 +39,7 @@ public class Machine : IRuntime
 
     internal readonly Form[] Stack;
     
-    private readonly uint StackSize;
+    private readonly uint _stackSize;
 
     internal uint SP = 0;
     internal uint FP = 0;
@@ -42,6 +47,8 @@ public class Machine : IRuntime
     internal Continuation CONT;
 
     internal Environment ENVT;
+
+    internal Expander Expander;
 
     internal Form Pop() {
         if (SP == 0) throw new Exception("stack is empty");
@@ -52,7 +59,7 @@ public class Machine : IRuntime
     }
 
     internal void Push(Form val) {
-        if (SP == StackSize) {
+        if (SP == _stackSize) {
             throw new Exception("stack is full");
         }
         Stack[SP] = val;
@@ -441,5 +448,40 @@ public class Machine : IRuntime
     public IRuntimeEnvironment RuntimeEnvironment {
         get => ENVT;
         private init => ENVT = (Environment)value;
+    }
+    public void Eval(Syntax stx, VM.Environment? env = null) {
+        env ??= ENVT;
+        
+        // var me = new Jig.MacroExpander();
+        // Jig.ParsedExpr program = me.Expand(stx, ExEnv);
+        // var context = new ExpansionContext(vm, DefaultExpander);
+        var program = Expander.ExpandREPLForm(stx, new ExpansionContext(this, env.TopLevels.Keys));
+        
+        var compiler = new Compiler(); // should class be static?
+        var code = compiler.CompileExprForREPL(program, env);
+        // TODO: if we load a different environment here, doesn't that clobber the old one. And then what?
+        // NOTE: also a problem in ExecuteFile
+        Load(code, env, TopLevelContinuation);
+        Run();
+    }
+    
+    
+    public void ExecuteFile(string path, Machine vm, VM.Environment? topLevel = null)
+    {
+        topLevel ??= ENVT;
+        InputPort port = new InputPort(path);
+        // Continuation.ContinuationAny throwAwayResult = (xs) => null;
+        var datums = Reader.ReadFileSyntax(port);
+        var parsedProgram = Expander.ExpandFile(datums, new ExpansionContext(this, topLevel.TopLevels.Keys));
+        var compiler = new Compiler();
+        var compiled = compiler.CompileFile(parsedProgram.ToArray(), topLevel);
+        vm.Load(compiled, topLevel, TopLevelContinuation);
+        vm.Run();
+    }
+
+    private static void TopLevelContinuation(params Form[] forms) {
+        foreach (var form in forms) {
+            if (form is not Form.VoidType) Console.WriteLine(form.Print());
+        }
     }
 }

@@ -3,14 +3,12 @@ using Jig.IO;
 using VM;
 using Mono.Options;
 using System.Diagnostics;
-using Jig.Expansion;
 using Jig.Reader;
-using Environment = Jig.Environment;
 
 public static class Program {
 
     public static VM.Environment TopLevel = VM.Environment.Default;
-    public static Jig.Expansion.Expander DefaultExpander = new Jig.Expansion.Expander(); 
+    public static Jig.Expansion.Expander DefaultExpander = new(); 
 
     static void Main(string[] args) {
 
@@ -43,21 +41,21 @@ public static class Program {
             System.Environment.Exit(0);
         }
         
-        VM.Machine vm = new VM.Machine(TopLevel);
+        var vm = new Machine(TopLevel, TopLevelContinuation);
         // this is just a kludge while libraries aren't implemented
         // need to have evaluated certain functions in order to
         // expand the rhs of define-syntaxes
-        ExecuteFile("prelude-1.scm", vm, TopLevel);
-        ExecuteFile("prelude.scm", vm, TopLevel);
+        vm.ExecuteFile("prelude-1.scm", vm, TopLevel);
+        vm.ExecuteFile("prelude.scm", vm, TopLevel);
         
         if (expr != "") {
             using (InputPort port = InputPort.FromString(expr)) {
-                Syntax? stx = Jig.Reader.Reader.ReadSyntax(port);
+                Syntax? stx = Reader.ReadSyntax(port);
                 if (stx is null) {
                     Console.Error.WriteLine($"failed to read {expr}.");
                     System.Environment.Exit(-1);
                 }
-                Eval(stx, TopLevel);
+                vm.Eval(stx, TopLevel);
             }
             System.Environment.Exit(0);
         
@@ -66,12 +64,12 @@ public static class Program {
         if (!quiet) {
             Console.Write("> ");
         }
-        Jig.Syntax? input;
+        Syntax? input;
         // try {
         using (InputPort port = new InputPort(Console.In)) {
             while (true) {
                     try {
-                        input = Jig.Reader.Reader.ReadSyntax(port);
+                        input = Reader.ReadSyntax(port);
                         if (input is null) {
                             if (!quiet) {
                                 Console.WriteLine();
@@ -81,7 +79,7 @@ public static class Program {
                             break;
                         }
 
-                        Eval(input, TopLevel);
+                        vm.Eval(input, TopLevel);
 
                     } catch (Exception x) {
                         Console.Error.WriteLine(x);
@@ -94,44 +92,39 @@ public static class Program {
             }
     
     }
-    // TODO: should Eval be a method of VM?
-    // TODO: should the toplevel continuation be a field of VM rather than an argument to load?
-    public static void Eval(Jig.Syntax stx, VM.Environment? env = null) {
-        env ??= Program.TopLevel;
-        
-        // var me = new Jig.MacroExpander();
-        // Jig.ParsedExpr program = me.Expand(stx, ExEnv);
-        // var context = new ExpansionContext(vm, DefaultExpander);
-        var program = DefaultExpander.ExpandREPLForm(stx, env.GetExpansionContext());
-        
-        var compiler = new VM.Compiler(); // should class be static?
-        var code = compiler.CompileExprForREPL(program, env);
-        env.Machine.Load(code, env, TopLevelContinuation);
-        env.Machine.Run();
-    }
-    
-    
-    public static void ExecuteFile(string path, Machine vm, VM.Environment? topLevel = null)
-    {
-        topLevel = topLevel ?? Program.TopLevel;
-        InputPort port = new InputPort(path);
-        // Continuation.ContinuationAny throwAwayResult = (xs) => null;
-        var datums = Reader.ReadFileSyntax(port);
-        var parsedProgram = DefaultExpander.ExpandFile(datums, topLevel.GetExpansionContext());
-        var compiler = new VM.Compiler();
-        var compiled = compiler.CompileFile(parsedProgram.ToArray(), topLevel);
-        vm.Load(compiled, topLevel, TopLevelContinuation);
-        vm.Run();
-    }
-
+    // // TODO: should Eval be a method of VM?
+    // // TODO: should the toplevel continuation be a field of VM rather than an argument to load?
+    // public static void Eval(Syntax stx, VM.Environment? env = null) {
+    //     env ??= Program.TopLevel;
+    //     
+    //     // var me = new Jig.MacroExpander();
+    //     // Jig.ParsedExpr program = me.Expand(stx, ExEnv);
+    //     // var context = new ExpansionContext(vm, DefaultExpander);
+    //     var program = DefaultExpander.ExpandREPLForm(stx, env.GetExpansionContext());
+    //     
+    //     var compiler = new Compiler(); // should class be static?
+    //     var code = compiler.CompileExprForREPL(program, env);
+    //     env.Machine.Load(code, env, TopLevelContinuation);
+    //     env.Machine.Run();
+    // }
+    //
+    //
+    // public static void ExecuteFile(string path, Machine vm, VM.Environment? topLevel = null)
+    // {
+    //     topLevel = topLevel ?? Program.TopLevel;
+    //     InputPort port = new InputPort(path);
+    //     // Continuation.ContinuationAny throwAwayResult = (xs) => null;
+    //     var datums = Reader.ReadFileSyntax(port);
+    //     var parsedProgram = DefaultExpander.ExpandFile(datums, topLevel.GetExpansionContext());
+    //     var compiler = new Compiler();
+    //     var compiled = compiler.CompileFile(parsedProgram.ToArray(), topLevel);
+    //     vm.Load(compiled, topLevel, TopLevelContinuation);
+    //     vm.Run();
+    // }
+    //
     private static void TopLevelContinuation(params Form[] forms) {
         foreach (var form in forms) {
             if (form is not Form.VoidType) Console.WriteLine(form.Print());
         }
-        
-    }
-    private static void ThrowAway(params Form[] forms) {
-        return;
-
     }
 }

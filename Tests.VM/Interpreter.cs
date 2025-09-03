@@ -13,7 +13,7 @@ public class Interpreter : IInterpreter {
         ExEnv = Jig.ExpansionEnvironment.Default;
         Expander = new Jig.MacroExpander();
         Comp = new Compiler();
-        TheVM = new Machine(Env);
+        TheVM = new Machine(Env, DoNothing);
     }
 
     public Machine TheVM { get; set; }

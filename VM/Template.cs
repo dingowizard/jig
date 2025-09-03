@@ -11,6 +11,8 @@ public class Template : Form {
         RequiredParameterCount = requiredParameterCount;
         HasRestParameter = hasRestParameter;
     }
+
+    public static Template Empty => new Template(0, [], [], [], 0, false);
     
     public int RequiredParameterCount { get; }
     
