@@ -58,6 +58,7 @@ public class Compiler {
     }
 
     private ulong[] CompileDefineSyntax(ParsedDefineSyntax defineSyntax) {
+        // TODO: Shouldn't this compile to a pop continuation if it is tail?
         return [];
     }
 
@@ -232,6 +233,15 @@ public class Compiler {
         
         Symbol sym = var.Identifier.Symbol;
         if (!bindings.Any(b => Equals(b.Symbol, sym))) {
+            if (!ctEnv.TopLevels.ContainsKey(sym)) {
+                Console.WriteLine($"{sym.Print()} not in top level env {ctEnv.GetHashCode()}. Env has:");
+                foreach (var x in ctEnv.TopLevels.Keys)
+                {
+                    Console.WriteLine($"{x.Print()}");
+
+                }
+                
+            }
             bindings.Add(ctEnv.TopLevels[sym]);
         }
         int index = bindings.FindIndex(b => Equals(b.Symbol, sym));

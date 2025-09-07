@@ -31,7 +31,7 @@ public class ParsedVariable : ParsedForm {
                 return true;
             }
 
-            throw new Exception("expander: could not resolve binding for {id}");
+            throw new Exception($"expander: could not resolve binding for {id}");
 
         }
         parsedVariable = null;

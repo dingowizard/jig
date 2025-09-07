@@ -6,10 +6,11 @@ namespace Jig.Expansion;
 
 public class ExpansionContext {
 
-    public ExpansionContext(IRuntime runtime, IEnumerable<Symbol> topLevels) {
-        Runtime = runtime;
-        Expander = new Expander();
-        _syntaxEnvironment = SyntaxEnvironment.Default;
+    public ExpansionContext(IEvaluator evaluator, IEnumerable<Symbol> topLevels) {
+        Runtime = evaluator.Runtime;
+        // TODO: seems like we can simplify the arguments to a bunch of these constructors once we get things running
+        Expander = evaluator.Expander;
+        _syntaxEnvironment = evaluator.Keywords;
         _bindings = new Dictionary<Identifier, Binding>(); // TODO: this seems like it should be part of the environment
         int i = 0;
         foreach (var sym in topLevels) {
@@ -22,7 +23,7 @@ public class ExpansionContext {
         
     }
 
-    public ExpansionContext(
+    private ExpansionContext(
         IRuntime runtime,
         Expander expander,
         SyntaxEnvironment? env = null,
@@ -60,12 +61,12 @@ public class ExpansionContext {
         
     }
 
-    public Syntax ApplyTransformer(Transformer transformer, Syntax syntax) {
-        if (transformer is BuiltinTransformer builtin) {
-            return builtin.Transform(syntax);
-        }
-        return Runtime.ApplyTransformer(transformer, syntax);
-    }
+    // public Syntax ApplyTransformer(Transformer transformer, Syntax syntax) {
+    //     if (transformer is BuiltinTransformer builtin) {
+    //         return builtin.Transform(syntax);
+    //     }
+    //     return Expander.Evaluator.Runtime.ApplyTransformer(transformer, syntax);
+    // }
 
     public Binding[] Bindings => _bindings.Values.ToArray();
 
@@ -151,9 +152,11 @@ public class ExpansionContext {
 
         // Expand third subform
         ParsedLambda transformerLambdaExpr = this.Expand(transformerStx) as ParsedLambda ?? throw new Exception(); // TODO: actually this should use the phase 1 runtime
-        var transformerProcedure = this.Runtime.EvaluateTransformerExpression(transformerLambdaExpr, this); // TODO: ditto
+        var transformerProcedure = Expander.Evaluator.EvaluateTransformerExpression(transformerLambdaExpr, this); // TODO: ditto
         // TODO: should it use ParsedVar rather than id? for define as well?
-        _syntaxEnvironment.Add(kw.Identifier, transformerProcedure);
+        Expander.Owner.Keywords.Add(kw.Identifier, transformerProcedure);
+        Console.WriteLine($"added {kw.Identifier.Symbol.Print()} to phase {Expander.Owner.Phase} evaluator's keywords {Expander.Owner.Keywords.GetHashCode()}");
+        // Console.WriteLine($"define-syntax added {kw.Identifier.Symbol} to keywords");
             
     }
 

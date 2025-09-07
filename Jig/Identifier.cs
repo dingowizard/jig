@@ -1,7 +1,7 @@
 namespace Jig;
 
 public class Identifier : Syntax {
-    internal Identifier(Symbol symbol, SrcLoc? srcLoc = null) : base (symbol, srcLoc) {
+    public Identifier(Symbol symbol, SrcLoc? srcLoc = null) : base (symbol, srcLoc) {
         ScopeSet = new HashSet<Scope>();
     }
         

@@ -29,33 +29,33 @@ public class Environment : Form, IRuntimeEnvironment {
     static Environment() {
         var initialBindings = new Dictionary<Symbol, Binding>();
         Default = new Environment(initialBindings);
-        initialBindings[new Symbol("cons")] = new Binding(new Symbol("cons"), Primitives.Cons);
-        initialBindings[new Symbol("car")] = new Binding(new Symbol("car"), Primitives.Car);
-        initialBindings[new Symbol("cdr")] = new Binding(new Symbol("cdr"), Primitives.Cdr);
-        initialBindings[new Symbol("append")] = new Binding(new Symbol("append"), Primitives.Append);
-        initialBindings[new Symbol("pair?")] = new Binding(new Symbol("pair?"), Primitives.PairP);
-        initialBindings[new Symbol("list?")] = new Binding(new Symbol("list?"), Primitives.ListP);
-        initialBindings[new Symbol("null?")] = new Binding(new Symbol("null?"), Primitives.NullP);
-        initialBindings[new Symbol("zero?")] = new Binding(new Symbol("zero?"), Primitives.ZeroP);
-        initialBindings[new Symbol("call/cc")] = new Binding(new Symbol("call/cc"), new Procedure(Default, VM.Builtins.CallCC));
-        initialBindings[new Symbol("+")] = new Binding(new Symbol("+"), new Procedure(Default, VM.Builtins.Sum));
-        initialBindings[new Symbol("apply")] = new Binding(new Symbol("apply"), new Procedure(Default, VM.Builtins.Apply));
-        initialBindings[new Symbol("expand")] = new Binding(new Symbol("expand"), Primitives.Expand);
-        initialBindings[new Symbol(">")] = new Binding(new Symbol(">"), Primitives.GT);
-        initialBindings[new Symbol("<")] = new Binding(new Symbol("<"), Primitives.LT);
-        initialBindings[new Symbol("-")] = new Binding(new Symbol("-"), Primitives.Minus);
-        initialBindings[new Symbol("*")] = new Binding(new Symbol("*"), new Procedure(Default, VM.Builtins.Product));
-        initialBindings[new Symbol("=")] = new Binding(new Symbol("="), Primitives.NumEq);
-        initialBindings[new Symbol("eqv?")] = new Binding(new Symbol("eqv?"), Primitives.Eqvp);
-        initialBindings[new Symbol("values")] = new Binding(new Symbol("values"), new Procedure(Default, VM.Builtins.Values));
-        initialBindings[new Symbol("call-with-values")] = new Binding(new Symbol("call-with-values"), new Procedure(Default, VM.Builtins.CallWithValues));
-        initialBindings[new Symbol("dynamic-wind")] = new Binding(new Symbol("dynamic-wind"), new Procedure(Default, VM.Builtins.DynamicWind));
-        initialBindings[new Symbol("datum->syntax")] = new Binding(new Symbol("datum->syntax"), Primitives.DatumToSyntax);
-        initialBindings[new Symbol("syntax->datum")] = new Binding(new Symbol("syntax->datum"), Primitives.SyntaxToDatum);
-        initialBindings[new Symbol("syntax->list")] = new Binding(new Symbol("syntax->list"), Primitives.SyntaxToList);
-        initialBindings[new Symbol("syntax-e")] = new Binding(new Symbol("syntax-e"), Primitives.SyntaxE);
-        initialBindings[new Symbol("symbol?")] = new Binding(new Symbol("symbol?"), Primitives.SymbolP);
-        initialBindings[new Symbol("symbol=?")] = new Binding(new Symbol("symbol=?"), Primitives.SymbolEqualP);
+        // initialBindings[new Symbol("cons")] = new Binding(new Symbol("cons"), Primitives.Cons);
+        // initialBindings[new Symbol("car")] = new Binding(new Symbol("car"), Primitives.Car);
+        // initialBindings[new Symbol("cdr")] = new Binding(new Symbol("cdr"), Primitives.Cdr);
+        // initialBindings[new Symbol("append")] = new Binding(new Symbol("append"), Primitives.Append);
+        // initialBindings[new Symbol("pair?")] = new Binding(new Symbol("pair?"), Primitives.PairP);
+        // initialBindings[new Symbol("list?")] = new Binding(new Symbol("list?"), Primitives.ListP);
+        // initialBindings[new Symbol("null?")] = new Binding(new Symbol("null?"), Primitives.NullP);
+        // initialBindings[new Symbol("zero?")] = new Binding(new Symbol("zero?"), Primitives.ZeroP);
+        // initialBindings[new Symbol("call/cc")] = new Binding(new Symbol("call/cc"), new Procedure(Default, VM.Builtins.CallCC));
+        // initialBindings[new Symbol("+")] = new Binding(new Symbol("+"), new Procedure(Default, VM.Builtins.Sum));
+        // initialBindings[new Symbol("apply")] = new Binding(new Symbol("apply"), new Procedure(Default, VM.Builtins.Apply));
+        // initialBindings[new Symbol("expand")] = new Binding(new Symbol("expand"), Primitives.Expand);
+        // initialBindings[new Symbol(">")] = new Binding(new Symbol(">"), Primitives.GT);
+        // initialBindings[new Symbol("<")] = new Binding(new Symbol("<"), Primitives.LT);
+        // initialBindings[new Symbol("-")] = new Binding(new Symbol("-"), Primitives.Minus);
+        // initialBindings[new Symbol("*")] = new Binding(new Symbol("*"), new Procedure(Default, VM.Builtins.Product));
+        // initialBindings[new Symbol("=")] = new Binding(new Symbol("="), Primitives.NumEq);
+        // initialBindings[new Symbol("eqv?")] = new Binding(new Symbol("eqv?"), Primitives.Eqvp);
+        // initialBindings[new Symbol("values")] = new Binding(new Symbol("values"), new Procedure(Default, VM.Builtins.Values));
+        // initialBindings[new Symbol("call-with-values")] = new Binding(new Symbol("call-with-values"), new Procedure(Default, VM.Builtins.CallWithValues));
+        // initialBindings[new Symbol("dynamic-wind")] = new Binding(new Symbol("dynamic-wind"), new Procedure(Default, VM.Builtins.DynamicWind));
+        // initialBindings[new Symbol("datum->syntax")] = new Binding(new Symbol("datum->syntax"), Primitives.DatumToSyntax);
+        // initialBindings[new Symbol("syntax->datum")] = new Binding(new Symbol("syntax->datum"), Primitives.SyntaxToDatum);
+        // initialBindings[new Symbol("syntax->list")] = new Binding(new Symbol("syntax->list"), Primitives.SyntaxToList);
+        // initialBindings[new Symbol("syntax-e")] = new Binding(new Symbol("syntax-e"), Primitives.SyntaxE);
+        // initialBindings[new Symbol("symbol?")] = new Binding(new Symbol("symbol?"), Primitives.SymbolP);
+        // initialBindings[new Symbol("symbol=?")] = new Binding(new Symbol("symbol=?"), Primitives.SymbolEqualP);
     }
 
     
@@ -141,5 +141,19 @@ public class Environment : Form, IRuntimeEnvironment {
 
     Dictionary<Symbol, IRuntimeBinding> IRuntimeEnvironment.TopLevels =>
         this.TopLevels.ToDictionary(pair => pair.Key, pair => (IRuntimeBinding)pair.Value );
+
+    public void DefineTopLevel(Symbol bindingSymbol, IRuntimeBinding binding)
+    {
+        var vmBinding = binding as Binding;
+        // TODO: sigh
+        Debug.Assert(vmBinding != null);
+        TopLevels.Add(bindingSymbol, vmBinding);
+    }
+
+    public static Environment Minimal()
+    {
+        var minimalBindings = new Dictionary<Symbol, Binding>();
+        return new Environment(minimalBindings);
+    }
 }
 

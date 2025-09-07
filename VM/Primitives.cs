@@ -286,7 +286,7 @@ public static class Primitives {
             stx = Syntax.FromDatum(new SrcLoc(), arg);
         }
 
-        var result = vm.Expander.Expand(stx, vm);
+        var result = vm.Evaluator.Expander.Expand(stx, vm);
         Console.WriteLine($"expand result = {result.Print()}");
         vm.VAL = result;
         vm.Push(vm.VAL);

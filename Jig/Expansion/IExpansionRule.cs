@@ -15,7 +15,8 @@ public abstract class Transformer : IExpansionRule {
         context.ExtendWithScope(macroExpansionScope);
         var output = this.Transform(syntax);
         Syntax.ToggleScope(output, macroExpansionScope);
-        return context.Expand(output);
+        var result =  context.Expand(output);
+        return result;
     }
 
     public abstract Syntax Transform(Syntax syntax);

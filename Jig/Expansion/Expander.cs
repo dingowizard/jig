@@ -1,7 +1,20 @@
 using Jig;
 namespace Jig.Expansion;
 
-public class Expander {
+public class Expander
+{
+
+    public Expander(IEvaluator owner, IEvaluatorFactory evaluatorFactory)
+    {
+        Owner = owner;
+        _evaluator = new Lazy<IEvaluator>(evaluatorFactory.Build);
+    }
+    
+    public IEvaluator Owner { get; }
+    
+    private Lazy<IEvaluator> _evaluator;
+    
+    public IEvaluator Evaluator => _evaluator.Value;
 
     public IEnumerable<ParsedForm> ExpandFile(IEnumerable<Syntax> syntaxes, ExpansionContext context) {
         Syntax[] forSecondPass = DoFirstPass(syntaxes, context).ToArray();
@@ -40,7 +53,7 @@ public class Expander {
                         context.VarIndex++);
                     context.AddBinding(vr, bg);
                     var parsedKW = new ParsedVariable.TopLevel(vr, bg, vr.SrcLoc);
-                    context.DefineSyntax(parsedKW, rt.Rest);
+                    DefineSyntax(parsedKW, rt.Rest, context);
                     return new Syntax(
                         SyntaxList
                             .FromParams(kw, parsedKW)
@@ -55,6 +68,23 @@ public class Expander {
         return stx;
     }
 
+    public void DefineSyntax(ParsedVariable kw, SyntaxList stxs, ExpansionContext context) {
+        // _syntaxEnvironment.Add(id, rule);
+        if (stxs is not SyntaxList.NonEmpty stxList) {
+            throw new Exception($"malformed define-syntax:expected a third subform");
+        }
+        Syntax transformerStx =
+            stxList.First;
+        
+        // TODO: I think we might need a ParsedKeyword type?
+
+        // Expand third subform
+        ParsedLambda transformerLambdaExpr = this.Evaluator.Expander.Expand(transformerStx, context) as ParsedLambda ?? throw new Exception(); // TODO: actually this should use the phase 1 runtime
+        var transformerProcedure = this.Evaluator.EvaluateTransformerExpression(transformerLambdaExpr, context); // TODO: ditto
+        // TODO: should it use ParsedVar rather than id? for define as well?
+        Owner.Keywords.Add(kw.Identifier, transformerProcedure);
+            
+    }
     private IEnumerable<Syntax> DoFirstPass(IEnumerable<Syntax> syntaxes, ExpansionContext context) {
         foreach (var syntax in syntaxes) {
             yield return DoFirstPassOneForm(syntax, context);
@@ -64,7 +94,7 @@ public class Expander {
     public ParsedForm Expand(Syntax stx, IRuntime runtime) {
         // TODO: it's kind of silly that we have to pass around the runtime like this. Maybe
         // the Expander should have a reference to a toplevel expansion context?
-        return Expand(stx, new ExpansionContext(runtime, runtime.RuntimeEnvironment.TopLevels.Keys));
+        return Expand(stx, new ExpansionContext(Owner, runtime.RuntimeEnvironment.TopLevels.Keys));
     }
 
     public ParsedForm Expand(Syntax syntax, ExpansionContext context) {
@@ -88,7 +118,7 @@ public class Expander {
 
         if (Syntax.E(syntax) is SyntaxList.NonEmpty stxList) {
             if (stxList.First is Identifier kw) {
-                if (context.TryFindKeyword(kw, out IExpansionRule? rule)) {
+                if (Owner.Keywords.TryFind(kw, out IExpansionRule? rule)) {
                     return rule.Expand(syntax, context);
                 } else {
                     return ExpandApplication(stxList, context, syntax.SrcLoc);

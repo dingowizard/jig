@@ -19,16 +19,16 @@ public abstract class SyntaxEnvironment {
         
         var defaultTransformers = new Dictionary<Symbol, IExpansionRule>();
         // add builtin macros here
-        defaultTransformers.Add(new Symbol("and"), new BuiltinTransformer(BuiltinTransformer.and));
-        defaultTransformers.Add(new Symbol("quasiquote"), new BuiltinTransformer(BuiltinTransformer.quasiquote));
-        defaultTransformers.Add(new Symbol("syntax-rules"), new BuiltinTransformer(BuiltinTransformer.syntax_rules));
+        // defaultTransformers.Add(new Symbol("and"), new BuiltinTransformer(BuiltinTransformer.and));
+        // defaultTransformers.Add(new Symbol("quasiquote"), new BuiltinTransformer(BuiltinTransformer.quasiquote));
+        // defaultTransformers.Add(new Symbol("syntax-rules"), new BuiltinTransformer(BuiltinTransformer.syntax_rules));
         Default = new TopLevelSyntaxEnvironment(coreForms.Concat(defaultTransformers).ToDictionary(kv => kv.Key, kv => kv.Value));
 
     }
     public static TopLevelSyntaxEnvironment Default {get;}
 
     public bool TryFind(Identifier keyword, [NotNullWhen(returnValue: true)] out IExpansionRule? expansionRule) {
-        if (_rules.TryGetValue(keyword.Symbol, out var rule)) {
+        if (Rules.TryGetValue(keyword.Symbol, out var rule)) {
             expansionRule = rule;
             return true;
         } else {
@@ -47,25 +47,25 @@ public abstract class SyntaxEnvironment {
         return new ScopedSyntaxEnvironment(this, new Dictionary<Symbol, IExpansionRule>());
     }
 
-    protected abstract Dictionary<Symbol, IExpansionRule> _rules {get;}
+    public abstract Dictionary<Symbol, IExpansionRule> Rules {get;}
+    
+
     public abstract void Add(Identifier kw, IExpansionRule expansionRule);
 
 }
 
 public class TopLevelSyntaxEnvironment(Dictionary<Symbol, IExpansionRule> rules) : SyntaxEnvironment {
-
-    protected override Dictionary<Symbol, IExpansionRule> _rules {get;} = rules;
+    public override Dictionary<Symbol, IExpansionRule> Rules {get;} = rules;
     public override void Add(Identifier kw, IExpansionRule expansionRule) {
-        _rules.Add(kw.Symbol, expansionRule);
+        Rules.Add(kw.Symbol, expansionRule);
     }
 
 }
 
 public class ScopedSyntaxEnvironment(SyntaxEnvironment parent, Dictionary<Symbol, IExpansionRule> rules) : SyntaxEnvironment {
-
-    protected override Dictionary<Symbol, IExpansionRule> _rules {get;} = rules;
+    public override Dictionary<Symbol, IExpansionRule> Rules {get;} = rules;
     public override void Add(Identifier kw, IExpansionRule expansionRule) {
-        _rules.Add(kw.Symbol, expansionRule);
+        Rules.Add(kw.Symbol, expansionRule);
     }
 
     public SyntaxEnvironment Parent = parent;

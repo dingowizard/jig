@@ -8,23 +8,33 @@ using Jig.Reader;
 using Transformer = Jig.Expansion.Transformer;
 namespace VM;
 
-public delegate void ContinuationAny(params Form[] forms);
 
 public class Machine : IRuntime
 {
 
     internal bool Loud = false;
 
-    public Machine(Environment env, ContinuationAny cont, uint stackSize = 512) {
+    public Machine(IEvaluator evaluator, Environment env, ContinuationAny cont, uint stackSize = 512) {
         _stackSize = stackSize;
+        Evaluator = evaluator;
         ENVT = env;
         CONT = new TopLevelContinuation(cont);
-        Expander = new Expander();
         RuntimeEnvironment = ENVT;
+        CoreSyntax = SyntaxEnvironment.Default; // TODO: give Machine its own 
         Stack = new Form[stackSize];
         Template = Template.Empty;
     }
 
+    public Machine(IEvaluator evaluator, Environment env, uint stackSize = 512) {
+        _stackSize = stackSize;
+        Evaluator = evaluator;
+        ENVT = env;
+        CONT = new TopLevelContinuation(TopLevelContinuation);
+        RuntimeEnvironment = ENVT;
+        CoreSyntax = SyntaxEnvironment.Default; // TODO: give Machine its own 
+        Stack = new Form[stackSize];
+        Template = Template.Empty;
+    }
     internal Winders Winders = new Winders();
     
 
@@ -48,7 +58,7 @@ public class Machine : IRuntime
 
     internal Environment ENVT;
 
-    internal Expander Expander;
+    public IEvaluator Evaluator;
 
     internal Form Pop() {
         if (SP == 0) throw new Exception("stack is empty");
@@ -426,36 +436,21 @@ public class Machine : IRuntime
         throw new NotImplementedException();
     }
 
-    public IExpansionRule EvaluateTransformerExpression(ParsedLambda transformerLambdaExpr, ExpansionContext context)
-    {
-        
-        // TODO: needs a compiler, a compile-time environment
-        if (ENVT is null) throw new Exception($"unable to evaluate transformer expression: ENVT was null.");
-        var compiled = new Compiler().CompileExprForREPL(transformerLambdaExpr, ENVT);
-        var compiler = new VM.Compiler(); // should class be static?
-        var code = compiler.CompileExprForREPL(transformerLambdaExpr, ENVT);
-        // TODO: this logic of having the runtime evaluate one expr and return one result
-        // should be collected into a method
-        IForm result = List.Null;
-        this.Load(code, ENVT, Cont);
-        this.Run();
-        Procedure proc = result as Procedure ?? throw new Exception("a transformer shold evaluate to a procedure");
-        return new Transformer(proc, this);
-        
-        void Cont(Form[] forms) => result = forms[0];
-    }
 
     public IRuntimeEnvironment RuntimeEnvironment {
         get => ENVT;
         private init => ENVT = (Environment)value;
     }
+
+    public SyntaxEnvironment CoreSyntax { get; }
+
     public void Eval(Syntax stx, VM.Environment? env = null) {
         env ??= ENVT;
         
         // var me = new Jig.MacroExpander();
         // Jig.ParsedExpr program = me.Expand(stx, ExEnv);
         // var context = new ExpansionContext(vm, DefaultExpander);
-        var program = Expander.ExpandREPLForm(stx, new ExpansionContext(this, env.TopLevels.Keys));
+        var program = Evaluator.Expander.ExpandREPLForm(stx, new ExpansionContext(Evaluator, env.TopLevels.Keys));
         
         var compiler = new Compiler(); // should class be static?
         var code = compiler.CompileExprForREPL(program, env);
@@ -472,7 +467,7 @@ public class Machine : IRuntime
         InputPort port = new InputPort(path);
         // Continuation.ContinuationAny throwAwayResult = (xs) => null;
         var datums = Reader.ReadFileSyntax(port);
-        var parsedProgram = Expander.ExpandFile(datums, new ExpansionContext(this, topLevel.TopLevels.Keys));
+        var parsedProgram = Evaluator.Expander.ExpandFile(datums, new ExpansionContext(Evaluator, topLevel.TopLevels.Keys));
         var compiler = new Compiler();
         var compiled = compiler.CompileFile(parsedProgram.ToArray(), topLevel);
         vm.Load(compiled, topLevel, TopLevelContinuation);
@@ -483,5 +478,22 @@ public class Machine : IRuntime
         foreach (var form in forms) {
             if (form is not Form.VoidType) Console.WriteLine(form.Print());
         }
+    }
+
+    public SyntaxEnvironment FreshCoreSyntax()
+    {
+        var coreForms = new Dictionary<Symbol, IExpansionRule>();
+        // TODO: these should be identifiers, not symbols, but they need to be resolved correctly
+        // TODO: probably we don't want to create new identifiers and symbols ...
+        // TODO: the ids should have source locations -- names not rows and columns
+        coreForms.Add(new Symbol("begin"), new CoreSyntaxRule(CoreParseRules.ParseBeginForm));
+        coreForms.Add(new Symbol("define"), new CoreSyntaxRule(CoreParseRules.ParseDefineForm));
+        coreForms.Add(new Symbol("define-syntax"), new CoreSyntaxRule(CoreParseRules.DefineSyntax));
+        coreForms.Add(new Symbol("if"), new CoreSyntaxRule(CoreParseRules.ParseIfForm));
+        coreForms.Add(new Symbol("lambda"), new CoreSyntaxRule(CoreParseRules.ParseLambdaForm));
+        coreForms.Add(new Symbol("quote"), new CoreSyntaxRule(CoreParseRules.ParseQuoteForm));
+        coreForms.Add(new Symbol("quote-syntax"), new CoreSyntaxRule(CoreParseRules.ParseQuoteSyntaxForm));
+        coreForms.Add(new Symbol("set!"), new CoreSyntaxRule(CoreParseRules.ParseSetForm));
+        return new TopLevelSyntaxEnvironment(coreForms);
     }
 }

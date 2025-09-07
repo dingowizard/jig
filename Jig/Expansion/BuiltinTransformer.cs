@@ -103,7 +103,7 @@ public class BuiltinTransformer  : Transformer {
             throw new Exception($"malformed quasiquote: {stx}");
         }
     }
-    internal static Syntax syntax_rules(Syntax stx) {
+    public static Syntax syntax_rules(Syntax stx) {
             if (Syntax.E(stx) is not SyntaxList.NonEmpty stxList) {
                 throw new Exception($"syntax-rules: bad syntax {stx.Print()}");
             }
