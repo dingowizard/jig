@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 namespace Jig;
 using System.Collections.Generic;
 
-internal class LexicalContext {
+public class LexicalContext {
 
     public LexicalContext() {
         EnclosingScope = null;

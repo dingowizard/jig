@@ -16,7 +16,7 @@ internal delegate Thunk? ImproperListFunction5(Delegate k, IForm arg0, IForm arg
 internal delegate Thunk? ImproperListFunction6(Delegate k, IForm arg0, IForm arg1, IForm arg2, IForm arg3, IForm arg4, IForm arg5, List rest);
 internal delegate Thunk? ImproperListFunction7(Delegate k, IForm arg0, IForm arg1, IForm arg2, IForm arg3, IForm arg4, IForm arg5, IForm arg6, List rest);
 
-internal abstract class ET : Expression {
+public abstract class ET : Expression {
 
     public CompiledCode Compile() {
         return Lambda<CompiledCode>(Body, kParam, envParam).Compile();
