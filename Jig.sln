@@ -17,6 +17,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NewNewTypes", "NewNewTypes\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchemeTypes", "SchemeTypes\SchemeTypes.csproj", "{6E07A596-51B2-40B9-B8D9-DFEAD53F2511}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DLR", "DLR\DLR.csproj", "{B39EAC4B-B2EC-4FD2-9569-A85441EFCC6C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DLRRepl", "DLRRepl\DLRRepl.csproj", "{4DAAAE7E-3AE2-4261-8D6C-A53F23C1F8A9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -54,6 +58,14 @@ Global
 		{6E07A596-51B2-40B9-B8D9-DFEAD53F2511}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6E07A596-51B2-40B9-B8D9-DFEAD53F2511}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6E07A596-51B2-40B9-B8D9-DFEAD53F2511}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B39EAC4B-B2EC-4FD2-9569-A85441EFCC6C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B39EAC4B-B2EC-4FD2-9569-A85441EFCC6C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B39EAC4B-B2EC-4FD2-9569-A85441EFCC6C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B39EAC4B-B2EC-4FD2-9569-A85441EFCC6C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4DAAAE7E-3AE2-4261-8D6C-A53F23C1F8A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4DAAAE7E-3AE2-4261-8D6C-A53F23C1F8A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4DAAAE7E-3AE2-4261-8D6C-A53F23C1F8A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4DAAAE7E-3AE2-4261-8D6C-A53F23C1F8A9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 	EndGlobalSection

@@ -1,4 +1,5 @@
-namespace Jig;
+using Jig;
+namespace DLR;
 
 public delegate Thunk? Thunk();
 public delegate Thunk CompiledCode(Delegate k, IEnvironment env);

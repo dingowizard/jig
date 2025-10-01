@@ -1,4 +1,5 @@
-namespace Jig;
+using Jig;
+namespace DLR;
 
 public class Environment : IEnvironment {
 
@@ -27,20 +28,20 @@ public class Environment : IEnvironment {
             env._dict.Add(new Symbol("null?"), new Procedure((Builtin) Builtins.nullP));
             env._dict.Add(new Symbol("succ"), new Procedure((Builtin) Builtins.succ));
             env._dict.Add(new Symbol("number?"), new Procedure((Builtin) Builtins.number_p));
-            env._dict.Add(new Symbol("integer?"), new Procedure((Builtin) Number.integer_p));
-            env._dict.Add(new Symbol("real?"), new Procedure((Builtin) Number.real_p));
+            env._dict.Add(new Symbol("integer?"), new Procedure((Builtin) Builtins.integer_p));
+            env._dict.Add(new Symbol("real?"), new Procedure((Builtin) Builtins.real_p));
             env._dict.Add(new Symbol("procedure?"), new Procedure((Builtin) Procedure.procedure_p));
             env._dict.Add(new Symbol("+"), new Procedure((Builtin) Builtins.sum));
-            env._dict.Add(new Symbol("*"), new Procedure((Builtin) Number.product));
-            env._dict.Add(new Symbol("/"), new Procedure((PairFunction) Number.divide));
-            env._dict.Add(new Symbol("-"), new Procedure((PairFunction) Number.diff));
-            env._dict.Add(new Symbol(">"), new Procedure( (Builtin)Number.gt));
-            env._dict.Add(new Symbol(">="), new Procedure( (Builtin)Number.gte));
-            env._dict.Add(new Symbol("<"), new Procedure( (Builtin)Number.lt));
-            env._dict.Add(new Symbol("<="), new Procedure( (Builtin)Number.lte));
-            env._dict.Add(new Symbol("mod"), new Procedure( (Builtin)Number.mod));
-            env._dict.Add(new Symbol("floor"), new Procedure( (Builtin)Number.floor));
-            env._dict.Add(new Symbol("ceiling"), new Procedure( (Builtin)Number.ceiling));
+            env._dict.Add(new Symbol("*"), new Procedure((Builtin) Builtins.product));
+            env._dict.Add(new Symbol("/"), new Procedure((PairFunction) Builtins.divide));
+            env._dict.Add(new Symbol("-"), new Procedure((PairFunction) Builtins.diff));
+            env._dict.Add(new Symbol(">"), new Procedure( (Builtin)Builtins.gt));
+            env._dict.Add(new Symbol(">="), new Procedure( (Builtin)Builtins.gte));
+            env._dict.Add(new Symbol("<"), new Procedure( (Builtin)Builtins.lt));
+            env._dict.Add(new Symbol("<="), new Procedure( (Builtin)Builtins.lte));
+            env._dict.Add(new Symbol("mod"), new Procedure( (Builtin)Builtins.mod));
+            env._dict.Add(new Symbol("floor"), new Procedure( (Builtin)Builtins.floor));
+            env._dict.Add(new Symbol("ceiling"), new Procedure( (Builtin)Builtins.ceiling));
             env._dict.Add(new Symbol("apply"), new Procedure( Builtins.apply));
             env._dict.Add(new Symbol("eval"), new Procedure( (Builtin)Builtins.eval));
             env._dict.Add(new Symbol("call/cc"), new Procedure( (Builtin)Builtins.callcc));
@@ -61,8 +62,8 @@ public class Environment : IEnvironment {
             env._dict.Add(new Symbol("syntax-e"), new Procedure( (Builtin)Builtins.syntax_e));
             env._dict.Add(new Symbol("char?"), new Procedure( (Builtin)Builtins.char_p));
             env._dict.Add(new Symbol("string?"), new Procedure( (Builtin)String.string_p));
-            env._dict.Add(new Symbol("boolean?"), new Procedure( (Builtin)Bool.boolean_p));
-            env._dict.Add(new Symbol("boolean=?"), new Procedure( (ImproperListFunction2)Bool.boolean_eq_p));
+            env._dict.Add(new Symbol("boolean?"), new Procedure( (Builtin)Builtins.boolean_p));
+            env._dict.Add(new Symbol("boolean=?"), new Procedure( (ImproperListFunction2)Builtins.boolean_eq_p));
             env._dict.Add(new Symbol("eq?"), new Procedure( (Builtin)Builtins.eq_p));
             env._dict.Add(new Symbol("eqv?"), new Procedure( (Builtin)Builtins.eqv_p));
             env._dict.Add(new Symbol("="), new Procedure((PairFunction) Builtins.numEq));

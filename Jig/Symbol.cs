@@ -14,7 +14,7 @@ public class Symbol : Form {
         Name = name;
     }
         
-    public Binding? Binding {get; set;} 
+    public Expansion.Binding? Binding {get; set;} 
 
 
 

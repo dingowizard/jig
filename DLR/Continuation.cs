@@ -1,9 +1,9 @@
 using System.Linq.Expressions;
 using System.Reflection;
+using Jig;
 
-namespace Jig;
+namespace DLR;
 
-public delegate void ContinuationAny(params Form[] results);
 public class Continuation(Delegate d) : Procedure(d)
 {
     public Thunk? Apply(List args) {

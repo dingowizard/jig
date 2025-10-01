@@ -3,8 +3,9 @@ using System.Dynamic;
 using System.Linq.Expressions;
 using System.Reflection;
 using Microsoft.Scripting.Actions;
+using Jig;
 
-namespace Jig;
+namespace DLR;
 
 internal delegate Thunk? ListFunction(Delegate k, List rest);
 internal delegate Thunk? PairFunction(Delegate k, IForm arg0, List rest);

@@ -1,11 +1,13 @@
 ﻿using Jig.IO;
+using Jig;
+using DLR;
 using Mono.Options;
 
-namespace Jig;
+namespace DLRRepl;
 
 public static class Program {
 
-    public static IEnvironment TopLevel = Environment.Default;
+    public static IEnvironment TopLevel = DLR.Environment.Default;
     public static ExpansionEnvironment ExEnv = ExpansionEnvironment.Default;
 
     static void Main(string[] args) {
@@ -42,7 +44,7 @@ public static class Program {
 
         }
 
-        Continuation.ContinuationAny print = (Continuation.ContinuationAny)Print;
+        DLR.Continuation.ContinuationAny print = (DLR.Continuation.ContinuationAny)Print;
         if (expr != "") {
             using (InputPort port = InputPort.FromString(expr)) {
                 Syntax? stx = Jig.Reader.Reader.ReadSyntax(port);

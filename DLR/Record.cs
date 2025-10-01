@@ -1,5 +1,7 @@
-namespace Jig;
+using Jig;
+namespace DLR;
 
+// TODO: separate this into a class for Jig and then runtime specific code (to stay here)
 public class Record : Vector {
 
     public static Record Make(TypeDescriptor rtd, ConstructorDescriptor rcd, List args) {

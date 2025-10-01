@@ -9,51 +9,7 @@ internal static partial class Builtins {
     internal class SyntaxRules {
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
-        internal static Thunk? macro(Delegate k, Form arg) {
-            if (arg is not Syntax stx) {
-                throw new Exception($"syntax-rules: was passed {arg.Print()}, which is not a syntax object");
-            }
-            if (Syntax.E(stx) is not SyntaxList.NonEmpty stxList) {
-                throw new Exception($"syntax-rules: was passed {stx.Print()}, which is not a syntax list");
-            }
-            if (stxList.Rest is not SyntaxList.NonEmpty macroArgs) {
-                throw new Exception($"syntax-rules: expected subforms, but got none");
-            }
-            if (Syntax.E(macroArgs.First) is not SyntaxList literals) {
-                if (Syntax.E(macroArgs.First) is not IEmptyList) {
-                    throw new Exception($"syntax-rules: expected first subform to be a list, but got {Syntax.E(macroArgs.First).Print()}");
-                }
-                literals = SyntaxList.FromParams();
-
-            }
-            var clauses = new System.Collections.Generic.List<Tuple<SyntaxList.NonEmpty, Syntax>>();
-            foreach (var clause in macroArgs.Rest.Cast<Syntax>()) {
-                if (Syntax.E(clause) is SyntaxList.NonEmpty clauseStxList) {
-                    if (Syntax.E(clauseStxList.First) is not SyntaxList.NonEmpty pattern) {
-                        throw new Exception($"syntax-rules: malformed clause: {clause.Print()}. Pattern should be a list, but got {clauseStxList.First}");
-                    }
-                    if (clauseStxList.Rest is not SyntaxList.NonEmpty rest) {
-                        throw new Exception($"syntax-rules: malformed clause: {clause.Print()}. Expected template.");
-                    }
-                    if (rest.Rest is not SyntaxList.Empty) {
-                        throw new Exception($"syntax-rules: malformed clause: {clause.Print()}. Expected one template.");
-                    }
-                    clauses.Add(new Tuple<SyntaxList.NonEmpty,Syntax>(pattern, rest.First));
-
-                } else {
-                    throw new Exception($"syntax-rules: malformed clause: {clause.Print()}");
-                }
-            }
-            var stxParam = NewSym("stx");
-            var result = NewList( // (lambda (stx) ((lambda (x) ...) (syntax-e stx)))
-                NewSym("lambda"),
-                NewList(stxParam),
-                NewList(
-                    new SyntaxRules(literals.ToSyntaxList(), clauses).LambdaFromClauses(),
-                    NewList(NewSym("syntax-e"), stxParam)));
-            return Continuation.ApplyDelegate(k, Syntax.FromDatum(stx.SrcLoc, result));
-
-        }
+        
 
         internal SyntaxRules(SyntaxList literals, IEnumerable<Tuple<SyntaxList.NonEmpty, Syntax>> clauses) {
             Var = NewSym("x");

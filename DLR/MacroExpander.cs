@@ -1,8 +1,9 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Security.Cryptography;
+using Jig;
+using Jig.Expansion;
 
-namespace Jig;
+namespace DLR;
 
 public class MacroExpander {
 
@@ -586,7 +587,51 @@ public class ExpansionEnvironment {
         return Continuation.ApplyDelegate(k, result);
 
     }
+internal static Thunk? syntax_rules_macro(Delegate k, Form arg) {
+            if (arg is not Syntax stx) {
+                throw new Exception($"syntax-rules: was passed {arg.Print()}, which is not a syntax object");
+            }
+            if (Syntax.E(stx) is not SyntaxList.NonEmpty stxList) {
+                throw new Exception($"syntax-rules: was passed {stx.Print()}, which is not a syntax list");
+            }
+            if (stxList.Rest is not SyntaxList.NonEmpty macroArgs) {
+                throw new Exception($"syntax-rules: expected subforms, but got none");
+            }
+            if (Syntax.E(macroArgs.First) is not SyntaxList literals) {
+                if (Syntax.E(macroArgs.First) is not IEmptyList) {
+                    throw new Exception($"syntax-rules: expected first subform to be a list, but got {Syntax.E(macroArgs.First).Print()}");
+                }
+                literals = SyntaxList.FromParams();
 
+            }
+            var clauses = new System.Collections.Generic.List<Tuple<SyntaxList.NonEmpty, Syntax>>();
+            foreach (var clause in macroArgs.Rest.Cast<Syntax>()) {
+                if (Syntax.E(clause) is SyntaxList.NonEmpty clauseStxList) {
+                    if (Syntax.E(clauseStxList.First) is not SyntaxList.NonEmpty pattern) {
+                        throw new Exception($"syntax-rules: malformed clause: {clause.Print()}. Pattern should be a list, but got {clauseStxList.First}");
+                    }
+                    if (clauseStxList.Rest is not SyntaxList.NonEmpty rest) {
+                        throw new Exception($"syntax-rules: malformed clause: {clause.Print()}. Expected template.");
+                    }
+                    if (rest.Rest is not SyntaxList.Empty) {
+                        throw new Exception($"syntax-rules: malformed clause: {clause.Print()}. Expected one template.");
+                    }
+                    clauses.Add(new Tuple<SyntaxList.NonEmpty,Syntax>(pattern, rest.First));
+
+                } else {
+                    throw new Exception($"syntax-rules: malformed clause: {clause.Print()}");
+                }
+            }
+            var stxParam = NewSym("stx");
+            var result = NewList( // (lambda (stx) ((lambda (x) ...) (syntax-e stx)))
+                NewSym("lambda"),
+                NewList(stxParam),
+                NewList(
+                    new SyntaxRules(literals.ToSyntaxList(), clauses).LambdaFromClauses(),
+                    NewList(NewSym("syntax-e"), stxParam)));
+            return Continuation.ApplyDelegate(k, Syntax.FromDatum(stx.SrcLoc, result));
+
+        }
 
     public static ExpansionEnvironment Default {get;} =
         new ExpansionEnvironment(new Dictionary<Symbol, Transformer>{
@@ -594,7 +639,7 @@ public class ExpansionEnvironment {
             {new Symbol("match"), new Transformer((Func<Delegate, Form, Thunk?>) match_macro)},
             {new Symbol("match-syntax"), new Transformer((Func<Delegate, Form, Thunk?>) Builtins.match_syntax_macro)},
             {new Symbol("quasiquote"), new Transformer((Func<Delegate, Form, Thunk?>) quasiquote_macro)},
-            {new Symbol("syntax-rules"), new Transformer((Func<Delegate, Form, Thunk?>) Builtins.SyntaxRules.macro)},
+            {new Symbol("syntax-rules"), new Transformer((Func<Delegate, Form, Thunk?>) syntax_rules_macro)},
             }
         );
 
@@ -615,41 +660,4 @@ public class ExpansionEnvironment {
 
 }
 
-public class Binding {
 
-    public Binding(Symbol sym, int scopeLevel, int varIndex) {
-        // TODO: remove Index?
-        Symbol = sym;
-        ScopeLevel = scopeLevel;
-        VarIndex = varIndex;
-    }
-
-    public int VarIndex { get; }
-
-    public int ScopeLevel { get;}
-
-    public Symbol Symbol { get; }
-
-
-    public int Index { get; }
-    //TODO: why can't scope be like this? (scope needs a member to work. maybe because it has to define gethashcode and equals?)
-    //TODO: should the binding contain the scope that it comes from?
-    //TODO: can Scope and binding classes be combined in some way?
-    public override string ToString() => $"binding{Index}";
-
-    public override bool Equals(object? obj) {
-        if (obj is null) return false;
-        return obj switch {
-            Binding binding => this.Index == binding.Index,
-            _ => false
-        };
-    }
-
-    protected bool Equals(Binding other) {
-        return Index == other.Index;
-    }
-
-    public override int GetHashCode() {
-        return Index;
-    }
-}

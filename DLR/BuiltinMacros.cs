@@ -1,4 +1,5 @@
-namespace Jig;
+using Jig;
+namespace DLR;
 
 internal static partial class Builtins {
 
