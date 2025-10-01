@@ -287,10 +287,8 @@ public static class Primitives {
         }
 
         var result = vm.Evaluator.Expander.Expand(stx, vm);
-        Console.WriteLine($"expand result = {result.Print()}");
         vm.VAL = result;
         vm.Push(vm.VAL);
-        Console.WriteLine($"expanded. VAL = {vm.VAL} and stack = {vm.StackToList().Print()}");
         return;
 
 

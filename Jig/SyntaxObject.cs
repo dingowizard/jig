@@ -13,45 +13,48 @@ public class Syntax : Form {
 
 
     public static IForm ToDatum(Syntax stx) {
+        if (stx is Identifier id) {
+            return id.Symbol;
+        }
+
+        if (stx is Literal lit)
+        {
+            return lit.Expression;
+        }
         var x = Syntax.E(stx);
         switch (x) {
             case SyntaxPair stxPair:
                 return Pair.Cons(ToDatum(stxPair.Car), ToDatum(stxPair.Cdr));
             case SyntaxList stxList:
                 return stxList.Select<Syntax, IForm>(ToDatum).ToJigList();
-            case IPair p:
-                return ToDatum(p);
-            case List list: {
-                IEnumerable<Syntax> slist = list.Cast<Syntax>();
-                if (list.Count() != slist.Count()) {
-                    throw new Exception("ToDatum: expected all elements to be syntax");
-                }
-                return list.Cast<Syntax>().Select<Syntax, IForm>(ToDatum).ToJigList();
-            }
+            // case IPair p:
+            //     return ToDatum(p);
+            // case List list: {
+            //     IEnumerable<Syntax> slist = list.Cast<Syntax>();
+            //     if (list.Count() != slist.Count()) {
+            //         throw new Exception("ToDatum: expected all elements to be syntax");
+            //     }
+            //     return list.Cast<Syntax>().Select<Syntax, IForm>(ToDatum).ToJigList();
+            // }
             default:
                 return x;
         }
     }
 
-    private static IPair ToDatum(SyntaxPair stxPair) {
-        return Pair.Cons(ToDatum(stxPair.Car), ToDatum(stxPair.Cdr));
-
-    }
-
-    private static IPair ToDatum(IPair p) {
-            Syntax car = p.Car as Syntax ?? throw new Exception();
-            switch (p.Cdr) {
-                case Syntax s:
-                    return Pair.Cons(ToDatum(car), ToDatum(s));
-                case SyntaxPair sp:
-                    return Pair.Cons(ToDatum(car), ToDatum(sp));
-                case IPair pair:
-                    return Pair.Cons(ToDatum(car), ToDatum(pair));
-                default:
-                    throw new NotImplementedException();
-            }
-
-    }
+    // private static IPair ToDatum(IPair p) {
+    //         Syntax car = p.Car as Syntax ?? throw new Exception();
+    //         switch (p.Cdr) {
+    //             case Syntax s:
+    //                 return Pair.Cons(ToDatum(car), ToDatum(s));
+    //             case SyntaxPair sp:
+    //                 return Pair.Cons(ToDatum(car), ToDatum(sp));
+    //             case IPair pair:
+    //                 return Pair.Cons(ToDatum(car), ToDatum(pair));
+    //             default:
+    //                 throw new NotImplementedException($"unhandled argument type was {p.GetType()}");
+    //         }
+    //
+    // }
 
     private static void AddScope(IForm form, Scope scope)
     {
@@ -188,7 +191,9 @@ public class Syntax : Form {
         
     }
 
-    private string StxPrint() {
+    private string StxPrint()
+    {
+        return $"#<syntax: {Syntax.ToDatum(this).Print()}>";
         var sb = new StringBuilder("#<syntax: ");
         InnerStxPrint(sb);
         sb.Append(">");
