@@ -61,7 +61,7 @@ public class Environment : IEnvironment {
             env._dict.Add(new Symbol("string->symbol"), new Procedure( (Builtin)Builtins.string_to_symbol));
             env._dict.Add(new Symbol("syntax-e"), new Procedure( (Builtin)Builtins.syntax_e));
             env._dict.Add(new Symbol("char?"), new Procedure( (Builtin)Builtins.char_p));
-            env._dict.Add(new Symbol("string?"), new Procedure( (Builtin)String.string_p));
+            env._dict.Add(new Symbol("string?"), new Procedure( (Builtin)Builtins.string_p));
             env._dict.Add(new Symbol("boolean?"), new Procedure( (Builtin)Builtins.boolean_p));
             env._dict.Add(new Symbol("boolean=?"), new Procedure( (ImproperListFunction2)Builtins.boolean_eq_p));
             env._dict.Add(new Symbol("eq?"), new Procedure( (Builtin)Builtins.eq_p));

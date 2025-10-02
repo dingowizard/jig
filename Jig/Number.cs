@@ -1,7 +1,7 @@
 namespace Jig;
 
 public abstract class Number : LiteralExpr {
-    private static bool IsZero(Number n) {
+    public static bool IsZero(Number n) {
         return n switch {
             Integer i => i.Value == 0,
             Float f => f.Value == 0,

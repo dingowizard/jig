@@ -1,6 +1,3 @@
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-
 namespace Jig;
 
 public class ParsedDefine : ParsedForm {

@@ -39,7 +39,7 @@ internal static partial class Builtins {
             clauses.Length == 1 ?
             new Syntax(SyntaxList.FromParams(
                 new Identifier(new Symbol("error")),
-                new Syntax.Literal(new String("match: couldn't find a match."))
+                new Syntax.Literal(new Jig.String("match: couldn't find a match."))
             )) : 
             new Syntax(MakeIfs(x, clauses.Skip(1)));
 

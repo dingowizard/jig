@@ -1,3 +1,4 @@
+using Jig;
 namespace DLR;
 
 public delegate Thunk MacroDelegate(Delegate k, Syntax stx);

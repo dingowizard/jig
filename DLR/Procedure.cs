@@ -1,4 +1,5 @@
-namespace Jig;
+using Jig;
+namespace DLR;
 
 public class Procedure(Delegate d) : LiteralExpr<Delegate>(d) {
     public Thunk? Apply(Delegate k, List args) {

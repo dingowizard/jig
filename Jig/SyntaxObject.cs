@@ -234,7 +234,7 @@ public class Syntax : Form {
     }
 
     public class Literal : Syntax {
-        internal Literal(IForm x, SrcLoc? srcLoc = null) : base (x, srcLoc) {}
+        public Literal(IForm x, SrcLoc? srcLoc = null) : base (x, srcLoc) {}
     }
 
     public override string Print() => StxPrint();

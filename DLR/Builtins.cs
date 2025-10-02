@@ -112,7 +112,7 @@ internal static partial class Builtins {
         if (args is List.NonEmpty properList) {
             if (args.Count() != 1) return Error(k, "char?: expected one argument but got {args.Count()}");
             IForm arg = properList.Car;
-            if (arg is Char) {
+            if (arg is Jig.Char) {
                 return Continuation.ApplyDelegate(k, Bool.True);
             }
             return Continuation.ApplyDelegate(k, Bool.False);
@@ -318,7 +318,7 @@ internal static partial class Builtins {
                 return Error(k, "symbol->string: expected one argument.");
             }
             if (properList.Car is Symbol symbol) {
-                return Continuation.ApplyDelegate(k, new String(symbol.Name));
+                return Continuation.ApplyDelegate(k, new Jig.String(symbol.Name));
             } else {
                 return Error(k, "symbol->string: expected its argument to be a symbol.");
             }
@@ -333,7 +333,7 @@ internal static partial class Builtins {
             if (properList.Count() != 1) {
                 return Error(k, "string->symbol: expected one argument.");
             }
-            if (properList.Car is String str) {
+            if (properList.Car is Jig.String str) {
                 return Continuation.ApplyDelegate(k, new Symbol(str.Value));
             } else {
                 return Error(k, "string->symbol: expected its argument to be a string.");
@@ -480,7 +480,7 @@ internal static partial class Builtins {
         // TODO: cache this search somehow
         Form errorExpr = Program.TopLevel[new Symbol("error")];
         if (errorExpr is Procedure proc) {
-            return proc.Apply(k, List.NewList(new String(msg)));
+            return proc.Apply(k, List.NewList(new Jig.String(msg)));
         } else {
             throw new Exception("error is not bound to a procedure");
         }
@@ -497,7 +497,7 @@ internal static partial class Builtins {
             Console.Error.WriteLine("error: expected at least one argument");
             return Continuation.ApplyDelegate(end, Form.Void);
         }
-        if (args.ElementAt(0) is not String msg)
+        if (args.ElementAt(0) is not Jig.String msg)
         {
             Console.Error.WriteLine($"error: expected first argument to be a string message but got {args.ElementAt(0)}.");
         }

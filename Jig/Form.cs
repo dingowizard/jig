@@ -13,7 +13,7 @@ public abstract class Form : IForm {
 
     public abstract string Print();
 
-    internal static bool IsSymbol(IForm ast)
+    public static bool IsSymbol(IForm ast)
     {
         switch (ast) {
             case Symbol:
@@ -24,7 +24,7 @@ public abstract class Form : IForm {
         }
     }
 
-    internal static bool IsNonEmptyList(IForm ast)
+    public static bool IsNonEmptyList(IForm ast)
     {
         if (ast is Syntax stx) {
             if (Syntax.E(stx) is List list) {
@@ -34,9 +34,8 @@ public abstract class Form : IForm {
         return ast is List.NonEmpty;
     }
 
-    
 
-    internal static bool IsKeyword(string name, IForm ast) {
+    public static bool IsKeyword(string name, IForm ast) {
         switch (ast) {
             case Syntax stx when Syntax.E(stx) is List list: {
                 if (list is IEmptyList) {

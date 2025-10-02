@@ -54,5 +54,5 @@ public class Identifier : Syntax {
         return hash;
     }
 
-    internal HashSet<Scope> ScopeSet {get; private set;}
+    public HashSet<Scope> ScopeSet {get; private set;}
 }
