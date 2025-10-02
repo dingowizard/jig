@@ -2,7 +2,7 @@ using System.Collections;
 
 namespace Jig;
 
-public abstract class List : Form, IEnumerable<IForm>, IList
+public abstract class List : SchemeValue, IEnumerable<ISchemeValue>, IList
 {
     public Bool NullP => this is IEmptyList ? Bool.True : Bool.False;
 
@@ -10,13 +10,13 @@ public abstract class List : Form, IEnumerable<IForm>, IList
 
     public static Empty Null { get; } = new Empty();
 
-    public override string Print() => $"({string.Join(" ", this.Select<IForm, string>(x => x.Print()))})";
+    public override string Print() => $"({string.Join(" ", this.Select<ISchemeValue, string>(x => x.Print()))})";
 
-    public static List Cons(IForm car, List cdr) {
+    public static List Cons(ISchemeValue car, List cdr) {
         return new NonEmpty(car, cdr);
     }
 
-    public static List NewList(params IForm[] args)
+    public static List NewList(params ISchemeValue[] args)
     {
         List result = Null;
         for (int index = args.Length - 1; index >= 0; index--)
@@ -26,11 +26,11 @@ public abstract class List : Form, IEnumerable<IForm>, IList
         return result;
     }
 
-    public static List ListFromEnumerable(IEnumerable<IForm> elements)
+    public static List ListFromEnumerable(IEnumerable<ISchemeValue> elements)
     {
         // WARNING: vs code says no references, but at runtime something uses method reflection to find and cache it
         List result = Null;
-        var enumerable = elements as IForm[] ?? elements.ToArray();
+        var enumerable = elements as ISchemeValue[] ?? elements.ToArray();
         for (int index = enumerable.Length - 1; index >= 0; index--)
         {
             result = new NonEmpty(enumerable.ElementAt(index), result);
@@ -48,7 +48,7 @@ public abstract class List : Form, IEnumerable<IForm>, IList
 
     }
 
-    public class NonEmpty(IForm car, List cdr) : List, INonEmptyList
+    public class NonEmpty(ISchemeValue car, List cdr) : List, INonEmptyList
     {
         public override bool Equals(object? obj)
         {
@@ -61,14 +61,14 @@ public abstract class List : Form, IEnumerable<IForm>, IList
         }
 
 
-        public IForm First { get; } = car;
+        public ISchemeValue First { get; } = car;
         public List Rest { get; } = cdr;
-        public IForm Cdr => Rest;
-        public IForm Car => First;
+        public ISchemeValue Cdr => Rest;
+        public ISchemeValue Car => First;
 
-        IForm IPair.Car => Car;
+        ISchemeValue IPair.Car => Car;
 
-        IForm IPair.Cdr => Cdr;
+        ISchemeValue IPair.Cdr => Cdr;
 
         IList INonEmptyList.Rest => Rest;
 
@@ -80,7 +80,7 @@ public abstract class List : Form, IEnumerable<IForm>, IList
     }
 
 
-    public IEnumerator<IForm> GetEnumerator()
+    public IEnumerator<ISchemeValue> GetEnumerator()
     {
         IList theList = this;
         while (theList is INonEmptyList nonEmptyList)
@@ -110,7 +110,7 @@ public abstract class List : Form, IEnumerable<IForm>, IList
         return hash;
     }
 
-    public IForm Append(IForm x) {
+    public ISchemeValue Append(ISchemeValue x) {
         if (this is INonEmptyList l) {
             return x switch {
                 IEmptyList => this,
@@ -144,9 +144,9 @@ public abstract class List : Form, IEnumerable<IForm>, IList
 }
 
 public static partial class IEnumerableExtensions {
-    public static List ToJigList(this IEnumerable<IForm> elements) {
+    public static List ToJigList(this IEnumerable<ISchemeValue> elements) {
         List result = List.Null;
-        var enumerable = elements as IForm[] ?? elements.ToArray();
+        var enumerable = elements as ISchemeValue[] ?? elements.ToArray();
         for (int index = enumerable.Length - 1; index >= 0; index--) {
             result = new List.NonEmpty(enumerable.ElementAt(index), result);
         }

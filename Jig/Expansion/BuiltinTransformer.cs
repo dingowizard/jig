@@ -41,14 +41,14 @@ public class BuiltinTransformer  : Transformer {
             throw new Exception($"quasiquote: expected exactly one argument");
         }
         Syntax arg = stxList.ElementAt<Syntax>(1);
-        IForm argE = Syntax.E(arg);
+        ISchemeValue argE = Syntax.E(arg);
         if (argE is List.Empty ||
             argE is not IPair) {
             return new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("quote")),
                                                       arg),
                                 stx.SrcLoc);
         } else if (argE is SyntaxList stxListArg) {
-            if (Form.IsKeyword("unquote", arg)) { // (quasiquote (unquote x))
+            if (SchemeValue.IsKeyword("unquote", arg)) { // (quasiquote (unquote x))
                 if (stxListArg.Count<Syntax>() != 2) {
                     throw new Exception($"unquote: expected exactly one argument. Got {stxListArg.Count<Syntax>() - 1}");
                 } else {
@@ -66,7 +66,7 @@ public class BuiltinTransformer  : Transformer {
                                     stx.SrcLoc);
 
             } else if (Syntax.E(stxListArg.ElementAt<Syntax>(0)) is SyntaxList slist) { // (quasiquote ((car . cdr) . rest))
-                if (Form.IsKeyword("unquote-splicing", stxListArg.ElementAt<Syntax>(0))) {
+                if (SchemeValue.IsKeyword("unquote-splicing", stxListArg.ElementAt<Syntax>(0))) {
                     // (append (car (cdr slist) (quasiquote rest))
                     if (slist.Count<Syntax>() != 2) {
                         throw new Exception("unquote-splicing: expected exactly one argument.");

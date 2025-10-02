@@ -27,13 +27,13 @@ public class Evaluator : IEvaluator<Machine> {
         }
         var compiler = new VM.Compiler(); // should class be static?
         var code = compiler.CompileExprForREPL(transformerLambdaExpr, Environment);
-        IForm result = List.Null;
+        ISchemeValue result = List.Null;
         Runtime.Load(code, Environment, Cont);
         Runtime.Run();
         Procedure proc = result as Procedure ?? throw new Exception("a transformer shold evaluate to a procedure");
         return new Transformer(proc, Runtime);
         
-        void Cont(Form[] forms) => result = forms[0];
+        void Cont(SchemeValue[] forms) => result = forms[0];
     }
     
     

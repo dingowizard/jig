@@ -1,7 +1,7 @@
 
 namespace Jig;
 
-public class Pair<T, U> :  Pair, IPair<T, U> where T : Form where U : Form {
+public class Pair<T, U> :  Pair, IPair<T, U> where T : SchemeValue where U : SchemeValue {
     public Pair (T car, U cdr) : base(car,cdr) {
         Car = car;
         Cdr = cdr;

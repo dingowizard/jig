@@ -5,12 +5,12 @@ public delegate Thunk MacroDelegate(Delegate k, Syntax stx);
 
 public class Transformer : LiteralExpr<Delegate> {
     public Transformer(Delegate del) : base (del) {
-        TransformerDelegate = del as Func<Delegate, Form, Thunk?> ?? throw new Exception($"Transfomer must be a lambda that takes a single argment (got {del})");
+        TransformerDelegate = del as Func<Delegate, SchemeValue, Thunk?> ?? throw new Exception($"Transfomer must be a lambda that takes a single argment (got {del})");
     }
 
     public Syntax Apply(Syntax stx) {
         // Console.WriteLine($"\tto {stx} @ {stx.SrcLoc}");
-        IForm? result = null;
+        ISchemeValue? result = null;
         Continuation.OneArgDelegate setResult =  Thunk? (x) => {result = x; return null;};
         Thunk? thunk = TransformerDelegate(setResult, stx);
         // TODO: this seems crazy
@@ -24,7 +24,7 @@ public class Transformer : LiteralExpr<Delegate> {
 
     }
 
-     Func<Delegate, Form, Thunk?> TransformerDelegate {get;}
+     Func<Delegate, SchemeValue, Thunk?> TransformerDelegate {get;}
 
     public override string Print() => "#<transformer>";
 }

@@ -3,16 +3,16 @@ using System.Text;
 
 namespace Jig;
 
-public class Syntax : Form {
+public class Syntax : SchemeValue {
     // TODO: should this be an interface rather than a class? then e.g. Identifier : Symbol, ISyntaxObject
     //
 
-    public static IForm E(Syntax stx) {
+    public static ISchemeValue E(Syntax stx) {
         return stx.Expression;
     }
 
 
-    public static IForm ToDatum(Syntax stx) {
+    public static ISchemeValue ToDatum(Syntax stx) {
         if (stx is Identifier id) {
             return id.Symbol;
         }
@@ -26,7 +26,7 @@ public class Syntax : Form {
             case SyntaxPair stxPair:
                 return Pair.Cons(ToDatum(stxPair.Car), ToDatum(stxPair.Cdr));
             case SyntaxList stxList:
-                return stxList.Select<Syntax, IForm>(ToDatum).ToJigList();
+                return stxList.Select<Syntax, ISchemeValue>(ToDatum).ToJigList();
             // case IPair p:
             //     return ToDatum(p);
             // case List list: {
@@ -56,9 +56,9 @@ public class Syntax : Form {
     //
     // }
 
-    private static void AddScope(IForm form, Scope scope)
+    private static void AddScope(ISchemeValue schemeValue, Scope scope)
     {
-        switch (form)
+        switch (schemeValue)
         {
             case Syntax stx:
                 AddScope(stx, scope);
@@ -87,11 +87,11 @@ public class Syntax : Form {
         return;
     }
 
-    private static void RemoveScope(IForm form, Scope scope) {
-        if (form is Syntax stx) {
+    private static void RemoveScope(ISchemeValue schemeValue, Scope scope) {
+        if (schemeValue is Syntax stx) {
             RemoveScope(stx, scope);
             return;
-        } else if (form is IPair pair) {
+        } else if (schemeValue is IPair pair) {
             RemoveScope(pair.Car, scope);
             RemoveScope(pair.Cdr, scope);
             return;
@@ -116,11 +116,11 @@ public class Syntax : Form {
         return;
     }
 
-    private static void ToggleScope(IForm form, Scope scope) {
-        if (form is Syntax stx) {
+    private static void ToggleScope(ISchemeValue schemeValue, Scope scope) {
+        if (schemeValue is Syntax stx) {
             ToggleScope(stx, scope);
             return;
-        } else if (form is IPair pair) {
+        } else if (schemeValue is IPair pair) {
             ToggleScope(pair.Car, scope);
             ToggleScope(pair.Cdr, scope);
             return;
@@ -148,7 +148,7 @@ public class Syntax : Form {
     }
 
     public static bool ToList(Syntax stx, [NotNullWhen(returnValue: true)] out SyntaxList? stxList) {
-        IForm e = Syntax.E(stx);
+        ISchemeValue e = Syntax.E(stx);
         if (e is SyntaxList slist) {
             stxList = slist;
             return true;
@@ -200,7 +200,7 @@ public class Syntax : Form {
         return sb.ToString();
     }
 
-    public static Syntax FromDatum(SrcLoc? srcLoc, IForm x) {
+    public static Syntax FromDatum(SrcLoc? srcLoc, ISchemeValue x) {
         switch (x) {
             case Syntax stx:
                 return stx;
@@ -216,7 +216,7 @@ public class Syntax : Form {
             case List list:
                 return new Syntax(SyntaxList.FromIEnumerable(list.Select(x => Syntax.FromDatum(srcLoc, x))), srcLoc);
             case IPair pair:
-                return new Syntax((Form)Pair.Cons(FromDatum(srcLoc, pair.Car),
+                return new Syntax((SchemeValue)Pair.Cons(FromDatum(srcLoc, pair.Car),
                                                  FromDatum(srcLoc, pair.Cdr)),
                                   srcLoc);
             default:
@@ -225,7 +225,7 @@ public class Syntax : Form {
     }
 
 
-    public Syntax(IForm expr, SrcLoc? srcLoc = null) {
+    public Syntax(ISchemeValue expr, SrcLoc? srcLoc = null) {
         if (expr is List list) {
             
         }
@@ -234,14 +234,14 @@ public class Syntax : Form {
     }
 
     public class Literal : Syntax {
-        public Literal(IForm x, SrcLoc? srcLoc = null) : base (x, srcLoc) {}
+        public Literal(ISchemeValue x, SrcLoc? srcLoc = null) : base (x, srcLoc) {}
     }
 
     public override string Print() => StxPrint();
 
     public override string ToString() => StxPrint();
 
-    internal virtual IForm Expression {get;}
+    internal virtual ISchemeValue Expression {get;}
 
     public SrcLoc? SrcLoc {get;}
     // public LexicalContext LexicalContext {get;}

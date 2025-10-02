@@ -104,7 +104,7 @@ public class MacroExpander {
             return quoteSyntaxExpr;
         }
         if (Syntax.E(stx) is SyntaxList stxList) {
-            if (Form.IsKeyword("define-syntax", stx)) {
+            if (SchemeValue.IsKeyword("define-syntax", stx)) {
                 return ExpandDefineSyntax(stx.SrcLoc, stxList, ee);
             } else {
                 return ExpandApplication(stx, stxList, ee, once);
@@ -137,7 +137,7 @@ public class MacroExpander {
     private static Transformer EvaluateTransformer(ParsedLambda lambdaExprSyntax) {
         Procedure procedure = Program.EvalNonCPSNoExpand(lambdaExprSyntax) as Procedure ??
             throw new Exception($"define-syntax: second argument should evaluate to a transformer.");
-        return new Transformer(procedure.Value as Func<Delegate, Form, Thunk> ??
+        return new Transformer(procedure.Value as Func<Delegate, SchemeValue, Thunk> ??
             throw new Exception($"define-syntax: second argument should be a transformer (got {procedure.Value})"));
     }
 
@@ -199,7 +199,7 @@ public class ExpansionEnvironment {
 
     public int VarIndex = 0;
 
-    private static Thunk? match_macro(Delegate k, Form arg) {
+    private static Thunk? match_macro(Delegate k, SchemeValue arg) {
         Syntax stx = arg as Syntax ?? throw new Exception($"match: expected syntax, got {arg.GetType()}");
         SyntaxList stxList = Syntax.E(stx) as SyntaxList ?? throw new Exception("match: syntax should expand to list");
         if (stxList.Count<Syntax>() < 2) throw new Exception(); // TODO: this should be a syntax error
@@ -265,7 +265,7 @@ public class ExpansionEnvironment {
     }
 
 
-    private static SyntaxList Flatten(IForm x) {
+    private static SyntaxList Flatten(ISchemeValue x) {
 
         switch (x) {
             case IEmptyList: return SyntaxList.Null;
@@ -284,7 +284,7 @@ public class ExpansionEnvironment {
         if (patterns.ElementAt<Syntax>(0) is Identifier q && q.Symbol.Name == "quote-syntax") {
             return SyntaxList.Null;
         }
-        System.Collections.Generic.List<IForm> result = [];
+        System.Collections.Generic.List<ISchemeValue> result = [];
         for (int i = 0; i < patterns.Count<Syntax>(); i++){
             result.Add(ArgsForLambdaForMatchClauseThen(NthElementOfList(i, x), patterns.ElementAt<Syntax>(i)));
         }
@@ -292,7 +292,7 @@ public class ExpansionEnvironment {
 
     }
 
-    private static IForm ArgsForLambdaForMatchClauseThen(Syntax x, Syntax pattern)
+    private static ISchemeValue ArgsForLambdaForMatchClauseThen(Syntax x, Syntax pattern)
     {
         return Syntax.E(pattern) switch
         {
@@ -305,7 +305,7 @@ public class ExpansionEnvironment {
             _ => throw new NotImplementedException(),
         };
     }
-    private static IForm ArgsForLambdaForMatchClauseThen(Syntax x, IPair pair) {
+    private static ISchemeValue ArgsForLambdaForMatchClauseThen(Syntax x, IPair pair) {
         return Pair.Cons(
                 ArgsForLambdaForMatchClauseThen(
                     x: new Syntax(SyntaxList.FromParams(
@@ -319,7 +319,7 @@ public class ExpansionEnvironment {
                     pattern: pair.Cdr));
     }
 
-    private static IForm ArgsForLambdaForMatchClauseThen(Syntax x, IForm pattern) {
+    private static ISchemeValue ArgsForLambdaForMatchClauseThen(Syntax x, ISchemeValue pattern) {
         if (pattern is Syntax stx) {
             return ArgsForLambdaForMatchClauseThen(x, stx);
         } else if (pattern is IPair p) {
@@ -329,20 +329,20 @@ public class ExpansionEnvironment {
         }
     }
 
-    private static IForm ParamsFromPattern(Syntax pattern) {
+    private static ISchemeValue ParamsFromPattern(Syntax pattern) {
         switch (Syntax.E(pattern)) {
             case Number: return List.Null;
             case Bool: return List.Null;
             case List.Empty: return List.Null;
             case Symbol: return pattern;
             case SyntaxList stxList:
-                if (Form.IsKeyword("quote", pattern)) {
+                if (SchemeValue.IsKeyword("quote", pattern)) {
                     return List.Null;
                 }
-                if (Form.IsKeyword("quote-syntax", pattern)) {
+                if (SchemeValue.IsKeyword("quote-syntax", pattern)) {
                     return List.Null;
                 }
-                System.Collections.Generic.List<IForm> res = [];
+                System.Collections.Generic.List<ISchemeValue> res = [];
                 foreach (Syntax s in stxList.Cast<Syntax>()) {
                     res.Add(ParamsFromPattern(s));
                 }
@@ -355,10 +355,10 @@ public class ExpansionEnvironment {
 
     }
 
-    private static IForm ParamsFromPattern(IForm form) {
-        if (form is Syntax stx) {
+    private static ISchemeValue ParamsFromPattern(ISchemeValue schemeValue) {
+        if (schemeValue is Syntax stx) {
             return ParamsFromPattern(stx);
-        } else if (form is IPair pair) {
+        } else if (schemeValue is IPair pair) {
             return ParamsFromPattern(pair);
         } else {
             throw new NotImplementedException();
@@ -366,7 +366,7 @@ public class ExpansionEnvironment {
 
     }
 
-    private static IForm ParamsFromPattern(IPair pair) {
+    private static ISchemeValue ParamsFromPattern(IPair pair) {
         return Pair.Cons(ParamsFromPattern(pair.Car), ParamsFromPattern(pair.Cdr));
     }
 
@@ -419,7 +419,7 @@ public class ExpansionEnvironment {
         return new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("car")), x));
     }
 
-    private static Syntax MakeConditionForMatchClause(Syntax x, IForm car, IForm cdr) {
+    private static Syntax MakeConditionForMatchClause(Syntax x, ISchemeValue car, ISchemeValue cdr) {
         // TODO: Pair<Syntax> type?
         Syntax carSyntax = car as Syntax ?? throw new Exception();
         if (cdr is Syntax cdrSyntax) {
@@ -487,7 +487,7 @@ public class ExpansionEnvironment {
         ));
     }
 
-    private static Thunk? and_macro(Delegate k, Form x) {
+    private static Thunk? and_macro(Delegate k, SchemeValue x) {
         Syntax stx = x as Syntax ?? throw new Exception($"and: expected syntax, got {x.GetType()}");
         Syntax result;
         SyntaxList stxList = Syntax.E(stx) as SyntaxList ?? throw new Exception("and: syntax should expand to list");
@@ -515,7 +515,7 @@ public class ExpansionEnvironment {
 
     }
 
-    private static Thunk? quasiquote_macro(Delegate k, Form x) {
+    private static Thunk? quasiquote_macro(Delegate k, SchemeValue x) {
         Syntax stx = x as Syntax ?? throw new Exception($"quasiquote: expected syntax, got {x.GetType()}");
         SyntaxList stxList = Syntax.E(stx) as SyntaxList ?? throw new Exception("quasiquote: syntax should expand to list");
         Syntax result;
@@ -523,14 +523,14 @@ public class ExpansionEnvironment {
             throw new Exception($"quasiquote: expected exactly one argument");
         }
         Syntax arg = stxList.ElementAt<Syntax>(1);
-        IForm argE = Syntax.E(arg);
+        ISchemeValue argE = Syntax.E(arg);
         if (argE is List.Empty ||
             argE is not IPair) {
             result = new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("quote")),
                                                       arg),
                                 stx.SrcLoc);
         } else if (argE is SyntaxList stxListArg) {
-            if (Form.IsKeyword("unquote", arg)) { // (quasiquote (unquote x))
+            if (SchemeValue.IsKeyword("unquote", arg)) { // (quasiquote (unquote x))
                 if (stxListArg.Count<Syntax>() != 2) {
                     throw new Exception($"unquote: expected exactly one argument. Got {stxListArg.Count<Syntax>() - 1}");
                 } else {
@@ -548,7 +548,7 @@ public class ExpansionEnvironment {
                                     stx.SrcLoc);
 
             } else if (Syntax.E(stxListArg.ElementAt<Syntax>(0)) is SyntaxList slist) { // (quasiquote ((car . cdr) . rest))
-                if (Form.IsKeyword("unquote-splicing", stxListArg.ElementAt<Syntax>(0))) {
+                if (SchemeValue.IsKeyword("unquote-splicing", stxListArg.ElementAt<Syntax>(0))) {
                     // (append (car (cdr slist) (quasiquote rest))
                     if (slist.Count<Syntax>() != 2) {
                         throw new Exception("unquote-splicing: expected exactly one argument.");
@@ -587,7 +587,7 @@ public class ExpansionEnvironment {
         return Continuation.ApplyDelegate(k, result);
 
     }
-internal static Thunk? syntax_rules_macro(Delegate k, Form arg) {
+internal static Thunk? syntax_rules_macro(Delegate k, SchemeValue arg) {
             if (arg is not Syntax stx) {
                 throw new Exception($"syntax-rules: was passed {arg.Print()}, which is not a syntax object");
             }
@@ -635,11 +635,11 @@ internal static Thunk? syntax_rules_macro(Delegate k, Form arg) {
 
     public static ExpansionEnvironment Default {get;} =
         new ExpansionEnvironment(new Dictionary<Symbol, Transformer>{
-            {new Symbol("and"), new Transformer((Func<Delegate, Form, Thunk?>) and_macro)},
-            {new Symbol("match"), new Transformer((Func<Delegate, Form, Thunk?>) match_macro)},
-            {new Symbol("match-syntax"), new Transformer((Func<Delegate, Form, Thunk?>) Builtins.match_syntax_macro)},
-            {new Symbol("quasiquote"), new Transformer((Func<Delegate, Form, Thunk?>) quasiquote_macro)},
-            {new Symbol("syntax-rules"), new Transformer((Func<Delegate, Form, Thunk?>) syntax_rules_macro)},
+            {new Symbol("and"), new Transformer((Func<Delegate, SchemeValue, Thunk?>) and_macro)},
+            {new Symbol("match"), new Transformer((Func<Delegate, SchemeValue, Thunk?>) match_macro)},
+            {new Symbol("match-syntax"), new Transformer((Func<Delegate, SchemeValue, Thunk?>) Builtins.match_syntax_macro)},
+            {new Symbol("quasiquote"), new Transformer((Func<Delegate, SchemeValue, Thunk?>) quasiquote_macro)},
+            {new Symbol("syntax-rules"), new Transformer((Func<Delegate, SchemeValue, Thunk?>) syntax_rules_macro)},
             }
         );
 

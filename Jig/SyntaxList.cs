@@ -33,13 +33,13 @@ public abstract class SyntaxList : List<Syntax> {
 
         Syntax IPair<Syntax, IList<Syntax>>.Car => First;
 
-        IForm IPair.Car => First;
+        ISchemeValue IPair.Car => First;
 
         IList<Syntax> IPair<Syntax, IList<Syntax>>.Cdr => Rest;
 
-        IForm IPair.Cdr => Rest;
+        ISchemeValue IPair.Cdr => Rest;
 
-        IForm INonEmptyList.First => First;
+        ISchemeValue INonEmptyList.First => First;
 
         public override bool Equals(object? obj) => obj switch {
             null => false,

@@ -17,7 +17,7 @@ internal static partial class Builtins {
         if (index < codes.Length) {
             return codes[index]((Continuation.OneArgDelegate)K2, env);
 
-            Thunk? K2(IForm arg) => map_internal((rest) => k(Pair.Cons(arg, (List)rest)), env, codes, index + 1);
+            Thunk? K2(ISchemeValue arg) => map_internal((rest) => k(Pair.Cons(arg, (List)rest)), env, codes, index + 1);
         } else {
             return k(List.Null);
         }
@@ -65,7 +65,7 @@ internal static partial class Builtins {
                 
             }
 
-            var arrays = new System.Collections.Generic.List<IForm[]>() { xs.ToArray() };
+            var arrays = new System.Collections.Generic.List<ISchemeValue[]>() { xs.ToArray() };
 
             foreach (var form in ls.Rest) {
                 if (form is not List ys) {
@@ -79,7 +79,7 @@ internal static partial class Builtins {
             if (arrays.Skip(1).Any(arr => arr.Length != length)) {
                 return Error(k, $"map: list arguments should all be the same length.");
             }
-            var result = new IForm[length];
+            var result = new ISchemeValue[length];
             for (var i = 0; i < length; i++) {
                 var i1 = i;
                 var v = proc.ApplyNonCPS( arrays.Select(a => a[i1]).ToJigList());
@@ -98,7 +98,7 @@ internal static partial class Builtins {
 
     public static  Thunk? nullP (Delegate k, List args) {
         if (args is INonEmptyList properList) {
-            IForm arg = properList.Car;
+            ISchemeValue arg = properList.Car;
             if (arg is IList list) {
                 return Continuation.ApplyDelegate(k, list.NullP);
             }
@@ -111,7 +111,7 @@ internal static partial class Builtins {
     public static Thunk? char_p(Delegate k, List args) {
         if (args is List.NonEmpty properList) {
             if (args.Count() != 1) return Error(k, "char?: expected one argument but got {args.Count()}");
-            IForm arg = properList.Car;
+            ISchemeValue arg = properList.Car;
             if (arg is Jig.Char) {
                 return Continuation.ApplyDelegate(k, Bool.True);
             }
@@ -160,7 +160,7 @@ internal static partial class Builtins {
     }
 
 
-    public static Thunk? numEq(Delegate k, IForm first, List args) {
+    public static Thunk? numEq(Delegate k, ISchemeValue first, List args) {
         if (first is Number n1) {
             foreach (var arg in args) {
                 if (arg is Number n2) {
@@ -187,8 +187,8 @@ internal static partial class Builtins {
             if (properList.Count() != 2) {
                 return Error(k, "eq?: expected two arguments");
             }
-            IForm first = args.ElementAt(0);
-            IForm second = args.ElementAt(1);
+            ISchemeValue first = args.ElementAt(0);
+            ISchemeValue second = args.ElementAt(1);
             bool result = first is IPair ? Object.ReferenceEquals(first, second) : first.Equals(second);
             return Continuation.ApplyDelegate(k, result ? Bool.True : Bool.False);
         } else {
@@ -202,8 +202,8 @@ internal static partial class Builtins {
             if (!properList.Length.Equals(Integer.Two)) {
                 return Error(k, "eqv?: expected two arguments");
             }
-            IForm first = args.ElementAt(0);
-            IForm second = args.ElementAt(1);
+            ISchemeValue first = args.ElementAt(0);
+            ISchemeValue second = args.ElementAt(1);
             // Console.WriteLine($"eqv?: testing {first.Print()}, a {first.GetType()}, against {second.Print()}, a {second.GetType()}");
             bool result = first.Equals(second);
             return Continuation.ApplyDelegate(k, result ? Bool.True : Bool.False);
@@ -218,8 +218,8 @@ internal static partial class Builtins {
             if (properList.Count() != 2) {
                 return Error(k, "cons: expected two arguments");
             }
-            IForm car = args.ElementAt(0);
-            IForm cdr = args.ElementAt(1);
+            ISchemeValue car = args.ElementAt(0);
+            ISchemeValue cdr = args.ElementAt(1);
             IPair result = Pair.Cons(car, cdr);
             return Continuation.ApplyDelegate(k, result);
         } else {
@@ -230,11 +230,11 @@ internal static partial class Builtins {
     public static Thunk? append(Delegate k, IList args) {
         // TODO: this is inefficient because Append needs to run through the accumulator every time it appends another list
         if (args is INonEmptyList xs) {
-            IForm result = xs.Car;
+            ISchemeValue result = xs.Car;
             IList rest = xs.Rest;
             while (rest is INonEmptyList properRest) {
                 if (result is IList firstList) {
-                    IForm second = properRest.Car;
+                    ISchemeValue second = properRest.Car;
                     result = firstList.Append(second);
                     rest = properRest.Rest;
                 } else {
@@ -352,7 +352,7 @@ internal static partial class Builtins {
                 return Error(k, "display: expected one or two but not {properList.Count()} arguments.");
             }
             Console.Write(properList.Car.Print());
-            return Continuation.ApplyDelegate(k, Form.Void);
+            return Continuation.ApplyDelegate(k, SchemeValue.Void);
         } else {
             return Error(k, "display: expected at least one argument.");
         }
@@ -365,10 +365,10 @@ internal static partial class Builtins {
                 return Error(k, "newline: expected zero or one arguments but not {properList.Count()}.");
             }
             Console.WriteLine("");
-            return Continuation.ApplyDelegate(k, Form.Void);
+            return Continuation.ApplyDelegate(k, SchemeValue.Void);
         } else {
             Console.WriteLine("");
-            return Continuation.ApplyDelegate(k, Form.Void);
+            return Continuation.ApplyDelegate(k, SchemeValue.Void);
         }
     }
 
@@ -381,7 +381,7 @@ internal static partial class Builtins {
         if (args.ElementAt(0) is not Procedure proc){
             return Error(k, "call/cc: expected procedure argument but got {args.ElementAt(0)}");
         }
-        if (proc.Value is Func<Delegate, Form, Thunk> del) {
+        if (proc.Value is Func<Delegate, SchemeValue, Thunk> del) {
             return del(k, new Continuation(k));
         } else {
             return Error(k, "call/cc: expected procedure with one parameter but got {proc}");
@@ -390,7 +390,7 @@ internal static partial class Builtins {
 
     // public static void dynamic_wind(Delegate k, List args) {}
 
-    public static Thunk? apply (Delegate k, IForm x, List args) {
+    public static Thunk? apply (Delegate k, ISchemeValue x, List args) {
         // Console.WriteLine($"in Builtins.apply: applying {x} to {args}");
         if (x is Continuation cont) {
             return cont.Apply(args);
@@ -471,14 +471,14 @@ internal static partial class Builtins {
         }
     }
 
-    internal static Thunk? Error(Delegate k, string msg, params Form[] rest) {
+    internal static Thunk? Error(Delegate k, string msg, params SchemeValue[] rest) {
         // the reason we have to look up "error" in the global environment is that
         // in prelude we redefine error so that it uses the redefined call/cc that unwinds winders
         // otherwise *current-exception-handlers* isn't restored properly
         //
         // TODO: should we use raise or raise-continuable in builtins instead?
         // TODO: cache this search somehow
-        Form errorExpr = Program.TopLevel[new Symbol("error")];
+        SchemeValue errorExpr = Program.TopLevel[new Symbol("error")];
         if (errorExpr is Procedure proc) {
             return proc.Apply(k, List.NewList(new Jig.String(msg)));
         } else {
@@ -495,7 +495,7 @@ internal static partial class Builtins {
         Continuation.OneArgDelegate end = (_) => null;
         if (!args.Any()) {
             Console.Error.WriteLine("error: expected at least one argument");
-            return Continuation.ApplyDelegate(end, Form.Void);
+            return Continuation.ApplyDelegate(end, SchemeValue.Void);
         }
         if (args.ElementAt(0) is not Jig.String msg)
         {
@@ -505,7 +505,7 @@ internal static partial class Builtins {
         {
             Console.Error.WriteLine(msg);
         }
-        return Continuation.ApplyDelegate(end, Form.Void);
+        return Continuation.ApplyDelegate(end, SchemeValue.Void);
     }
 
     public static Thunk? vector(Delegate k, List args) {
@@ -605,7 +605,7 @@ internal static partial class Builtins {
         if (args.Count() != 2) return Error(k, $"vector-ref: expected two arguments but got {args.Count()}");
         if (args.ElementAt(0) is Vector v) {
             if (args.ElementAt(1) is Integer i) {
-                if (v.TryGetAtIndex(i, out IForm? result)) {
+                if (v.TryGetAtIndex(i, out ISchemeValue? result)) {
                     return Continuation.ApplyDelegate(k, result);
                 } else {
                     return Error(k, $"vector-ref: {i} is not a valid index.");
@@ -641,7 +641,7 @@ internal static partial class Builtins {
         
         if (args is List.NonEmpty properList) {
             if (args.Count() != 1) return Builtins.Error(k, "boolean?: expected one argument but got {args.Count()}");
-            IForm arg = properList.Car;
+            ISchemeValue arg = properList.Car;
             if (arg is Bool) {
                 return Continuation.ApplyDelegate(k, Bool.True);
             }
@@ -652,7 +652,7 @@ internal static partial class Builtins {
         }
     }
 
-    public static Thunk? boolean_eq_p(Delegate k, IForm arg1, IForm arg2, List args) {
+    public static Thunk? boolean_eq_p(Delegate k, ISchemeValue arg1, ISchemeValue arg2, List args) {
         if (arg1 is Bool b1 && arg2 is Bool b2) {
             if (!b1.Equals(b2)) {
                 return Continuation.ApplyDelegate(k, Bool.False);
@@ -687,7 +687,7 @@ internal static partial class Builtins {
         return Continuation.ApplyDelegate(k, acc);
 
     }
-    public static Thunk? diff(Delegate k, IForm first, List args) {
+    public static Thunk? diff(Delegate k, ISchemeValue first, List args) {
         if (!args.Any()) {
             if (first is Number n) {
                 return Continuation.ApplyDelegate(k, Integer.Zero - n);
@@ -708,7 +708,7 @@ internal static partial class Builtins {
         }
     }
     
-    public static Thunk? divide(Delegate k, IForm first, List args) {
+    public static Thunk? divide(Delegate k, ISchemeValue first, List args) {
         // TODO: (/ 13 2) should yield 6.5 not 6
         // TODO: actually it should yield rational number
         if (!args.Any()) {
@@ -880,7 +880,7 @@ internal static partial class Builtins {
         
         if (args is List.NonEmpty properList) {
             if (args.Count() != 1) return Builtins.Error(k, "string?: expected one argument but got {args.Count()}");
-            IForm arg = properList.Car;
+            ISchemeValue arg = properList.Car;
             if (arg is Jig.String) {
                 return Continuation.ApplyDelegate(k, Bool.True);
             }

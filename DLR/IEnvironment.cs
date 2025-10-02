@@ -4,10 +4,10 @@ namespace DLR;
 
 public interface IEnvironment {
 
-    Thunk? LookUp(Delegate k, Form symbol);
-    Thunk? Define(Delegate k, Form symbol, Form val);
-    Thunk? Set(Delegate k, Form symbol, Form val);
+    Thunk? LookUp(Delegate k, SchemeValue symbol);
+    Thunk? Define(Delegate k, SchemeValue symbol, SchemeValue val);
+    Thunk? Set(Delegate k, SchemeValue symbol, SchemeValue val);
     IEnumerable<Symbol> Symbols {get;}
-    Form this[Symbol symbol] {get;}
+    SchemeValue this[Symbol symbol] {get;}
 
 }

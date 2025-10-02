@@ -1,6 +1,6 @@
 namespace Jig;
 
-public abstract class Form : IForm {
+public abstract class SchemeValue : ISchemeValue {
 
     // TODO: decide whether it makes sense to have all of these as nested classes
 
@@ -13,7 +13,7 @@ public abstract class Form : IForm {
 
     public abstract string Print();
 
-    public static bool IsSymbol(IForm ast)
+    public static bool IsSymbol(ISchemeValue ast)
     {
         switch (ast) {
             case Symbol:
@@ -24,7 +24,7 @@ public abstract class Form : IForm {
         }
     }
 
-    public static bool IsNonEmptyList(IForm ast)
+    public static bool IsNonEmptyList(ISchemeValue ast)
     {
         if (ast is Syntax stx) {
             if (Syntax.E(stx) is List list) {
@@ -35,7 +35,7 @@ public abstract class Form : IForm {
     }
 
 
-    public static bool IsKeyword(string name, IForm ast) {
+    public static bool IsKeyword(string name, ISchemeValue ast) {
         switch (ast) {
             case Syntax stx when Syntax.E(stx) is List list: {
                 if (list is IEmptyList) {
@@ -79,7 +79,7 @@ public abstract class Keyword : Symbol {
     public class Quote : Keyword {
         public Quote() : base("quote") {}
     }
-    public static bool Is<T>(Form car) where T : Keyword => car switch {
+    public static bool Is<T>(SchemeValue car) where T : Keyword => car switch {
             Identifier id => id.Symbol is T,
             Symbol symbol => symbol is T,
             _ => false,

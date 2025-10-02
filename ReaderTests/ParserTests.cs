@@ -39,9 +39,9 @@ public class ParserTests {
         Syntax? stx = Parser.ParseSyntax(tokenStream);
         Assert.IsNotNull(stx);
         Assert.IsInstanceOfType(stx, typeof(Syntax));
-        IForm x = Syntax.E(stx);
+        ISchemeValue x = Syntax.E(stx);
         Assert.IsInstanceOfType(x, typeof(IPair));
-        IForm car = ((IPair)x).Car;
+        ISchemeValue car = ((IPair)x).Car;
         Assert.IsInstanceOfType(car, typeof(Syntax));
         Syntax so = (Syntax)car;
         Assert.AreEqual(new Symbol("abc"), Syntax.ToDatum(so));
@@ -52,8 +52,8 @@ public class ParserTests {
         var tokenStream = new TokenStream(InputPort.FromString("(abc)"));
         Syntax? stx = Parser.ParseSyntax(tokenStream);
         Assert.IsNotNull(stx);
-        IForm x = Syntax.E(stx);
-        IForm cdr = ((IPair) x).Cdr;
+        ISchemeValue x = Syntax.E(stx);
+        ISchemeValue cdr = ((IPair) x).Cdr;
         // Assert.AreEqual(List.Null, cdr);
         Assert.IsInstanceOfType(cdr, typeof(IEmptyList));
     }

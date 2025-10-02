@@ -137,11 +137,11 @@ public static class Program {
     //     vm.Run();
     // }
     //
-    private static void TopLevelContinuation(params Form[] forms) {
+    private static void TopLevelContinuation(params SchemeValue[] forms) {
         foreach (var form in forms) {
-            if (form is not Form.VoidType) Console.WriteLine(form.Print());
+            if (form is not SchemeValue.VoidType) Console.WriteLine(form.Print());
         }
     }
     
-    private static void ThrowAwayAny(params Form[] args) {}
+    private static void ThrowAwayAny(params SchemeValue[] args) {}
 }

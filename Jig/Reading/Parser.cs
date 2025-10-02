@@ -8,7 +8,7 @@ public class Parser {
         return (Syntax?)ParseExpr(tokenStream, syntax: true);
     }
 
-    public static IForm? ParseExpr(TokenStream tokenStream, bool syntax = false) {
+    public static ISchemeValue? ParseExpr(TokenStream tokenStream, bool syntax = false) {
         // TODO: handle comments!
         var peeked = tokenStream.Peek();
         while (peeked is Token.Comment) {
@@ -18,7 +18,7 @@ public class Parser {
         switch (peeked) {
             case Token.Quote quoteToken:
                 tokenStream.Read();
-                IForm? arg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
+                ISchemeValue? arg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
                    return new Syntax(SyntaxList.FromParams(new Identifier(Symbol.FromName("quote"), quoteToken.SrcLoc),
                                                            (Syntax)arg),
@@ -28,7 +28,7 @@ public class Parser {
                 }
             case Token.QuasiQuote quasiquoteToken:
                 tokenStream.Read();
-                IForm? quasiArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
+                ISchemeValue? quasiArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
                    return new Syntax(SyntaxList.FromParams(new Identifier(Symbol.FromName("quasiquote"), quasiquoteToken.SrcLoc),
                                                            (Syntax)quasiArg),
@@ -38,7 +38,7 @@ public class Parser {
                 }
             case Token.UnQuote unquoteToken:
                 tokenStream.Read();
-                IForm? unquoteArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
+                ISchemeValue? unquoteArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
                    return new Syntax(SyntaxList.FromParams(new Identifier(Symbol.FromName("unquote"), unquoteToken.SrcLoc),
                                                            (Syntax)unquoteArg),
@@ -48,7 +48,7 @@ public class Parser {
                 }
             case Token.UnQuoteSplicing unquoteSplicingToken:
                 tokenStream.Read();
-                IForm? unquoteSplicingArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
+                ISchemeValue? unquoteSplicingArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
                    return new Syntax(SyntaxList.FromParams(new Identifier(Symbol.FromName("unquote-splicing"), unquoteSplicingToken.SrcLoc),
                                                            (Syntax)unquoteSplicingArg),
@@ -68,7 +68,7 @@ public class Parser {
                         return List.Null;
                     }
                 }
-                IForm pair =  ParsePair(tokenStream, syntax);
+                ISchemeValue pair =  ParsePair(tokenStream, syntax);
                 if (tokenStream.Peek() is Token.CloseParen close) {
                     tokenStream.Read();
                     if (syntax) {
@@ -96,7 +96,7 @@ public class Parser {
         }
     }
 
-    private static Form ParseString(Token.String str, TokenStream tokenStream, bool syntax) {
+    private static SchemeValue ParseString(Token.String str, TokenStream tokenStream, bool syntax) {
         tokenStream.Read();
         var x = new String(str.Text[1..^1]);
         if (syntax) {
@@ -106,7 +106,7 @@ public class Parser {
         }
     }
 
-    private static Form ParseNumber(Token.Number num, TokenStream tokenStream, bool syntax) {
+    private static SchemeValue ParseNumber(Token.Number num, TokenStream tokenStream, bool syntax) {
         tokenStream.Read();
         if (Int32.TryParse(num.Text, out int i)) {
             if (syntax) {
@@ -125,7 +125,7 @@ public class Parser {
         }
     }
 
-    private static Form ParseChar(Token.Char cTok, TokenStream tokenStream, bool syntax = false) {
+    private static SchemeValue ParseChar(Token.Char cTok, TokenStream tokenStream, bool syntax = false) {
         tokenStream.Read();
         var charExpr = new Char(cTok.Text[2]);
         if (syntax) {
@@ -135,7 +135,7 @@ public class Parser {
         }
     }
 
-    private static Form ParseBool(Token tok, TokenStream tokenStream, bool syntax = false) {
+    private static SchemeValue ParseBool(Token tok, TokenStream tokenStream, bool syntax = false) {
         tokenStream.Read();
         switch (tok) {
             case Token.Bool b:
@@ -161,7 +161,7 @@ public class Parser {
 
     }
 
-    static Form ParseSymbol(Token.Identifier id, TokenStream tokenStream, bool syntax = false) {
+    static SchemeValue ParseSymbol(Token.Identifier id, TokenStream tokenStream, bool syntax = false) {
         var tok = tokenStream.Read();
         Debug.Assert(tok is Token.Identifier);
         Symbol sym = Symbol.FromName(id.Text);
@@ -174,11 +174,11 @@ public class Parser {
         // they should be the same. NOTE: no they shouldn't. they are different syntaxes even though they have the same datum
         // see Racket
         // The first one makes two syntax pairs: (stx-pair (#<stx 1> . #<syntax (stx-pair (#<syntax 2> . #<syntax 3>)))
-        IForm car = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
+        ISchemeValue car = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
         if (syntax && car is not Syntax) {
             Console.WriteLine($"ParsePair: expected car to be syntax but got {car}, a {car.GetType()}");
         }
-        IForm? cdr;
+        ISchemeValue? cdr;
         if (tokenStream.Peek() is Token.Dot) {
             tokenStream.Read();
             cdr = ParseExpr(tokenStream, syntax);

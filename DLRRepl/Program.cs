@@ -96,16 +96,16 @@ public static class Program {
         }
     }
 
-    public static Thunk? Print(params IForm[] exprs) {
+    public static Thunk? Print(params ISchemeValue[] exprs) {
         foreach (var expr in exprs) {
-            if (expr is not Form.VoidType) {
+            if (expr is not SchemeValue.VoidType) {
                 Console.WriteLine(expr.Print());
             }
         }
         return null;
     }
 
-    public static void Eval(Delegate k, IForm ast, IEnvironment? env = null) {
+    public static void Eval(Delegate k, ISchemeValue ast, IEnvironment? env = null) {
         // TODO: should eval return Thunk??
         env ??= Program.TopLevel;
         if (ast is Syntax stx) {
@@ -125,8 +125,8 @@ public static class Program {
         Run(compiled, k, env);
     }
 
-    public static IForm EvalNonCPS(IForm ast, IEnvironment? env = null) {
-        IForm? expr = null;
+    public static ISchemeValue EvalNonCPS(ISchemeValue ast, IEnvironment? env = null) {
+        ISchemeValue? expr = null;
         Continuation.OneArgDelegate setResult = (x) => {expr = x; return null;};
         Eval(setResult, ast, env);
 
@@ -134,8 +134,8 @@ public static class Program {
         return expr;
     }
 
-    public static IForm EvalNonCPSNoExpand(Form ast, IEnvironment? env = null) {
-        IForm? expr = null;
+    public static ISchemeValue EvalNonCPSNoExpand(SchemeValue ast, IEnvironment? env = null) {
+        ISchemeValue? expr = null;
         Continuation.OneArgDelegate setResult = (x) => {expr = x; return null;};
         var compiled = Compiler.Compile(ast);
         Run(compiled, setResult, env ?? Program.TopLevel);

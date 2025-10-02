@@ -22,7 +22,7 @@ public static class Disassembler {
 
     }
     
-    public static string Decode(int lineNo, ulong instr, Jig.Form[] literals, Binding[] bindings) {
+    public static string Decode(int lineNo, ulong instr, Jig.SchemeValue[] literals, Binding[] bindings) {
         OpCode opCode = (OpCode)(instr >> 56);
         ulong operand = instr & 0x00FFFFFFFFFFFFFF;
         int index = (int)(instr & 0x00000000FFFFFFFF);

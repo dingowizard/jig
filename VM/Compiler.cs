@@ -10,7 +10,7 @@ public class Compiler {
         int scopeLevel = 0,
         int startLine = 0) {
 
-        Sys.List<Form> literals = [];
+        Sys.List<SchemeValue> literals = [];
         Sys.List<Binding> bindings = [];
 
         DoFirstPassOneForm(bindings, x, ctEnv);
@@ -26,7 +26,7 @@ public class Compiler {
 
     private ulong[] Compile(ParsedForm x,
         Environment ctEnv,
-        Sys.List<Form> literals,
+        Sys.List<SchemeValue> literals,
         Sys.List<Binding> bindings,
         Context context,
         int scopeLevel,
@@ -62,7 +62,7 @@ public class Compiler {
         return [];
     }
 
-    private ulong[] CompileBegin(ParsedBegin begin, Environment ctEnv, Sys.List<Form> literals,
+    private ulong[] CompileBegin(ParsedBegin begin, Environment ctEnv, Sys.List<SchemeValue> literals,
         Sys.List<Binding> bindings,
         Context context, int scopeLevel, int startLine)
     {
@@ -85,7 +85,7 @@ public class Compiler {
 
     private ulong[] CompileSet(ParsedSet setForm,
         Environment ctEnv,
-        Sys.List<Form> literals,
+        Sys.List<SchemeValue> literals,
         Sys.List<Binding> bindings,
         Context context,
         int scopeLevel,
@@ -121,7 +121,7 @@ public class Compiler {
     
     private ulong[] CompileDefinition(ParsedDefine defForm,
         Environment ctEnv,
-        Sys.List<Form> literals,
+        Sys.List<SchemeValue> literals,
         Sys.List<Binding> bindings,
         Context context,
         int scopeLevel,
@@ -150,10 +150,10 @@ public class Compiler {
             result.InsertRange(0, Compile(defForm.Value, ctEnv, literals, bindings, Context.Argument, scopeLevel, startLine));
         } else {
             // push literal void in cases like "(define a)"
-            if (!literals.Contains(Form.Void)) {
-                literals.Add(Form.Void); 
+            if (!literals.Contains(SchemeValue.Void)) {
+                literals.Add(SchemeValue.Void); 
             }
-            int index = literals.IndexOf(Form.Void);
+            int index = literals.IndexOf(SchemeValue.Void);
             ulong lit = (ulong)OpCode.Lit << 56;
             lit += (ulong)index;
             result.InsertRange(0, [lit, (ulong)OpCode.Push << 56]);
@@ -166,7 +166,7 @@ public class Compiler {
 
     private ulong[] CompileIfExpr(ParsedIf ifExpr,
         Environment ctEnv,
-        Sys.List<Form> literals,
+        Sys.List<SchemeValue> literals,
         Sys.List<Binding> bindings,
         Context context,
         int scopeLevel,
@@ -191,7 +191,7 @@ public class Compiler {
 
     public Template CompileSequence(ParsedForm[] sequence,
         Environment ctEnv,
-        Sys.List<Form> literals,
+        Sys.List<SchemeValue> literals,
         Sys.List<Binding> bindings,
         int scopeLevel,
         int startLine = 0)
@@ -211,10 +211,10 @@ public class Compiler {
 
     public ulong[] CompileLit(
         ParsedLiteral literal,
-        Sys.List<Form> literals,
+        Sys.List<SchemeValue> literals,
         Context context)
     {
-        var constExpr = (Form)Syntax.ToDatum(literal.Quoted);
+        var constExpr = (SchemeValue)Syntax.ToDatum(literal.Quoted);
         if (!literals.Contains(constExpr)) {
            literals.Add(constExpr); 
         }
@@ -251,10 +251,11 @@ public class Compiler {
 
     }
 
-    public ulong[] CompileLexVar(ParsedVariable.Lexical var,
+    public ulong[] CompileLexVar(
+        ParsedVariable.Lexical var,
         Context context,
-        int scopeLevel
-    ) {
+        int scopeLevel )
+    {
 
         ulong code = (ulong)OpCode.Lex << 56;
         int depth = scopeLevel - var.Binding.ScopeLevel;
@@ -294,7 +295,7 @@ public class Compiler {
 
     public ulong[] CompileLambdaExpr(ParsedLambda lambdaExpr,
         Environment ctEnv,
-        Sys.List<Form> literals,
+        Sys.List<SchemeValue> literals,
         Context context,
         int scopeLevel,
         int startLine = 0) {
@@ -337,7 +338,7 @@ public class Compiler {
         var body = CompileSequence(
             lambdaExpr.Bodies,
             ctEnv,
-            new Sys.List<Form>(),
+            new Sys.List<SchemeValue>(),
             bindings,
             ++scopeLevel,
             codes.Count());
@@ -351,7 +352,7 @@ public class Compiler {
 
     public ulong[] CompileApplication(ParsedApplication app,
         Environment ctEnv,
-        Sys.List<Form> literals,
+        Sys.List<SchemeValue> literals,
         Sys.List<Binding> bindings,
         Context context,
         int scopeLevel,
@@ -395,7 +396,7 @@ public class Compiler {
     }
     public Template CompileFile(ParsedForm[] parsedFile, Environment cte) {
         
-        Sys.List<Form> literals = [];
+        Sys.List<SchemeValue> literals = [];
         Sys.List<Binding> bindings = [];
 
         Sys.List<ulong> instructions = [];

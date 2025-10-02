@@ -3,7 +3,7 @@ namespace DLR;
 
 internal static partial class Builtins {
 
-    internal static Thunk? match_syntax_macro(Delegate k, Form arg) {
+    internal static Thunk? match_syntax_macro(Delegate k, SchemeValue arg) {
         Syntax stx = arg as Syntax ?? throw new Exception($"match-syntax: expected syntax, got {arg.GetType()}");
         SyntaxList stxList = Syntax.E(stx) as SyntaxList ?? throw new Exception("match-syntax: syntax should expand to list");
         if (stxList.Count<Syntax>() < 2) throw new Exception(); // TODO: this should be a syntax error
@@ -54,20 +54,20 @@ internal static partial class Builtins {
 
     }
 
-    private static IForm ParamsFromPattern(Syntax pattern) {
+    private static ISchemeValue ParamsFromPattern(Syntax pattern) {
         switch (Syntax.E(pattern)) {
             case Number: return List.Null;
             case Bool: return List.Null;
             case List.Empty: return List.Null;
             case Symbol: return pattern;
             case SyntaxList stxList:
-                if (Form.IsKeyword("quote", pattern)) {
+                if (SchemeValue.IsKeyword("quote", pattern)) {
                     return List.Null;
                 }
-                if (Form.IsKeyword("quote-syntax", pattern)) {
+                if (SchemeValue.IsKeyword("quote-syntax", pattern)) {
                     return List.Null;
                 }
-                System.Collections.Generic.List<IForm> res = [];
+                System.Collections.Generic.List<ISchemeValue> res = [];
                 foreach (Syntax s in stxList.Cast<Syntax>()) {
                     res.Add(ParamsFromPattern(s));
                 }
@@ -79,10 +79,10 @@ internal static partial class Builtins {
         }
 
     }
-    private static IForm ParamsFromPattern(IForm form) {
-        if (form is Syntax stx) {
+    private static ISchemeValue ParamsFromPattern(ISchemeValue schemeValue) {
+        if (schemeValue is Syntax stx) {
             return ParamsFromPattern(stx);
-        } else if (form is IPair pair) {
+        } else if (schemeValue is IPair pair) {
             return ParamsFromPattern(pair);
         } else {
             throw new NotImplementedException();
@@ -90,7 +90,7 @@ internal static partial class Builtins {
 
     }
 
-    private static IForm ParamsFromPattern(IPair pair) {
+    private static ISchemeValue ParamsFromPattern(IPair pair) {
         return Pair.Cons(ParamsFromPattern(pair.Car), ParamsFromPattern(pair.Cdr));
     }
 
@@ -114,7 +114,7 @@ internal static partial class Builtins {
         return new Syntax(result);
     }
 
-    private static SyntaxList Flatten(IForm x) {
+    private static SyntaxList Flatten(ISchemeValue x) {
 
         switch (x) {
             case IEmptyList: return SyntaxList.Null;
@@ -147,7 +147,7 @@ internal static partial class Builtins {
         };
     }
 
-    private static Syntax MakeConditionForMatchClause(Syntax x, IForm car, IForm cdr)
+    private static Syntax MakeConditionForMatchClause(Syntax x, ISchemeValue car, ISchemeValue cdr)
     {
         Syntax carSyntax = car as Syntax ?? throw new Exception();
         if (cdr is Syntax cdrSyntax) {
@@ -211,7 +211,7 @@ internal static partial class Builtins {
         if (patterns.ElementAt<Syntax>(0) is Identifier { Symbol.Name: "quote-syntax" }) {
             return SyntaxList.Null;
         }
-        System.Collections.Generic.List<IForm> result = [];
+        System.Collections.Generic.List<ISchemeValue> result = [];
         for (int i = 0; i < patterns.Count<Syntax>(); i++){
             result.Add(ArgsForLambdaForMatchClauseThen(NthElementOfList(i, x), patterns.ElementAt<Syntax>(i)));
         }
@@ -219,7 +219,7 @@ internal static partial class Builtins {
 
     }
 
-    private static IForm ArgsForLambdaForMatchClauseThen(Syntax x, Syntax pattern)
+    private static ISchemeValue ArgsForLambdaForMatchClauseThen(Syntax x, Syntax pattern)
     {
         return Syntax.E(pattern) switch
         {
@@ -232,7 +232,7 @@ internal static partial class Builtins {
             _ => throw new NotImplementedException(),
         };
     }
-    private static IForm ArgsForLambdaForMatchClauseThen(Syntax x, IPair pair) {
+    private static ISchemeValue ArgsForLambdaForMatchClauseThen(Syntax x, IPair pair) {
         return Pair.Cons(
                 ArgsForLambdaForMatchClauseThen(
                     x: MakeCallFromName("car", x),
@@ -242,7 +242,7 @@ internal static partial class Builtins {
                     pattern: pair.Cdr));
     }
 
-    private static IForm ArgsForLambdaForMatchClauseThen(Syntax x, IForm pattern) {
+    private static ISchemeValue ArgsForLambdaForMatchClauseThen(Syntax x, ISchemeValue pattern) {
         if (pattern is Syntax stx) {
             return ArgsForLambdaForMatchClauseThen(x, stx);
         } else if (pattern is IPair p) {

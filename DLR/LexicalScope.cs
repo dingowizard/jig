@@ -24,15 +24,15 @@ public class LexicalContext {
     private LexicalContext(LexicalContext enclosing, IEnumerable<Symbol> symbols) {
         EnclosingScope = enclosing;
         foreach (var symbol in symbols) {
-            Symbols.Add(new Tuple<Symbol, ParameterExpression>(symbol, Expression.Parameter(typeof(IForm), symbol.Name)));
+            Symbols.Add(new Tuple<Symbol, ParameterExpression>(symbol, Expression.Parameter(typeof(ISchemeValue), symbol.Name)));
         }
     }
 
-    public ParameterExpression ParameterForDefine(IForm x) {
+    public ParameterExpression ParameterForDefine(ISchemeValue x) {
         Symbol sym = x is Identifier id ? id.Symbol : (Symbol)x;
         ParameterExpression? pe = Symbols.Find(tup => tup.Item1.Equals(sym))?.Item2;
         if (pe is null) {
-            pe = Expression.Parameter(typeof(IForm), sym.Name);
+            pe = Expression.Parameter(typeof(ISchemeValue), sym.Name);
             Symbols.Add(new Tuple<Symbol, ParameterExpression>(sym, pe));
             return pe;
         } else {
@@ -41,7 +41,7 @@ public class LexicalContext {
     }
 
 
-    public ParameterExpression? LookUp(IForm x) {
+    public ParameterExpression? LookUp(ISchemeValue x) {
 
         Symbol symbol =
             x is Syntax stx ?

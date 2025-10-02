@@ -4,7 +4,7 @@ namespace VM;
 
 public class SavedContinuation : Continuation {
 
-    public SavedContinuation(Continuation cont, Form[] savedStack, Winders winders) {
+    public SavedContinuation(Continuation cont, SchemeValue[] savedStack, Winders winders) {
         Required = cont.Required;
         HasOptional = cont.HasOptional;
         Saved = cont;
@@ -50,5 +50,5 @@ public class SavedContinuation : Continuation {
     public override int Required { get; }
     public override bool HasOptional { get; }
     
-    public Form[] SavedStack { get; }
+    public SchemeValue[] SavedStack { get; }
 }

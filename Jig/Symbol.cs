@@ -1,6 +1,6 @@
 namespace Jig;
 
-public class Symbol : Form {
+public class Symbol : SchemeValue {
     public static Symbol FromName(string name) => name switch {
         "lambda" => new Keyword.Lambda(),
         "if" => new Keyword.If(),

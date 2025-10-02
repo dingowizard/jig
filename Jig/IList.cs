@@ -2,11 +2,11 @@ using System.Collections;
 
 namespace Jig;
 
-public interface IList : IForm, IEnumerable {
+public interface IList : ISchemeValue, IEnumerable {
     Bool NullP {get;}
     Integer Length {get;}
 
-    IForm Append (IForm x);
+    ISchemeValue Append (ISchemeValue x);
     IList Append (IList l);
 
 }

@@ -4,44 +4,44 @@ namespace VM;
 
 public static class Primitives {
     private static void car(Machine vm) {
-        Form arg = vm.Pop();
+        SchemeValue arg = vm.Pop();
         IPair? pair = arg as IPair;
         if (pair is null) throw new Exception("car: expected argument to be a pair. Got ${arg}");
-        vm.Push(vm.VAL = (Form)pair.Car);
+        vm.Push(vm.VAL = (SchemeValue)pair.Car);
     }
     public static Primitive Car { get; } = new("car", car, 1, false);
 
     private static void cdr(Machine vm) {
-        Form arg = vm.Pop();
+        SchemeValue arg = vm.Pop();
         IPair? pair = arg as IPair;
         if (pair is null) throw new Exception($"cdr: expected argument to be a pair. Got {arg}");
-        vm.Push(vm.VAL = (Form)pair.Cdr);
+        vm.Push(vm.VAL = (SchemeValue)pair.Cdr);
     }
 
     public static Primitive Cdr { get; } = new ("cdr", cdr, 1, false);
     
     private static void cons(Machine vm) {
-        Form car  = vm.Pop();
-        Form cdr  = vm.Pop();
-        vm.Push(vm.VAL = (Form)Pair.Cons(car, cdr));
+        SchemeValue car  = vm.Pop();
+        SchemeValue cdr  = vm.Pop();
+        vm.Push(vm.VAL = (SchemeValue)Pair.Cons(car, cdr));
     }
 
     public static Primitive Cons { get; } = new ("cons", cons, 2, false);
     
     private static void zerop(Machine vm) {
-        Form form = vm.Pop();
-        if (form is Number number) {
+        SchemeValue schemeValue = vm.Pop();
+        if (schemeValue is Number number) {
             vm.Push(vm.VAL = (number == Integer.Zero));
             return;
         }
-        throw new Exception($"zero?: expected argument to be number, got {form}");
+        throw new Exception($"zero?: expected argument to be number, got {schemeValue}");
     }
 
     public static Primitive Eqvp {get;} = new("eqv?", eqvp, 2, false);
 
     private static void eqvp(Machine vm) {
-        Form form1 = vm.Pop();
-        Form form2 = vm.Pop();
+        SchemeValue form1 = vm.Pop();
+        SchemeValue form2 = vm.Pop();
         vm.Push(vm.VAL = form1.Equals(form2) ? Bool.True : Bool.False);
         return;
     }
@@ -51,16 +51,16 @@ public static class Primitives {
     private static void datumToSyntax(Machine vm) {
 
         Syntax source = vm.Pop() as Syntax ?? throw new Exception();
-        IForm f = vm.Pop();
+        ISchemeValue f = vm.Pop();
         vm.Push(vm.VAL = Syntax.FromDatum(source.SrcLoc, f));
         
     }
 
     private static void syntaxToDatum(Machine vm)
     {
-        Form arg = vm.Pop();
+        SchemeValue arg = vm.Pop();
         Syntax stx = arg as Syntax ?? throw new Exception($"syntax->datum: expected a syntax argument, but got {arg}, a {arg.GetType()}");
-        vm.Push(vm.VAL = (Form)Syntax.ToDatum(stx));
+        vm.Push(vm.VAL = (SchemeValue)Syntax.ToDatum(stx));
         
     }
 
@@ -84,9 +84,9 @@ public static class Primitives {
 
     private static void syntaxE(Machine vm) {
 
-        Form arg = vm.Pop();
+        SchemeValue arg = vm.Pop();
         Syntax stx = arg as Syntax ?? throw new Exception($"syntax-e: expected a syntax argument, but got {arg}, a {arg.GetType()}");
-        vm.Push(vm.VAL = (Form)Syntax.E(stx));
+        vm.Push(vm.VAL = (SchemeValue)Syntax.E(stx));
         return;
 
     }
@@ -119,9 +119,9 @@ public static class Primitives {
     public static Primitive Append {get;} = new("append", append, 0, true);
 
     private static void append(Machine vm) {
-        IForm result = List.Null;
+        ISchemeValue result = List.Null;
         while (vm.SP > vm.FP) {
-            Form arg =  (Form)vm.Pop();
+            SchemeValue arg =  (SchemeValue)vm.Pop();
             if (result is List xs) {
                 result = xs.Append(arg);
             } else {
@@ -129,14 +129,14 @@ public static class Primitives {
             }
 
         }
-        vm.VAL = (Form)result;
+        vm.VAL = (SchemeValue)result;
         vm.Push(vm.VAL);
     }
 
     public static Primitive PairP {get;} = new("pair?", pair_p, 1, false);
 
     private static void pair_p(Machine vm) {
-        Form arg = vm.Pop();
+        SchemeValue arg = vm.Pop();
         vm.VAL = arg is IPair ? Bool.True : Bool.False;
         vm.Push(vm.VAL);
         return;
@@ -145,7 +145,7 @@ public static class Primitives {
     public static Primitive ListP {get;} = new("list?", list_p, 1, false);
 
     private static void list_p(Machine vm) {
-        Form arg = vm.Pop();
+        SchemeValue arg = vm.Pop();
         vm.VAL = arg is IList ? Bool.True : Bool.False;
         vm.Push(vm.VAL);
         return;
@@ -156,7 +156,7 @@ public static class Primitives {
         if (vm.SP <= vm.FP) {
             throw new Exception("-: expected at least one argument");
         }
-        Form arg0 = vm.Pop();
+        SchemeValue arg0 = vm.Pop();
         if (vm.SP == vm.FP) {
             vm.Push(vm.VAL = Integer.Zero - (Number)arg0 );
             return;
@@ -173,7 +173,7 @@ public static class Primitives {
 
     private static void apply(Machine vm) {
         var proc = vm.Pop();
-        if (vm.Pop() is not Jig.List<Form> args) {
+        if (vm.Pop() is not Jig.List<SchemeValue> args) {
             throw new Exception("apply: expected argument to be list, got {args}");
         }
 
@@ -214,7 +214,7 @@ public static class Primitives {
             vm.Push(vm.VAL = Bool.True);
             return;
         }
-        Form result = Bool.True;
+        SchemeValue result = Bool.True;
         while (vm.SP != vm.FP) {
             Number n = (Number)vm.Pop();
             if ((arg0 >= n).Value) {
@@ -231,8 +231,8 @@ public static class Primitives {
     public static Primitive ZeroP { get; } = new("zero?", zerop, 1, false);
     
     private static void nullp(Machine vm) {
-        Form form = vm.Pop();
-        if (form is List xs) {
+        SchemeValue schemeValue = vm.Pop();
+        if (schemeValue is List xs) {
             vm.Push(vm.VAL = xs.NullP);
             return;
         }
@@ -257,7 +257,7 @@ public static class Primitives {
     public static Primitive SymbolP { get; } = new("symbol?", symbolp, 1, false);
 
     private static void symbolp(Machine vm) {
-        Form arg = vm.Pop();
+        SchemeValue arg = vm.Pop();
         vm.VAL = arg is Symbol ? Bool.True : Bool.False;
         vm.Push(vm.VAL);
         return;
@@ -267,8 +267,8 @@ public static class Primitives {
     public static Primitive SymbolEqualP { get; } = new("symbol=?", symbolEqualP, 2, false);
 
     private static void symbolEqualP(Machine vm) {
-        Form arg1 = vm.Pop();
-        Form arg2 = vm.Pop();
+        SchemeValue arg1 = vm.Pop();
+        SchemeValue arg2 = vm.Pop();
         Symbol sym1 = arg1 as Symbol ?? throw new Exception("symbol=?: expected both arguments to be symbols");
         Symbol sym2 = arg2 as Symbol ?? throw new Exception("symbol=?: expected both arguments to be symbols");
         vm.VAL = sym1.Equals(sym2) ? Bool.True : Bool.False;
@@ -280,7 +280,7 @@ public static class Primitives {
     public static Primitive Expand { get; } = new("expand", expand, 1, false);
 
     private static void expand(Machine vm) {
-        Form arg = vm.Pop();
+        SchemeValue arg = vm.Pop();
         Syntax? stx = arg as Syntax;
         if (stx is null) {
             stx = Syntax.FromDatum(new SrcLoc(), arg);
@@ -297,7 +297,7 @@ public static class Primitives {
 
 public delegate void PrimitiveProcedure(Machine vm);
 
-public class Primitive : Form
+public class Primitive : SchemeValue
 {
 
     public Primitive(string name, PrimitiveProcedure proc, int required, bool hasRest)

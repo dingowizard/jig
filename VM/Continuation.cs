@@ -2,7 +2,7 @@ using Jig;
 
 namespace VM;
 
-public abstract class Continuation : Form {
+public abstract class Continuation : SchemeValue {
     public override string Print() => "#<continuation>";
 
     public abstract void Pop(Machine machine);

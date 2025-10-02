@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
-using EnvEntry = System.Tuple<Jig.Symbol, Jig.Form, int>;
-using Env = System.Collections.Generic.List<System.Tuple<Jig.Symbol, Jig.Form, int>>;
+using EnvEntry = System.Tuple<Jig.Symbol, Jig.SchemeValue, int>;
+using Env = System.Collections.Generic.List<System.Tuple<Jig.Symbol, Jig.SchemeValue, int>>;
 
 namespace Jig;
 
@@ -34,7 +34,7 @@ internal static partial class Builtins {
         }
         private static List IfsFromClauses(Symbol toMatch, IEnumerable<Clause> clauses) {
             var enumerable = clauses as Clause[] ?? clauses.ToArray();
-            Form elseBranch =
+            SchemeValue elseBranch =
             enumerable.Length == 1 ?
             NewList(NewSym("error"), new String($"syntax-rules: couldn't find a match."), toMatch) :
             IfsFromClauses(toMatch, enumerable.Skip(1));
@@ -61,7 +61,7 @@ internal static partial class Builtins {
             
             private SyntaxList Literals {get;}
 
-            private Env EnvFromPattern(Form arg, SyntaxList.NonEmpty pattern, int depth)
+            private Env EnvFromPattern(SchemeValue arg, SyntaxList.NonEmpty pattern, int depth)
             {
                 if (IsEllipsisPattern(pattern))
                 {
@@ -78,7 +78,7 @@ internal static partial class Builtins {
                     .ToList();
             }
 
-            private Env EnvFromPattern(Form arg, Syntax pattern, int depth)
+            private Env EnvFromPattern(SchemeValue arg, Syntax pattern, int depth)
             {
                 if (pattern is Identifier id)
                 {
@@ -108,7 +108,7 @@ internal static partial class Builtins {
                 
             }
 
-            private Env EnvFromPattern(Form arg, SyntaxPair pattern, int depth)
+            private Env EnvFromPattern(SchemeValue arg, SyntaxPair pattern, int depth)
             {
                 return EnvFromPattern(
                         NewList( NewSym("car"), arg),
@@ -121,7 +121,7 @@ internal static partial class Builtins {
                     .ToList();
             }
 
-            private Env EnvFromPattern(Form arg, SyntaxList pattern, int depth)
+            private Env EnvFromPattern(SchemeValue arg, SyntaxList pattern, int depth)
             {
                 if (pattern is SyntaxList.NonEmpty stxList)
                 {
@@ -131,7 +131,7 @@ internal static partial class Builtins {
                 return [];
             }
 
-            private Env EnvFromEllipsisPattern(Form arg, SyntaxList.NonEmpty pattern, int depth) {
+            private Env EnvFromEllipsisPattern(SchemeValue arg, SyntaxList.NonEmpty pattern, int depth) {
                 // TODO: replace map with fold-right
                 // ie: (fold-right (lambda (x acc) (cons ((lambda (y) {tup.Item2}) x) acc)) '() {arg})
                 var y = NewSym("y");
@@ -151,7 +151,7 @@ internal static partial class Builtins {
                     .ToList();
             }
 
-            private Env EnvFromPattern(Form arg, Identifier id, int depth)
+            private Env EnvFromPattern(SchemeValue arg, Identifier id, int depth)
             {
                 if (id.Symbol.Name != "_") {
                     return [new EnvEntry(id.Symbol, arg, depth)];
@@ -161,7 +161,7 @@ internal static partial class Builtins {
             }
 
 
-            public Form ThenBranch() {
+            public SchemeValue ThenBranch() {
                     
                     return NewList(
                         NewSym("datum->syntax"),
@@ -170,7 +170,7 @@ internal static partial class Builtins {
                     // return Template(TemplateSyntax, EllipsisVars);
             }
 
-            private static Form Template(Syntax stx, Env env) {
+            private static SchemeValue Template(Syntax stx, Env env) {
                 var env0 = env.FindAll(tup => tup.Item3 == 0);
                 if (env0.Count != 0) {
                     var result = NewList(
@@ -210,7 +210,7 @@ internal static partial class Builtins {
                 throw new Exception($"syntax-rules: unhandled case in template {stx}");
             }
 
-            private static Form Template(SyntaxList.NonEmpty stxList, Env env) {
+            private static SchemeValue Template(SyntaxList.NonEmpty stxList, Env env) {
                     if (CadrIsDotDotDot(stxList)) {
                         int numDotDotDots = HowManyDotDotDots(stxList);
                         var rest = stxList.Skip<Syntax>(numDotDotDots + 1).ToSyntaxList();
@@ -257,7 +257,7 @@ internal static partial class Builtins {
             }
 
 
-            private static Form MapForDotDotDot(Syntax pattern, Env env) {
+            private static SchemeValue MapForDotDotDot(Syntax pattern, Env env) {
                 var entries = env.FindAll(tup => InPattern(pattern, tup));
                 // Console.Error.WriteLine($"entries for {pattern} = {string.Join(", ", entries)}");
                 var result = NewList(
@@ -286,7 +286,7 @@ internal static partial class Builtins {
                 return result;
             }
 
-            private static Form Template(SyntaxList stxList, Env env) {
+            private static SchemeValue Template(SyntaxList stxList, Env env) {
                 if (stxList is SyntaxList.NonEmpty nonEmpty) {
                     return Template(nonEmpty, env);
                 }
@@ -299,7 +299,7 @@ internal static partial class Builtins {
                 return stxList.ElementAt<Syntax>(1) is Identifier { Symbol.Name: "..." };
             }
 
-            private static Form Template(Identifier id, Env env) {
+            private static SchemeValue Template(Identifier id, Env env) {
                 if (env.Any(tup => Equals(tup.Item1, id.Symbol))) {
                     var tup = env.First(tup => Equals(tup.Item1, id.Symbol));
                     if (tup.Item3 > 0) {
@@ -313,7 +313,7 @@ internal static partial class Builtins {
             }
 
 
-            public Form Condition() {
+            public SchemeValue Condition() {
                 // at the top, we should have an input to match that has been put through syntax-e
                 // and the Pattern is a SyntaxList
                 // so we don't need to check if it's a pair
@@ -327,7 +327,7 @@ internal static partial class Builtins {
                 return id.Symbol.Name == "...";
             }
 
-            private Form MakeEllipsisCondition(Form stxToMatch, SyntaxList.NonEmpty pattern, int ellipsisDepth)
+            private SchemeValue MakeEllipsisCondition(SchemeValue stxToMatch, SyntaxList.NonEmpty pattern, int ellipsisDepth)
             {
                 // at this point pattern is something like (a ...) where a
                 // could be just about anything
@@ -349,10 +349,10 @@ internal static partial class Builtins {
 
             }
 
-            private Form MakeCondition(Form toMatch, Form forVar, Syntax pattern, int ellipsisDepth = 0)
+            private SchemeValue MakeCondition(SchemeValue toMatch, SchemeValue forVar, Syntax pattern, int ellipsisDepth = 0)
             {
                 if (pattern is Syntax.Literal constant) {
-                    return NewList(NewSym("eqv?"), NewList(NewSym("syntax-e"), toMatch), (Form)constant.Expression);
+                    return NewList(NewSym("eqv?"), NewList(NewSym("syntax-e"), toMatch), (SchemeValue)constant.Expression);
                     
                 }
                 switch (Syntax.E(pattern))
@@ -390,7 +390,7 @@ internal static partial class Builtins {
                 }
             }
 
-            private Form MakeCondition(Form toMatch, Form forVar, SyntaxPair stxPair, int ellipsisDepth) {
+            private SchemeValue MakeCondition(SchemeValue toMatch, SchemeValue forVar, SyntaxPair stxPair, int ellipsisDepth) {
                 // TODO: if it worked, make this like stxList
                         return NewList(
                             NewSym("if"),
@@ -413,7 +413,7 @@ internal static partial class Builtins {
             }
 
 
-            private Form MakeCondition(Form toMatch, Form forVar, SyntaxList.NonEmpty pattern, int ellipsisDepth) {
+            private SchemeValue MakeCondition(SchemeValue toMatch, SchemeValue forVar, SyntaxList.NonEmpty pattern, int ellipsisDepth) {
                 if (IsEllipsisPattern(pattern))
                 {
                     return MakeEllipsisCondition(toMatch, pattern, ellipsisDepth);
@@ -438,7 +438,7 @@ internal static partial class Builtins {
 
             }
 
-            private Form MakeCondition(Form toMatch, Form forVar, SyntaxList pattern, int ellipsisDepth) {
+            private SchemeValue MakeCondition(SchemeValue toMatch, SchemeValue forVar, SyntaxList pattern, int ellipsisDepth) {
                 // This would be called on the cdr if a SyntaxList.NonEmpty
                 if (pattern is not SyntaxList.NonEmpty list) return NewList(NewSym("null?"), toMatch);
                 // Console.Error.WriteLine($"In {Pattern} \n\tMakeCondition: found list \n\t{list} in {toMatch}");
@@ -464,7 +464,7 @@ internal static partial class Builtins {
         return new Symbol(name);
     }
 
-    internal static List NewList(params Form[] forms) {
+    internal static List NewList(params SchemeValue[] forms) {
         return forms.ToJigList();
 
     }

@@ -6,7 +6,7 @@ public class Environment : IEnvironment {
     private readonly Environment? Parent;
 
 
-    public Environment Extend(IEnumerable<Tuple<Symbol, Form>> bindings) {
+    public Environment Extend(IEnumerable<Tuple<Symbol, SchemeValue>> bindings) {
         
         var result = new Environment(this.Parent);
         foreach (var pair in bindings) {
@@ -97,31 +97,31 @@ public class Environment : IEnvironment {
 
     public IEnumerable<Symbol> Symbols => _dict.Keys;
 
-    public Form this[Symbol symbol] => _dict[symbol];
+    public SchemeValue this[Symbol symbol] => _dict[symbol];
 
-    public Thunk? Set(Delegate k, Form sym, Form v) {
+    public Thunk? Set(Delegate k, SchemeValue sym, SchemeValue v) {
         Identifier? id = sym as Identifier;
         Symbol s = id is not null ? id.Symbol : (Symbol) sym;
         if (!_dict.ContainsKey(s)) {
             throw new Exception($"unbound variable: {s.Name} {(id is not null ? id.SrcLoc.ToString() : "")}");
         }
         _dict[s] = v;
-        return Continuation.ApplyDelegate(k, Form.Void);
+        return Continuation.ApplyDelegate(k, SchemeValue.Void);
 
     }
 
-    public Thunk? Define (Delegate k, Form sym, Form v) {
+    public Thunk? Define (Delegate k, SchemeValue sym, SchemeValue v) {
         var s = sym is Identifier i ? i.Symbol : ((Symbol) sym);
-        if (_dict.TryAdd(s, v)) return Continuation.ApplyDelegate(k, Form.Void);
+        if (_dict.TryAdd(s, v)) return Continuation.ApplyDelegate(k, SchemeValue.Void);
         _dict[s] = v;
-        return Continuation.ApplyDelegate(k, Form.Void);
+        return Continuation.ApplyDelegate(k, SchemeValue.Void);
 
     }
 
-    public Thunk? LookUp (Delegate k, Form expr) {
+    public Thunk? LookUp (Delegate k, SchemeValue expr) {
         Identifier? id = expr as Identifier;
         Symbol symbol = id is not null ? id.Symbol : (Symbol) expr;
-        if (_dict.TryGetValue(symbol, out Form? result)) {
+        if (_dict.TryGetValue(symbol, out SchemeValue? result)) {
             return Continuation.ApplyDelegate(k, result);
         }
         if (Parent is null) {
@@ -130,6 +130,6 @@ public class Environment : IEnvironment {
         return Parent.LookUp(k, expr);
     }
 
-    readonly Dictionary<Symbol, Form> _dict = [];
+    readonly Dictionary<Symbol, SchemeValue> _dict = [];
 
 }

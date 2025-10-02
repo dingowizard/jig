@@ -118,7 +118,7 @@ public class Record : Vector {
         public Procedure Predicate() {
             Builtin predicate = (k, args) => {
                 if (args.Count() != 1) return Builtins.Error(k, $"{this.Name}?: expected exactly one argument but got {args.Count()}");
-                IForm arg = args.ElementAt(0);
+                ISchemeValue arg = args.ElementAt(0);
                 if (arg is not Record record) {
                     return Continuation.ApplyDelegate(k, Bool.False);
                 }

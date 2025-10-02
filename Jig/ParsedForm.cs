@@ -6,7 +6,7 @@ namespace Jig;
 
 public abstract class ParsedForm : Syntax {
 
-    protected ParsedForm(IForm x, SrcLoc? srcLoc = null) : base(x, srcLoc) {}
+    protected ParsedForm(ISchemeValue x, SrcLoc? srcLoc = null) : base(x, srcLoc) {}
 
 }
 
@@ -32,7 +32,7 @@ public class ParsedSet : ParsedForm {
 }
 
 public class ParsedBegin(Syntax keyword, ParsedForm[] forms, SrcLoc? srcLoc = null) :
-    ParsedForm((Form)Pair.Cons(keyword, SyntaxList.FromIEnumerable(forms)), srcLoc) {
+    ParsedForm((SchemeValue)Pair.Cons(keyword, SyntaxList.FromIEnumerable(forms)), srcLoc) {
     public ParsedForm[] Forms {get;} = forms;
 
 
@@ -44,7 +44,7 @@ public class ParsedLiteral : ParsedForm {
         Quoted = lit;
     }
     
-    public new static ParsedLiteral Void => new ParsedLiteral(new Identifier(new Symbol("quote")), new Syntax(Form.Void));
+    public new static ParsedLiteral Void => new ParsedLiteral(new Identifier(new Symbol("quote")), new Syntax(SchemeValue.Void));
 
     public Syntax Quoted {get;}
 
@@ -52,8 +52,8 @@ public class ParsedLiteral : ParsedForm {
         if (stx is Literal literal) {
             parsedLiteral = new ParsedLiteral(new Identifier(new Symbol("quote")), literal, stx.SrcLoc);
             return true;
-        } else if (Syntax.E(stx) is Form.VoidType) {
-            parsedLiteral = new ParsedLiteral(new Identifier(new Symbol("quote")), new Syntax(Form.Void), stx.SrcLoc);
+        } else if (Syntax.E(stx) is SchemeValue.VoidType) {
+            parsedLiteral = new ParsedLiteral(new Identifier(new Symbol("quote")), new Syntax(SchemeValue.Void), stx.SrcLoc);
             return true;
         } else if (IsQuote(stx)) {
             SyntaxList stxList = (SyntaxList)Syntax.E(stx);
@@ -67,7 +67,7 @@ public class ParsedLiteral : ParsedForm {
 
     private static bool QuoteIsMalformed(SyntaxList stxList) => stxList.Count<Syntax>() != 2;
 
-    private static bool IsQuote(Syntax stx) => Form.IsKeyword("quote", stx);
+    private static bool IsQuote(Syntax stx) => SchemeValue.IsKeyword("quote", stx);
 
 }
 
@@ -92,14 +92,14 @@ public class ParsedQuoteSyntax : ParsedForm {
 
     private static bool QuoteIsMalformed(SyntaxList stxList) => !(stxList.Count<Syntax>() == 2);
 
-    private static bool IsQuote(Syntax stx) => Form.IsKeyword("quote-syntax", stx);
+    private static bool IsQuote(Syntax stx) => SchemeValue.IsKeyword("quote-syntax", stx);
 
 }
 
 public class ParsedLambda : ParsedForm {
 
     internal ParsedLambda(Syntax keyword, LambdaParameters parameters, int scopeVarsCount, ParsedForm[] bodies, SrcLoc? srcLoc = null)
-      : base(Pair.Cons(keyword, Pair.Cons(parameters, (IForm)bodies.ToJigList())), srcLoc)
+      : base(Pair.Cons(keyword, Pair.Cons(parameters, (ISchemeValue)bodies.ToJigList())), srcLoc)
     {
         Parameters = parameters;
         Bodies = bodies;

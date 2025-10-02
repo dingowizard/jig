@@ -21,7 +21,7 @@ public class Machine : IRuntime
         CONT = new TopLevelContinuation(cont);
         RuntimeEnvironment = ENVT;
         CoreSyntax = SyntaxEnvironment.Default; // TODO: give Machine its own 
-        Stack = new Form[stackSize];
+        Stack = new SchemeValue[stackSize];
         Template = Template.Empty;
     }
 
@@ -32,7 +32,7 @@ public class Machine : IRuntime
         CONT = new TopLevelContinuation(TopLevelContinuation);
         RuntimeEnvironment = ENVT;
         CoreSyntax = SyntaxEnvironment.Default; // TODO: give Machine its own 
-        Stack = new Form[stackSize];
+        Stack = new SchemeValue[stackSize];
         Template = Template.Empty;
     }
     internal Winders Winders = new Winders();
@@ -43,11 +43,11 @@ public class Machine : IRuntime
     internal ulong PC;
 
 
-    public Form VAL = Form.Void;
+    public SchemeValue VAL = SchemeValue.Void;
 
     internal Template Template;
 
-    internal readonly Form[] Stack;
+    internal readonly SchemeValue[] Stack;
     
     private readonly uint _stackSize;
 
@@ -60,7 +60,7 @@ public class Machine : IRuntime
 
     public IEvaluator Evaluator;
 
-    internal Form Pop() {
+    internal SchemeValue Pop() {
         if (SP == 0) throw new Exception("stack is empty");
         SP--;
         var result = Stack[SP];
@@ -68,7 +68,7 @@ public class Machine : IRuntime
         return result;
     }
 
-    internal void Push(Form val) {
+    internal void Push(SchemeValue val) {
         if (SP == _stackSize) {
             throw new Exception("stack is full");
         }
@@ -111,8 +111,8 @@ public class Machine : IRuntime
         throw new Exception($"VM: in Call @ {PC - 1}: expected procedure or saved continuation, got {VAL.GetType()}");
     }
 
-    internal Form[] SaveStackFrameToArray() {
-        var results = new Form[SP - FP];
+    internal SchemeValue[] SaveStackFrameToArray() {
+        var results = new SchemeValue[SP - FP];
         Array.Copy(Stack, FP, results, 0, results.Length);
         return results;
     }
@@ -350,7 +350,7 @@ public class Machine : IRuntime
                     // bind zero should always be called first
                     int restIndex = (int)(IR & 0x00FFFFFFFFFFFFFF);
                     // TODO:
-                    var xs = new System.Collections.Generic.List<Form>();
+                    var xs = new System.Collections.Generic.List<SchemeValue>();
                     while (SP != FP) {
                         xs.Add(Pop());
                     }
@@ -408,12 +408,12 @@ public class Machine : IRuntime
                     continue;
                 case OpCode.ArgToArgs:
                     var tmp = Pop();
-                    if (tmp is not IEnumerable<IForm> ys) {
+                    if (tmp is not IEnumerable<ISchemeValue> ys) {
                         throw new Exception($"expected list argument but got {tmp}");
                     }
-                    foreach (var form in ys.Reverse<IForm>()) {
+                    foreach (var form in ys.Reverse<ISchemeValue>()) {
                         // TODO: barf
-                        Push((Form)form);
+                        Push((SchemeValue)form);
                     }
                     continue;
                 default: throw new Exception($"unhandled case {opCode} in Execute");
@@ -474,9 +474,9 @@ public class Machine : IRuntime
         vm.Run();
     }
 
-    private static void TopLevelContinuation(params Form[] forms) {
+    private static void TopLevelContinuation(params SchemeValue[] forms) {
         foreach (var form in forms) {
-            if (form is not Form.VoidType) Console.WriteLine(form.Print());
+            if (form is not SchemeValue.VoidType) Console.WriteLine(form.Print());
         }
     }
 

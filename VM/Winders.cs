@@ -117,7 +117,7 @@ public class Winders {
 
     private Jig.List _list = List.Null;
 
-    public class Winder(Procedure @in, Procedure @out) : Form {
+    public class Winder(Procedure @in, Procedure @out) : SchemeValue {
         public Procedure In { get; } = @in;
         public Procedure Out { get; } = @out;
         public override string Print()

@@ -2,8 +2,8 @@ using Jig;
 
 namespace VM;
 
-public class Template : Form {
-    public Template(int numVarsForScope, ulong[] code, Binding[] bindings, Form[] lits, int requiredParameterCount, bool hasRestParameter) {
+public class Template : SchemeValue {
+    public Template(int numVarsForScope, ulong[] code, Binding[] bindings, SchemeValue[] lits, int requiredParameterCount, bool hasRestParameter) {
         Slots = lits;
         Bindings = bindings;
         Code = code;
@@ -19,7 +19,7 @@ public class Template : Form {
     public bool  HasRestParameter { get; }
     
     public int NumVarsForScope { get; }
-    public Jig.Form[] Slots { get; }
+    public Jig.SchemeValue[] Slots { get; }
     
     public Binding[] Bindings { get; }
     public ulong[] Code { get; }

@@ -1,6 +1,6 @@
 namespace VM;
 
-public class Procedure : Jig.Form {
+public class Procedure : Jig.SchemeValue {
     
     internal Environment Environment { get; }
     

@@ -4,9 +4,9 @@ namespace VM;
 
 public class Binding : IRuntimeBinding {
 
-    public Binding(Symbol s, Form form, bool top = false) {
+    public Binding(Symbol s, SchemeValue schemeValue, bool top = false) {
         Symbol = s;
-        Slot = form;
+        Slot = schemeValue;
         Top = top;
     }
 
@@ -18,5 +18,5 @@ public class Binding : IRuntimeBinding {
     public readonly bool Top; // false
 
     public Symbol Symbol {get;}
-    public Form? Slot {get; set; }
+    public SchemeValue? Slot {get; set; }
 }

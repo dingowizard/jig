@@ -2,9 +2,9 @@ using System.Text;
 
 namespace Jig;
 
-public class Pair : Form, IPair {
+public class Pair : SchemeValue, IPair {
 
-    public static IPair Cons(IForm car, IForm cdr) {
+    public static IPair Cons(ISchemeValue car, ISchemeValue cdr) {
         if (car is Syntax stxCar) {
             if (cdr is IEmptyList) {
                 return SyntaxList.Cons(stxCar, SyntaxList.Null);
@@ -27,7 +27,7 @@ public class Pair : Form, IPair {
         }
     }
 
-    protected Pair(IForm car, IForm cdr) {
+    protected Pair(ISchemeValue car, ISchemeValue cdr) {
         Car = car;
         Cdr = cdr;
     }
@@ -50,8 +50,8 @@ public class Pair : Form, IPair {
     }
 
 
-    public IForm Car {get; set;}
-    public IForm Cdr {get; set;}
+    public ISchemeValue Car {get; set;}
+    public ISchemeValue Cdr {get; set;}
 
     public override string Print() {
         StringBuilder sb = new("(");

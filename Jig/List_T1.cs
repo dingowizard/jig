@@ -1,6 +1,6 @@
 namespace Jig;
 
-public abstract class List<T> : List, IList<T> where T : Form
+public abstract class List<T> : List, IList<T> where T : SchemeValue
 {
     IEnumerator<T> IEnumerable<T>.GetEnumerator() {
         IList<T> theList = this;

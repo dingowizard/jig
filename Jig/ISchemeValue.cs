@@ -1,4 +1,4 @@
 namespace Jig;
-public interface IForm {
+public interface ISchemeValue {
     string Print();
 }

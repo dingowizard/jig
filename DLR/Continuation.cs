@@ -33,7 +33,7 @@ public class Continuation(Delegate d) : Procedure(d)
     }
 
 
-    internal static Thunk? ApplyDelegate(Delegate k, IForm arg) {
+    internal static Thunk? ApplyDelegate(Delegate k, ISchemeValue arg) {
         // TODO: should we handle more continuation types here?
             if (k is ContinuationAny cany) {
                 return cany(arg);
@@ -64,7 +64,7 @@ public class Continuation(Delegate d) : Procedure(d)
         var paramList = new System.Collections.Generic.List<ParameterExpression>();
         foreach (var p in parameterInfos)
         {
-            paramList.Add(Expression.Parameter(typeof(IForm), p.ToString()));
+            paramList.Add(Expression.Parameter(typeof(ISchemeValue), p.ToString()));
         }
         Type? type = GetTypeForContinuation(consumerDel);
         if (type is null) {
@@ -75,7 +75,7 @@ public class Continuation(Delegate d) : Procedure(d)
             return lexpr.Compile();
         }
         if (type == typeof(ContinuationAny)) {
-            ParameterExpression xs = Expression.Parameter(typeof(IForm[]));
+            ParameterExpression xs = Expression.Parameter(typeof(ISchemeValue[]));
             return Expression.Lambda<ContinuationAny>(
                 body: Expression.Convert(ET.DynInv(new Expression [] {
                             Expression.Constant(consumerDel),
@@ -114,15 +114,15 @@ public class Continuation(Delegate d) : Procedure(d)
     }
 
 
-    public delegate Thunk? OneArgDelegate(IForm arg);
-    public delegate Thunk? ContinuationAny(params IForm[] args);
+    public delegate Thunk? OneArgDelegate(ISchemeValue arg);
+    public delegate Thunk? ContinuationAny(params ISchemeValue[] args);
     private delegate Thunk ListContinuation(List rest);
-    private delegate Thunk PairContinuation(IForm arg0, List rest);
-    private delegate Thunk ImproperListContinuation2(IForm arg0, IForm arg1, List rest);
-    private delegate Thunk ImproperListContinuation3(IForm arg0, IForm arg1, IForm arg2, List rest);
-    private delegate Thunk ImproperListContinuation4(IForm arg0, IForm arg1, IForm arg2, IForm arg3, List rest);
-    private delegate Thunk ImproperListContinuation5(IForm arg0, IForm arg1, IForm arg2, IForm arg3, IForm arg4, List rest);
-    private delegate Thunk ImproperListContinuation6(IForm arg0, IForm arg1, IForm arg2, IForm arg3, IForm arg4, IForm arg5, List rest);
-    private delegate Thunk ImproperListContinuation7(IForm arg0, IForm arg1, IForm arg2, IForm arg3, IForm arg4, IForm arg5, IForm arg6, List rest);
+    private delegate Thunk PairContinuation(ISchemeValue arg0, List rest);
+    private delegate Thunk ImproperListContinuation2(ISchemeValue arg0, ISchemeValue arg1, List rest);
+    private delegate Thunk ImproperListContinuation3(ISchemeValue arg0, ISchemeValue arg1, ISchemeValue arg2, List rest);
+    private delegate Thunk ImproperListContinuation4(ISchemeValue arg0, ISchemeValue arg1, ISchemeValue arg2, ISchemeValue arg3, List rest);
+    private delegate Thunk ImproperListContinuation5(ISchemeValue arg0, ISchemeValue arg1, ISchemeValue arg2, ISchemeValue arg3, ISchemeValue arg4, List rest);
+    private delegate Thunk ImproperListContinuation6(ISchemeValue arg0, ISchemeValue arg1, ISchemeValue arg2, ISchemeValue arg3, ISchemeValue arg4, ISchemeValue arg5, List rest);
+    private delegate Thunk ImproperListContinuation7(ISchemeValue arg0, ISchemeValue arg1, ISchemeValue arg2, ISchemeValue arg3, ISchemeValue arg4, ISchemeValue arg5, ISchemeValue arg6, List rest);
 }
 

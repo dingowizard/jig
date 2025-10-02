@@ -27,17 +27,17 @@ public class Procedure(Delegate d) : LiteralExpr<Delegate>(d) {
 
     }
 
-    public IForm ApplyNonCPS(List args) {
-            IForm? v = null;
+    public ISchemeValue ApplyNonCPS(List args) {
+            ISchemeValue? v = null;
 
             var thunk = this.Apply((Continuation.OneArgDelegate)OneArgDelegate, args);
             while (thunk is not null) {
                 thunk = thunk();
             }
 
-            return v ?? Form.Void;
+            return v ?? SchemeValue.Void;
 
-            Thunk? OneArgDelegate(IForm x) {
+            Thunk? OneArgDelegate(ISchemeValue x) {
                 v = x;
                 return null;
             }

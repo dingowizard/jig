@@ -4,7 +4,7 @@ using Jig.Expansion;
 
 namespace VM;
 
-public class Environment : Form, IRuntimeEnvironment {
+public class Environment : SchemeValue, IRuntimeEnvironment {
     
     public Dictionary<Symbol, Binding> TopLevels;
 
@@ -64,7 +64,7 @@ public class Environment : Form, IRuntimeEnvironment {
         return new Environment(this.TopLevels, new Scope(parameterNumber, Locals));
     }
 
-    public void BindParameter(int i, Form pop) {
+    public void BindParameter(int i, SchemeValue pop) {
         if (Locals != null) {
             Locals.Variables[i] = pop;
         }
@@ -73,7 +73,7 @@ public class Environment : Form, IRuntimeEnvironment {
         }
     }
 
-    public Form GetLocal(int depth, int index) {
+    public SchemeValue GetLocal(int depth, int index) {
         if (Locals is not null) {
             return Locals.Get(depth, index);
         }
@@ -81,7 +81,7 @@ public class Environment : Form, IRuntimeEnvironment {
         throw new Exception();
     }
 
-    public void SetLocal(int depth, int index, Form val) {
+    public void SetLocal(int depth, int index, SchemeValue val) {
         if (Locals != null) {
             Locals.SetLocal(depth, index, val);
             return;
@@ -95,10 +95,10 @@ public class Environment : Form, IRuntimeEnvironment {
 
         public Scope(int numVars) {
             EnclosingScope = null;
-            Variables = new Form[numVars];
+            Variables = new SchemeValue[numVars];
         }
 
-        public Form Get(int depth, int index) {
+        public SchemeValue Get(int depth, int index) {
             Scope scope = this;
             while (depth != 0) {
                 scope = scope.EnclosingScope ?? throw new Exception("ran out of scopes");
@@ -111,7 +111,7 @@ public class Environment : Form, IRuntimeEnvironment {
 
         public Scope(int numVars,  Scope? enclosingScope) {
             EnclosingScope = enclosingScope;
-            Variables = new Form[numVars];
+            Variables = new SchemeValue[numVars];
         }
         public void AddRest(int restIndex, List rest) {
             // TODO: we should figure out when parsing a lambda expr how many params and locals it has,
@@ -125,9 +125,9 @@ public class Environment : Form, IRuntimeEnvironment {
         
         public Scope? EnclosingScope { get; }
 
-        public Form?[] Variables;
+        public SchemeValue?[] Variables;
 
-        public void SetLocal(int depth, int index, Form val) {
+        public void SetLocal(int depth, int index, SchemeValue val) {
             Scope scope = this;
             while (depth != 0) {
                 scope = scope.EnclosingScope ?? throw new Exception("ran out of scopes");
