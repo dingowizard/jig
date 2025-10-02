@@ -134,11 +134,15 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                     if (namesSeen.Contains(id.Symbol.Name)) {
                         throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
                     }
-                    Binding binding = new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++);
-                    id.Symbol.Binding = binding;
-                    context.AddBinding(id, binding);
+                    Parameter parameter = new Parameter(
+                        id.Symbol,
+                        context.ScopeLevel,
+                        context.VarIndex++,
+                        id.SrcLoc);
+                    id.Symbol.Binding = parameter;
+                    context.AddBinding(id, parameter);
                     namesSeen.Add(id.Symbol.Name);
-                    required.Add(new ParsedVariable.Lexical(id, binding, id.SrcLoc));
+                    required.Add(new ParsedVariable.Lexical(id, parameter, id.SrcLoc));
                 }
             } else if (Syntax.E(stx) is IPair pair) {
                 Identifier? id = pair.Car as Identifier;
@@ -147,38 +151,57 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                     throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
                 }
                 namesSeen.Add(id.Symbol.Name);
-                Binding binding = new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++);
-                id.Symbol.Binding = binding;
-                required.Add(new ParsedVariable.Lexical(id, binding, id.SrcLoc));
-                context.AddBinding(id, binding);
+                Parameter parameter =
+                    new Parameter(
+                        id.Symbol,
+                        context.ScopeLevel,
+                        context.VarIndex++,
+                        id.SrcLoc);
+                id.Symbol.Binding = parameter;
+                required.Add(new ParsedVariable.Lexical(id, parameter, id.SrcLoc));
+                context.AddBinding(id, parameter);
                 while (pair.Cdr is IPair cdrPair) {
                     id = cdrPair.Car as Identifier;
                     if (id is null) throw new Exception($"lambda: expected parameters to be identifiers, but got {pair.Car}");
                     if (namesSeen.Contains(id.Symbol.Name)) {
                         throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
                     }
-                    binding = new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++);
-                    id.Symbol.Binding = binding;
-                    context.AddBinding(id, binding);
+                    parameter =
+                        new Parameter(
+                            id.Symbol,
+                            context.ScopeLevel,
+                            context.VarIndex++,
+                            id.SrcLoc);
+                    id.Symbol.Binding = parameter;
+                    context.AddBinding(id, parameter);
                     pair = cdrPair;
                     namesSeen.Add(id.Symbol.Name);
-                    required.Add(new ParsedVariable.Lexical(id, binding, id.SrcLoc));
+                    required.Add(new ParsedVariable.Lexical(id, parameter, id.SrcLoc));
                 }
                 id = pair.Cdr as Identifier;
                 if (id is null) throw new Exception($"lambda: expected parameters to be identifiers, but got {pair.Cdr}");
                 if (namesSeen.Contains(id.Symbol.Name)) {
                     throw new Exception($"lambda: expected parameters to have unique names but got {id} more than once @ {id.SrcLoc?.ToString() ?? "?"}");
                 }
-                binding = new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++);
-                id.Symbol.Binding = binding;
-                context.AddBinding(id, binding);
+                parameter = new Parameter(
+                    id.Symbol,
+                    context.ScopeLevel,
+                    context.VarIndex++,
+                    id.SrcLoc);
+                id.Symbol.Binding = parameter;
+                context.AddBinding(id, parameter);
                 namesSeen.Add(id.Symbol.Name);
-                rest = new ParsedVariable.Lexical(id, binding, id.SrcLoc);
+                rest = new ParsedVariable.Lexical(id, parameter, id.SrcLoc);
             } else if (stx is Identifier psId) {
-                    Binding binding = new Binding(psId.Symbol, context.ScopeLevel, context.VarIndex++);
-                    psId.Symbol.Binding = binding;
-                    context.AddBinding(psId, binding);
-                    rest = new ParsedVariable.Lexical(psId, binding, psId.SrcLoc);
+                    Parameter parameter =
+                        new Parameter(
+                            psId.Symbol,
+                            context.ScopeLevel,
+                            context.VarIndex++,
+                            psId.SrcLoc);
+                    psId.Symbol.Binding = parameter;
+                    context.AddBinding(psId, parameter);
+                    rest = new ParsedVariable.Lexical(psId, parameter, psId.SrcLoc);
             } else if (Syntax.E(stx) is List.Empty) {
 
             } else {

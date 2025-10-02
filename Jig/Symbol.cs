@@ -14,7 +14,7 @@ public class Symbol : SchemeValue {
         Name = name;
     }
         
-    public Expansion.Binding? Binding {get; set;} 
+    public Expansion.Parameter? Binding {get; set;} 
 
 
 

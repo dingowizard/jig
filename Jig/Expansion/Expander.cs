@@ -32,10 +32,11 @@ public class Expander
                     if (stxList.Rest is not SyntaxList.NonEmpty { First: Identifier variable } rest)
                         throw new Exception($"malformed define: {Syntax.ToDatum(stx).Print()} ");
                     // TODO: there might already be a binding. We might be redefining ...
-                    var binding = new Binding(
+                    var binding = new Parameter(
                         variable.Symbol,
                         context.ScopeLevel,
-                        context.VarIndex++);
+                        context.VarIndex++,
+                        variable.SrcLoc);
                     context.AddBinding(variable, binding);
                     var parsedVar = new ParsedVariable.TopLevel(variable, binding, variable.SrcLoc);
                     return new Syntax(
@@ -47,10 +48,11 @@ public class Expander
                 case "define-syntax":
                     if (stxList.Rest is not SyntaxList.NonEmpty { First: Identifier vr } rt)
                         throw new Exception($"malformed define: {Syntax.ToDatum(stx).Print()} ");
-                    var bg = new Binding(
+                    var bg = new Parameter(
                         vr.Symbol,
                         context.ScopeLevel,
-                        context.VarIndex++);
+                        context.VarIndex++,
+                        vr.SrcLoc);
                     context.AddBinding(vr, bg);
                     var parsedKW = new ParsedVariable.TopLevel(vr, bg, vr.SrcLoc);
                     DefineSyntax(parsedKW, rt.Rest, context);

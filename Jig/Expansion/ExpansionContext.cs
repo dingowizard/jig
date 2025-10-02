@@ -11,10 +11,11 @@ public class ExpansionContext {
         // TODO: seems like we can simplify the arguments to a bunch of these constructors once we get things running
         Expander = evaluator.Expander;
         _syntaxEnvironment = evaluator.Keywords;
-        _bindings = new Dictionary<Identifier, Binding>(); // TODO: this seems like it should be part of the environment
+        _bindings = new Dictionary<Identifier, Parameter>(); // TODO: this seems like it should be part of the environment
         int i = 0;
         foreach (var sym in topLevels) {
-            _bindings.Add(new Identifier(sym), new Binding(sym, 0, i++));
+            // TODO: topLevels should probably be identifiers, most likely parameters
+            _bindings.Add(new Identifier(sym), new Parameter(sym, 0, i++, null));
             
         }
         ScopeLevel = 0;
@@ -27,7 +28,7 @@ public class ExpansionContext {
         IRuntime runtime,
         Expander expander,
         SyntaxEnvironment? env = null,
-        Dictionary<Identifier, Binding>? bindings = null,
+        Dictionary<Identifier, Parameter>? bindings = null,
         int scopeLevel = 0,
         int varIndex = 0,
         bool definesAllowed = true) {
@@ -35,7 +36,7 @@ public class ExpansionContext {
         Runtime = runtime;
         Expander = expander;
         _syntaxEnvironment = env ?? SyntaxEnvironment.Default;
-        _bindings = bindings ?? new Dictionary<Identifier, Binding>(); // TODO: this seems like it should be part of the environment
+        _bindings = bindings ?? new Dictionary<Identifier, Parameter>(); // TODO: this seems like it should be part of the environment
         ScopeLevel = scopeLevel;
         VarIndex = varIndex;
         DefinesAllowed = definesAllowed;
@@ -68,11 +69,11 @@ public class ExpansionContext {
     //     return Expander.Evaluator.Runtime.ApplyTransformer(transformer, syntax);
     // }
 
-    public Binding[] Bindings => _bindings.Values.ToArray();
+    public Parameter[] Bindings => _bindings.Values.ToArray();
 
-    public void AddBinding(Identifier id, Binding binding, [CallerMemberName] string name = "", [CallerFilePath] string path = "", [CallerLineNumber] int line = 0) {
+    public void AddBinding(Identifier id, Parameter parameter, [CallerMemberName] string name = "", [CallerFilePath] string path = "", [CallerLineNumber] int line = 0) {
         
-        if (!_bindings.TryAdd(id, binding)) {
+        if (!_bindings.TryAdd(id, parameter)) {
             foreach (var kvp in _bindings) {
                 if (kvp.Key.Symbol.Name == id.Symbol.Name && kvp.Key.ScopeSet == id.ScopeSet) {
                     Console.Error.WriteLine($"\ttrying to add {id.Symbol} which has scopeset \n\t\t{string.Join(", ", id.ScopeSet)}");
@@ -89,7 +90,7 @@ public class ExpansionContext {
 
     public IEnumerable<Identifier> Bound => _bindings.Keys;
 
-    private Dictionary<Identifier, Binding> _bindings {get;}
+    private Dictionary<Identifier, Parameter> _bindings {get;}
 
     IEnumerable<Identifier> FindCandidateIdentifiers(Identifier id) {
         IEnumerable<Identifier> sameName = _bindings.Keys.Where(i => i.Symbol.Name == id.Symbol.Name);
@@ -110,7 +111,7 @@ public class ExpansionContext {
         return result;
     }
 
-    internal bool TryResolve(Identifier id, [NotNullWhen(returnValue: true)] out Binding? binding) {
+    internal bool TryResolve(Identifier id, [NotNullWhen(returnValue: true)] out Parameter? binding) {
         var candidates = FindCandidateIdentifiers(id);
         var identifiers = candidates as Identifier[] ?? candidates.ToArray();
         // var name = "reverse";

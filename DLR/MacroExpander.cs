@@ -11,14 +11,14 @@ public class MacroExpander {
 
     public MacroExpander() {
 
-        _bindings = new Dictionary<Identifier, Binding>();
+        _bindings = new Dictionary<Identifier, Parameter>();
     }
 
 
-    public Binding[] Bindings => _bindings.Values.ToArray();
+    public Parameter[] Bindings => _bindings.Values.ToArray();
 
-    public void AddBinding(Identifier id, Binding binding) {
-        if (!_bindings.TryAdd(id, binding)) {
+    public void AddBinding(Identifier id, Parameter parameter) {
+        if (!_bindings.TryAdd(id, parameter)) {
             Console.Error.WriteLine($"Expander.AddBinding: Duplicate binding '{id}'");
             foreach (var kvp in _bindings) {
                 if (kvp.Key.Symbol.Name == id.Symbol.Name && kvp.Key.ScopeSet == id.ScopeSet) {
@@ -34,7 +34,7 @@ public class MacroExpander {
         }
     }
 
-    private Dictionary<Identifier, Binding> _bindings {get;}
+    private Dictionary<Identifier, Parameter> _bindings {get;}
 
     IEnumerable<Identifier> FindCandidateIdentifiers(Identifier id) {
         IEnumerable<Identifier> sameName = _bindings.Keys.Where(i => i.Symbol.Name == id.Symbol.Name);
@@ -49,7 +49,7 @@ public class MacroExpander {
         return result;
     }
 
-    internal bool TryResolve(Identifier id, [NotNullWhen(returnValue: true)] out Binding? binding) {
+    internal bool TryResolve(Identifier id, [NotNullWhen(returnValue: true)] out Parameter? binding) {
         var candidates = FindCandidateIdentifiers(id);
         var identifiers = candidates as Identifier[] ?? candidates.ToArray();
         // if (id.Symbol.Name == "y") {
@@ -119,7 +119,7 @@ public class MacroExpander {
     {
         Identifier id = stxList.ElementAt<Syntax>(1) as Identifier ?? throw new Exception() ;
         // Console.WriteLine($"define-syntax: {id}");
-        var binding = new Binding(id.Symbol, ee.ScopeLevel, ee.VarIndex++);
+        var binding = new Parameter(id.Symbol, ee.ScopeLevel, ee.VarIndex++, id.SrcLoc);
         _bindings.Add(id, binding);
         // TODO: use ParsedLambda.TryParse? (for vars in set! and define as well?)
         ParsedLambda expandedLambdaExpr = Expand(stxList.ElementAt<Syntax>(2), ee) as ParsedLambda ?? throw new Exception($"define-syntax: expected 2nd argument to be a transformer. Got {stxList.ElementAt<Syntax>(2)}");

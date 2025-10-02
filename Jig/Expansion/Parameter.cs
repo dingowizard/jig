@@ -1,9 +1,9 @@
 namespace Jig.Expansion;
-public class Binding {
+public class Parameter : Identifier {
 
-    public Binding(Symbol sym, int scopeLevel, int varIndex) {
+    public Parameter(Symbol sym, int scopeLevel, int varIndex, SrcLoc? srcLoc) : base(sym, srcLoc)
+    {
         // TODO: remove Index?
-        Symbol = sym;
         ScopeLevel = scopeLevel;
         VarIndex = varIndex;
     }
@@ -11,9 +11,6 @@ public class Binding {
     public int VarIndex { get; }
 
     public int ScopeLevel { get;}
-
-    public Symbol Symbol { get; }
-
 
     public int Index { get; }
     //TODO: why can't scope be like this? (scope needs a member to work. maybe because it has to define gethashcode and equals?)
@@ -24,12 +21,12 @@ public class Binding {
     public override bool Equals(object? obj) {
         if (obj is null) return false;
         return obj switch {
-            Binding binding => this.Index == binding.Index,
+            Parameter binding => this.Index == binding.Index,
             _ => false
         };
     }
 
-    protected bool Equals(Binding other) {
+    protected bool Equals(Parameter other) {
         return Index == other.Index;
     }
 

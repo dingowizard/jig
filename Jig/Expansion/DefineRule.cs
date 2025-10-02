@@ -12,7 +12,7 @@ public partial class CoreParseRules {
 
         if (subForms[1] is Identifier id) {
             // TODO: I'd like to only be in this path when expanding forms from the REPL
-            var binding = new Binding(id.Symbol, context.ScopeLevel, context.VarIndex++);
+            var binding = new Parameter(id.Symbol, context.ScopeLevel, context.VarIndex++, id.SrcLoc);
             context.AddBinding(id, binding);
             if (id.ScopeSet.Count != 0) {
                 // not top level

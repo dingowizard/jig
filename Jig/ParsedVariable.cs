@@ -5,22 +5,22 @@ namespace Jig;
 public class ParsedVariable : ParsedForm {
 
 
-    private ParsedVariable(Identifier id, Expansion.Binding binding, SrcLoc? srcLoc) : base (id.Symbol, srcLoc) {
-        Binding = binding;
+    private ParsedVariable(Identifier id, Expansion.Parameter parameter, SrcLoc? srcLoc) : base (id.Symbol, srcLoc) {
+        Parameter = parameter;
         Identifier = id;
     }
 
     public class TopLevel : ParsedVariable {
-        internal TopLevel(Identifier id, Expansion.Binding binding, SrcLoc? srcLoc) : base (id, binding, srcLoc) {}
+        internal TopLevel(Identifier id, Expansion.Parameter parameter, SrcLoc? srcLoc) : base (id, parameter, srcLoc) {}
     }
 
     public class Lexical : ParsedVariable {
-        internal Lexical(Identifier id, Expansion.Binding binding, SrcLoc? srcLoc) : base(id, binding, srcLoc) {
+        internal Lexical(Identifier id, Expansion.Parameter parameter, SrcLoc? srcLoc) : base(id, parameter, srcLoc) {
         }
         
 
     }
 
     public Identifier Identifier { get; }
-    public Expansion.Binding Binding { get; }
+    public Expansion.Parameter Parameter { get; }
 }

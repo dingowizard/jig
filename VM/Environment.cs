@@ -6,7 +6,7 @@ namespace VM;
 
 public class Environment : SchemeValue, IRuntimeEnvironment {
     
-    public Dictionary<Symbol, Binding> TopLevels;
+    public Dictionary<Symbol, Binding> TopLevels; // TODO: replace Symbol with Parameter
 
     public override string Print() => "#<environment>";
     

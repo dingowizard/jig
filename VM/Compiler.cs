@@ -104,9 +104,9 @@ public class Compiler {
         } else {
             var lexVar = (ParsedVariable.Lexical)setForm.Variable;
             ulong code = (ulong)OpCode.SetLex << 56;
-            int depth = scopeLevel - lexVar.Binding.ScopeLevel;
+            int depth = scopeLevel - lexVar.Parameter.ScopeLevel;
             code += ((ulong)depth) << 32; // TODO: this could be too big I suppose.
-            code += (ulong)lexVar.Binding.VarIndex;
+            code += (ulong)lexVar.Parameter.VarIndex;
             result.Add(code);
         }
 
@@ -139,7 +139,7 @@ public class Compiler {
         } else {
             var lexVar = (ParsedVariable.Lexical)defForm.Variable;  
             ulong code = (ulong)OpCode.SetLex << 56;
-            int index = lexVar.Binding.VarIndex;
+            int index = lexVar.Parameter.VarIndex;
             code += (ulong)index;
             result.Add(code);
         }
@@ -258,10 +258,10 @@ public class Compiler {
     {
 
         ulong code = (ulong)OpCode.Lex << 56;
-        int depth = scopeLevel - var.Binding.ScopeLevel;
+        int depth = scopeLevel - var.Parameter.ScopeLevel;
         code += ((ulong)depth) << 32; // TODO: this could be too big I suppose.
         
-        code += (ulong)var.Binding.VarIndex;
+        code += (ulong)var.Parameter.VarIndex;
         return CodeForContext(code, context);
     }
     
