@@ -1,4 +1,5 @@
 using Jig;
+using Jig.Expansion;
 using Sys = System.Collections.Generic;
 
 namespace VM;
@@ -6,28 +7,28 @@ namespace VM;
 public class Compiler {
 
     public Template CompileExprForREPL(ParsedForm x,
-        Environment ctEnv,
+        Environment2 ctEnv,
         int scopeLevel = 0,
         int startLine = 0) {
 
         Sys.List<SchemeValue> literals = [];
-        Sys.List<Binding> bindings = [];
+        Sys.List<Parameter> bindings = [];
 
         DoFirstPassOneForm(bindings, x, ctEnv);
         ulong[] code = Compile(x, ctEnv, literals, bindings, Context.Tail, scopeLevel, startLine);
         if (code.Length == 0) {
             code = [(ulong)OpCode.PopContinuation << 56];
         }
-        var result = new Template(0, code, bindings.ToArray(), literals.ToArray(), 0, false); // TODO: maybe there should be a different kind of template for this, since we don't need parameters
+        var result = new Template(0, code,bindings.ToArray(), literals.ToArray(), 0, false); // TODO: maybe there should be a different kind of template for this, since we don't need parameters
         // Array.ForEach(Disassembler.Disassemble(result), Console.WriteLine);
         return result;
 
     }
 
     private ulong[] Compile(ParsedForm x,
-        Environment ctEnv,
+        Environment2 ctEnv,
         Sys.List<SchemeValue> literals,
-        Sys.List<Binding> bindings,
+        Sys.List<Parameter> bindings,
         Context context,
         int scopeLevel,
         int startLine = 0) {
@@ -37,7 +38,7 @@ public class Compiler {
             case ParsedVariable.TopLevel top:
                 return CompileTop(top, ctEnv, bindings, context);
             case ParsedVariable.Lexical lexVar:
-                return CompileLexVar(lexVar,  context, scopeLevel);
+                return CompileLexVar(lexVar, bindings, context, scopeLevel);
             case ParsedIf ifExpr:
                 return CompileIfExpr(ifExpr, ctEnv, literals, bindings, context, scopeLevel, startLine);
             case ParsedLambda le:
@@ -62,8 +63,8 @@ public class Compiler {
         return [];
     }
 
-    private ulong[] CompileBegin(ParsedBegin begin, Environment ctEnv, Sys.List<SchemeValue> literals,
-        Sys.List<Binding> bindings,
+    private ulong[] CompileBegin(ParsedBegin begin, Environment2 ctEnv, Sys.List<SchemeValue> literals,
+        Sys.List<Parameter> bindings,
         Context context, int scopeLevel, int startLine)
     {
         // NOTE: wrong type of begin in wrong context is assumed to have been caught as a syntax error
@@ -84,35 +85,28 @@ public class Compiler {
     }
 
     private ulong[] CompileSet(ParsedSet setForm,
-        Environment ctEnv,
+        Environment2 ctEnv,
         Sys.List<SchemeValue> literals,
-        Sys.List<Binding> bindings,
+        Sys.List<Parameter> bindings,
         Context context,
         int scopeLevel,
         int startLine = 0)
     {
         Sys.List<ulong> result = new();
-        if (setForm.Variable is ParsedVariable.TopLevel topVar) {
-            var bing = ctEnv.TopLevels[topVar.Identifier.Symbol];
-            if (!bindings.Contains(bing)) {
-                bindings.Add(bing);
-            }
-            ulong code = (ulong)OpCode.SetTop << 56;
-            int index = bindings.IndexOf(bing);
-            code += (ulong)index;
-            result.Add(code);
-        } else {
-            var lexVar = (ParsedVariable.Lexical)setForm.Variable;
-            ulong code = (ulong)OpCode.SetLex << 56;
-            int depth = scopeLevel - lexVar.Parameter.ScopeLevel;
-            code += ((ulong)depth) << 32; // TODO: this could be too big I suppose.
-            code += (ulong)lexVar.Parameter.VarIndex;
-            result.Add(code);
+        var bing = setForm.Variable.Parameter;
+        int index = bindings.IndexOf(bing);
+        if (index == -1) {
+            bindings.Add(bing);
+            index = bindings.Count - 1;
         }
+        ulong code = (ulong)OpCode.SetTop << 56;
+        code += (ulong)index;
+        result.Add(code);
 
         // We have to compile the lambda function after the variable,
         // because there might be a recursive call to a toplevel
         result.InsertRange(0, Compile(setForm.Value, ctEnv, literals, bindings, Context.Argument, scopeLevel, startLine));
+        // TODO: should this be CodeForContext?
         if (context == Context.Tail) {
             result.Add((ulong)OpCode.PopContinuation << 56);
         }
@@ -120,9 +114,9 @@ public class Compiler {
     }
     
     private ulong[] CompileDefinition(ParsedDefine defForm,
-        Environment ctEnv,
+        Environment2 ctEnv,
         Sys.List<SchemeValue> literals,
-        Sys.List<Binding> bindings,
+        Sys.List<Parameter> bindings,
         Context context,
         int scopeLevel,
         int startLine = 0)
@@ -165,9 +159,9 @@ public class Compiler {
     }
 
     private ulong[] CompileIfExpr(ParsedIf ifExpr,
-        Environment ctEnv,
+        Environment2 ctEnv,
         Sys.List<SchemeValue> literals,
-        Sys.List<Binding> bindings,
+        Sys.List<Parameter> bindings,
         Context context,
         int scopeLevel,
         int startLine)
@@ -190,9 +184,9 @@ public class Compiler {
     }
 
     public Template CompileSequence(ParsedForm[] sequence,
-        Environment ctEnv,
+        Environment2 ctEnv,
         Sys.List<SchemeValue> literals,
-        Sys.List<Binding> bindings,
+        Sys.List<Parameter> bindings,
         int scopeLevel,
         int startLine = 0)
     {
@@ -226,25 +220,19 @@ public class Compiler {
 
     public ulong[] CompileTop(
         ParsedVariable.TopLevel var,
-        Environment ctEnv,
-        Sys.List<Binding> bindings,
+        Environment2 ctEnv,
+        Sys.List<Parameter> bindings,
         Context context)
     {
-        
-        Symbol sym = var.Identifier.Symbol;
-        if (!bindings.Any(b => Equals(b.Symbol, sym))) {
-            if (!ctEnv.TopLevels.ContainsKey(sym)) {
-                Console.WriteLine($"{sym.Print()} not in top level env {ctEnv.GetHashCode()}. Env has:");
-                foreach (var x in ctEnv.TopLevels.Keys)
-                {
-                    Console.WriteLine($"{x.Print()}");
 
-                }
-                
-            }
-            bindings.Add(ctEnv.TopLevels[sym]);
+        var parameter = var.Parameter;
+        int index = bindings.FindIndex(p => p.Equals(parameter));
+        if (index == -1) {
+            bindings.Add(parameter);
+            index = bindings.Count - 1;
         }
-        int index = bindings.FindIndex(b => Equals(b.Symbol, sym));
+        // TODO: it looks like we're not going to need separate instructions for Top and LexVars
+        // TODO: and probably don't need separate functions for compiling lex vars and top vars
         ulong code = (ulong)OpCode.Top << 56;
         code += (ulong)index;
         return CodeForContext(code, context);
@@ -253,15 +241,34 @@ public class Compiler {
 
     public ulong[] CompileLexVar(
         ParsedVariable.Lexical var,
+        Sys.List<Parameter> bindings,
         Context context,
         int scopeLevel )
     {
 
-        ulong code = (ulong)OpCode.Lex << 56;
-        int depth = scopeLevel - var.Parameter.ScopeLevel;
-        code += ((ulong)depth) << 32; // TODO: this could be too big I suppose.
+        if (var.Parameter.ScopeLevel == scopeLevel) {
+            // this is an argument or a variable declared in a lambda scope
+            return CodeForContext(
+                ((ulong)OpCode.Arg << 56) + (ulong)var.Parameter.Index,
+                context);
+        }
+        var parameter = var.Parameter;
+        int index = bindings.IndexOf(parameter);
+        if (index == -1) {
+            bindings.Add(parameter);
+            index = bindings.Count - 1;
+        }
+        ulong code = (ulong)OpCode.Top << 56;
+        code += (ulong)index;
+        // NOTE: this code for looking up how many ENVT frames the parameter is from the reference
+        // will need to be re-created in the function that creates a closure
+        // from an environment and a template
         
-        code += (ulong)var.Parameter.VarIndex;
+        // ulong code = (ulong)OpCode.Lex << 56;
+        // int depth = scopeLevel - var.Parameter.ScopeLevel;
+        // code += ((ulong)depth) << 32; // TODO: this could be too big I suppose.
+        //
+        // code += (ulong)var.Parameter.VarIndex;
         return CodeForContext(code, context);
     }
     
@@ -294,7 +301,7 @@ public class Compiler {
     }
 
     public ulong[] CompileLambdaExpr(ParsedLambda lambdaExpr,
-        Environment ctEnv,
+        Environment2 ctEnv,
         Sys.List<SchemeValue> literals,
         Context context,
         int scopeLevel,
@@ -317,10 +324,10 @@ public class Compiler {
 
     private Template CompileLambdaTemplate(
         ParsedLambda lambdaExpr,
-        Environment ctEnv,
+        Environment2 ctEnv,
         int scopeLevel)
     {
-        var bindings = new Sys.List<Binding>();
+        var bindings = new Sys.List<Parameter>();
         Sys.List<ulong> codes = [];
         
         // TODO: should apply be responsible for this?
@@ -343,7 +350,18 @@ public class Compiler {
             ++scopeLevel,
             codes.Count());
 
-        var result = new Template(lambdaExpr.ScopeVarsCount, codes.Concat(body.Code).ToArray(), body.Bindings, body.Slots, lambdaExpr.Parameters.Required.Length, lambdaExpr.Parameters.HasRest);
+        var scopeVars =
+            lambdaExpr.Parameters.HasRest
+                ? lambdaExpr.Parameters.Required.Append(lambdaExpr.Parameters.Rest).ToArray()
+                : lambdaExpr.Parameters.Required;
+        var result =
+            new Template(
+                lambdaExpr.ScopeVarsCount,
+                codes.Concat(body.Code).ToArray(),
+                body.Vars,
+                body.Literals,
+                lambdaExpr.Parameters.Required.Length,
+                lambdaExpr.Parameters.HasRest);
         // Console.WriteLine($"***** {Syntax.ToDatum(lambdaExpr).Print()} compiled to: *****");
         // Array.ForEach(Dissassembler.Disassemble(result), Console.WriteLine);
         return result;
@@ -351,9 +369,9 @@ public class Compiler {
     }
 
     public ulong[] CompileApplication(ParsedApplication app,
-        Environment ctEnv,
+        Environment2 ctEnv,
         Sys.List<SchemeValue> literals,
-        Sys.List<Binding> bindings,
+        Sys.List<Parameter> bindings,
         Context context,
         int scopeLevel,
         int startLine = 0)
@@ -394,10 +412,10 @@ public class Compiler {
         return instructions.ToArray();
 
     }
-    public Template CompileFile(ParsedForm[] parsedFile, Environment cte) {
+    public Template CompileFile(ParsedForm[] parsedFile, Environment2 cte) {
         
         Sys.List<SchemeValue> literals = [];
-        Sys.List<Binding> bindings = [];
+        Sys.List<Parameter> bindings = [];
 
         Sys.List<ulong> instructions = [];
 
@@ -421,28 +439,38 @@ public class Compiler {
             last = [(ulong)OpCode.PopContinuation << 56];
         }
         instructions = instructions.Concat(last).ToList();
-        return new Template(0, instructions.ToArray(), bindings.ToArray(), literals.ToArray(), 0, false);
+        return new Template(
+            0,
+            instructions.ToArray(),
+            bindings.ToArray(),
+            literals.ToArray(),
+            0,
+            false);
     }
 
-    private void DoFirstPassOneForm(Sys.List<Binding> bindings, ParsedForm form, Environment ctEnv) {
+    private void DoFirstPassOneForm(Sys.List<Parameter> bindings, ParsedForm form, Environment2 ctEnv) {
         if (form is ParsedDefine def) {
-            Binding bing;
-            Symbol sym = def.Variable.Identifier.Symbol;
-            if (ctEnv.TopLevels.TryGetValue(sym, out var value)) {
-                bing = value;
-            }
-            else {
-                bing = new Binding(sym);
-                ctEnv.TopLevels.Add(sym, bing);
-            }
-            if (!bindings.Contains(bing)) {
-                bindings.Add(bing);
+            // Parameter bing;
+            // Symbol sym = def.Variable.Identifier.Symbol;
+            // if (ctEnv.TopLevels.TryGetValue(sym, out var value)) {
+            //     bing = value;
+            // }
+            // else {
+            //     bing = new Parameter(sym);
+            //     ctEnv.TopLevels.Add(sym, bing);
+            // }
+            
+            // TODO: not too sure about this part
+            // I think the Environment2 maybe shouldn't even be in the Compiler
+            var parameter = def.Variable.Parameter;
+            if (!bindings.Contains(parameter)) {
+                bindings.Add(parameter);
             }
                 
         }
     }
 
-    private void DoFirstPass(Sys.List<Binding> bindings, ParsedForm[] parsedFile, Environment ctEnv) {
+    private void DoFirstPass(Sys.List<Parameter> bindings, ParsedForm[] parsedFile, Environment2 ctEnv) {
         foreach (var form in parsedFile) {
             DoFirstPassOneForm(bindings, form, ctEnv);
             

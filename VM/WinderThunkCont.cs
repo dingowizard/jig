@@ -13,12 +13,24 @@ public static class WinderThunkCont
     public static ThunkCont From(Procedure proc, uint fp, Continuation cont, Winders ws)
     {
         // TODO: is fp needed for anything?
-        return new ThunkCont(proc, proc.Template, 0, proc.Environment, fp, cont, 0, true, ws);
+        return new ThunkCont(proc, proc.Template, 0, proc.Environment, proc.Locations, fp, cont, 0, true, ws);
     }
 
     public class ThunkCont : PartialContinuation
     {
-        public ThunkCont(Procedure thunk, Template template, ulong returnAddress, Environment environment, uint fp, Continuation continuation, int requiredValues, bool hasOptional , Winders ws) : base(template, returnAddress, environment, fp, continuation, requiredValues, hasOptional) {
+        public ThunkCont(
+            Procedure thunk,
+            Template template,
+            ulong returnAddress,
+            Environment2 environment,
+            Location[] vars,
+            uint fp,
+            Continuation continuation,
+            int requiredValues,
+            bool hasOptional ,
+            Winders ws)
+            : base(template, returnAddress, environment, vars, fp, continuation, requiredValues, hasOptional) {
+            
             Thunk = thunk;
             Winders = ws;
         }

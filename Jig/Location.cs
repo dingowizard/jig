@@ -1,7 +1,16 @@
 namespace Jig;
 
 public class Location {
+
+    public Location(SchemeValue schemeValue) {
+        Value = schemeValue;
+    }
+
+    public Location() {
+        Value = null;
+
+    }
     
-    public ISchemeValue Value { get; }
+    public SchemeValue? Value { get; set; }
     
 }

@@ -1,28 +1,29 @@
 using System.Text;
 using Sys = System.Collections.Generic;
+using Jig.Expansion;
 namespace VM;
 
 public static class Disassembler {
 
     public static string[] Disassemble(Template template) {
         Sys.List<string> literals = ["***LITERALS***"];
-        literals.AddRange(template.Slots.Select((t, i) => $"{i:D5}\t{t.Print()}"));
+        literals.AddRange(template.Literals.Select((t, i) => $"{i:D5}\t{t.Print()}"));
         literals.Add("--------------------------");
         Sys.List<string> globals = ["***TOP LEVEL VARS***"];
-        globals.AddRange(template.Bindings.Select((t, i) => $"{i:D5}\t{t.Symbol.Print()} {(t.Top ? "(top)" : "")}"));
+        globals.AddRange(template.Vars.Select((t, i) => $"{i:D5}\t{t.Symbol.Print()}"));
         globals.Add("--------------------------");
         Sys.List<string> instructions = [
             "***INSTRUCTIONS***",
             "ADDR\tOPCODE\tARG",
             "----\t------\t---"
         ];
-        instructions.AddRange(template.Code.Select((t, n) => Decode(n, t, template.Slots, template.Bindings)));
+        instructions.AddRange(template.Code.Select((t, n) => Decode(n, t, template.Literals, template.Vars)));
         instructions.Add("--------------------------");
         return literals.Concat(globals).Concat(instructions).ToArray();
 
     }
     
-    public static string Decode(int lineNo, ulong instr, Jig.SchemeValue[] literals, Binding[] bindings) {
+    public static string Decode(int lineNo, ulong instr, Jig.SchemeValue[] literals, Parameter[] bindings) {
         OpCode opCode = (OpCode)(instr >> 56);
         ulong operand = instr & 0x00FFFFFFFFFFFFFF;
         int index = (int)(instr & 0x00000000FFFFFFFF);

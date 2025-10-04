@@ -155,5 +155,10 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
         var minimalBindings = new Dictionary<Symbol, Binding>();
         return new Environment(minimalBindings);
     }
+
+    public Location GetLocation(Parameter parameter)
+    {
+        throw new NotImplementedException();
+    }
 }
 

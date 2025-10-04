@@ -9,7 +9,7 @@ public static class Builtins {
             (ulong)OpCode.Sum << 56,
             (ulong)OpCode.PopContinuation << 56,
         ],
-        bindings: [],
+        vars: [],
         lits: [],
         0,
         true
@@ -21,7 +21,7 @@ public static class Builtins {
             (ulong)OpCode.Product << 56,
             (ulong)OpCode.PopContinuation << 56,
         ],
-        bindings: [],
+        vars: [],
         lits: [],
         0,
         true
@@ -32,7 +32,7 @@ public static class Builtins {
         code: [
             (ulong)OpCode.PopContinuation << 56,
         ],
-        bindings: [],
+        vars: [],
         lits: [],
         0,
         true
@@ -48,7 +48,7 @@ public static class Builtins {
             (ulong)OpCode.PopContinuation << 56,
         
         ],
-        bindings: [],
+        vars: [],
         lits: [],
         2,
         false
@@ -61,7 +61,7 @@ public static class Builtins {
             (ulong)OpCode.CallWValues << 56,
             (ulong)OpCode.PopContinuation << 56,
         ],
-        bindings: [],
+        vars: [],
         lits: [],
         2,
         false
@@ -74,7 +74,7 @@ public static class Builtins {
             (ulong)OpCode.CallCC << 56,
             (ulong)OpCode.PopContinuation << 56,
         ],
-        bindings: [],
+        vars: [],
         lits: [],
         1,
         false
@@ -117,7 +117,7 @@ public static class Builtins {
             ((ulong)OpCode.PopFP <<56),
             ((ulong)OpCode.PopContinuation << 56)
         ],
-        bindings: [],
+        vars: [],
         lits: [],
         requiredParameterCount:3,
         hasRestParameter: false

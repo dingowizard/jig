@@ -1,19 +1,23 @@
+using Jig;
+
 namespace VM;
 
 public class ContinuationForArg : PartialContinuation {
     public ContinuationForArg(Template template,
         ulong returnAddress,
-        Environment env,
+        Environment2 env,
+        Location[] vars,
         uint fp,
-        Continuation cont) : base(template, returnAddress, env, fp, cont, 1, false) {}
+        Continuation cont) : base(template, returnAddress, env, vars, fp, cont, 1, false) {}
 }
 
 public class ContinuationForNonTailBody : PartialContinuation {
     public ContinuationForNonTailBody(Template template,
         ulong returnAddress,
-        Environment env,
+        Environment2 env,
+        Location[] vars,
         uint fp,
-        Continuation cont) : base(template, returnAddress, env, fp, cont, 0, true) {}
+        Continuation cont) : base(template, returnAddress, env, vars, fp, cont, 0, true) {}
 
     public override void Pop(Machine vm) {
         // no need to check how many values were returned, because any are allowed
@@ -51,15 +55,18 @@ public class PartialContinuation : Continuation {
         vm.PC = this.ReturnAddress;
         vm.FP = this.FP;
         vm.ENVT = this.Environment;
+        vm.VARS = this.Variables;
         vm.Template = this.Template;
         vm.CONT = this.Continuation;
     }
     
-    public PartialContinuation(Template template,
+    public PartialContinuation(
+        Template template,
         ulong returnAddress,
-        Environment environment, // TODO: should a continuation have an environment?
+        Environment2 environment, // TODO: should a continuation have an environment?
                                  // atm the envt is used by DynamicWind, but it's not clear that it should
                                  // there may be other ways it is used...
+        Location[] vars,
         uint fp,
         Continuation continuation,
         int requiredValues,
@@ -70,6 +77,7 @@ public class PartialContinuation : Continuation {
         ReturnAddress = returnAddress;
         FP = fp;
         Environment = environment;
+        Variables = vars;
         Required = requiredValues;
         HasOptional = hasOptional;
     }
@@ -84,19 +92,22 @@ public class PartialContinuation : Continuation {
     public override int Required { get; }
     public override bool HasOptional { get; }
 
-    public virtual Environment Environment { get; protected set; }
+    public virtual Environment2 Environment { get; protected set; }
+    
+    public Location[] Variables { get; }
     
 
 }
 public class PartialContinuationForCallWithValues : PartialContinuation {
     public PartialContinuationForCallWithValues(Template continuationProcTemplate,
         ulong i,
-        Environment envt,
+        Environment2 envt,
+        Location[] vars,
         uint fp,
         Continuation cont,
         int continuationProcRequired,
         bool continuationProcHasRest)
-        : base(continuationProcTemplate, i, envt, fp, cont, continuationProcRequired, continuationProcHasRest) {
+        : base(continuationProcTemplate, i, envt, vars, fp, cont, continuationProcRequired, continuationProcHasRest) {
         
     }
 

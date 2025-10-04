@@ -8,8 +8,8 @@ public class Evaluator : IEvaluator<Machine> {
     public Evaluator(uint phase = 0) {
         Phase =  phase;
         Expander = new Expander(this, new VMFactory(Phase + 1));
-        Variables = Environment = Environment.Minimal();
-        Runtime = new Machine(this, (Environment)Variables);
+        Variables = Environment = Environment2.Minimal();
+        Runtime = new Machine(this, (Environment2)Variables);
         Keywords = Runtime.FreshCoreSyntax();
 
     }
@@ -97,7 +97,7 @@ public class Evaluator : IEvaluator<Machine> {
     public Machine Runtime { get; }
     public IRuntimeEnvironment Variables { get; }
     
-    public Environment Environment { get; }
+    public Environment2 Environment { get; }
 }
 
 public class VMFactory : IEvaluatorFactory {

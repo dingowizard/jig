@@ -1,11 +1,12 @@
 using Jig;
+using Jig.Expansion;
 
 namespace VM;
 
-public class Template : SchemeValue {
-    public Template(int numVarsForScope, ulong[] code, Binding[] bindings, SchemeValue[] lits, int requiredParameterCount, bool hasRestParameter) {
-        Slots = lits;
-        Bindings = bindings;
+public class Template : SchemeValue { // TODO: is this a scheme value? should it ever be returned by eval?
+    public Template(int numVarsForScope, ulong[] code, Parameter[] vars, SchemeValue[] lits, int requiredParameterCount, bool hasRestParameter) {
+        Literals = lits;
+        Vars = vars; // top vars and lexical vars declared at scopes outside this one
         Code = code;
         NumVarsForScope = numVarsForScope;
         RequiredParameterCount = requiredParameterCount;
@@ -19,9 +20,9 @@ public class Template : SchemeValue {
     public bool  HasRestParameter { get; }
     
     public int NumVarsForScope { get; }
-    public Jig.SchemeValue[] Slots { get; }
+    public Jig.SchemeValue[] Literals { get; }
     
-    public Binding[] Bindings { get; }
+    public Parameter[] Vars { get; }
     public ulong[] Code { get; }
 
     public override string Print() => "<#lambda template>";

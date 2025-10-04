@@ -10,6 +10,7 @@ public enum OpCode : byte {
     Call,
     Top,
     SetTop,
+    Arg,
     Lex,
     SetLex,
     Bind,

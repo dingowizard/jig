@@ -7,7 +7,7 @@ using Jig.Reader;
 
 public static class Program {
 
-    public static VM.Environment TopLevel = VM.Environment.Default;
+    public static VM.Environment2 TopLevel = VM.Environment2.Default;
 
     static void Main(string[] args) {
 

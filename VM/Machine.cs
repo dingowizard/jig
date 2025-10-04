@@ -1,11 +1,7 @@
-using System.Diagnostics;
-using System.Security.Cryptography;
-using System.Text;
 using Jig;
 using Jig.Expansion;
 using Jig.IO;
 using Jig.Reader;
-using Transformer = Jig.Expansion.Transformer;
 namespace VM;
 
 
@@ -14,10 +10,11 @@ public class Machine : IRuntime
 
     internal bool Loud = false;
 
-    public Machine(IEvaluator evaluator, Environment env, ContinuationAny cont, uint stackSize = 512) {
+    public Machine(IEvaluator evaluator, Environment2 env, ContinuationAny cont, uint stackSize = 512) {
         _stackSize = stackSize;
         Evaluator = evaluator;
         ENVT = env;
+        VARS = [];
         CONT = new TopLevelContinuation(cont);
         RuntimeEnvironment = ENVT;
         CoreSyntax = SyntaxEnvironment.Default; // TODO: give Machine its own 
@@ -25,10 +22,11 @@ public class Machine : IRuntime
         Template = Template.Empty;
     }
 
-    public Machine(IEvaluator evaluator, Environment env, uint stackSize = 512) {
+    public Machine(IEvaluator evaluator, Environment2 env, uint stackSize = 512) {
         _stackSize = stackSize;
         Evaluator = evaluator;
         ENVT = env;
+        VARS = [];
         CONT = new TopLevelContinuation(TopLevelContinuation);
         RuntimeEnvironment = ENVT;
         CoreSyntax = SyntaxEnvironment.Default; // TODO: give Machine its own 
@@ -45,6 +43,8 @@ public class Machine : IRuntime
 
     public SchemeValue VAL = SchemeValue.Void;
 
+    public Location[] VARS = [];
+
     internal Template Template;
 
     internal readonly SchemeValue[] Stack;
@@ -56,7 +56,7 @@ public class Machine : IRuntime
 
     internal Continuation CONT;
 
-    internal Environment ENVT;
+    internal Environment2 ENVT;
 
     public IEvaluator Evaluator;
 
@@ -98,6 +98,7 @@ public class Machine : IRuntime
                 }  
             }
             ENVT = proc.Environment.Extend(proc.Template.NumVarsForScope);
+            VARS = proc.Locations;
             Template = proc.Template;
             PC = 0ul;
             return;
@@ -155,7 +156,7 @@ public class Machine : IRuntime
             PC++;
             // Execute
             OpCode opCode = (OpCode)(IR >> 56);
-            if (Loud) Console.WriteLine(Disassembler.Decode((int)PC - 1, IR, Template.Slots, Template.Bindings));
+            if (Loud) Console.WriteLine(Disassembler.Decode((int)PC - 1, IR, Template.Literals, Template.Vars));
             switch (opCode) { 
                 case OpCode.Push:
                     Push(VAL!);
@@ -173,7 +174,7 @@ public class Machine : IRuntime
                     FP = SP;
                     continue;
                 case OpCode.Lit:
-                    VAL = Template.Slots[IR & 0x00FFFFFFFFFFFFFF];
+                    VAL = Template.Literals[IR & 0x00FFFFFFFFFFFFFF];
                     continue;
                 case OpCode.PushContinuationForArg:
                     /* When a procedure performs a non-tail procedure call,
@@ -188,6 +189,7 @@ public class Machine : IRuntime
                         Template,
                         IR & 0x00FFFFFFFFFFFFFF,
                         ENVT,
+                        VARS,
                         FP,
                         CONT);
                     FP = SP;
@@ -197,6 +199,7 @@ public class Machine : IRuntime
                         Template,
                         IR & 0x00FFFFFFFFFFFFFF,
                         ENVT,
+                        VARS,
                         FP,
                         CONT);
                     FP = SP;
@@ -209,6 +212,7 @@ public class Machine : IRuntime
                         Template,
                         IR & 0x00FFFFFFFFFFFFFF,
                         ENVT,
+                        VARS,
                         FP,
                         CONT,
                         0,
@@ -308,6 +312,7 @@ public class Machine : IRuntime
                         continuationProc.Template,
                         0,
                         continuationProc.Environment,
+                        VARS,
                         FP,
                         CONT,
                         continuationProc.Required,
@@ -333,8 +338,8 @@ public class Machine : IRuntime
                     this.Winders.Pop();
                     continue;
                 case OpCode.Bind:
-                    int parameterNumber = (int)(IR & 0x00000000FFFFFFFF);
-                    for (int n = 0; n < parameterNumber; n++) {
+                    ulong parameterNumber = (IR & 0x00000000FFFFFFFF);
+                    for (ulong n = 0; n < parameterNumber; n++) {
                         try {
                             ENVT.BindParameter(n, Pop());
                         }
@@ -348,7 +353,7 @@ public class Machine : IRuntime
                     continue;
                 case OpCode.BindRest:
                     // bind zero should always be called first
-                    int restIndex = (int)(IR & 0x00FFFFFFFFFFFFFF);
+                    ulong restIndex = (IR & 0x00FFFFFFFFFFFFFF);
                     // TODO:
                     var xs = new System.Collections.Generic.List<SchemeValue>();
                     while (SP != FP) {
@@ -356,24 +361,28 @@ public class Machine : IRuntime
                     }
                     ENVT.BindParameter(restIndex, xs.ToJigList());
                     continue;
+                case OpCode.Arg:
+                    VAL = ENVT.GetArg(IR & 0x00FFFFFFFFFFFFFF);
+                    continue;
                 case OpCode.Top:
-                    VAL = Template.Bindings[IR & 0x00FFFFFFFFFFFFFF].Slot;
+                    VAL = VARS[IR & 0x00FFFFFFFFFFFFFF].Value;
                     continue;
                 case OpCode.Lex:
-                    int index = (int)(IR & 0x00000000FFFFFFFF);
-                    int depth = (int)(IR >> 32) & 0x00FFFFFF ;
-                    VAL = ENVT.GetLocal(depth, index);
+                    // TODO: no need for two opcodes if code is the same?
+                    // int index = (int)(IR & 0x00000000FFFFFFFF);
+                    // int depth = (int)(IR >> 32) & 0x00FFFFFF ;
+                    VAL = VARS[IR & 0x00FFFFFFFFFFFFFF].Value;
                     continue;
                 case OpCode.SetLex:
-                    int x = (int)(IR & 0x00000000FFFFFFFF);
-                    int h = (int)(IR >> 32) & 0x00FFFFFF ;
-                    ENVT.SetLocal(h, x, Pop());
+                    // int x = (int)(IR & 0x00000000FFFFFFFF);
+                    // int h = (int)(IR >> 32) & 0x00FFFFFF ;
+                    VARS[IR & 0x00FFFFFFFFFFFFFF].Value = VAL;
                     continue;
                 case OpCode.SetTop:
                     
                     // Console.WriteLine($"VM: executing SetTop instruction");
                     // Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
-                    Template.Bindings[IR & 0x00FFFFFFFFFFFFFF].Slot = Pop();
+                    VARS[IR & 0x00FFFFFFFFFFFFFF].Value = VAL;
                     continue;
                 case OpCode.Jump:
                     PC = IR & 0x00FFFFFFFFFFFFFF;
@@ -385,7 +394,7 @@ public class Machine : IRuntime
                     continue;
                 case OpCode.Lambda:
                     var t = (Template)Pop();
-                    var e = (VM.Environment)Pop();
+                    var e = (VM.Environment2)Pop();
                     VAL = new Procedure(e, t);
                     continue;
                 case OpCode.Env:
@@ -422,9 +431,11 @@ public class Machine : IRuntime
 
     }
 
-    public void Load(Template program, Environment env, ContinuationAny cont) {
+    public void Load(Template program, Environment2 env, ContinuationAny cont) {
         PC = 0;
-        Template = program;
+        var proc = new Procedure(env, program);
+        Template = proc.Template;
+        VARS = proc.Locations;
         ClearStack();
         ENVT = env;
         CONT = new TopLevelContinuation(cont);
@@ -439,12 +450,12 @@ public class Machine : IRuntime
 
     public IRuntimeEnvironment RuntimeEnvironment {
         get => ENVT;
-        private init => ENVT = (Environment)value;
+        private init => ENVT = (Environment2)value;
     }
 
     public SyntaxEnvironment CoreSyntax { get; }
 
-    public void Eval(Syntax stx, VM.Environment? env = null) {
+    public void Eval(Syntax stx, VM.Environment2? env = null) {
         env ??= ENVT;
         
         // var me = new Jig.MacroExpander();
@@ -461,7 +472,7 @@ public class Machine : IRuntime
     }
     
     
-    public void ExecuteFile(string path, Machine vm, VM.Environment? topLevel = null)
+    public void ExecuteFile(string path, Machine vm, VM.Environment2? topLevel = null)
     {
         topLevel ??= ENVT;
         InputPort port = new InputPort(path);
