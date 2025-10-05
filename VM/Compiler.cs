@@ -371,7 +371,7 @@ public class Compiler {
                 lambdaExpr.Parameters.Required.Length,
                 lambdaExpr.Parameters.HasRest);
         // Console.WriteLine($"***** {Syntax.ToDatum(lambdaExpr).Print()} compiled to: *****");
-        // Array.ForEach(Dissassembler.Disassemble(result), Console.WriteLine);
+        // Array.ForEach(Disassembler.Disassemble(result), Console.WriteLine);
         return result;
         
     }

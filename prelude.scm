@@ -106,10 +106,10 @@
 ;;      stx
 ;;      (car (cdr (syntax->list stx))))))
 
-(define-syntax or2
-    (lambda (stx)
-      (datum->syntax stx
-        `((lambda (x) (if x x ,(car (cdr (cdr (syntax->list stx)))))) ,(car (cdr (syntax->list stx)))))))
+;; (define-syntax or2
+;;     (lambda (stx)
+;;       (datum->syntax stx
+;;         `((lambda (x) (if x x ,(car (cdr (cdr (syntax->list stx)))))) ,(car (cdr (syntax->list stx)))))))
 ;; (define memq
 ;;    (lambda (x xs)
 ;;       (if (null? xs)

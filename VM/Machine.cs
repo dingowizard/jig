@@ -370,7 +370,17 @@ public class Machine : IRuntime
                     VAL = ENVT.GetArg(IR & 0x00FFFFFFFFFFFFFF);
                     continue;
                 case OpCode.Top:
-                    VAL = VARS[IR & 0x00FFFFFFFFFFFFFF].Value;
+                    try
+                    {
+                        VAL = VARS[IR & 0x00FFFFFFFFFFFFFF].Value;
+                    }
+                    catch (Exception exc)
+                    {
+                        Console.WriteLine($"PC = {PC}");
+                        Console.WriteLine($"ARGS count = {ENVT.ArgsLength}. index was {IR & 0x00FFFFFFFFFFFFFF}");
+                        Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
+                        throw;
+                    }
                     continue;
                 case OpCode.Lex:
                     // TODO: no need for two opcodes if code is the same?

@@ -26,6 +26,7 @@ public class ContinuationForNonTailBody : PartialContinuation {
         vm.PC = this.ReturnAddress;
         vm.FP = this.FP; // now set FP to old FP
         vm.ENVT = this.Environment;
+        vm.VARS = this.Variables;
         vm.Template = this.Template;
         vm.CONT = this.Continuation;
     }
