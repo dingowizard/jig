@@ -6,17 +6,17 @@ namespace VM;
 
 public class Environment : SchemeValue, IRuntimeEnvironment {
     
-    public Dictionary<Symbol, Binding> TopLevels; // TODO: replace Symbol with Parameter
+    public Dictionary<Parameter, Binding> TopLevels; // TODO: replace Symbol with Parameter
 
     public override string Print() => "#<environment>";
     
 
-    private Environment(Dictionary<Symbol, Binding> dict) {
+    private Environment(Dictionary<Parameter, Binding> dict) {
         TopLevels = dict;
         Locals = null;
     }
 
-    private Environment(Dictionary<Symbol, Binding> topLevels,  Scope? scope) {
+    private Environment(Dictionary<Parameter, Binding> topLevels,  Scope? scope) {
         TopLevels = topLevels;
         Locals = scope;
     }
@@ -27,7 +27,7 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
     public static Environment Default { get; private set; }
 
     static Environment() {
-        var initialBindings = new Dictionary<Symbol, Binding>();
+        var initialBindings = new Dictionary<Parameter, Binding>();
         Default = new Environment(initialBindings);
         // initialBindings[new Symbol("cons")] = new Binding(new Symbol("cons"), Primitives.Cons);
         // initialBindings[new Symbol("car")] = new Binding(new Symbol("car"), Primitives.Car);
@@ -139,12 +139,12 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
         }
     }
 
-    Dictionary<Symbol, IRuntimeBinding> IRuntimeEnvironment.TopLevels =>
-        this.TopLevels.ToDictionary(pair => pair.Key, pair => (IRuntimeBinding)pair.Value );
+    Dictionary<Parameter, Binding> IRuntimeEnvironment.TopLevels =>
+        this.TopLevels.ToDictionary(pair => pair.Key, pair => pair.Value );
 
-    public void DefineTopLevel(Symbol bindingSymbol, IRuntimeBinding binding)
+    public void DefineTopLevel(Parameter bindingSymbol, Binding binding)
     {
-        var vmBinding = binding as Binding;
+        var vmBinding = binding;
         // TODO: sigh
         Debug.Assert(vmBinding != null);
         TopLevels.Add(bindingSymbol, vmBinding);
@@ -152,7 +152,7 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
 
     public static Environment Minimal()
     {
-        var minimalBindings = new Dictionary<Symbol, Binding>();
+        var minimalBindings = new Dictionary<Parameter, Binding>();
         return new Environment(minimalBindings);
     }
 
