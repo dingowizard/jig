@@ -46,11 +46,11 @@ public static class Program {
         evaluator.Import(coreBuiltins);
         evaluator.Import(coreBuiltins, 1); // "for syntax"
         var prelude1Lib = Library.FromFile("prelude-1.scm", Reader.ReadFileSyntax, new VMFactory(), [coreBuiltins]);
-        // var preludeLib = Library.FromFile("prelude.scm", Reader.ReadFileSyntax, new VMFactory(), [coreBuiltins, prelude1Lib]);
+        var preludeLib = Library.FromFile("prelude.scm", Reader.ReadFileSyntax, new VMFactory(), [coreBuiltins, prelude1Lib]);
         evaluator.Import(prelude1Lib);
-        // evaluator.Import(prelude1Lib, 1);
-        // evaluator.Import(preludeLib);
-        // evaluator.Import(preludeLib, 1);
+        evaluator.Import(prelude1Lib, 1);
+        evaluator.Import(preludeLib);
+        evaluator.Import(preludeLib, 1);
         
         if (expr != "") {
             using (InputPort port = InputPort.FromString(expr)) {

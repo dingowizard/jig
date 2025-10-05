@@ -378,10 +378,34 @@ public class Machine : IRuntime
                     // int depth = (int)(IR >> 32) & 0x00FFFFFF ;
                     VAL = VARS[IR & 0x00FFFFFFFFFFFFFF].Value;
                     continue;
+                case OpCode.SetArg:
+                    try
+                    {
+                        ENVT.SetArg(IR & 0x00FFFFFFFFFFFFFF, VAL = Pop());
+                    }
+                    catch (Exception exc)
+                    {
+                        Console.WriteLine($"PC = {PC}");
+                        Console.WriteLine($"ARGS count = {ENVT.ArgsLength}. index was {IR & 0x00FFFFFFFFFFFFFF}");
+                        Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
+                        throw;
+                    }
+                    continue;
                 case OpCode.SetLex:
                     // int x = (int)(IR & 0x00000000FFFFFFFF);
                     // int h = (int)(IR >> 32) & 0x00FFFFFF ;
-                    VARS[IR & 0x00FFFFFFFFFFFFFF].Value = VAL;
+                    try
+                    {
+                        VARS[IR & 0x00FFFFFFFFFFFFFF].Value = VAL;
+                    }
+                    catch (Exception exc)
+                    {
+                        Console.WriteLine($"PC = {PC}");
+                        Console.WriteLine($"VARS count = {VARS.Length}. index was {IR & 0x00FFFFFFFFFFFFFF}");
+                        Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
+                        throw;
+                    }
+
                     continue;
                 case OpCode.SetTop:
                     

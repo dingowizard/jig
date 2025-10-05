@@ -10,7 +10,7 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
     public Location LookUpLocation(Parameter parameter) {
         
         if (parameter.ScopeLevel == 0) {
-            if (_topLevels.TryGetValue(parameter, out Jig.Binding binding)) {
+            if (_topLevels.TryGetValue(parameter, out var binding)) {
                 return binding.Location;
             }
 
@@ -20,6 +20,17 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
         return GetLexVarLocation(parameter.ScopeLevel, parameter.Index);
     }
 
+    public void SetArg(ulong ir, SchemeValue val)
+    {
+        if (LexicalVars is null)
+        {
+            throw new Exception();
+        }
+
+        LexicalVars[ir].Value = val;
+    }
+
+    public int ArgsLength => LexicalVars.Length;
     public SchemeValue GetArg(ulong index) {
         if (LexicalVars is null)
         {
@@ -70,6 +81,8 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
 
     private class Frame {
         int ScopeLevel { get; }
+        
+        public int Length => Locations.Length;
         Location[]  Locations { get; }
         
         public Location this[ulong index] => Locations[index];
@@ -122,4 +135,5 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
         }
         _topLevels.Add(p, runtimeBinding);
     }
+
 }

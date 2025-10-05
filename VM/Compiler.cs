@@ -92,6 +92,9 @@ public class Compiler {
         int scopeLevel,
         int startLine = 0)
     {
+        if (setForm.Variable.Parameter.ScopeLevel == scopeLevel) {
+            return [((ulong)OpCode.SetArg << 56) + (ulong)setForm.Variable.Parameter.Index];
+        }
         Sys.List<ulong> result = new();
         var bing = setForm.Variable.Parameter;
         int index = bindings.IndexOf(bing);
@@ -131,8 +134,13 @@ public class Compiler {
             code += (ulong)index;
             result.Add(code);
         } else {
-            var lexVar = (ParsedVariable.Lexical)defForm.Variable;  
-            ulong code = (ulong)OpCode.SetLex << 56;
+            var lexVar = (ParsedVariable.Lexical)defForm.Variable;
+            ulong code;
+            if (lexVar.Parameter.ScopeLevel == scopeLevel) {
+                code = ((ulong)OpCode.SetArg << 56);
+            } else {
+                code = (ulong)OpCode.SetLex << 56;
+            }
             int index = lexVar.Parameter.Index;
             code += (ulong)index;
             result.Add(code);

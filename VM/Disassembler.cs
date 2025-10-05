@@ -10,7 +10,7 @@ public static class Disassembler {
         literals.AddRange(template.Literals.Select((t, i) => $"{i:D5}\t{t.Print()}"));
         literals.Add("--------------------------");
         Sys.List<string> globals = ["***VARS***"];
-        globals.AddRange(template.Vars.Select((t, i) => $"{i:D5}\t{t.Symbol.Print()}"));
+        globals.AddRange(template.Vars.Select(p => $"\t{p.Symbol.Print()}"));
         globals.Add("--------------------------");
         Sys.List<string> instructions = [
             "***INSTRUCTIONS***",
@@ -53,6 +53,8 @@ public static class Disassembler {
                 return $"{lineNo:D3}\tRET";
             case OpCode.Arg:
                 return $"{lineNo:D3}\tARG\t{operand:D3}";
+            case OpCode.SetArg:
+                return $"{lineNo:D3}\tARG!\t{operand:D3}";
             case OpCode.Bind:
                 return $"{lineNo:D3}\tBIND\t{operand:D3}";
             case OpCode.BindRest:
@@ -66,7 +68,7 @@ public static class Disassembler {
             case OpCode.Lex:
                 return $"{lineNo:D3}\tLEX\t{depth:D3}\t{index:D3}" ;
             case OpCode.SetLex:
-                return $"{lineNo:D3}\tLEX!\t{depth:D3}\t{index:D3}" ;
+                return $"{lineNo:D3}\tLEX!\t{operand:D3}";
             case OpCode.SetTop:
                 return $"{lineNo:D3}\tTOP!\t{operand:D3} ; {bindings[operand].Symbol.Print()}";
             case OpCode.Jump:
