@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Jig;
 using Jig.Expansion;
 using Jig.IO;
@@ -20,8 +21,12 @@ public class Library : ILibrary
             // TODO: should specify in arguments which phases imports go to
             evaluator.Import(import, 1);
         }
-        
 
+
+        var vars = evaluator.Variables;
+        if (vars is null) throw new Exception($"evaluator.Variables was null");
+        var toplevels = vars.TopLevels;
+        if (toplevels is null) throw new Exception($"TopLevels was null");
         var importedVars = evaluator.Variables.TopLevels.Keys.ToArray();
         var importedKeywords = evaluator.Keywords.Rules.Keys.ToArray();
 
@@ -34,7 +39,7 @@ public class Library : ILibrary
                 .Variables
                 .TopLevels
                 .Values
-                .Where(b => !importedVars.Contains(b.Symbol));
+                .Where(b => !importedVars.Contains(b.Parameter));
 
         var kwsToExport = new System.Collections.Generic.List<Tuple<Symbol, IExpansionRule>>();
         foreach (var k in evaluator.Keywords.Rules)
@@ -51,36 +56,64 @@ public class Library : ILibrary
 
     static Library()
     {
+        var index = 0;
         Binding[] coreBindings =
         [ 
-            new (new Symbol("cons"), Primitives.Cons),
-            new (new Symbol("car"), Primitives.Car),
-            new (new Symbol("cdr"), Primitives.Cdr),
-            new (new Symbol("append"), Primitives.Append),
-            new (new Symbol("pair?"), Primitives.PairP),
-            new (new Symbol("list?"), Primitives.ListP),
-            new (new Symbol("null?"), Primitives.NullP),
-            new (new Symbol("zero?"), Primitives.ZeroP),
+            new (new Parameter(new Symbol("cons"), 0, index++, null),
+                    new Location( Primitives.Cons)),
+            new (new Parameter(new Symbol("car"), 0, index++, null),
+                    new Location(Primitives.Car)),
+            new (new Parameter(new Symbol("cdr"), 0, index++, null),
+                    new Location(Primitives.Cdr)),
+            new (new Parameter(new Symbol("append"), 0, index++, null),
+                    new Location(Primitives.Append)),
+            new (new Parameter(new Symbol("pair?"), 0, index++, null),
+                    new Location(Primitives.PairP)),
+            new (new Parameter(new Symbol("list?"), 0, index++, null),
+                    new Location(Primitives.ListP)),
+            new (new Parameter(new Symbol("null?"), 0, index++, null),
+                    new Location(Primitives.NullP)),
+            new (new Parameter(new Symbol("zero?"), 0, index++, null),
+                    new Location(Primitives.ZeroP)),
             // TODO: Default environment isn't used and should be empty?
-            new (new Symbol("call/cc"), new Procedure(Environment2.Default, VM.Builtins.CallCC)),
-            new (new Symbol("+"), new Procedure(Environment2.Default, VM.Builtins.Sum)),
-            new (new Symbol("apply"), new Procedure(Environment2.Default, VM.Builtins.Apply)),
-            new (new Symbol("expand"), Primitives.Expand),
-            new (new Symbol(">"), Primitives.GT),
-            new (new Symbol("<"), Primitives.LT),
-            new (new Symbol("-"), Primitives.Minus),
-            new (new Symbol("*"), new Procedure(Environment2.Default, VM.Builtins.Product)),
-            new (new Symbol("="), Primitives.NumEq),
-            new (new Symbol("eqv?"), Primitives.Eqvp),
-            new (new Symbol("values"), new Procedure(Environment2.Default, VM.Builtins.Values)),
-            new (new Symbol("call-with-values"), new Procedure(Environment2.Default, VM.Builtins.CallWithValues)),
-            new (new Symbol("dynamic-wind"), new Procedure(Environment2.Default, VM.Builtins.DynamicWind)),
-            new (new Symbol("datum->syntax"), Primitives.DatumToSyntax),
-            new (new Symbol("syntax->datum"), Primitives.SyntaxToDatum),
-            new (new Symbol("syntax->list"), Primitives.SyntaxToList),
-            new (new Symbol("syntax-e"), Primitives.SyntaxE),
-            new (new Symbol("symbol?"), Primitives.SymbolP),
-            new (new Symbol("symbol=?"), Primitives.SymbolEqualP)
+            new (new Parameter(new Symbol("call/cc"), 0, index++, null),
+                    new Location(new Procedure(Environment.Default, VM.Builtins.CallCC))),
+            new (new Parameter(new Symbol("+"), 0, index++, null),
+                    new Location(new Procedure(Environment.Default, VM.Builtins.Sum))),
+            new (new Parameter(new Symbol("apply"), 0, index++, null),
+                    new Location(new Procedure(Environment.Default, VM.Builtins.Apply))),
+            new (new Parameter(new Symbol("expand"), 0, index++, null),
+                    new Location(Primitives.Expand)),
+            new (new Parameter(new Symbol(">"), 0, index++, null),
+                    new Location(Primitives.GT)),
+            new (new Parameter(new Symbol("<"), 0, index++, null),
+                    new Location(Primitives.LT)),
+            new (new Parameter(new Symbol("-"), 0, index++, null),
+                    new Location(Primitives.Minus)),
+            new (new Parameter(new Symbol("*"), 0, index++, null),
+                    new Location(new Procedure(Environment.Default, VM.Builtins.Product))),
+            new (new Parameter(new Symbol("="), 0, index++, null),
+                    new Location(Primitives.NumEq)),
+            new (new Parameter(new Symbol("eqv?"), 0, index++, null),
+                    new Location(Primitives.Eqvp)),
+            new (new Parameter(new Symbol("values"), 0, index++, null),
+                    new Location(new Procedure(Environment.Default, VM.Builtins.Values))),
+            new (new Parameter(new Symbol("call-with-values"), 0, index++, null),
+                    new Location(new Procedure(Environment.Default, VM.Builtins.CallWithValues))),
+            new (new Parameter(new Symbol("dynamic-wind"), 0, index++, null),
+                    new Location(new Procedure(Environment.Default, VM.Builtins.DynamicWind))),
+            new (new Parameter(new Symbol("datum->syntax"), 0, index++, null),
+                            new Location(Primitives.DatumToSyntax)),
+            new (new Parameter(new Symbol("syntax->datum"), 0, index++, null),
+                            new Location(Primitives.SyntaxToDatum)),
+            new (new Parameter(new Symbol("syntax->list"), 0, index++, null),
+                            new Location(Primitives.SyntaxToList)),
+            new (new Parameter(new Symbol("syntax-e"), 0, index++, null),
+                            new Location(Primitives.SyntaxE)),
+            new (new Parameter(new Symbol("symbol?"), 0, index++, null),
+                            new Location(Primitives.SymbolP)),
+            new (new Parameter(new Symbol("symbol=?"), 0, index++, null),
+                    new Location(Primitives.SymbolEqualP))
         ];
         Tuple<Symbol, IExpansionRule>[] keywords = [
         
@@ -93,13 +126,13 @@ public class Library : ILibrary
     public static Library Core { get; }
 
 
-    public Library(IEnumerable<IRuntimeBinding> vars, IEnumerable<Tuple<Symbol, IExpansionRule>> keywords)
+    public Library(IEnumerable<Binding> vars, IEnumerable<Tuple<Symbol, IExpansionRule>> keywords)
     {
         VariableExports = vars;
         KeywordExports = keywords;
     }
     
-    public IEnumerable<IRuntimeBinding> VariableExports { get; }
+    public IEnumerable<Binding> VariableExports { get; }
     
     public IEnumerable<Tuple<Symbol, IExpansionRule>> KeywordExports { get; }
     

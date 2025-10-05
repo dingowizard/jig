@@ -6,7 +6,7 @@ public static class Primitives {
     private static void car(Machine vm) {
         SchemeValue arg = vm.Pop();
         IPair? pair = arg as IPair;
-        if (pair is null) throw new Exception("car: expected argument to be a pair. Got ${arg}");
+        if (pair is null) throw new Exception($"car: expected argument to be a pair. Got ${arg}");
         vm.Push(vm.VAL = (SchemeValue)pair.Car);
     }
     public static Primitive Car { get; } = new("car", car, 1, false);

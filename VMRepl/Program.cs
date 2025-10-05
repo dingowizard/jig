@@ -7,7 +7,7 @@ using Jig.Reader;
 
 public static class Program {
 
-    public static VM.Environment2 TopLevel = VM.Environment2.Default;
+    public static VM.Environment TopLevel = VM.Environment.Default;
 
     static void Main(string[] args) {
 
@@ -40,28 +40,17 @@ public static class Program {
             System.Environment.Exit(0);
         }
 
-        // this is just a kludge while libraries aren't implemented
-        // need to have evaluated certain functions in order to
-        // expand the rhs of define-syntaxes
         IEvaluator evaluator = new Evaluator();
         ILibrary coreBuiltins = Library.Core;
         
-        // InputPort filePort = new InputPort("prelude-1.scm");
-        // var stxes = Reader.ReadFileSyntax(filePort);
-        // evaluator.EvalSequence(ThrowAwayAny, stxes);
         evaluator.Import(coreBuiltins);
         evaluator.Import(coreBuiltins, 1); // "for syntax"
         var prelude1Lib = Library.FromFile("prelude-1.scm", Reader.ReadFileSyntax, new VMFactory(), [coreBuiltins]);
-        var preludeLib = Library.FromFile("prelude.scm", Reader.ReadFileSyntax, new VMFactory(), [coreBuiltins, prelude1Lib]);
-        evaluator.Import(prelude1Lib);
-        evaluator.Import(prelude1Lib, 1);
-        evaluator.Import(preludeLib);
-        evaluator.Import(preludeLib, 1);
         // var preludeLib = Library.FromFile("prelude.scm", Reader.ReadFileSyntax, new VMFactory(), [coreBuiltins, prelude1Lib]);
+        evaluator.Import(prelude1Lib);
+        // evaluator.Import(prelude1Lib, 1);
         // evaluator.Import(preludeLib);
-        // filePort = new InputPort("prelude.scm");
-        // stxes = Reader.ReadFileSyntax(filePort);
-        // evaluator.EvalSequence(ThrowAwayAny, stxes);
+        // evaluator.Import(preludeLib, 1);
         
         if (expr != "") {
             using (InputPort port = InputPort.FromString(expr)) {

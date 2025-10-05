@@ -5,7 +5,7 @@ namespace VM;
 public class ContinuationForArg : PartialContinuation {
     public ContinuationForArg(Template template,
         ulong returnAddress,
-        Environment2 env,
+        Environment env,
         Location[] vars,
         uint fp,
         Continuation cont) : base(template, returnAddress, env, vars, fp, cont, 1, false) {}
@@ -14,7 +14,7 @@ public class ContinuationForArg : PartialContinuation {
 public class ContinuationForNonTailBody : PartialContinuation {
     public ContinuationForNonTailBody(Template template,
         ulong returnAddress,
-        Environment2 env,
+        Environment env,
         Location[] vars,
         uint fp,
         Continuation cont) : base(template, returnAddress, env, vars, fp, cont, 0, true) {}
@@ -63,7 +63,7 @@ public class PartialContinuation : Continuation {
     public PartialContinuation(
         Template template,
         ulong returnAddress,
-        Environment2 environment, // TODO: should a continuation have an environment?
+        Environment environment, // TODO: should a continuation have an environment?
                                  // atm the envt is used by DynamicWind, but it's not clear that it should
                                  // there may be other ways it is used...
         Location[] vars,
@@ -92,7 +92,7 @@ public class PartialContinuation : Continuation {
     public override int Required { get; }
     public override bool HasOptional { get; }
 
-    public virtual Environment2 Environment { get; protected set; }
+    public virtual Environment Environment { get; protected set; }
     
     public Location[] Variables { get; }
     
@@ -101,7 +101,7 @@ public class PartialContinuation : Continuation {
 public class PartialContinuationForCallWithValues : PartialContinuation {
     public PartialContinuationForCallWithValues(Template continuationProcTemplate,
         ulong i,
-        Environment2 envt,
+        Environment envt,
         Location[] vars,
         uint fp,
         Continuation cont,

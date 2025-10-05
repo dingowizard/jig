@@ -6,16 +6,17 @@ namespace Jig.Expansion;
 
 public class ExpansionContext {
 
-    public ExpansionContext(IEvaluator evaluator, IEnumerable<Symbol> topLevels) {
+    public ExpansionContext(IEvaluator evaluator, IEnumerable<Parameter> topLevels) {
         Runtime = evaluator.Runtime;
         // TODO: seems like we can simplify the arguments to a bunch of these constructors once we get things running
         Expander = evaluator.Expander;
         _syntaxEnvironment = evaluator.Keywords;
         _bindings = new Dictionary<Identifier, Parameter>(); // TODO: this seems like it should be part of the environment
         int i = 0;
-        foreach (var sym in topLevels) {
+        foreach (var p in topLevels) {
             // TODO: topLevels should probably be identifiers, most likely parameters
-            _bindings.Add(new Identifier(sym), new Parameter(sym, 0, i++, null));
+            // _bindings.Add(new Identifier(sym), new Parameter(sym, 0, i++, null));
+            _bindings.Add(p, p); // TODO: why????
             
         }
         ScopeLevel = 0;

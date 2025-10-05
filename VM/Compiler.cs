@@ -7,7 +7,7 @@ namespace VM;
 public class Compiler {
 
     public Template CompileExprForREPL(ParsedForm x,
-        Environment2 ctEnv,
+        Environment ctEnv,
         int scopeLevel = 0,
         int startLine = 0) {
 
@@ -26,7 +26,7 @@ public class Compiler {
     }
 
     private ulong[] Compile(ParsedForm x,
-        Environment2 ctEnv,
+        Environment ctEnv,
         Sys.List<SchemeValue> literals,
         Sys.List<Parameter> bindings,
         Context context,
@@ -63,7 +63,7 @@ public class Compiler {
         return [];
     }
 
-    private ulong[] CompileBegin(ParsedBegin begin, Environment2 ctEnv, Sys.List<SchemeValue> literals,
+    private ulong[] CompileBegin(ParsedBegin begin, Environment ctEnv, Sys.List<SchemeValue> literals,
         Sys.List<Parameter> bindings,
         Context context, int scopeLevel, int startLine)
     {
@@ -85,7 +85,7 @@ public class Compiler {
     }
 
     private ulong[] CompileSet(ParsedSet setForm,
-        Environment2 ctEnv,
+        Environment ctEnv,
         Sys.List<SchemeValue> literals,
         Sys.List<Parameter> bindings,
         Context context,
@@ -114,7 +114,7 @@ public class Compiler {
     }
     
     private ulong[] CompileDefinition(ParsedDefine defForm,
-        Environment2 ctEnv,
+        Environment ctEnv,
         Sys.List<SchemeValue> literals,
         Sys.List<Parameter> bindings,
         Context context,
@@ -133,7 +133,7 @@ public class Compiler {
         } else {
             var lexVar = (ParsedVariable.Lexical)defForm.Variable;  
             ulong code = (ulong)OpCode.SetLex << 56;
-            int index = lexVar.Parameter.VarIndex;
+            int index = lexVar.Parameter.Index;
             code += (ulong)index;
             result.Add(code);
         }
@@ -159,7 +159,7 @@ public class Compiler {
     }
 
     private ulong[] CompileIfExpr(ParsedIf ifExpr,
-        Environment2 ctEnv,
+        Environment ctEnv,
         Sys.List<SchemeValue> literals,
         Sys.List<Parameter> bindings,
         Context context,
@@ -184,7 +184,7 @@ public class Compiler {
     }
 
     public Template CompileSequence(ParsedForm[] sequence,
-        Environment2 ctEnv,
+        Environment ctEnv,
         Sys.List<SchemeValue> literals,
         Sys.List<Parameter> bindings,
         int scopeLevel,
@@ -220,7 +220,7 @@ public class Compiler {
 
     public ulong[] CompileTop(
         ParsedVariable.TopLevel var,
-        Environment2 ctEnv,
+        Environment ctEnv,
         Sys.List<Parameter> bindings,
         Context context)
     {
@@ -301,7 +301,7 @@ public class Compiler {
     }
 
     public ulong[] CompileLambdaExpr(ParsedLambda lambdaExpr,
-        Environment2 ctEnv,
+        Environment ctEnv,
         Sys.List<SchemeValue> literals,
         Context context,
         int scopeLevel,
@@ -324,7 +324,7 @@ public class Compiler {
 
     private Template CompileLambdaTemplate(
         ParsedLambda lambdaExpr,
-        Environment2 ctEnv,
+        Environment ctEnv,
         int scopeLevel)
     {
         var bindings = new Sys.List<Parameter>();
@@ -369,7 +369,7 @@ public class Compiler {
     }
 
     public ulong[] CompileApplication(ParsedApplication app,
-        Environment2 ctEnv,
+        Environment ctEnv,
         Sys.List<SchemeValue> literals,
         Sys.List<Parameter> bindings,
         Context context,
@@ -412,7 +412,7 @@ public class Compiler {
         return instructions.ToArray();
 
     }
-    public Template CompileFile(ParsedForm[] parsedFile, Environment2 cte) {
+    public Template CompileFile(ParsedForm[] parsedFile, Environment cte) {
         
         Sys.List<SchemeValue> literals = [];
         Sys.List<Parameter> bindings = [];
@@ -448,29 +448,23 @@ public class Compiler {
             false);
     }
 
-    private void DoFirstPassOneForm(Sys.List<Parameter> bindings, ParsedForm form, Environment2 ctEnv) {
-        if (form is ParsedDefine def) {
-            // Parameter bing;
-            // Symbol sym = def.Variable.Identifier.Symbol;
-            // if (ctEnv.TopLevels.TryGetValue(sym, out var value)) {
-            //     bing = value;
-            // }
-            // else {
-            //     bing = new Parameter(sym);
-            //     ctEnv.TopLevels.Add(sym, bing);
-            // }
+    private void DoFirstPassOneForm(Sys.List<Parameter> bindings, ParsedForm form, Environment ctEnv) {
+        if (form is ParsedDefine def)
+        {
+            var p = def.Variable.Parameter;
+            if (!ctEnv.TopLevels.ContainsKey(p))
+            {
+                ctEnv.TopLevels.Add(p, new Binding(p, new Location()));
+            }
             
-            // TODO: not too sure about this part
-            // I think the Environment2 maybe shouldn't even be in the Compiler
-            var parameter = def.Variable.Parameter;
-            if (!bindings.Contains(parameter)) {
-                bindings.Add(parameter);
+            if (!bindings.Contains(p)) {
+                bindings.Add(p);
             }
                 
         }
     }
 
-    private void DoFirstPass(Sys.List<Parameter> bindings, ParsedForm[] parsedFile, Environment2 ctEnv) {
+    private void DoFirstPass(Sys.List<Parameter> bindings, ParsedForm[] parsedFile, Environment ctEnv) {
         foreach (var form in parsedFile) {
             DoFirstPassOneForm(bindings, form, ctEnv);
             

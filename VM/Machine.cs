@@ -10,7 +10,7 @@ public class Machine : IRuntime
 
     internal bool Loud = false;
 
-    public Machine(IEvaluator evaluator, Environment2 env, ContinuationAny cont, uint stackSize = 512) {
+    public Machine(IEvaluator evaluator, Environment env, ContinuationAny cont, uint stackSize = 512) {
         _stackSize = stackSize;
         Evaluator = evaluator;
         ENVT = env;
@@ -22,7 +22,7 @@ public class Machine : IRuntime
         Template = Template.Empty;
     }
 
-    public Machine(IEvaluator evaluator, Environment2 env, uint stackSize = 512) {
+    public Machine(IEvaluator evaluator, Environment env, uint stackSize = 512) {
         _stackSize = stackSize;
         Evaluator = evaluator;
         ENVT = env;
@@ -56,7 +56,7 @@ public class Machine : IRuntime
 
     internal Continuation CONT;
 
-    internal Environment2 ENVT;
+    internal Environment ENVT;
 
     public IEvaluator Evaluator;
 
@@ -84,6 +84,7 @@ public class Machine : IRuntime
 
     internal void Call() {
         
+        // Console.WriteLine($"call: (stack is {StackToList().Print()}");
         if (VAL is Procedure proc) {
             if (proc.HasRest) {
                 if (SP - FP < proc.Required) {
@@ -97,6 +98,9 @@ public class Machine : IRuntime
                     throw new Exception($"wrong num args: expected {proc.Required}, but got {SP - FP}. (SP = {SP}; FP = {FP}; stack = {StackToList()})");
                 }  
             }
+            // Console.WriteLine($"\tabout to extend Env with {proc.Template.NumVarsForScope} scope vars");
+            // Console.WriteLine("Template:");
+            // Array.ForEach(Disassembler.Disassemble(proc.Template), Console.WriteLine);
             ENVT = proc.Environment.Extend(proc.Template.NumVarsForScope);
             VARS = proc.Locations;
             Template = proc.Template;
@@ -340,7 +344,8 @@ public class Machine : IRuntime
                 case OpCode.Bind:
                     ulong parameterNumber = (IR & 0x00000000FFFFFFFF);
                     for (ulong n = 0; n < parameterNumber; n++) {
-                        try {
+                        try
+                        {
                             ENVT.BindParameter(n, Pop());
                         }
                         catch (Exception exc) {
@@ -394,7 +399,7 @@ public class Machine : IRuntime
                     continue;
                 case OpCode.Lambda:
                     var t = (Template)Pop();
-                    var e = (VM.Environment2)Pop();
+                    var e = (VM.Environment)Pop();
                     VAL = new Procedure(e, t);
                     continue;
                 case OpCode.Env:
@@ -431,7 +436,7 @@ public class Machine : IRuntime
 
     }
 
-    public void Load(Template program, Environment2 env, ContinuationAny cont) {
+    public void Load(Template program, Environment env, ContinuationAny cont) {
         PC = 0;
         var proc = new Procedure(env, program);
         Template = proc.Template;
@@ -450,12 +455,12 @@ public class Machine : IRuntime
 
     public IRuntimeEnvironment RuntimeEnvironment {
         get => ENVT;
-        private init => ENVT = (Environment2)value;
+        private init => ENVT = (Environment)value;
     }
 
     public SyntaxEnvironment CoreSyntax { get; }
 
-    public void Eval(Syntax stx, VM.Environment2? env = null) {
+    public void Eval(Syntax stx, VM.Environment? env = null) {
         env ??= ENVT;
         
         // var me = new Jig.MacroExpander();
@@ -472,7 +477,7 @@ public class Machine : IRuntime
     }
     
     
-    public void ExecuteFile(string path, Machine vm, VM.Environment2? topLevel = null)
+    public void ExecuteFile(string path, Machine vm, VM.Environment? topLevel = null)
     {
         topLevel ??= ENVT;
         InputPort port = new InputPort(path);

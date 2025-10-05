@@ -4,7 +4,7 @@ namespace Jig;
 
 public interface ILibrary
 {
-    public IEnumerable<IRuntimeBinding> VariableExports { get; }
+    public IEnumerable<Binding> VariableExports { get; }
     
     // TODO: this should probably pare * Identifiers * and IExpansionRules
     public IEnumerable<Tuple<Symbol, IExpansionRule>> KeywordExports { get; }

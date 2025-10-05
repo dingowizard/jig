@@ -22,7 +22,7 @@ public static class WinderThunkCont
             Procedure thunk,
             Template template,
             ulong returnAddress,
-            Environment2 environment,
+            Environment environment,
             Location[] vars,
             uint fp,
             Continuation continuation,

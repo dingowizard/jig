@@ -9,7 +9,7 @@ public static class Disassembler {
         Sys.List<string> literals = ["***LITERALS***"];
         literals.AddRange(template.Literals.Select((t, i) => $"{i:D5}\t{t.Print()}"));
         literals.Add("--------------------------");
-        Sys.List<string> globals = ["***TOP LEVEL VARS***"];
+        Sys.List<string> globals = ["***VARS***"];
         globals.AddRange(template.Vars.Select((t, i) => $"{i:D5}\t{t.Symbol.Print()}"));
         globals.Add("--------------------------");
         Sys.List<string> instructions = [
@@ -51,6 +51,8 @@ public static class Disassembler {
                 return $"{lineNo:D3}\tCONTBT\t{operand:D3}";
             case OpCode.PopContinuation:
                 return $"{lineNo:D3}\tRET";
+            case OpCode.Arg:
+                return $"{lineNo:D3}\tARG\t{operand:D3}";
             case OpCode.Bind:
                 return $"{lineNo:D3}\tBIND\t{operand:D3}";
             case OpCode.BindRest:

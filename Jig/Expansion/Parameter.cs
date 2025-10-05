@@ -5,10 +5,9 @@ public class Parameter : Identifier {
     {
         // TODO: remove Index?
         ScopeLevel = scopeLevel;
-        VarIndex = varIndex;
+        Index = varIndex;
     }
 
-    public int VarIndex { get; }
 
     public int ScopeLevel { get;}
 
@@ -21,7 +20,7 @@ public class Parameter : Identifier {
     public override bool Equals(object? obj) {
         if (obj is null) return false;
         return obj switch {
-            Parameter binding => this.Index == binding.Index,
+            Parameter binding => this.Symbol.Equals(binding.Symbol) && this.Index == binding.Index && this.ScopeLevel == binding.ScopeLevel,
             _ => false
         };
     }
@@ -30,7 +29,8 @@ public class Parameter : Identifier {
         return Index == other.Index;
     }
 
-    public override int GetHashCode() {
-        return Index;
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Symbol, ScopeLevel, Index);
     }
 }

@@ -2,10 +2,10 @@ using Jig;
 using Jig.Expansion;
 namespace VM;
 
-public class Environment2 : SchemeValue, IRuntimeEnvironment {
+public class Environment : SchemeValue, IRuntimeEnvironment {
     private int ScopeLevel { get; }
 
-    private Dictionary<Parameter, Jig.Binding> _topLevels { get; }
+    private Dictionary<Parameter, Binding> _topLevels { get; }
     
     public Location LookUpLocation(Parameter parameter) {
         
@@ -14,7 +14,7 @@ public class Environment2 : SchemeValue, IRuntimeEnvironment {
                 return binding.Location;
             }
 
-            throw new Exception($"couldn't find toplevel var {parameter.Symbol} in env");
+            throw new Exception($"couldn't find toplevel var {parameter.Symbol} in env. keys in toplevels are: {string.Join(", ", _topLevels.Keys.Select(p => p.Symbol.Print()))}");
         }
 
         return GetLexVarLocation(parameter.ScopeLevel, parameter.Index);
@@ -29,7 +29,7 @@ public class Environment2 : SchemeValue, IRuntimeEnvironment {
         return LexicalVars[index].Value ?? throw new Exception("undefined");
     }
 
-    public Environment2(IEnumerable<Jig.Binding> topVars)
+    public Environment(IEnumerable<Jig.Binding> topVars)
     {
         ScopeLevel = 0;
         _topLevels = new();
@@ -40,7 +40,7 @@ public class Environment2 : SchemeValue, IRuntimeEnvironment {
         LexicalVars = null;
     }
 
-    private Environment2(Environment2 parent, Frame newFrame)
+    private Environment(Environment parent, Frame newFrame)
     {
         _topLevels = parent._topLevels;
         LexicalVars = newFrame;
@@ -48,9 +48,9 @@ public class Environment2 : SchemeValue, IRuntimeEnvironment {
 
     }
 
-    public Environment2 Extend(int number)
+    public Environment Extend(int number)
     {
-        return new Environment2(this, new Frame(this, number));
+        return new Environment(this, new Frame(this, number));
 
     }
     
@@ -92,7 +92,7 @@ public class Environment2 : SchemeValue, IRuntimeEnvironment {
         
         private Frame? Parent { get; }
 
-        public Frame(Environment2 parent, int number)
+        public Frame(Environment parent, int number)
         {
             Parent = parent.LexicalVars;
             ScopeLevel = parent.ScopeLevel + 1;
@@ -103,20 +103,23 @@ public class Environment2 : SchemeValue, IRuntimeEnvironment {
 
     public override string Print() => "#<environment>";
 
-    public Dictionary<Symbol, IRuntimeBinding> TopLevels { get; }
-    public static Environment2 Default { get; set; }
+    public Dictionary<Parameter, Binding> TopLevels => _topLevels;
+    public static Environment Default { get; set; }
 
-    public static Environment2 Minimal()
+    public static Environment Minimal()
     {
         // TODO: Minimal and Default are the same
-        return new Environment2([]);
+        return new Environment([]);
     }
-    static Environment2() {
-        Default = new Environment2([]);
+    static Environment() {
+        Default = new Environment([]);
     }
-    public void DefineTopLevel(Symbol symbol, IRuntimeBinding runtimeBinding)
+    public void DefineTopLevel(Parameter p, Binding runtimeBinding)
     {
-        var parameter = new Parameter(symbol, 0, 0, null);
-        _topLevels.Add(parameter, runtimeBinding);
+        if (_topLevels.ContainsKey(p)) {
+            throw new Exception($"DefineTopLevel: trying to add {p.Symbol.Print()} but it is already in _topLevels");
+
+        }
+        _topLevels.Add(p, runtimeBinding);
     }
 }

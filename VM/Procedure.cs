@@ -5,7 +5,7 @@ public class Procedure : Jig.SchemeValue {
     
     internal Template Template { get; }
     
-    public Procedure(Environment2 env, Template template) {
+    public Procedure(Environment env, Template template) {
         Template = template;
         Locations = SaveVarLocations(env, template);
         Required = template.RequiredParameterCount;
@@ -13,7 +13,7 @@ public class Procedure : Jig.SchemeValue {
         Environment = env;
     }
 
-    private Location[] SaveVarLocations(Environment2 env, Template template)
+    private Location[] SaveVarLocations(Environment env, Template template)
     {
         var result = new System.Collections.Generic.List<Location>();
         foreach (var parameter in template.Vars) {
@@ -24,7 +24,7 @@ public class Procedure : Jig.SchemeValue {
             
     }
     
-    public Environment2 Environment { get; }
+    public Environment Environment { get; }
 
 
     public Location[] Locations { get; }
