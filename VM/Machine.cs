@@ -396,7 +396,7 @@ public class Machine : IRuntime
                     catch (Exception exc)
                     {
                         Console.WriteLine($"PC = {PC}");
-                        Console.WriteLine($"ARGS count = {ENVT.ArgsLength}. index was {IR & 0x00FFFFFFFFFFFFFF}");
+                        // Console.WriteLine($"ARGS count = {ENVT.ArgsLength}. index was {IR & 0x00FFFFFFFFFFFFFF}");
                         Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
                         throw;
                     }
@@ -406,7 +406,8 @@ public class Machine : IRuntime
                     // int h = (int)(IR >> 32) & 0x00FFFFFF ;
                     try
                     {
-                        VARS[IR & 0x00FFFFFFFFFFFFFF].Value = VAL;
+                        VARS[IR & 0x00FFFFFFFFFFFFFF].Value = Pop();
+                        Push(VAL = SchemeValue.Void);
                     }
                     catch (Exception exc)
                     {
@@ -418,10 +419,10 @@ public class Machine : IRuntime
 
                     continue;
                 case OpCode.SetTop:
-                    
                     // Console.WriteLine($"VM: executing SetTop instruction");
                     // Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
-                    VARS[IR & 0x00FFFFFFFFFFFFFF].Value = VAL;
+                    VARS[IR & 0x00FFFFFFFFFFFFFF].Value = Pop();
+                    Push(VAL = SchemeValue.Void);
                     continue;
                 case OpCode.Jump:
                     PC = IR & 0x00FFFFFFFFFFFFFF;

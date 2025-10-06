@@ -92,21 +92,26 @@ public class Compiler {
         int scopeLevel,
         int startLine = 0)
     {
-        if (setForm.Variable.Parameter.ScopeLevel == scopeLevel) {
-            return [((ulong)OpCode.SetArg << 56) + (ulong)setForm.Variable.Parameter.Index];
-        }
         Sys.List<ulong> result = new();
-        var bing = setForm.Variable.Parameter;
-        int index = bindings.IndexOf(bing);
-        if (index == -1) {
-            bindings.Add(bing);
-            index = bindings.Count - 1;
+        ulong code;
+        if (scopeLevel != 0 && setForm.Variable.Parameter.ScopeLevel == scopeLevel) {
+            // local var
+            code = ((ulong)OpCode.SetArg << 56) + (ulong)setForm.Variable.Parameter.Index;
+        } else {
+            // top-level or lexical var outside of current scope
+            var bing = setForm.Variable.Parameter;
+            int index = bindings.IndexOf(bing);
+            if (index == -1) {
+                bindings.Add(bing);
+                index = bindings.Count - 1;
+            }
+            code = (ulong)OpCode.SetTop << 56;
+            code += (ulong)index;
         }
-        ulong code = (ulong)OpCode.SetTop << 56;
-        code += (ulong)index;
+
         result.Add(code);
 
-        // We have to compile the lambda function after the variable,
+        // We have to compile the value after the variable in case of lambda expr,
         // because there might be a recursive call to a toplevel
         result.InsertRange(0, Compile(setForm.Value, ctEnv, literals, bindings, Context.Argument, scopeLevel, startLine));
         // TODO: should this be CodeForContext?
@@ -163,6 +168,9 @@ public class Compiler {
         if (context == Context.Tail) {
             result.Add((ulong)OpCode.PopContinuation << 56);
         }
+
+        var template = new Template(0, result.ToArray(), bindings.ToArray(), literals.ToArray(), 0, false); 
+        // Array.ForEach(Disassembler.Disassemble(template), Console.WriteLine);
         return result.ToArray();
     }
 
