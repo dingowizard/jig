@@ -202,7 +202,7 @@ public class ExpansionContext {
 
     private SyntaxEnvironment _syntaxEnvironment {get;}
 
-    public ParsedForm[] ExpandLambdaBody(IEnumerable<Syntax> syntaxes) {
-        return Expander.ExpandLambdaBody(syntaxes, this);
+    public ParsedForm[] ExpandSequence(IEnumerable<Syntax> syntaxes) {
+        return Expander.ExpandSequence(syntaxes, this).ToArray();
     }
 }

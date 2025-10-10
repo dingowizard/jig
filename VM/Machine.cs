@@ -559,7 +559,7 @@ public class Machine : IRuntime
         InputPort port = new InputPort(path);
         // Continuation.ContinuationAny throwAwayResult = (xs) => null;
         var datums = Reader.ReadFileSyntax(port);
-        var parsedProgram = Evaluator.Expander.ExpandFile(datums, new ExpansionContext(Evaluator, topLevel.TopLevels.Keys));
+        var parsedProgram = Evaluator.Expander.ExpandSequence(datums, new ExpansionContext(Evaluator, topLevel.TopLevels.Keys));
         var compiler = new Compiler();
         var compiled = compiler.CompileFile(parsedProgram.ToArray(), topLevel);
         vm.Load(compiled, topLevel, TopLevelContinuation);

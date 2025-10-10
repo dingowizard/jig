@@ -12,7 +12,7 @@ public partial class CoreParseRules
         return new ParsedBegin(
             stxList[0],
             // TODO: make a ExpandSequence to be used by various
-            context.ExpandLambdaBody(stxList.Skip<Syntax>(1)),
+            context.ExpandSequence(stxList.Skip<Syntax>(1)),
             syntax.SrcLoc);
     }
 

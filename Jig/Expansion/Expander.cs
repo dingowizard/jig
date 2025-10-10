@@ -16,7 +16,7 @@ public class Expander
     
     public IEvaluator Evaluator => _evaluator.Value;
 
-    public IEnumerable<ParsedForm> ExpandFile(IEnumerable<Syntax> syntaxes, ExpansionContext context) {
+    public IEnumerable<ParsedForm> ExpandSequence(IEnumerable<Syntax> syntaxes, ExpansionContext context) {
         Syntax[] forSecondPass = DoFirstPass(syntaxes, context).ToArray();
         foreach (Syntax syntax in forSecondPass) {
             yield return Expand(syntax, context);
@@ -156,8 +156,4 @@ public class Expander
         return Expand(DoFirstPassOneForm(stx, context), context);
     }
 
-    public ParsedForm[] ExpandLambdaBody(IEnumerable<Syntax> syntaxes, ExpansionContext expansionContext)
-    {
-        return ExpandFile(syntaxes, expansionContext).ToArray();
-    }
 }
