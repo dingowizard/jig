@@ -18,7 +18,7 @@ public interface IEvaluator {
 
     public void Eval(ContinuationAny k, Syntax syntax, IRuntimeEnvironment env);
     
-    public void EvalSequence(ContinuationAny continuation, IEnumerable<Syntax> syntax);
+    public void EvalSequence(IEnumerable<Syntax> syntax,  ContinuationAny? k = null);
 
     public void Import(ILibrary library, uint phase = 0);
     public IExpansionRule EvaluateTransformerExpression(ParsedLambda transformerLambdaExpr, ExpansionContext context);

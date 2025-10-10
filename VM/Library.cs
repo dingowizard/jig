@@ -32,7 +32,7 @@ public class Library : ILibrary
 
         var port = new InputPort(path);
         var stxes = reader(port);
-        evaluator.EvalSequence((x) => { }, stxes);
+        evaluator.EvalSequence(stxes);
         // this is crude until we get importing and exporting specific bindings. Just don't export anything you imported
         var varsToExport =
             evaluator

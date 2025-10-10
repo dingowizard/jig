@@ -30,7 +30,7 @@ public class Evaluator : IEvaluator<Machine> {
         ISchemeValue result = List.Null;
         Runtime.Load(code, Environment, Cont);
         Runtime.Run();
-        Procedure proc = result as Procedure ?? throw new Exception("a transformer shold evaluate to a procedure");
+        Procedure proc = result as Procedure ?? throw new Exception("a transformer should evaluate to a procedure");
         return new Transformer(proc, Runtime);
         
         void Cont(SchemeValue[] forms) => result = forms[0];
@@ -65,13 +65,31 @@ public class Evaluator : IEvaluator<Machine> {
         throw new NotImplementedException();
     }
 
-    public void EvalSequence(ContinuationAny continuation, IEnumerable<Syntax> syntax)
+    public void EvalSequence(IEnumerable<Syntax> syntax, ContinuationAny? continuation = null)
     {
+        if (continuation is null)
+        {
+            continuation = Evaluator.DefaultContinuation;
+
+        }
         var parsedProgram = Expander.ExpandFile(syntax, new ExpansionContext(this, Environment.TopLevels.Keys));
         var compiler = new Compiler();
         var compiled = compiler.CompileFile(parsedProgram.ToArray(), Environment);
         Runtime.Load(compiled, Environment, continuation);
         Runtime.Run();
+    }
+
+    private static void DefaultContinuation(SchemeValue[] results)
+    {
+        // TODO: this should use the default output port
+        // TODO: Evaluator should have a field and an option for passing a continuation to its constructor
+        // EValuator factory will also need an optional cstr parameter
+        foreach (var val in results) {
+            if (val is not SchemeValue.VoidType) {
+                // File.AppendAllLines("/home/dave/lan/projects/Jig/log.txt", [form.Print()]);
+                Console.WriteLine(val.Print());
+            }
+        }
     }
 
     public void Import(ILibrary library, uint phase = 0)

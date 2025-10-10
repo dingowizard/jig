@@ -128,7 +128,10 @@ public static class Program {
     //
     private static void TopLevelContinuation(params SchemeValue[] forms) {
         foreach (var form in forms) {
-            if (form is not SchemeValue.VoidType) Console.WriteLine(form.Print());
+            if (form is not SchemeValue.VoidType) {
+                // File.AppendAllLines("/home/dave/lan/projects/Jig/log.txt", [form.Print()]);
+                Console.WriteLine(form.Print());
+            }
         }
     }
     

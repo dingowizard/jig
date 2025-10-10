@@ -14,7 +14,6 @@ public class ExpansionContext {
         _bindings = new Dictionary<Identifier, Parameter>(); // TODO: this seems like it should be part of the environment
         int i = 0;
         foreach (var p in topLevels) {
-            // TODO: topLevels should probably be identifiers, most likely parameters
             // _bindings.Add(new Identifier(sym), new Parameter(sym, 0, i++, null));
             _bindings.Add(p, p); // TODO: why????
             
@@ -91,6 +90,7 @@ public class ExpansionContext {
 
     public IEnumerable<Identifier> Bound => _bindings.Keys;
 
+    // TODO: why is this a dictionary?
     private Dictionary<Identifier, Parameter> _bindings {get;}
 
     IEnumerable<Identifier> FindCandidateIdentifiers(Identifier id) {

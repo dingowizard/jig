@@ -172,9 +172,9 @@
 ;;           (if (pred (car xs)) (all pred (cdr xs)) #f))))
 
 
-;; (define-syntax let
-;;    (syntax-rules ()
-;;       ((let ((p x) ...) body0 bodies ...) ((lambda (p ...) body0 bodies ...) x ...))))
+(define-syntax let
+   (syntax-rules ()
+      ((let ((p x) ...) body0 bodies ...) ((lambda (p ...) body0 bodies ...) x ...))))
 
 ; --- or that doesn't use match
 ; (define-syntax or
@@ -196,11 +196,11 @@
 ;             ('() #f)
 ;             ((x) x)
 ;             ((x . rest) `(let ((tmp ,x)) (if tmp tmp (or ,@rest))))))))
-;; (define-syntax or
-;;    (syntax-rules ()
-;;       ((or) #f)
-;;       ((or x) x)
-;;       ((or a rest ...) (let ((tmp a)) (if tmp tmp (or rest ...))))))
+(define-syntax or
+   (syntax-rules ()
+      ((or) #f)
+      ((or x) x)
+      ((or a rest ...) (let ((tmp a)) (if tmp tmp (or rest ...))))))
 
 ;; (define-syntax let*
 ;;   (lambda (stx)
@@ -217,13 +217,13 @@
 ;;                   `(let (,(car bindings)) (let* ,(cdr bindings) ,@body))))))))))
 
 
-;; (define-syntax let*
-;;   (syntax-rules ()
-;;     ((let* () body1 body2 ...)
-;;      (let () body1 body2 ...))
-;;     ((let* ((name1 expr1) (name2 expr2) ...) body1 body2 ...)
-;;      (let ((name1 expr1))
-;;        (let* ((name2 expr2) ...) body1 body2 ...)))))
+(define-syntax let*
+  (syntax-rules ()
+    ((let* () body1 body2 ...)
+     (let () body1 body2 ...))
+    ((let* ((name1 expr1) (name2 expr2) ...) body1 body2 ...)
+     (let ((name1 expr1))
+       (let* ((name2 expr2) ...) body1 body2 ...)))))
 
 ; (define-syntax letrec
 ;   (lambda (stx)
@@ -236,9 +236,9 @@
 ;        stx
 ;        `((lambda () ,@(map (lambda (p v) `(define ,p ,v)) ps vs) ,@body))))))
 
-;; (define-syntax letrec
-;;    (syntax-rules ()
-;;       ((letrec ((p x) ...) body0 bodies ...) ((lambda () (define p x) ... body0 bodies ...)))))
+(define-syntax letrec
+   (syntax-rules ()
+      ((letrec ((p x) ...) body0 bodies ...) ((lambda () (define p x) ... body0 bodies ...)))))
 ;----------------------------------------------------------------------------------------
 ; LEAVE COMMENTED
 ; ;; TODO: figure out why these two definitions of letrec, which work in racket, fail in Jig
@@ -308,52 +308,52 @@
 ; TODO: let-values from spec
 
 
-;; (define-syntax cond
-;;   (syntax-rules (else =>)
-;;     ((cond (else result1 result2 ...))
-;;      (begin result1 result2 ...))
-;;     ((cond (test => result))
-;;      (let ((temp test))
-;;        (if temp (result temp))))
-;;     ((cond (test => result) clause1 clause2 ...)
-;;      (let ((temp test))
-;;        (if temp
-;;            (result temp)
-;;            (cond clause1 clause2 ...))))
-;;     ((cond (test)) test)
-;;     ((cond (test) clause1 clause2 ...)
-;;      (let ((temp test))
-;;        (if temp
-;;            temp
-;;            (cond clause1 clause2 ...))))
-;;     ((cond (test result1 result2 ...))
-;;      (if test (begin result1 result2 ...)))
-;;     ((cond (test result1 result2 ...)
-;;            clause1 clause2 ...)
-;;      (if test
-;;          (begin result1 result2 ...)
-;;          (cond clause1 clause2 ...)))))
+(define-syntax cond
+  (syntax-rules (else =>)
+    ((cond (else result1 result2 ...))
+     (begin result1 result2 ...))
+    ((cond (test => result))
+     (let ((temp test))
+       (if temp (result temp))))
+    ((cond (test => result) clause1 clause2 ...)
+     (let ((temp test))
+       (if temp
+           (result temp)
+           (cond clause1 clause2 ...))))
+    ((cond (test)) test)
+    ((cond (test) clause1 clause2 ...)
+     (let ((temp test))
+       (if temp
+           temp
+           (cond clause1 clause2 ...))))
+    ((cond (test result1 result2 ...))
+     (if test (begin result1 result2 ...)))
+    ((cond (test result1 result2 ...)
+           clause1 clause2 ...)
+     (if test
+         (begin result1 result2 ...)
+         (cond clause1 clause2 ...)))))
 
 ; this is case from r5rs. The one from r6rs has stuff after ... in a pattern, which we can't handle yet
-;; (define-syntax case
-;;   (syntax-rules (else)
-;;     ((case (key ...)
-;;        clauses ...)
-;;      (let ((atom-key (key ...)))
-;;        (case atom-key clauses ...)))
-;;     ((case key
-;;        (else result1 result2 ...))
-;;      (begin result1 result2 ...))
-;;     ((case key
-;;        ((atoms ...) result1 result2 ...))
-;;      (if (memv key '(atoms ...))
-;;          (begin result1 result2 ...)))
-;;     ((case key
-;;        ((atoms ...) result1 result2 ...)
-;;        clause clauses ...)
-;;      (if (memv key '(atoms ...))
-;;          (begin result1 result2 ...)
-;;          (case key clause clauses ...)))))
+(define-syntax case
+  (syntax-rules (else)
+    ((case (key ...)
+       clauses ...)
+     (let ((atom-key (key ...)))
+       (case atom-key clauses ...)))
+    ((case key
+       (else result1 result2 ...))
+     (begin result1 result2 ...))
+    ((case key
+       ((atoms ...) result1 result2 ...))
+     (if (memv key '(atoms ...))
+         (begin result1 result2 ...)))
+    ((case key
+       ((atoms ...) result1 result2 ...)
+       clause clauses ...)
+     (if (memv key '(atoms ...))
+         (begin result1 result2 ...)
+         (case key clause clauses ...)))))
 ;
 ; (define-syntax when
 ;   (lambda (stx)
@@ -369,9 +369,9 @@
 ;          (match (cdr (syntax->list stx))
 ;             ((test . bodies) `(if ,test (begin ,@bodies)))))))
 
-;; (define-syntax when
-;;    (syntax-rules ()
-;;       ((when test body0 bodies ...) (if test (begin body0 bodies ...)))))
+(define-syntax when
+   (syntax-rules ()
+      ((when test body0 bodies ...) (if test (begin body0 bodies ...)))))
 
 ; (define-syntax do
 ;   (lambda (stx)
@@ -414,21 +414,21 @@
 ;                                    (loop ,@(cons incr (map (lambda (x) (caddr (syntax-e x))) vars)))))))
 ;                   (loop ,@(cons init (map (lambda (x) (cadr (syntax-e x))) vars))))))))))
 ; TODO: make step optional (see spec r6rs-lib)
-;; (define-syntax do
-;;    (syntax-rules ()
-;;       ((do ((var init step) ...)
-;;            (test expr ...)
-;;            command ...)
-;;        ((lambda ()
-;;            (define loop (lambda (var ...)
-;;                            (if test
-;;                                (begin
-;;                                   (void)
-;;                                   expr ...)
-;;                                (begin
-;;                                   command ...
-;;                                   (loop step ...)))))
-;;            (loop init ...))))))
+(define-syntax do
+   (syntax-rules ()
+      ((do ((var init step) ...)
+           (test expr ...)
+           command ...)
+       ((lambda ()
+           (define loop (lambda (var ...)
+                           (if test
+                               (begin
+                                  (void)
+                                  expr ...)
+                               (begin
+                                  command ...
+                                  (loop step ...)))))
+           (loop init ...))))))
 
 
 ;; (define dynamic-wind #f)

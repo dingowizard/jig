@@ -131,6 +131,7 @@ public class PartialContinuationForCallWithValues : PartialContinuation {
         }
         vm.PC = this.ReturnAddress;
         vm.FP = this.FP;
+        vm.VARS = this.Variables;
         vm.Template = this.Template;
         vm.CONT = this.Continuation;
     }

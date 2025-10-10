@@ -81,7 +81,7 @@ public class Compiler {
             lineNo += instructions.Count();
         }
         // add instruction for expr in tail position
-        return instructions.Concat(Compile(sequence[sequence.Length - 1], ctEnv, literals, bindings, context, scopeLevel, lineNo)).ToArray();
+        return instructions.Concat(Compile(sequence[^1], ctEnv, literals, bindings, context, scopeLevel, lineNo)).ToArray();
     }
 
     private ulong[] CompileSet(ParsedSet setForm,
@@ -129,28 +129,45 @@ public class Compiler {
         int scopeLevel,
         int startLine = 0)
     {
-        Sys.List<ulong> result = new();
-        if (defForm.Variable is ParsedVariable.TopLevel topVar) {
-            // TODO: this is not necessary when CompileDefinition is called by CompileBody
+        // Sys.List<ulong> result = new();
+        // if (defForm.Variable is ParsedVariable.TopLevel topVar) {
+        //
+        //     var bing = bindings.Find(b => b.Symbol.Equals(topVar.Identifier.Symbol));
+        //     ulong code = (ulong)OpCode.SetTop << 56;
+        //     int index = bindings.IndexOf(bing);
+        //     code += (ulong)index;
+        //     result.Add(code);
+        // } else {
+        //     var lexVar = (ParsedVariable.Lexical)defForm.Variable;
+        //     ulong code;
+        //     if (lexVar.Parameter.ScopeLevel == scopeLevel) {
+        //         code = ((ulong)OpCode.SetArg << 56);
+        //     } else {
+        //         code = (ulong)OpCode.SetLex << 56;
+        //     }
+        //     int index = lexVar.Parameter.Index;
+        //     code += (ulong)index;
+        //     result.Add(code);
+        // }
 
-            var bing = bindings.Find(b => b.Symbol.Equals(topVar.Identifier.Symbol));
-            ulong code = (ulong)OpCode.SetTop << 56;
-            int index = bindings.IndexOf(bing);
-            code += (ulong)index;
-            result.Add(code);
+        Sys.List<ulong> result = new();
+        ulong code;
+        if (scopeLevel != 0 && defForm.Variable.Parameter.ScopeLevel == scopeLevel) {
+            // local var
+            code = ((ulong)OpCode.SetArg << 56) + (ulong)defForm.Variable.Parameter.Index;
         } else {
-            var lexVar = (ParsedVariable.Lexical)defForm.Variable;
-            ulong code;
-            if (lexVar.Parameter.ScopeLevel == scopeLevel) {
-                code = ((ulong)OpCode.SetArg << 56);
-            } else {
-                code = (ulong)OpCode.SetLex << 56;
+            // top-level or lexical var outside of current scope
+            var bing = defForm.Variable.Parameter;
+            int index = bindings.IndexOf(bing);
+            if (index == -1) {
+                bindings.Add(bing);
+                index = bindings.Count - 1;
             }
-            int index = lexVar.Parameter.Index;
+            code = (ulong)OpCode.SetTop << 56;
             code += (ulong)index;
-            result.Add(code);
         }
 
+        result.Add(code);
         // We have to compile the lambda function after the variable,
         // because there might be a recursive call to a toplevel
         if (defForm.Value is not null) {
@@ -468,22 +485,29 @@ public class Compiler {
         if (form is ParsedDefine def)
         {
             var p = def.Variable.Parameter;
-            if (!ctEnv.TopLevels.ContainsKey(p))
-            {
-                ctEnv.TopLevels.Add(p, new Binding(p, new Location()));
+            // if (p.Symbol.Name is "b" or "a") {
+            //     Console.WriteLine($"First pass encountered def of {p.Symbol.Name} (parameter is {p.GetHashCode()})");
+            // }
+            if (!ctEnv.TopLevels.ContainsKey(p)) {
+                var l = new Location();
+                ctEnv.TopLevels.Add(p, new Binding(p, l));
+            /*if (p.Symbol.Name is "b" or "a") {
+                    Console.WriteLine($"\t{p.Symbol.Name} wasn't in dictionary, so adding a new location {l.GetHashCode()} bound to it");
+                }*/
             }
             
             if (!bindings.Contains(p)) {
+                // if (p.Symbol.Name is "b" or "a") {
+                //     Console.WriteLine($"\t{p.Symbol.Name} wasn't in bindings, so adding parameter to bindings");
+                // }
                 bindings.Add(p);
             }
-                
         }
     }
 
     private void DoFirstPass(Sys.List<Parameter> bindings, ParsedForm[] parsedFile, Environment ctEnv) {
         foreach (var form in parsedFile) {
             DoFirstPassOneForm(bindings, form, ctEnv);
-            
         }
     }
 }

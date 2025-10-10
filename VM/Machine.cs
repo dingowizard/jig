@@ -144,6 +144,14 @@ public class Machine : IRuntime
 
     public void Run()
     {
+        // Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
+        // Console.WriteLine("VARS:");
+        // int locNo = 0;
+        // foreach (var loc in VARS)
+        // {
+        //     Console.WriteLine($"\t{locNo++}\t{loc.GetHashCode()}");
+        //
+        // }
         Loud = false;
         while (true) {
             // Fetch
@@ -316,7 +324,7 @@ public class Machine : IRuntime
                         continuationProc.Template,
                         0,
                         continuationProc.Environment,
-                        VARS,
+                        continuationProc.Locations, // TODO: consistent naming
                         FP,
                         CONT,
                         continuationProc.Required,
@@ -374,10 +382,10 @@ public class Machine : IRuntime
                     {
                         VAL = VARS[IR & 0x00FFFFFFFFFFFFFF].Value;
                     }
-                    catch (Exception exc)
+                    catch (Exception)
                     {
                         Console.WriteLine($"PC = {PC}");
-                        Console.WriteLine($"ARGS count = {ENVT.ArgsLength}. index was {IR & 0x00FFFFFFFFFFFFFF}");
+                        Console.WriteLine($"VARS count = {VARS.Length}. index was {IR & 0x00FFFFFFFFFFFFFF}");
                         Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
                         throw;
                     }
@@ -386,7 +394,17 @@ public class Machine : IRuntime
                     // TODO: no need for two opcodes if code is the same?
                     // int index = (int)(IR & 0x00000000FFFFFFFF);
                     // int depth = (int)(IR >> 32) & 0x00FFFFFF ;
-                    VAL = VARS[IR & 0x00FFFFFFFFFFFFFF].Value;
+                    try
+                    {
+                        VAL = VARS[IR & 0x00FFFFFFFFFFFFFF].Value;
+                    }
+                    catch (Exception)
+                    {
+                        Console.WriteLine($"PC = {PC}");
+                        Console.WriteLine($"VARS count = {VARS.Length}. index was {IR & 0x00FFFFFFFFFFFFFF}");
+                        Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
+                        throw;
+                    }
                     continue;
                 case OpCode.SetArg:
                     try
@@ -407,7 +425,7 @@ public class Machine : IRuntime
                     try
                     {
                         VARS[IR & 0x00FFFFFFFFFFFFFF].Value = Pop();
-                        Push(VAL = SchemeValue.Void);
+                        // Push(VAL = SchemeValue.Void);
                     }
                     catch (Exception exc)
                     {
@@ -422,7 +440,7 @@ public class Machine : IRuntime
                     // Console.WriteLine($"VM: executing SetTop instruction");
                     // Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
                     VARS[IR & 0x00FFFFFFFFFFFFFF].Value = Pop();
-                    Push(VAL = SchemeValue.Void);
+                    // Push(VAL = SchemeValue.Void);
                     continue;
                 case OpCode.Jump:
                     PC = IR & 0x00FFFFFFFFFFFFFF;
@@ -442,8 +460,28 @@ public class Machine : IRuntime
                     continue;
                 case OpCode.Sum:
                     VAL = Integer.Zero;
-                    while (FP < SP) {
-                        VAL = (Number)VAL + (Number)Pop();
+                    while (FP < SP)
+                    {
+                        try
+                        {
+                            SchemeValue form = Pop();
+                            Number? number = form as Number;
+                            if (number is null)
+                            {
+                                File.AppendAllLines("/home/dave/lan/projects/Jig/log.txt",
+                                    [$"in add popped arg was not a number! ({form.Print()}) "]);
+                            }
+
+                            File.AppendAllLines("/home/dave/lan/projects/Jig/log.txt",
+                                [$"stack is {StackToList().Print()} adding " + number.Print()]);
+                            VAL = (Number)VAL + number;
+                        } catch (Exception xn)
+                        {
+
+                            File.AppendAllLines("/home/dave/lan/projects/Jig/log.txt", [xn.Message]);
+                            throw;
+                        }
+
                     }
                     Push(VAL);
                     continue;
@@ -527,7 +565,10 @@ public class Machine : IRuntime
 
     private static void TopLevelContinuation(params SchemeValue[] forms) {
         foreach (var form in forms) {
-            if (form is not SchemeValue.VoidType) Console.WriteLine(form.Print());
+            if (form is not SchemeValue.VoidType) {
+                File.AppendAllLines("/home/dave/lan/projects/Jig/log.txt", [form.Print()]);
+                Console.WriteLine(form.Print());
+            }
         }
     }
 
