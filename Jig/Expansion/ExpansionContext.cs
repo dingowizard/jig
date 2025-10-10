@@ -201,4 +201,8 @@ public class ExpansionContext {
     }
 
     private SyntaxEnvironment _syntaxEnvironment {get;}
+
+    public ParsedForm[] ExpandLambdaBody(IEnumerable<Syntax> syntaxes) {
+        return Expander.ExpandLambdaBody(syntaxes, this);
+    }
 }

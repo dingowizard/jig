@@ -44,7 +44,7 @@ public class ParsedLibraryVersion : ParsedForm {
 public class ParsedExportForm : ParsedForm
 {
     // TODO: should be sequence of ExportSpecs not vars
-    // TODO: vars are Identifiers or ParsedTopVars?
+    // TODO: vars are Identifiers or ParsedTopVars? or parameters?
     internal ParsedExportForm(Identifier kw, IEnumerable<Identifier> vars, SrcLoc? srcLoc = null) :
         base(SyntaxList.FromParams(kw).Concat<Syntax>(vars).ToSyntaxList(), srcLoc) {}
 }

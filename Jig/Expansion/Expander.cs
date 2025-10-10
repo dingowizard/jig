@@ -31,13 +31,18 @@ public class Expander
                 case "define":
                     if (stxList.Rest is not SyntaxList.NonEmpty { First: Identifier variable } rest)
                         throw new Exception($"malformed define: {Syntax.ToDatum(stx).Print()} ");
-                    // TODO: there might already be a binding. We might be redefining ...
-                    var binding = new Parameter(
-                        variable.Symbol,
-                        context.ScopeLevel,
-                        context.VarIndex++,
-                        variable.SrcLoc);
-                    context.AddBinding(variable, binding);
+                    Parameter binding;
+                    if (context.TryResolve(variable, out var parameter)) {
+                        // we might be redefining something
+                        binding = parameter;
+                    } else {
+                        binding = new Parameter(
+                            variable.Symbol,
+                            context.ScopeLevel,
+                            context.VarIndex++,
+                            variable.SrcLoc);
+                        context.AddBinding(variable, binding);
+                    }
                     var parsedVar = new ParsedVariable.TopLevel(variable, binding, variable.SrcLoc);
                     return new Syntax(
                         SyntaxList
@@ -149,5 +154,10 @@ public class Expander
 
     public ParsedForm ExpandREPLForm(Syntax stx, ExpansionContext context) {
         return Expand(DoFirstPassOneForm(stx, context), context);
+    }
+
+    public ParsedForm[] ExpandLambdaBody(IEnumerable<Syntax> syntaxes, ExpansionContext expansionContext)
+    {
+        return ExpandFile(syntaxes, expansionContext).ToArray();
     }
 }

@@ -11,7 +11,8 @@ public partial class CoreParseRules
         }
         return new ParsedBegin(
             stxList[0],
-            stxList.Skip<Syntax>(1).Select(context.Expand).ToArray(),
+            // TODO: make a ExpandSequence to be used by various
+            context.ExpandLambdaBody(stxList.Skip<Syntax>(1)),
             syntax.SrcLoc);
     }
 

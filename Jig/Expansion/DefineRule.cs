@@ -11,7 +11,6 @@ public partial class CoreParseRules {
         }
         
         if (subForms[1] is ParsedVariable parsedVar) {
-            // TODO: would we ever be here? why?
                 return formLength == 3 ?
                     new ParsedDefine(
                         subForms[0],
@@ -24,41 +23,8 @@ public partial class CoreParseRules {
                         syntax.SrcLoc);
             
         }
-        if (subForms[1] is Identifier id)
-        {
-            Parameter binding;
-            if (context.TryResolve(id, out var parameter)) {
-                // we might be redefining something
-                binding = parameter;
-            } else {
-                binding = new Parameter(id.Symbol, context.ScopeLevel, context.VarIndex++, id.SrcLoc);
-                context.AddBinding(id, binding);
-            }
-            if (id.ScopeSet.Count != 0) {
-                // not top level
-                return formLength == 3 ?
-                    new ParsedDefine(
-                        subForms[0],
-                        new ParsedVariable.Lexical(id, binding, id.SrcLoc),
-                        context.Expand(subForms[2]), // TODO: use new context that is defines not allowed
-                        syntax.SrcLoc) :
-                    new ParsedDefine(
-                        subForms[0],
-                        new ParsedVariable.Lexical(id, binding, id.SrcLoc),
-                        syntax.SrcLoc);
-            }
-            return formLength == 3 ?
-                new ParsedDefine(
-                    subForms[0],
-                    new ParsedVariable.TopLevel(id, binding, id.SrcLoc),
-                    context.Expand(subForms[2]), // TODO: use new context that is defines not allowed
-                    syntax.SrcLoc) :
-                new ParsedDefine(
-                    subForms[0],
-                    new ParsedVariable.TopLevel(id, binding, id.SrcLoc),
-                    syntax.SrcLoc);
-        }
-        throw new Exception($"malformed define: expected second form to be a symbol. Got {subForms[0]}");
+
+        throw new Exception($"ParseDefineForm: expected variable to have been parsed in first pass of expansion ");
 
 
 

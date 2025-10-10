@@ -15,7 +15,8 @@ public partial class CoreParseRules {
         // TODO: parameters and bodies need to be parsed before
         // call to ParsedLambda cstor below, because
         // otherwise VarIndex won't give the right number of scope variables. Yuck!
-        var bodies = subForms.Skip<Syntax>(2).Select(context.Expand).ToArray();
+        // var bodies = subForms.Skip<Syntax>(2).Select(context.Expand).ToArray();
+        ParsedForm[] bodies = context.ExpandLambdaBody(subForms.Skip<Syntax>(2));
         
         // TODO: ensure that bodies has at least one expression
         return new ParsedLambda(
