@@ -31,6 +31,9 @@ public class Machine : IRuntime
         RuntimeEnvironment = ENVT;
         CoreSyntax = SyntaxEnvironment.Default; // TODO: give Machine its own 
         Stack = new SchemeValue[stackSize];
+        // TODO: replace Template with ulong[] Instructions and Literals
+        // NOTE: this will affect the Disassembler and debugging.
+        // maybe hold off until we figure out debug table and stack tracing
         Template = Template.Empty;
     }
     internal Winders Winders = new Winders();

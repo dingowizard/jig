@@ -13,12 +13,10 @@ public class Procedure : Jig.SchemeValue {
         Environment = env;
     }
 
-    private Location[] SaveVarLocations(Environment env, Template template)
-    {
+    private Location[] SaveVarLocations(Environment env, Template template) {
         var result = new System.Collections.Generic.List<Location>();
         foreach (var parameter in template.Vars) {
             result.Add(env.LookUpLocation(parameter));
-                
         }
         return result.ToArray();
             
