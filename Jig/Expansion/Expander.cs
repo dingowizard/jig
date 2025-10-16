@@ -60,13 +60,19 @@ public class Expander
                         vr.SrcLoc);
                     context.AddBinding(vr, bg);
                     var parsedKW = new ParsedVariable.TopLevel(vr, bg, vr.SrcLoc);
-                    DefineSyntax(parsedKW, rt.Rest, context);
-                    return new Syntax(
-                        SyntaxList
-                            .FromParams(kw, parsedKW)
-                            .Concat<Syntax>(rt.Rest)
-                            .ToSyntaxList(),
-                        stx.SrcLoc);
+                    
+                    // Expand third subform
+                    if (rt.Rest is not SyntaxList.NonEmpty tail) {
+                        throw new Exception($"malformed define-syntax:expected a third subform");
+                    }
+                    Syntax transformerStx = tail.First;
+        
+                    // TODO: I think we might need a ParsedKeyword type?
+
+                    ParsedLambda transformerLambdaExpr = this.Evaluator.Expander.Expand(transformerStx, context) as ParsedLambda ?? throw new Exception(); // TODO: actually this should use the phase 1 runtime
+                    DefineSyntax(parsedKW, transformerLambdaExpr, context);
+
+                    return new ParsedDefineSyntax(vr, parsedKW, transformerLambdaExpr);
                 default:
                     return stx;
             }
@@ -75,18 +81,8 @@ public class Expander
         return stx;
     }
 
-    public void DefineSyntax(ParsedVariable kw, SyntaxList stxs, ExpansionContext context) {
+    public void DefineSyntax(ParsedVariable kw, ParsedLambda transformerLambdaExpr, ExpansionContext context) {
         // _syntaxEnvironment.Add(id, rule);
-        if (stxs is not SyntaxList.NonEmpty stxList) {
-            throw new Exception($"malformed define-syntax:expected a third subform");
-        }
-        Syntax transformerStx =
-            stxList.First;
-        
-        // TODO: I think we might need a ParsedKeyword type?
-
-        // Expand third subform
-        ParsedLambda transformerLambdaExpr = this.Evaluator.Expander.Expand(transformerStx, context) as ParsedLambda ?? throw new Exception(); // TODO: actually this should use the phase 1 runtime
         var transformerProcedure = this.Evaluator.EvaluateTransformerExpression(transformerLambdaExpr, context); // TODO: ditto
         // TODO: should it use ParsedVar rather than id? for define as well?
         Owner.Keywords.Add(kw.Identifier, transformerProcedure);
@@ -123,6 +119,13 @@ public class Expander
 
         }
 
+        if (syntax is ParsedDefineSyntax defineSyntax)
+        {
+            // TODO: why does this need a special case?
+            // Syntax.E(defineSyntax) is not a SyntaxList.NonEmpty. why not?
+            return defineSyntax;
+        }
+
         if (Syntax.E(syntax) is SyntaxList.NonEmpty stxList) {
             if (stxList.First is Identifier kw) {
                 if (Owner.Keywords.TryFind(kw, out IExpansionRule? rule)) {
@@ -138,7 +141,7 @@ public class Expander
         }
         
         
-        throw new NotImplementedException($"Expand: doesn't know what to do with a {Syntax.E(syntax).GetType()}");
+        throw new NotImplementedException($"Expand: doesn't know what to do with {Syntax.E(syntax).Print()} a {Syntax.E(syntax).GetType()}");
     }
 
     private ParsedApplication ExpandApplication(SyntaxList.NonEmpty stxList, ExpansionContext context, SrcLoc? srcLoc) {
