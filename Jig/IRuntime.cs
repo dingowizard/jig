@@ -5,4 +5,5 @@ public interface IRuntime {
 
     
     IRuntimeEnvironment RuntimeEnvironment { get; }
+    IEnumerable<(Symbol, IExpansionRule)> CoreSyntax { get; }
 }

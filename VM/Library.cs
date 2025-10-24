@@ -41,11 +41,11 @@ public class Library : ILibrary
                 .Values
                 .Where(b => !importedVars.Contains(b.Parameter));
 
-        var kwsToExport = new System.Collections.Generic.List<Tuple<Symbol, IExpansionRule>>();
+        var kwsToExport = new System.Collections.Generic.List<(Symbol, IExpansionRule)>();
         foreach (var k in evaluator.Keywords.Rules)
         {
             if (!importedKeywords.Contains(k.Key)) {
-                kwsToExport.Add(new Tuple<Symbol, IExpansionRule>(k.Key, k.Value));
+                kwsToExport.Add((k.Key, k.Value));
             }
         }
         
@@ -115,7 +115,7 @@ public class Library : ILibrary
             new (new Parameter(new Symbol("symbol=?"), 0, index++, null),
                     new Location(Primitives.SymbolEqualP))
         ];
-        Tuple<Symbol, IExpansionRule>[] keywords = [
+        (Symbol, IExpansionRule)[] keywords = [
         
             new (new Symbol("and"), new BuiltinTransformer(BuiltinTransformer.and)),
             new (new Symbol("quasiquote"), new BuiltinTransformer(BuiltinTransformer.quasiquote)),
@@ -126,15 +126,24 @@ public class Library : ILibrary
     public static Library Core { get; }
 
 
-    public Library(IEnumerable<Binding> vars, IEnumerable<Tuple<Symbol, IExpansionRule>> keywords)
-    {
-        VariableExports = vars;
-        KeywordExports = keywords;
+    public Library(IEnumerable<Binding> vars, IEnumerable<(Symbol, IExpansionRule)> keywords) {
+            _variableExports = new Lazy<IEnumerable<Binding>>(() => vars);
+            KeywordExports = keywords;
     }
+
+    public Library(ParsedLibrary parsedLibrary, IEnumerable<(Symbol, IExpansionRule)> keywords)
+    {
+
+            _variableExports = new Lazy<IEnumerable<Binding>>(() => []);
+            KeywordExports = keywords;
+            
+    }
+
+    public IEnumerable<Binding> VariableExports => _variableExports.Value;
+
+    private Lazy<IEnumerable<Binding>> _variableExports;
     
-    public IEnumerable<Binding> VariableExports { get; }
-    
-    public IEnumerable<Tuple<Symbol, IExpansionRule>> KeywordExports { get; }
+    public IEnumerable<(Symbol, IExpansionRule)> KeywordExports { get; }
     
     
 }

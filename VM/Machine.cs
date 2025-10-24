@@ -10,18 +10,6 @@ public class Machine : IRuntime
 
     internal bool Loud = false;
 
-    public Machine(IEvaluator evaluator, Environment env, ContinuationAny cont, uint stackSize = 512) {
-        _stackSize = stackSize;
-        Evaluator = evaluator;
-        ENVT = env;
-        VARS = [];
-        CONT = new TopLevelContinuation(cont);
-        RuntimeEnvironment = ENVT;
-        CoreSyntax = SyntaxEnvironment.Default; // TODO: give Machine its own 
-        Stack = new SchemeValue[stackSize];
-        Template = Template.Empty;
-    }
-
     public Machine(IEvaluator evaluator, Environment env, uint stackSize = 512) {
         _stackSize = stackSize;
         Evaluator = evaluator;
@@ -29,7 +17,8 @@ public class Machine : IRuntime
         VARS = [];
         CONT = new TopLevelContinuation(TopLevelContinuation);
         RuntimeEnvironment = ENVT;
-        CoreSyntax = SyntaxEnvironment.Default; // TODO: give Machine its own 
+        // TODO: no need for dictionary
+        CoreSyntax = FreshCoreSyntax().Rules.Select(kvp => (kvp.Key, kvp.Value) ).ToArray();
         Stack = new SchemeValue[stackSize];
         // TODO: replace Template with ulong[] Instructions and Literals
         // NOTE: this will affect the Disassembler and debugging.
@@ -534,7 +523,8 @@ public class Machine : IRuntime
         private init => ENVT = (Environment)value;
     }
 
-    public SyntaxEnvironment CoreSyntax { get; }
+    public IEnumerable<(Symbol, IExpansionRule)> CoreSyntax { get; }
+
 
     public void Eval(Syntax stx, VM.Environment? env = null) {
         env ??= ENVT;
@@ -586,6 +576,7 @@ public class Machine : IRuntime
         coreForms.Add(new Symbol("define-syntax"), new CoreSyntaxRule(CoreParseRules.DefineSyntax));
         coreForms.Add(new Symbol("if"), new CoreSyntaxRule(CoreParseRules.ParseIfForm));
         coreForms.Add(new Symbol("lambda"), new CoreSyntaxRule(CoreParseRules.ParseLambdaForm));
+        coreForms.Add(new Symbol("library"), new CoreSyntaxRule(CoreParseRules.ParseLibraryForm));
         coreForms.Add(new Symbol("quote"), new CoreSyntaxRule(CoreParseRules.ParseQuoteForm));
         coreForms.Add(new Symbol("quote-syntax"), new CoreSyntaxRule(CoreParseRules.ParseQuoteSyntaxForm));
         coreForms.Add(new Symbol("set!"), new CoreSyntaxRule(CoreParseRules.ParseSetForm));

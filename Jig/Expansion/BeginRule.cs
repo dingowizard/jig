@@ -2,6 +2,7 @@ namespace Jig.Expansion;
 
 public partial class CoreParseRules
 {
+    // TODO: should these all return the more specific type (here, ParsedBegin)?
     public static ParsedForm ParseBeginForm(Syntax syntax, ExpansionContext context) {
         var stxList = ((SyntaxList)Syntax.E(syntax)).ToArray<Syntax>();
         if (!context.DefinesAllowed) {

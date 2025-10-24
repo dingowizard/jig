@@ -40,6 +40,7 @@ public static class Program {
             System.Environment.Exit(0);
         }
 
+        LibraryLibrary.Initialize();
         IEvaluator evaluator = new Evaluator();
         ILibrary coreBuiltins = Library.Core;
         

@@ -3,30 +3,6 @@ namespace Jig.Expansion;
 
 public abstract class SyntaxEnvironment {
 
-    static SyntaxEnvironment() {
-        var coreForms = new Dictionary<Symbol, IExpansionRule>();
-        // TODO: these should be identifiers, not symbols, but they need to be resolved correctly
-        // TODO: probably we don't want to create new identifiers and symbols ...
-        // TODO: the ids should have source locations -- names not rows and columns
-        coreForms.Add(new Symbol("begin"), new CoreSyntaxRule(CoreParseRules.ParseBeginForm));
-        coreForms.Add(new Symbol("define"), new CoreSyntaxRule(CoreParseRules.ParseDefineForm));
-        coreForms.Add(new Symbol("define-syntax"), new CoreSyntaxRule(CoreParseRules.DefineSyntax));
-        coreForms.Add(new Symbol("if"), new CoreSyntaxRule(CoreParseRules.ParseIfForm));
-        coreForms.Add(new Symbol("lambda"), new CoreSyntaxRule(CoreParseRules.ParseLambdaForm));
-        coreForms.Add(new Symbol("quote"), new CoreSyntaxRule(CoreParseRules.ParseQuoteForm));
-        coreForms.Add(new Symbol("quote-syntax"), new CoreSyntaxRule(CoreParseRules.ParseQuoteSyntaxForm));
-        coreForms.Add(new Symbol("set!"), new CoreSyntaxRule(CoreParseRules.ParseSetForm));
-        
-        var defaultTransformers = new Dictionary<Symbol, IExpansionRule>();
-        // add builtin macros here
-        // defaultTransformers.Add(new Symbol("and"), new BuiltinTransformer(BuiltinTransformer.and));
-        // defaultTransformers.Add(new Symbol("quasiquote"), new BuiltinTransformer(BuiltinTransformer.quasiquote));
-        // defaultTransformers.Add(new Symbol("syntax-rules"), new BuiltinTransformer(BuiltinTransformer.syntax_rules));
-        Default = new TopLevelSyntaxEnvironment(coreForms.Concat(defaultTransformers).ToDictionary(kv => kv.Key, kv => kv.Value));
-
-    }
-    public static TopLevelSyntaxEnvironment Default {get;}
-
     public bool TryFind(Identifier keyword, [NotNullWhen(returnValue: true)] out IExpansionRule? expansionRule) {
         if (Rules.TryGetValue(keyword.Symbol, out var rule)) {
             expansionRule = rule;
@@ -54,8 +30,18 @@ public abstract class SyntaxEnvironment {
 
 }
 
-public class TopLevelSyntaxEnvironment(Dictionary<Symbol, IExpansionRule> rules) : SyntaxEnvironment {
-    public override Dictionary<Symbol, IExpansionRule> Rules {get;} = rules;
+
+public class TopLevelSyntaxEnvironment : SyntaxEnvironment {
+
+    public TopLevelSyntaxEnvironment(Dictionary<Symbol, IExpansionRule> rules) {
+        Rules = rules;
+    }
+    public TopLevelSyntaxEnvironment(IEnumerable<(Symbol Key, IExpansionRule Value)> pairs)
+    {
+        Rules = pairs.ToDictionary(pair => pair.Key, pair => pair.Value);
+        
+    }
+    public override Dictionary<Symbol, IExpansionRule> Rules {get;}
     public override void Add(Identifier kw, IExpansionRule expansionRule) {
         Rules.Add(kw.Symbol, expansionRule);
     }

@@ -27,7 +27,7 @@ public class ExpansionContext {
     private ExpansionContext(
         IRuntime runtime,
         Expander expander,
-        SyntaxEnvironment? env = null,
+        SyntaxEnvironment env/* = null*/,
         Dictionary<Identifier, Parameter>? bindings = null,
         int scopeLevel = 0,
         int varIndex = 0,
@@ -35,7 +35,7 @@ public class ExpansionContext {
         
         Runtime = runtime;
         Expander = expander;
-        _syntaxEnvironment = env ?? SyntaxEnvironment.Default;
+        _syntaxEnvironment = env/* ?? SyntaxEnvironment.Default*/;
         _bindings = bindings ?? new Dictionary<Identifier, Parameter>(); // TODO: this seems like it should be part of the environment
         ScopeLevel = scopeLevel;
         VarIndex = varIndex;
@@ -204,5 +204,32 @@ public class ExpansionContext {
 
     public ParsedForm[] ExpandSequence(IEnumerable<Syntax> syntaxes) {
         return Expander.ExpandSequence(syntaxes, this).ToArray();
+    }
+
+    public static ExpansionContext FromImportForm(ExpansionContext context, ParsedImportForm parsedImportForm)
+    {
+        // TODO: is the runtimeCoreSyntax supposed to be part of a library?
+        // in which case it would be included below when we iterate through the imported library names?
+        var runtimeCoreSyntax = context.Runtime.CoreSyntax;
+        var stxEnv = new TopLevelSyntaxEnvironment(runtimeCoreSyntax);
+        // TODO: this is going to break when we change bindings in ExpansionContext
+        // to a type that makes sense
+        var bindings = new Dictionary<Identifier, Parameter>();
+        foreach (var libraryName in parsedImportForm.Libs) {
+            // at a minimum, we need to add the library's keywords to the stxEnv
+            // which means we have to look up the libName in the LibraryLibrary
+            ILibrary library = LibraryLibrary.Instance.LookUp(libraryName);
+            foreach (var pair in library.KeywordExports) {
+                // TODO: we prob shouldn't have to make a new identifier here
+               stxEnv.Add(new Identifier(pair.Item1), pair.Item2);
+            }
+
+        }
+        return new ExpansionContext(
+            context.Runtime,
+            context.Expander,
+            stxEnv,
+            bindings); 
+            
     }
 }
