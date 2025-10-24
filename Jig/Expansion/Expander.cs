@@ -1,9 +1,9 @@
 namespace Jig.Expansion;
 
-public class Expander2
+public class Expander
 {
 
-    public Expander2(IEvaluator owner, IEvaluatorFactory evaluatorFactory) {
+    public Expander(IEvaluator owner, IEvaluatorFactory evaluatorFactory) {
         Owner = owner;
         _evaluator = new Lazy<IEvaluator>(evaluatorFactory.Build);
     }

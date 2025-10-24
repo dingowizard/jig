@@ -4,7 +4,7 @@ namespace Jig;
 public interface IEvaluator {
     
     public IRuntime Runtime { get; }
-    public Expander2 Expander { get; }
+    public Expander Expander { get; }
     
     public uint Phase { get; }
     

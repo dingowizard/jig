@@ -26,7 +26,7 @@ public class ExpansionContext {
 
     private ExpansionContext(
         IRuntime runtime,
-        Expander2 expander,
+        Expander expander,
         SyntaxEnvironment env/* = null*/,
         Dictionary<Identifier, Parameter>? bindings = null,
         int scopeLevel = 0,
@@ -48,7 +48,7 @@ public class ExpansionContext {
         // although the syntax environment contains only core forms and transformers
         // and this includes runtime bindings (only runtime?)
     }
-    public Expander2 Expander {get;}
+    public Expander Expander {get;}
 
     public bool TryFindKeyword(Identifier kw, [NotNullWhen(returnValue: true)] out IExpansionRule? expansionRule) {
         if (_syntaxEnvironment.TryFind(kw, out expansionRule)) {
