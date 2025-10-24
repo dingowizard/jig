@@ -12,8 +12,8 @@ public static class Reader {
     }
 
     public static Syntax? ReadSyntax(InputPort port) {
-        Trace.WriteLine("ReadSyntax called");
-        Trace.Flush();
+        // Trace.WriteLine("ReadSyntax called");
+        // Trace.Flush();
         try {
             if (port.Peek() == -1) return null;
         }

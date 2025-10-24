@@ -7,7 +7,7 @@ public class Evaluator : IEvaluator<Machine> {
 
     public Evaluator(uint phase = 0) {
         Phase =  phase;
-        Expander = new Expander(this, new VMFactory(Phase + 1));
+        Expander = new Expander2(this, new VMFactory(Phase + 1));
         Variables = Environment = VM.Environment.Minimal();
         Runtime = new Machine(this, (Environment)Variables);
         Keywords = Runtime.FreshCoreSyntax();
@@ -40,7 +40,7 @@ public class Evaluator : IEvaluator<Machine> {
     // public Syntax ApplyTransformer(Jig.Expansion.Transformer transformer, Syntax syntax) {}
     IRuntime IEvaluator.Runtime => Runtime;
 
-    public Expander Expander { get; }
+    public Expander2 Expander { get; }
     public IEvaluatorFactory Factory { get; } = new VMFactory();
 
     public SyntaxEnvironment Keywords { get; }

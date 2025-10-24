@@ -1,20 +1,32 @@
 namespace Jig.Expansion;
 
 public partial class CoreParseRules {
-    public static ParsedForm ParseSetForm(Syntax syntax, ExpansionContext context) {
+    public static SemiParsedForm ParseSetForm(Syntax syntax, ExpansionContext context) {
         
-        var subForms = ((SyntaxList)Syntax.E(syntax)).ToArray<Syntax>();
-        if (subForms.Length != 3) {
-            throw new Exception($"bad syntax in set! @ {syntax.SrcLoc}: expected 3 sub-forms");
-        }
-        Identifier id = subForms[1] as Identifier
-                        ?? throw new Exception($"bad syntax in set! @ {syntax.SrcLoc}: expected first sub-form to be an identifier. Got {subForms[1]}");
-        var x = subForms[2];
+        return new SemiParsedSet((SyntaxList)Syntax.E(syntax), syntax.SrcLoc);
 
-        return new ParsedSet(subForms.ElementAt<Syntax>(0),
-            (ParsedVariable)context.Expand(id),
-            context.Expand(x),
-            syntax.SrcLoc);
     }
 
+}
+
+public class SemiParsedSet : SemiParsedExpression {
+    public SemiParsedSet(SyntaxList stxList, SrcLoc? srcLoc) : base(stxList, srcLoc) {
+        SubForms = stxList.ToArray<Syntax>();
+        if (SubForms.Length != 3) {
+            throw new Exception($"bad syntax in set! @ {SrcLoc}: expected 3 sub-forms");
+        }
+        
+    }
+    public Syntax[] SubForms {get;}
+
+    public override ParsedForm Expand(ExpansionContext context) {
+        Identifier id = SubForms[1] as Identifier
+                        ?? throw new Exception($"bad syntax in set! @ {SrcLoc}: expected first sub-form to be an identifier. Got {SubForms[1]}");
+        var x = SubForms[2];
+        
+        return new ParsedSet(SubForms[0],
+            (ParsedVariable)context.Expand(id),
+            context.Expand(x),
+            SrcLoc);
+    }
 }

@@ -12,6 +12,9 @@ public static class Program {
     static void Main(string[] args) {
 
         string debugLogPath = "debug.log";
+        if (File.Exists(debugLogPath)) {
+            File.Delete(debugLogPath);
+        }
         TextWriterTraceListener fileListener = new TextWriterTraceListener(debugLogPath);
         Trace.Listeners.Add(fileListener);
         

@@ -277,22 +277,22 @@ public static class Primitives {
 
     }
 
-    public static Primitive Expand { get; } = new("expand", expand, 1, false);
-
-    private static void expand(Machine vm) {
-        SchemeValue arg = vm.Pop();
-        Syntax? stx = arg as Syntax;
-        if (stx is null) {
-            stx = Syntax.FromDatum(new SrcLoc(), arg);
-        }
-
-        var result = vm.Evaluator.Expander.Expand(stx, vm);
-        vm.VAL = result;
-        vm.Push(vm.VAL);
-        return;
-
-
-    }
+//     public static Primitive Expand { get; } = new("expand", expand, 1, false);
+//
+//     private static void expand(Machine vm) {
+//         SchemeValue arg = vm.Pop();
+//         Syntax? stx = arg as Syntax;
+//         if (stx is null) {
+//             stx = Syntax.FromDatum(new SrcLoc(), arg);
+//         }
+//
+//         var result = vm.Evaluator.Expander.Expand(stx, vm);
+//         vm.VAL = result;
+//         vm.Push(vm.VAL);
+//         return;
+//
+//
+//     }
 }
 
 public delegate void PrimitiveProcedure(Machine vm);

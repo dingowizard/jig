@@ -1,13 +1,13 @@
 namespace Jig.Expansion;
 
 public interface IExpansionRule {
-    ParsedForm Expand(Syntax syntax, ExpansionContext context);
+    Syntax Expand(Syntax syntax, ExpansionContext context);
 }
 
 public abstract class Transformer : IExpansionRule {
     
 
-    public ParsedForm Expand(Syntax syntax, ExpansionContext context)
+    public Syntax Expand(Syntax syntax, ExpansionContext context)
     {
         
         Scope macroExpansionScope = new Scope();
@@ -15,8 +15,7 @@ public abstract class Transformer : IExpansionRule {
         context.ExtendWithScope(macroExpansionScope);
         var output = this.Transform(syntax);
         Syntax.ToggleScope(output, macroExpansionScope);
-        var result =  context.Expand(output);
-        return result;
+        return output;
     }
 
     public abstract Syntax Transform(Syntax syntax);
@@ -24,7 +23,7 @@ public abstract class Transformer : IExpansionRule {
 
 }
 
-public delegate ParsedForm ExpansionFunction(Syntax syntax, ExpansionContext context);
+public delegate SemiParsedForm ExpansionFunction(Syntax syntax, ExpansionContext context);
 
 public class CoreSyntaxRule : IExpansionRule {
 
@@ -32,7 +31,10 @@ public class CoreSyntaxRule : IExpansionRule {
         ParseProcedure = expansionFunc;
     }
 
-    public ParsedForm Expand(Syntax syntax, ExpansionContext context) => ParseProcedure(syntax, context); 
+    // NOTE: this will actually return a SemiParsedForm because of the signature of ParseProcedure
+    // this is important because this is how FirstPass terminates -- macros keep on expanding until they
+    // their output is recognized as a semiparsed form
+    public Syntax Expand(Syntax syntax, ExpansionContext context) => ParseProcedure(syntax, context); 
 
     public ExpansionFunction ParseProcedure { get;}
     
