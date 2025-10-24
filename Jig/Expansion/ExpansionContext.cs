@@ -184,7 +184,7 @@ public class ExpansionContext {
             this._bindings,
             this.ScopeLevel + 1,
             0,
-            this.DefinesAllowed
+            true // TODO: I'm assuming defines are always allowed in a new scope
             
         );
     }

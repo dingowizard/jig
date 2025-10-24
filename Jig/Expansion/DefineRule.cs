@@ -3,6 +3,9 @@ namespace Jig.Expansion;
 public partial class CoreParseRules {
 
     public static SemiParsedForm ParseDefineForm(Syntax syntax, ExpansionContext context) {
+        if (!context.DefinesAllowed) {
+            throw new Exception($"definition encountered in expression context: {syntax.Print()}");
+        }
         // NOTE: these are first pass expander tasks
         if (Syntax.E(syntax) is not SyntaxList.NonEmpty stxList) {
             // TODO: shouldn't need to test for this again.
