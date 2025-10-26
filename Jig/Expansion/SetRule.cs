@@ -19,7 +19,7 @@ public class SemiParsedSet : SemiParsedExpression {
     }
     public Syntax[] SubForms {get;}
 
-    public override ParsedForm Expand(ExpansionContext context) {
+    public override ParsedForm SecondPass(ExpansionContext context) {
         Identifier id = SubForms[1] as Identifier
                         ?? throw new Exception($"bad syntax in set! @ {SrcLoc}: expected first sub-form to be an identifier. Got {SubForms[1]}");
         var x = SubForms[2];

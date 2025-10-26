@@ -64,7 +64,7 @@ public class SemiParsedDefineSyntax : SemiParsedDefinition {
 
     public Identifier Keyword {get; set;}
 
-    public override ParsedForm Expand(ExpansionContext context) {
+    public override ParsedForm SecondPass(ExpansionContext context) {
         return new ParsedDefineSyntax(Keyword, Var, Transformer);
     }
 }

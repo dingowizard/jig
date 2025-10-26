@@ -19,7 +19,7 @@ public class SemiParsedLambda : SemiParsedExpression {
     }
     public Syntax[] SubForms {get;}
 
-    public override ParsedForm Expand(ExpansionContext context) {
+    public override ParsedForm SecondPass(ExpansionContext context) {
         var lambdaScope = new Scope();
         context = context.ExtendWithScope(lambdaScope); // this resets VarIndex to zero
         foreach (var x in SubForms.Skip(1)) {

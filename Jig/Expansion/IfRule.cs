@@ -30,7 +30,7 @@ public class SemiParsedIf : SemiParsedExpression {
     public Syntax Then {get; set;}
 
     public Syntax? Else {get;}
-    public override ParsedForm Expand(ExpansionContext context) {
+    public override ParsedForm SecondPass(ExpansionContext context) {
 
         var newContext = context.ExtendWithExpressionContext();
         return Else is not null ?

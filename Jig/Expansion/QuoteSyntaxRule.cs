@@ -19,7 +19,7 @@ public class SemiParsedQuoteSyntax : SemiParsedExpression {
     }
     public Syntax[] SubForms {get; set;}
 
-    public override ParsedForm Expand(ExpansionContext context) {
+    public override ParsedForm SecondPass(ExpansionContext context) {
         return new ParsedQuoteSyntax(SubForms[0], SubForms[1], SrcLoc);
     }
 }

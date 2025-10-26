@@ -22,7 +22,7 @@ public class Expander
     }
 
     internal ParsedForm SecondPass(SemiParsedForm firstPass, ExpansionContext context) {
-        return firstPass.Expand(context);
+        return firstPass.SecondPass(context);
     }
 
     internal SemiParsedForm FirstPass(Syntax syntax, ExpansionContext context) {
@@ -105,7 +105,7 @@ internal class SemiParsedApplication : SemiParsedExpression
     }
     public Syntax[] SubForms {get; set;}
 
-    public override ParsedForm Expand(ExpansionContext context) {
+    public override ParsedForm SecondPass(ExpansionContext context) {
         var newContext = context.ExtendWithExpressionContext();
         var expanded = SubForms.Select(s => newContext.Expand(s)).ToArray();
         return new ParsedApplication(expanded, SrcLoc);
@@ -120,7 +120,7 @@ internal class SemiParsedVar : SemiParsedExpression {
     }
     public Identifier Identifier {get;}
 
-    public override ParsedForm Expand(ExpansionContext context)
+    public override ParsedForm SecondPass(ExpansionContext context)
     {
             if(context.TryResolve(Identifier, out var binding)) {
                 if (binding.ScopeLevel == 0) {
@@ -139,7 +139,7 @@ internal class SemiParsedLiteral : SemiParsedExpression
     }
     public Literal Literal {get;}
 
-    public override ParsedForm Expand(ExpansionContext context) {
+    public override ParsedForm SecondPass(ExpansionContext context) {
         return new ParsedLiteral(new Identifier(new Symbol("quote")), Literal, Literal.SrcLoc);
     }
 }
@@ -150,7 +150,7 @@ public abstract class SemiParsedForm : Syntax // note: has to be a syntax becaus
     {
     }
     
-    public abstract ParsedForm Expand(ExpansionContext context);
+    public abstract ParsedForm SecondPass(ExpansionContext context);
 }
 public abstract class SemiParsedDefinition : SemiParsedForm {
     public SemiParsedDefinition(ISchemeValue expr, SrcLoc? srcLoc = null) : base(expr, srcLoc) { }

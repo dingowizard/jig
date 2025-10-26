@@ -30,7 +30,7 @@ public class SemiParsedBegin : SemiParsedForm {
 
     public IEnumerable<SemiParsedForm> SemiParsed {get;}
 
-    public override ParsedForm Expand(ExpansionContext context) {
+    public override ParsedForm SecondPass(ExpansionContext context) {
         var fullyParsed = new System.Collections.Generic.List<ParsedForm>();
         foreach (var semiParsed in SemiParsed) {
             // TODO: is this where we decide to change context to definitions not allowed?

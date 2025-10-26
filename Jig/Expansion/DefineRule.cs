@@ -60,7 +60,7 @@ public class SemiParsedDefine : SemiParsedDefinition {
     public ParsedVariable Var {get;}
     
     public Syntax? Expr {get;}
-    public override ParsedForm Expand(ExpansionContext context) {
+    public override ParsedForm SecondPass(ExpansionContext context) {
         
                 return Expr is not null ?
                     new ParsedDefine(

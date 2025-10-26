@@ -16,7 +16,7 @@ public class SemiParsedQuote : SemiParsedExpression {
     }
     public Syntax[] SubForms {get;}
 
-    public override ParsedForm Expand(ExpansionContext context) {
+    public override ParsedForm SecondPass(ExpansionContext context) {
         return new ParsedLiteral(SubForms[0], SubForms[1], SrcLoc);
     }
 }
