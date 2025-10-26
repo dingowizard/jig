@@ -11,11 +11,11 @@ public class ExpansionContext {
         // TODO: seems like we can simplify the arguments to a bunch of these constructors once we get things running
         Expander = evaluator.Expander;
         _syntaxEnvironment = evaluator.Keywords;
-        _bindings = new Dictionary<Identifier, Parameter>(); // TODO: this seems like it should be part of the environment
+        _bindings = new System.Collections.Generic.List<Parameter>(); // TODO: this seems like it should be part of the environment
         int i = 0;
         foreach (var p in topLevels) {
             // _bindings.Add(new Identifier(sym), new Parameter(sym, 0, i++, null));
-            _bindings.Add(p, p); // TODO: why????
+            _bindings.Add(p); // TODO: why????
             
         }
         ScopeLevel = 0;
@@ -28,7 +28,7 @@ public class ExpansionContext {
         IRuntime runtime,
         Expander expander,
         SyntaxEnvironment env/* = null*/,
-        Dictionary<Identifier, Parameter> bindings,
+        System.Collections.Generic.List<Parameter> bindings,
         int scopeLevel = 0,
         int varIndex = 0,
         bool definesAllowed = true) {
@@ -52,27 +52,29 @@ public class ExpansionContext {
 
 
     public void AddBinding(Identifier id, Parameter parameter, [CallerMemberName] string name = "", [CallerFilePath] string path = "", [CallerLineNumber] int line = 0) {
+        _bindings.Add(parameter);
         
-        if (!_bindings.TryAdd(id, parameter)) {
-            foreach (var kvp in _bindings) {
-                if (kvp.Key.Symbol.Name == id.Symbol.Name && kvp.Key.ScopeSet == id.ScopeSet) {
-                    Console.Error.WriteLine($"\ttrying to add {id.Symbol} which has scopeset \n\t\t{string.Join(", ", id.ScopeSet)}");
-                    Console.Error.WriteLine($"\tBut there is a key with the same name with scopeset \n\t\t{string.Join(", ", kvp.Key.ScopeSet)}");
-                    Console.Error.WriteLine($"\tThey have the same hash code? {kvp.Key.GetHashCode() == id.GetHashCode()}");
-                    Console.Error.WriteLine($"\tThey the same object? {ReferenceEquals(id, kvp.Key)}");
-
-                }
-            }
-
-            throw new Exception();
-        }
+        
+        // if (!_bindings.TryAdd(id, parameter)) {
+        //     foreach (var kvp in _bindings) {
+        //         if (kvp.Key.Symbol.Name == id.Symbol.Name && kvp.Key.ScopeSet == id.ScopeSet) {
+        //             Console.Error.WriteLine($"\ttrying to add {id.Symbol} which has scopeset \n\t\t{string.Join(", ", id.ScopeSet)}");
+        //             Console.Error.WriteLine($"\tBut there is a key with the same name with scopeset \n\t\t{string.Join(", ", kvp.Key.ScopeSet)}");
+        //             Console.Error.WriteLine($"\tThey have the same hash code? {kvp.Key.GetHashCode() == id.GetHashCode()}");
+        //             Console.Error.WriteLine($"\tThey the same object? {ReferenceEquals(id, kvp.Key)}");
+        //
+        //         }
+        //     }
+        //
+        //     throw new Exception();
+        // }
     }
 
     // TODO: why is this a dictionary?
-    private Dictionary<Identifier, Parameter> _bindings {get;}
+    private System.Collections.Generic.List<Parameter> _bindings {get;}
 
-    IEnumerable<Identifier> FindCandidateIdentifiers(Identifier id) {
-        IEnumerable<Identifier> sameName = _bindings.Keys.Where(i => i.Symbol.Name == id.Symbol.Name);
+    IEnumerable<Parameter> FindCandidateIdentifiers(Identifier id) {
+        IEnumerable<Parameter> sameName = _bindings.Where(i => i.Symbol.Name == id.Symbol.Name);
         // var name = "reverse";
         // if (id.Symbol.Name == name) {
         //     Console.WriteLine($"The search id -- {id} -- has the following scope sets: {string.Join(',', id.ScopeSet)}");
@@ -92,7 +94,7 @@ public class ExpansionContext {
 
     internal bool TryResolve(Identifier id, [NotNullWhen(returnValue: true)] out Parameter? binding) {
         var candidates = FindCandidateIdentifiers(id);
-        var identifiers = candidates as Identifier[] ?? candidates.ToArray();
+        var identifiers = candidates as Parameter[] ?? candidates.ToArray();
         // var name = "reverse";
         // if (id.Symbol.Name == name) {
         //     Console.WriteLine($"TryResolve: found {identifiers.Length} candidates for '{name}' at {id.SrcLoc} in {this.GetHashCode()}");
@@ -102,11 +104,11 @@ public class ExpansionContext {
             return false;
         }
         #pragma warning disable CS8600
-        Identifier maxID = identifiers.MaxBy(i => i.ScopeSet.Count);// ?? throw new Exception("impossible");
+        Parameter maxID = identifiers.MaxBy(i => i.ScopeSet.Count);// ?? throw new Exception("impossible");
         Debug.Assert(maxID is not null);
         #pragma warning restore CS8600
         CheckUnambiguous(maxID, identifiers);
-        binding = _bindings[maxID];
+        binding = maxID;
         return true;
     }
 

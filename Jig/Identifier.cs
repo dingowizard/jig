@@ -4,6 +4,10 @@ public class Identifier : Syntax {
     public Identifier(Symbol symbol, SrcLoc? srcLoc = null) : base (symbol, srcLoc) {
         ScopeSet = new HashSet<Scope>();
     }
+
+    public Identifier(Symbol symbol, HashSet<Scope> scopeSet, SrcLoc? srcLoc = null) : base(symbol, srcLoc) {
+        ScopeSet = scopeSet;
+    }
         
 
     // public static implicit operator Expr.Symbol(Identifier i) => i.Symbol;

@@ -21,6 +21,7 @@ public partial class CoreParseRules {
             throw new Exception($"malformed define: {Syntax.ToDatum(syntax).Print()} ");
         var bg = new Parameter(
             vr.Symbol,
+            vr.ScopeSet,
             context.ScopeLevel,
             context.VarIndex++,
             vr.SrcLoc);

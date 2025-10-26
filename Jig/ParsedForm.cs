@@ -136,6 +136,7 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                     }
                     Parameter parameter = new Parameter(
                         id.Symbol,
+                        id.ScopeSet,
                         context.ScopeLevel,
                         context.VarIndex++,
                         id.SrcLoc);
@@ -154,6 +155,7 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                 Parameter parameter =
                     new Parameter(
                         id.Symbol,
+                        id.ScopeSet,
                         context.ScopeLevel,
                         context.VarIndex++,
                         id.SrcLoc);
@@ -169,6 +171,7 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                     parameter =
                         new Parameter(
                             id.Symbol,
+                            id.ScopeSet,
                             context.ScopeLevel,
                             context.VarIndex++,
                             id.SrcLoc);
@@ -185,6 +188,7 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                 }
                 parameter = new Parameter(
                     id.Symbol,
+                    id.ScopeSet,
                     context.ScopeLevel,
                     context.VarIndex++,
                     id.SrcLoc);
@@ -196,6 +200,7 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                     Parameter parameter =
                         new Parameter(
                             psId.Symbol,
+                            psId.ScopeSet,
                             context.ScopeLevel,
                             context.VarIndex++,
                             psId.SrcLoc);

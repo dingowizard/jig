@@ -1,7 +1,7 @@
 namespace Jig.Expansion;
 public class Parameter : Identifier {
 
-    public Parameter(Symbol sym, int scopeLevel, int varIndex, SrcLoc? srcLoc) : base(sym, srcLoc)
+    public Parameter(Symbol sym, HashSet<Scope> scopeSet, int scopeLevel, int varIndex, SrcLoc? srcLoc) : base(sym, scopeSet, srcLoc)
     {
         // TODO: remove Index?
         ScopeLevel = scopeLevel;

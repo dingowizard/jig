@@ -23,6 +23,7 @@ public partial class CoreParseRules {
             // if its a toplevel and the rhs fails to parse, how do we remove this (or not add) it to the environment?
             binding = new Parameter(
                 variable.Symbol,
+                variable.ScopeSet,
                 context.ScopeLevel,
                 context.VarIndex++,
                 variable.SrcLoc);
