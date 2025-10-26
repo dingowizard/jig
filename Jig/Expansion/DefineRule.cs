@@ -27,7 +27,7 @@ public partial class CoreParseRules {
                 context.ScopeLevel,
                 context.VarIndex++,
                 variable.SrcLoc);
-            context.AddBinding(variable, binding);
+            context.AddBinding(binding);
         }
         var parsedVar = new ParsedVariable.TopLevel(variable, binding, variable.SrcLoc);
         return new SemiParsedDefine(

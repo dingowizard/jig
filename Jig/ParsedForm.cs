@@ -141,7 +141,7 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                         context.VarIndex++,
                         id.SrcLoc);
                     id.Symbol.Binding = parameter;
-                    context.AddBinding(id, parameter);
+                    context.AddBinding(parameter);
                     namesSeen.Add(id.Symbol.Name);
                     required.Add(new ParsedVariable.Lexical(id, parameter, id.SrcLoc));
                 }
@@ -161,7 +161,7 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                         id.SrcLoc);
                 id.Symbol.Binding = parameter;
                 required.Add(new ParsedVariable.Lexical(id, parameter, id.SrcLoc));
-                context.AddBinding(id, parameter);
+                context.AddBinding(parameter);
                 while (pair.Cdr is IPair cdrPair) {
                     id = cdrPair.Car as Identifier;
                     if (id is null) throw new Exception($"lambda: expected parameters to be identifiers, but got {pair.Car}");
@@ -176,7 +176,7 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                             context.VarIndex++,
                             id.SrcLoc);
                     id.Symbol.Binding = parameter;
-                    context.AddBinding(id, parameter);
+                    context.AddBinding(parameter);
                     pair = cdrPair;
                     namesSeen.Add(id.Symbol.Name);
                     required.Add(new ParsedVariable.Lexical(id, parameter, id.SrcLoc));
@@ -193,7 +193,7 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                     context.VarIndex++,
                     id.SrcLoc);
                 id.Symbol.Binding = parameter;
-                context.AddBinding(id, parameter);
+                context.AddBinding(parameter);
                 namesSeen.Add(id.Symbol.Name);
                 rest = new ParsedVariable.Lexical(id, parameter, id.SrcLoc);
             } else if (stx is Identifier psId) {
@@ -205,7 +205,7 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
                             context.VarIndex++,
                             psId.SrcLoc);
                     psId.Symbol.Binding = parameter;
-                    context.AddBinding(psId, parameter);
+                    context.AddBinding(parameter);
                     rest = new ParsedVariable.Lexical(psId, parameter, psId.SrcLoc);
             } else if (Syntax.E(stx) is List.Empty) {
 

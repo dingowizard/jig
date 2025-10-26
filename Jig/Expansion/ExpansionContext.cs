@@ -51,72 +51,35 @@ public class ExpansionContext {
     public Expander Expander {get;}
 
 
-    public void AddBinding(Identifier id, Parameter parameter, [CallerMemberName] string name = "", [CallerFilePath] string path = "", [CallerLineNumber] int line = 0) {
+    public void AddBinding(Parameter parameter, [CallerMemberName] string name = "", [CallerFilePath] string path = "", [CallerLineNumber] int line = 0) {
         _bindings.Add(parameter);
-        
-        
-        // if (!_bindings.TryAdd(id, parameter)) {
-        //     foreach (var kvp in _bindings) {
-        //         if (kvp.Key.Symbol.Name == id.Symbol.Name && kvp.Key.ScopeSet == id.ScopeSet) {
-        //             Console.Error.WriteLine($"\ttrying to add {id.Symbol} which has scopeset \n\t\t{string.Join(", ", id.ScopeSet)}");
-        //             Console.Error.WriteLine($"\tBut there is a key with the same name with scopeset \n\t\t{string.Join(", ", kvp.Key.ScopeSet)}");
-        //             Console.Error.WriteLine($"\tThey have the same hash code? {kvp.Key.GetHashCode() == id.GetHashCode()}");
-        //             Console.Error.WriteLine($"\tThey the same object? {ReferenceEquals(id, kvp.Key)}");
-        //
-        //         }
-        //     }
-        //
-        //     throw new Exception();
-        // }
     }
 
     // TODO: why is this a dictionary?
     private System.Collections.Generic.List<Parameter> _bindings {get;}
 
-    IEnumerable<Parameter> FindCandidateIdentifiers(Identifier id) {
-        IEnumerable<Parameter> sameName = _bindings.Where(i => i.Symbol.Name == id.Symbol.Name);
-        // var name = "reverse";
-        // if (id.Symbol.Name == name) {
-        //     Console.WriteLine($"The search id -- {id} -- has the following scope sets: {string.Join(',', id.ScopeSet)}");
-        //     Console.WriteLine($"Found {sameName.Count()} bindings with same name.");
-        //     foreach (var b in sameName) {
-        //         Console.WriteLine($"\tscope sets: {string.Join(',', b.ScopeSet)}");
-        //         
-        //     }
-        //     Console.WriteLine("The bindings:");
-        //     foreach (var (i, b) in _bindings) {
-        //         Console.WriteLine($"\t{i}, {b}");
-        //     }
-        // }
-        var result = sameName.Where(i => i.ScopeSet.IsSubsetOf(id.ScopeSet));
-        return result;
-    }
 
     internal bool TryResolve(Identifier id, [NotNullWhen(returnValue: true)] out Parameter? binding) {
-        var candidates = FindCandidateIdentifiers(id);
-        var identifiers = candidates as Parameter[] ?? candidates.ToArray();
-        // var name = "reverse";
-        // if (id.Symbol.Name == name) {
-        //     Console.WriteLine($"TryResolve: found {identifiers.Length} candidates for '{name}' at {id.SrcLoc} in {this.GetHashCode()}");
-        // }
-        if (identifiers.Length == 0) {
+        var candidates = _bindings
+            .Where(i => i.Symbol.Name == id.Symbol.Name)
+            .Where(i => i.ScopeSet.IsSubsetOf(id.ScopeSet))
+            .ToArray();
+        if (candidates.Length == 0) {
             binding = null;
             return false;
         }
-        #pragma warning disable CS8600
-        Parameter maxID = identifiers.MaxBy(i => i.ScopeSet.Count);// ?? throw new Exception("impossible");
-        Debug.Assert(maxID is not null);
-        #pragma warning restore CS8600
-        CheckUnambiguous(maxID, identifiers);
-        binding = maxID;
+        Parameter? maxId = candidates.MaxBy(i => i.ScopeSet.Count);
+        Debug.Assert(maxId is not null);
+        CheckUnambiguous(maxId, candidates);
+        binding = maxId;
         return true;
     }
 
-    static void CheckUnambiguous(Identifier maxID, IEnumerable<Identifier> candidates) {
+    static void CheckUnambiguous(Identifier maxId, IEnumerable<Identifier> candidates) {
         // TODO: understand this better
         foreach (var candidate in candidates) {
-            if (!candidate.ScopeSet.IsSubsetOf(maxID.ScopeSet)) {
-                throw new Exception($"ambiguous : {maxID}");
+            if (!candidate.ScopeSet.IsSubsetOf(maxId.ScopeSet)) {
+                throw new Exception($"ambiguous : {maxId}");
             }
         }
 

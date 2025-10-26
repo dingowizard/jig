@@ -25,7 +25,7 @@ public partial class CoreParseRules {
             context.ScopeLevel,
             context.VarIndex++,
             vr.SrcLoc);
-        context.AddBinding(vr, bg);
+        context.AddBinding(bg);
         var parsedKW = new ParsedVariable.TopLevel(vr, bg, vr.SrcLoc);
                     
         // Expand third subform
