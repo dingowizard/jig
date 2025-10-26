@@ -50,26 +50,6 @@ public class ExpansionContext {
     }
     public Expander Expander {get;}
 
-    public bool TryFindKeyword(Identifier kw, [NotNullWhen(returnValue: true)] out IExpansionRule? expansionRule) {
-        if (_syntaxEnvironment.TryFind(kw, out expansionRule)) {
-            return true;
-        }
-        return false;
-    }
-
-    public void AddKeyword(Identifier kw, IExpansionRule expansionRule) {
-        _syntaxEnvironment.Add(kw, expansionRule);
-        
-    }
-
-    // public Syntax ApplyTransformer(Transformer transformer, Syntax syntax) {
-    //     if (transformer is BuiltinTransformer builtin) {
-    //         return builtin.Transform(syntax);
-    //     }
-    //     return Expander.Evaluator.Runtime.ApplyTransformer(transformer, syntax);
-    // }
-
-    public Parameter[] Bindings => _bindings.Values.ToArray();
 
     public void AddBinding(Identifier id, Parameter parameter, [CallerMemberName] string name = "", [CallerFilePath] string path = "", [CallerLineNumber] int line = 0) {
         
@@ -87,8 +67,6 @@ public class ExpansionContext {
             throw new Exception();
         }
     }
-
-    public IEnumerable<Identifier> Bound => _bindings.Keys;
 
     // TODO: why is this a dictionary?
     private Dictionary<Identifier, Parameter> _bindings {get;}
@@ -142,25 +120,6 @@ public class ExpansionContext {
 
     }
 
-    public void DefineSyntax(ParsedVariable kw, SyntaxList stxs) {
-        // _syntaxEnvironment.Add(id, rule);
-        if (stxs is not SyntaxList.NonEmpty stxList) {
-            throw new Exception($"malformed define-syntax:expected a third subform");
-        }
-        Syntax transformerStx =
-            stxList.First;
-        
-        // TODO: I think we might need a ParsedKeyword type?
-
-        // Expand third subform
-        ParsedLambda transformerLambdaExpr = this.Expand(transformerStx) as ParsedLambda ?? throw new Exception(); // TODO: actually this should use the phase 1 runtime
-        var transformerProcedure = Expander.Evaluator.EvaluateTransformerExpression(transformerLambdaExpr, this); // TODO: ditto
-        // TODO: should it use ParsedVar rather than id? for define as well?
-        Expander.Owner.Keywords.Add(kw.Identifier, transformerProcedure);
-        Console.WriteLine($"added {kw.Identifier.Symbol.Print()} to phase {Expander.Owner.Phase} evaluator's keywords {Expander.Owner.Keywords.GetHashCode()}");
-        // Console.WriteLine($"define-syntax added {kw.Identifier.Symbol} to keywords");
-            
-    }
 
     public ParsedForm Expand(Syntax stx) => Expander.Expand(stx, this);
 
@@ -170,9 +129,6 @@ public class ExpansionContext {
     
     internal IRuntime Runtime {get;}
 
-    public void SyntaxError(string s) {
-        throw new NotImplementedException();
-    }
     public ExpansionContext ExtendWithScope(Scope scope) {
         // new context has ScopeLevel = this.ScopeLevel + 1
         // not sure if we need to have the Scope. Not doing anything with it yet
@@ -206,30 +162,4 @@ public class ExpansionContext {
         return Expander.ExpandSequence(syntaxes, this).ToArray();
     }
 
-    public static ExpansionContext FromImportForm(ExpansionContext context, ParsedImportForm parsedImportForm)
-    {
-        // TODO: is the runtimeCoreSyntax supposed to be part of a library?
-        // in which case it would be included below when we iterate through the imported library names?
-        var runtimeCoreSyntax = context.Runtime.CoreSyntax;
-        var stxEnv = new TopLevelSyntaxEnvironment(runtimeCoreSyntax);
-        // TODO: this is going to break when we change bindings in ExpansionContext
-        // to a type that makes sense
-        var bindings = new Dictionary<Identifier, Parameter>();
-        foreach (var libraryName in parsedImportForm.Libs) {
-            // at a minimum, we need to add the library's keywords to the stxEnv
-            // which means we have to look up the libName in the LibraryLibrary
-            ILibrary library = LibraryLibrary.Instance.LookUp(libraryName);
-            foreach (var pair in library.KeywordExports) {
-                // TODO: we prob shouldn't have to make a new identifier here
-               stxEnv.Add(new Identifier(pair.Item1), pair.Item2);
-            }
-
-        }
-        return new ExpansionContext(
-            context.Runtime,
-            context.Expander,
-            stxEnv,
-            bindings); 
-            
-    }
 }
