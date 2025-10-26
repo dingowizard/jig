@@ -28,7 +28,7 @@ public class ExpansionContext {
         IRuntime runtime,
         Expander expander,
         SyntaxEnvironment env/* = null*/,
-        Dictionary<Identifier, Parameter>? bindings = null,
+        Dictionary<Identifier, Parameter> bindings,
         int scopeLevel = 0,
         int varIndex = 0,
         bool definesAllowed = true) {
@@ -36,7 +36,7 @@ public class ExpansionContext {
         Runtime = runtime;
         Expander = expander;
         _syntaxEnvironment = env/* ?? SyntaxEnvironment.Default*/;
-        _bindings = bindings ?? new Dictionary<Identifier, Parameter>(); // TODO: this seems like it should be part of the environment
+        _bindings = bindings; // TODO: this seems like it should be part of the environment
         ScopeLevel = scopeLevel;
         VarIndex = varIndex;
         DefinesAllowed = definesAllowed;
