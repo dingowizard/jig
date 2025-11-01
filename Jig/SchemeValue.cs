@@ -2,7 +2,6 @@ namespace Jig;
 
 public abstract class SchemeValue : ISchemeValue {
 
-    // TODO: decide whether it makes sense to have all of these as nested classes
 
     public static readonly VoidType Void = new();
 
