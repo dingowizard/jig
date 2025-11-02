@@ -19,7 +19,7 @@ public class Compiler {
         if (code.Length == 0) {
             code = [(ulong)OpCode.PopContinuation << 56];
         }
-        var result = new Template(0, code,bindings.ToArray(), literals.ToArray(), 0, false); // TODO: maybe there should be a different kind of template for this, since we don't need parameters
+        var result = new Template(code,bindings.ToArray(), literals.ToArray());
         // Array.ForEach(Disassembler.Disassemble(result), Console.WriteLine);
         return result;
 

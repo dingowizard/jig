@@ -5,10 +5,9 @@ using Jig.Reader;
 namespace VM;
 
 
-public class Machine : IRuntime
-{
+public class Machine : IRuntime {
 
-    internal bool Loud = false;
+    private bool Loud = false;
 
     public Machine(IEvaluator evaluator, Environment env, uint stackSize = 512) {
         _stackSize = stackSize;
@@ -25,6 +24,7 @@ public class Machine : IRuntime
         // maybe hold off until we figure out debug table and stack tracing
         Template = Template.Empty;
     }
+    
     internal Winders Winders = new Winders();
     
 
@@ -512,49 +512,12 @@ public class Machine : IRuntime
     }
 
 
-    public Syntax ApplyTransformer(Jig.Expansion.Transformer transformer, Syntax syntax) {
-        // return transformer.Apply(syntax);
-        throw new NotImplementedException();
-    }
-
-
     public IRuntimeEnvironment RuntimeEnvironment {
         get => ENVT;
         private init => ENVT = (Environment)value;
     }
 
     public IEnumerable<(Symbol, IExpansionRule)> CoreSyntax { get; }
-
-
-    public void Eval(Syntax stx, VM.Environment? env = null) {
-        env ??= ENVT;
-        
-        // var me = new Jig.MacroExpander();
-        // Jig.ParsedExpr program = me.Expand(stx, ExEnv);
-        // var context = new ExpansionContext(vm, DefaultExpander);
-        var program = Evaluator.Expander.ExpandREPLForm(stx, new ExpansionContext(Evaluator, env.TopLevels.Keys));
-        
-        var compiler = new Compiler(); // should class be static?
-        var code = compiler.CompileExprForREPL(program, env);
-        // TODO: if we load a different environment here, doesn't that clobber the old one. And then what?
-        // NOTE: also a problem in ExecuteFile
-        Load(code, env, TopLevelContinuation);
-        Run();
-    }
-    
-    
-    public void ExecuteFile(string path, Machine vm, VM.Environment? topLevel = null)
-    {
-        topLevel ??= ENVT;
-        InputPort port = new InputPort(path);
-        // Continuation.ContinuationAny throwAwayResult = (xs) => null;
-        var datums = Reader.ReadFileSyntax(port);
-        var parsedProgram = Evaluator.Expander.ExpandSequence(datums, new ExpansionContext(Evaluator, topLevel.TopLevels.Keys));
-        var compiler = new Compiler();
-        var compiled = compiler.CompileFile(parsedProgram.ToArray(), topLevel);
-        vm.Load(compiled, topLevel, TopLevelContinuation);
-        vm.Run();
-    }
 
     private static void TopLevelContinuation(params SchemeValue[] forms) {
         foreach (var form in forms) {

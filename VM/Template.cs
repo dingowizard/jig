@@ -13,6 +13,15 @@ public class Template : SchemeValue { // TODO: is this a scheme value? should it
         HasRestParameter = hasRestParameter;
     }
 
+    public Template(ulong[] code, Parameter[] vars, SchemeValue[] lits) {
+        Literals = lits;
+        Vars = vars; // top vars and lexical vars declared at scopes outside this one
+        Code = code;
+        NumVarsForScope = 0;
+        RequiredParameterCount = 0;
+        HasRestParameter = false;
+    }
+    
     public static Template Empty => new Template(0, [], [], [], 0, false);
     
     public int RequiredParameterCount { get; }
