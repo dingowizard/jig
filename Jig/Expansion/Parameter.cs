@@ -1,8 +1,8 @@
 namespace Jig.Expansion;
 public class Parameter : Identifier {
 
-    public Parameter(Symbol sym, HashSet<Scope> scopeSet, int scopeLevel, int varIndex, SrcLoc? srcLoc) : base(sym, scopeSet, srcLoc)
-    {
+    public Parameter(Symbol sym, HashSet<Scope> scopeSet, int scopeLevel, int varIndex, SrcLoc? srcLoc)
+        : base(sym, scopeSet, srcLoc) {
         // TODO: remove Index?
         ScopeLevel = scopeLevel;
         Index = varIndex;
@@ -21,13 +21,10 @@ public class Parameter : Identifier {
         if (obj is null) return false;
         return obj switch {
             Parameter binding => this.Symbol.Equals(binding.Symbol) && this.Index == binding.Index && this.ScopeLevel == binding.ScopeLevel,
-            _ => false
+            _ => false,
         };
     }
 
-    protected bool Equals(Parameter other) {
-        return Index == other.Index;
-    }
 
     public override int GetHashCode()
     {

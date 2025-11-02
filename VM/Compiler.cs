@@ -483,7 +483,7 @@ public class Compiler {
             // }
             if (!ctEnv.TopLevels.ContainsKey(p)) {
                 // TODO: is this the only place in the Compiler where ct-env is used? (it looks like it is ...)
-                // if so we should eliminate because the ocmpiler should create Locations
+                // if so we should eliminate because the ocmpiler should NOT create Locations
                 var l = new Location();
                 ctEnv.TopLevels.Add(p, new Binding(p, l));
             /*if (p.Symbol.Name is "b" or "a") {

@@ -17,10 +17,9 @@ public class TopLevelContinuation : Continuation {
         Procedure(results.ToArray());
     }
     
-    public override int Required => 0;
-    
     public ContinuationAny Procedure { get; }
     
+    public override int Required => 0;
     public override bool HasOptional => true;
 
 }

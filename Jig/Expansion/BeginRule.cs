@@ -18,15 +18,15 @@ public partial class CoreParseRules
 }
 
 public class SemiParsedBegin : SemiParsedForm {
-    // NOTE: a SemiParsedBegin is neither and expression nor a definition
+    // NOTE: a SemiParsedBegin is neither an expression nor a definition
     // TODO: should we be able to decide whether or not it is a defn or expr during first pass
     // if so, there be two different forms, or is it sufficient just to error out
-    // when a definition is encountered where it is not allowd?
+    // when a definition is encountered where it is not allowed?
     public SemiParsedBegin(IEnumerable<SemiParsedForm> semiParsed, SyntaxList stxList, SrcLoc? syntaxSrcLoc) : base (stxList, syntaxSrcLoc) {
         Keyword = (Identifier)stxList.ElementAt<Syntax>(0);
         SemiParsed = semiParsed;
     }
-    public Identifier Keyword {get; set;}
+    public Identifier Keyword {get;}
 
     public IEnumerable<SemiParsedForm> SemiParsed {get;}
 

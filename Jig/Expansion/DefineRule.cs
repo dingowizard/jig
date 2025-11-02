@@ -37,9 +37,6 @@ public partial class CoreParseRules {
                 .ToSyntaxList(),
             syntax.SrcLoc);
 
-
-
-
     }
 }
 

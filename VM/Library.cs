@@ -131,8 +131,7 @@ public class Library : ILibrary
             KeywordExports = keywords;
     }
 
-    public Library(ParsedLibrary parsedLibrary, IEnumerable<(Symbol, IExpansionRule)> keywords)
-    {
+    public Library(ParsedLibrary parsedLibrary, IEnumerable<(Symbol, IExpansionRule)> keywords) {
 
             _variableExports = new Lazy<IEnumerable<Binding>>(() => []);
             KeywordExports = keywords;

@@ -108,7 +108,7 @@ public class BuiltinTransformer  : Transformer {
                 throw new Exception($"syntax-rules: bad syntax {stx.Print()}");
             }
             if (stxList.Rest is not SyntaxList.NonEmpty macroArgs) {
-                throw new Exception($"syntax-rules: expected subforms, but got none");
+                throw new Exception($"syntax-rules: expected sub-forms, but got none");
             }
             if (Syntax.E(macroArgs.First) is not SyntaxList literals) {
                 if (Syntax.E(macroArgs.First) is not IEmptyList) {
