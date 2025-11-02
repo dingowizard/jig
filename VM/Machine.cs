@@ -1,7 +1,5 @@
 using Jig;
 using Jig.Expansion;
-using Jig.IO;
-using Jig.Reader;
 namespace VM;
 
 
@@ -348,7 +346,7 @@ public class Machine : IRuntime {
                         {
                             ENVT.BindParameter(n, Pop());
                         }
-                        catch (Exception exc) {
+                        catch (Exception) {
                             Console.WriteLine($"VM @ {PC - 1}: trying to bind parameter in template:");
                             Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
                             Console.WriteLine($"Stack is {StackToList()}");

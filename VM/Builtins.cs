@@ -2,7 +2,7 @@ namespace VM;
 
 public static class Builtins {
 
-    public static readonly Template Sum = new Template(
+    public static readonly Template Sum = new (
         0, // NOTE: the only reason this works is that the Sum instruction does not use 
                           // a parameter -- it operates on the stack directly
         code: [
@@ -15,7 +15,7 @@ public static class Builtins {
         true
     );
     
-    public static readonly Template Product = new Template(
+    public static readonly Template Product = new (
         0,
         code: [
             (ulong)OpCode.Product << 56,
@@ -27,7 +27,7 @@ public static class Builtins {
         true
     );
 
-    public static readonly Template Values = new Template(
+    public static readonly Template Values = new (
         0,
         code: [
             (ulong)OpCode.PopContinuation << 56,
@@ -38,11 +38,11 @@ public static class Builtins {
         true
     );
 
-    public static readonly Template Apply = new Template(
+    public static readonly Template Apply = new (
         numVarsForScope: 0,
         code: [
             (ulong)OpCode.Pop << 56, // store proc in VAL
-            (ulong)OpCode.ArgToArgs << 56,
+            (ulong)OpCode.ArgToArgs << 56, // TODO: could we remove ArgToArgs and replace it with an APPLY instruction?
             (ulong)OpCode.Push << 56, // put proc back on stack
             (ulong)OpCode.Call << 56,
             (ulong)OpCode.PopContinuation << 56,
@@ -54,7 +54,7 @@ public static class Builtins {
         false
     );
     
-    public static readonly Template CallWithValues = new Template(
+    public static readonly Template CallWithValues = new (
         // TODO: can this by re-done more in the style of DynamicWind?
         0,
         code: [
@@ -67,7 +67,7 @@ public static class Builtins {
         false
     );
     
-    public static readonly Template CallCC = new Template(
+    public static readonly Template CallCC = new (
         // TODO: can this by re-done more in the style of DynamicWind?
         0,
         code: [

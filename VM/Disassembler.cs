@@ -1,4 +1,3 @@
-using System.Text;
 using Sys = System.Collections.Generic;
 using Jig.Expansion;
 namespace VM;
@@ -6,13 +5,13 @@ namespace VM;
 public static class Disassembler {
 
     public static string[] Disassemble(Template template) {
-        Sys.List<string> literals = ["***LITERALS***"];
+        List<string> literals = ["***LITERALS***"];
         literals.AddRange(template.Literals.Select((t, i) => $"{i:D5}\t{t.Print()}"));
         literals.Add("--------------------------");
-        Sys.List<string> globals = ["***VARS***"];
+        List<string> globals = ["***VARS***"];
         globals.AddRange(template.Vars.Select(p => $"\t{p.Symbol.Print()}"));
         globals.Add("--------------------------");
-        Sys.List<string> instructions = [
+        List<string> instructions = [
             "***INSTRUCTIONS***",
             "ADDR\tOPCODE\tARG",
             "----\t------\t---"

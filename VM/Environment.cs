@@ -85,6 +85,8 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
         public int Length => Locations.Length;
         Location[]  Locations { get; }
         
+        ArraySegment<Location> InitializedLocations { get; }
+        
         public Location this[ulong index] => Locations[index];
 
         public Location GetAt(int scopeLevel, int index)
@@ -105,8 +107,17 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
         
         private Frame? Parent { get; }
 
-        public Frame(Environment parent, int number)
-        {
+        public Frame(Environment parent, IEnumerable<SchemeValue> values) {
+            // TODO: use this when binding args in procedure calls
+            // NOTE: but you'd actually need one that also takes
+            // the total number of locals as an argument,
+            // then sets up the backing array and the arraysegment (the inititialized vars)
+            Parent = parent.LexicalVars;
+            ScopeLevel = parent.ScopeLevel + 1;
+            Locations = values.Select(v =>  new Location(v)).ToArray();
+        }
+
+        public Frame(Environment parent, int number) {
             Parent = parent.LexicalVars;
             ScopeLevel = parent.ScopeLevel + 1;
             Locations = Enumerable.Range(0, number).Select(_ => new Location()).ToArray();
@@ -129,11 +140,10 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
     }
     public void DefineTopLevel(Parameter p, Binding runtimeBinding)
     {
-        if (_topLevels.ContainsKey(p)) {
+        if (!_topLevels.TryAdd(p, runtimeBinding)) {
             throw new Exception($"DefineTopLevel: trying to add {p.Symbol.Print()} but it is already in _topLevels");
 
         }
-        _topLevels.Add(p, runtimeBinding);
     }
 
 }

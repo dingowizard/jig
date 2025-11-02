@@ -8,7 +8,7 @@ public class Evaluator : IEvaluator<Machine> {
     public Evaluator(uint phase = 0) {
         Phase =  phase;
         Expander = new Expander(this, new VMFactory(Phase + 1));
-        Variables = Environment = VM.Environment.Minimal();
+        Variables = Environment = Environment.Minimal();
         Runtime = new Machine(this, (Environment)Variables);
         Keywords = Runtime.FreshCoreSyntax();
 
@@ -25,7 +25,7 @@ public class Evaluator : IEvaluator<Machine> {
         {
             throw new Exception($"unable to evaluate transformer expression: Environment {Environment.GetHashCode()} is empty");
         }
-        var compiler = new VM.Compiler(); // should class be static?
+        var compiler = new Compiler(); // should class be static?
         var code = compiler.CompileExprForREPL(transformerLambdaExpr, Environment);
         ISchemeValue result = List.Null;
         Runtime.Load(code, Environment, Cont);

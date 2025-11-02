@@ -32,34 +32,27 @@ public class Compiler {
         Context context,
         int scopeLevel,
         int startLine = 0) {
-        switch (x) {
-            case ParsedLiteral lit:
-                return CompileLit(lit, literals, context);
-            case ParsedVariable.TopLevel top:
-                return CompileTop(top, ctEnv, bindings, context);
-            case ParsedVariable.Lexical lexVar:
-                return CompileLexVar(lexVar, bindings, context, scopeLevel);
-            case ParsedIf ifExpr:
-                return CompileIfExpr(ifExpr, ctEnv, literals, bindings, context, scopeLevel, startLine);
-            case ParsedLambda le:
-                return CompileLambdaExpr(le, ctEnv, literals, context, scopeLevel);
-            case ParsedBegin begin:
-                return CompileBegin(begin, ctEnv, literals, bindings, context, scopeLevel, startLine);
-            case ParsedApplication app:
-                return CompileApplication(app, ctEnv, literals, bindings, context, scopeLevel, startLine);
-            case ParsedDefine define:
-                return CompileDefinition(define, ctEnv, literals, bindings, context, scopeLevel, startLine);
-            case ParsedSet set:
-                return CompileSet(set, ctEnv, literals, bindings, context, scopeLevel, startLine);
-            case ParsedDefineSyntax defineSyntax:
-                return CompileDefineSyntax(defineSyntax);
-            default:
-                throw new NotImplementedException($"{x.Print()} of type {x.GetType()} is not supported yet");
-        }
+
+        // TODO: combine all args than x to CompileContext
+        return x switch {
+            ParsedLiteral lit => CompileLit(lit, literals, context),
+            ParsedVariable.TopLevel top => CompileTop(top, ctEnv, bindings, context),
+            ParsedVariable.Lexical lexVar => CompileLexVar(lexVar, bindings, context, scopeLevel),
+            ParsedIf ifExpr => CompileIfExpr(ifExpr, ctEnv, literals, bindings, context, scopeLevel, startLine),
+            ParsedLambda le => CompileLambdaExpr(le, ctEnv, literals, context, scopeLevel),
+            ParsedBegin begin => CompileBegin(begin, ctEnv, literals, bindings, context, scopeLevel, startLine),
+            ParsedApplication app => CompileApplication(app, ctEnv, literals, bindings, context, scopeLevel, startLine),
+            ParsedDefine define => CompileDefinition(define, ctEnv, literals, bindings, context, scopeLevel, startLine),
+            ParsedSet set => CompileSet(set, ctEnv, literals, bindings, context, scopeLevel, startLine),
+            ParsedDefineSyntax defineSyntax => CompileDefineSyntax(defineSyntax, context),
+            _ => throw new NotImplementedException($"{x.Print()} of type {x.GetType()} is not supported yet")
+        };
     }
 
-    private ulong[] CompileDefineSyntax(ParsedDefineSyntax defineSyntax) {
+    private ulong[] CompileDefineSyntax(ParsedDefineSyntax defineSyntax, Context context) {
         // TODO: Shouldn't this compile to a pop continuation if it is tail?
+        // NOTE: Idk. breaks some tests
+        // return CodeForContext([], context);
         return [];
     }
 
@@ -489,6 +482,8 @@ public class Compiler {
             //     Console.WriteLine($"First pass encountered def of {p.Symbol.Name} (parameter is {p.GetHashCode()})");
             // }
             if (!ctEnv.TopLevels.ContainsKey(p)) {
+                // TODO: is this the only place in the Compiler where ct-env is used? (it looks like it is ...)
+                // if so we should eliminate because the ocmpiler should create Locations
                 var l = new Location();
                 ctEnv.TopLevels.Add(p, new Binding(p, l));
             /*if (p.Symbol.Name is "b" or "a") {
