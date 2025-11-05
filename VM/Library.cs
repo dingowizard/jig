@@ -109,11 +109,25 @@ public class Library : ILibrary
             new (new Parameter(new Symbol("syntax->list"), [], 0, index++, null),
                             new Location(Primitives.SyntaxToList)),
             new (new Parameter(new Symbol("syntax-e"), [], 0, index++, null),
-                            new Location(Primitives.SyntaxE)),
+                            new Location(Primitives.SyntaxE)),// NOTE: this is not a std scheme procedure
             new (new Parameter(new Symbol("symbol?"), [], 0, index++, null),
                             new Location(Primitives.SymbolP)),
             new (new Parameter(new Symbol("symbol=?"), [], 0, index++, null),
-                    new Location(Primitives.SymbolEqualP))
+                    new Location(Primitives.SymbolEqualP)),
+            new (new Parameter(new Symbol("displayln"), [], 0, index++, null),
+                    new Location(Primitives.DisplayLine)), // NOTE: this is not a std scheme procedure
+            new (new Parameter(new Symbol("display"), [], 0, index++, null),
+                    new Location(Primitives.Display)),
+            new (new Parameter(new Symbol("newline"), [], 0, index++, null),
+                    new Location(Primitives.NewLine)),
+            new (new Parameter(new Symbol("vector"), [], 0, index++, null),
+                    new Location(new Primitive("vector", Primitives.vector, 0, true))),
+            new (new Parameter(new Symbol("vector-ref"), [], 0, index++, null),
+                    new Location(new Primitive("vector-ref", Primitives.vectorRef, 2, false))),
+            new (new Parameter(new Symbol("vector?"), [], 0, index++, null),
+                    new Location(new Primitive("vector?", Primitives.vectorP, 1, false))),
+            new (new Parameter(new Symbol("vector-length"), [], 0, index++, null),
+                    new Location(new Primitive("vector-length", Primitives.vectorLength, 1, false))),
         ];
         (Symbol, IExpansionRule)[] keywords = [
         

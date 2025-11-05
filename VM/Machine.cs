@@ -368,6 +368,9 @@ public class Machine : IRuntime {
                     VAL = ENVT.GetArg(IR & 0x00FFFFFFFFFFFFFF);
                     continue;
                 case OpCode.Top:
+                    // TODO: currently, referencing a undefined top level var
+                    // is a syntax error.
+                    // but it should be a runtime error.
                     try
                     {
                         VAL = VARS[IR & 0x00FFFFFFFFFFFFFF].Value;

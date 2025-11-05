@@ -1,4 +1,6 @@
 using Jig;
+using Char = Jig.Char;
+using String = Jig.String;
 
 namespace VM;
 
@@ -276,7 +278,93 @@ public static class Primitives {
         return;
 
     }
+    
+    public static Primitive Display {get;} = new ("display", display, 1, false);
 
+    private static void display(Machine vm) {
+        // TODO: this should optionally take a second arg, a textual output port
+        // TODO: should use a Port rather than the CLR Console.Write
+        var arg = vm.Pop();
+        switch (arg) {
+            case String str:
+                Console.Write(str.Value);
+                vm.Push(vm.VAL = SchemeValue.Void);
+                return;
+            case Char ch:
+                Console.Write(ch.Value);
+                vm.Push(vm.VAL = SchemeValue.Void);
+                return;
+            default:
+                Console.Write(arg.Print());
+                vm.Push(vm.VAL = SchemeValue.Void);
+                return;
+                
+        }
+
+    }
+
+    public static Primitive DisplayLine {get;} = new ("displayln", displayln, 1, false);
+
+    private static void displayln(Machine vm) {
+        // TODO: this should optionally take a second arg, a textual output port
+        // TODO: should use a Port rather than the CLR Console.Write
+        var arg = vm.Pop();
+        switch (arg) {
+            case String str:
+                Console.WriteLine(str.Value);
+                vm.Push(vm.VAL = SchemeValue.Void);
+                return;
+            case Char ch:
+                Console.WriteLine(ch.Value);
+                vm.Push(vm.VAL = SchemeValue.Void);
+                return;
+            default:
+                Console.WriteLine(arg.Print());
+                vm.Push(vm.VAL = SchemeValue.Void);
+                return;
+                
+        }
+
+    }
+    // TODO: is there a good reason to have all of these read-only fields?
+    // why not use the constructor when instantiating them in the core library?
+    public static Primitive NewLine {get;} = new ("newline", newline, 0, false);
+
+    private static void newline(Machine vm) {
+        
+        // TODO: this should optionally take an arg, a textual output port
+        // TODO: should use a Port rather than the CLR Console.Out
+        Console.Out.WriteLine();
+
+    }
+
+    public static void vector(Machine vm) {
+        System.Collections.Generic.List<SchemeValue> result = [];
+        while (vm.SP != vm.FP) {
+            result.Add(vm.Pop());
+        }
+        vm.Push(vm.VAL = new Vector(result.ToArray()));
+    }
+
+    public static void vectorRef(Machine vm) {
+        Vector vector = vm.Pop() as Vector ?? throw new Exception("vector-ref: expected first argument to be a vector.");
+        Integer index = vm.Pop() as Integer ?? throw new Exception("vector-ref: expected second argument to be an integer.");
+        if (vector.TryGetAtIndex(index, out ISchemeValue? x)) {
+            // TODO: gar! stop having to cast to SchemeValue (get rid of ISchemeValue or make VM fields ISchemeValue???)
+            vm.Push(vm.VAL = (SchemeValue)x);
+            return;
+        }
+        throw new Exception("vector-ref: index out of range.");
+    }
+    
+    public static void vectorLength(Machine vm) {
+        Vector vector = vm.Pop() as Vector ?? throw new Exception("vector-length: expected first argument to be a vector.");
+        vm.Push(vm.VAL = vector.Length);
+    }
+    
+    public static void vectorP(Machine vm) {
+        vm.Push(vm.VAL = vm.Pop() is Vector ? Bool.True : Bool.False);
+    }
 //     public static Primitive Expand { get; } = new("expand", expand, 1, false);
 //
 //     private static void expand(Machine vm) {

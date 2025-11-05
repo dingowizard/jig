@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using EnvEntry = System.Tuple<Jig.Symbol, Jig.SchemeValue, int>;
 using Env = System.Collections.Generic.List<System.Tuple<Jig.Symbol, Jig.SchemeValue, int>>;
 
-namespace Jig;
+namespace Jig.Expansion;
 
 internal static partial class Builtins {
 
