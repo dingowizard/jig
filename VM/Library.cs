@@ -97,7 +97,7 @@ public class Library : ILibrary
             new (new Parameter(new Symbol("eqv?"), [], 0, index++, null),
                     new Location(Primitives.Eqvp)),
             new (new Parameter(new Symbol("values"), [], 0, index++, null),
-                    new Location(new Procedure(Environment.Default, Builtins.Values))),
+                    new Location(new Primitive("values", Primitives.values, 0, true))),
             new (new Parameter(new Symbol("call-with-values"), [], 0, index++, null),
                     new Location(new Procedure(Environment.Default, Builtins.CallWithValues))),
             new (new Parameter(new Symbol("dynamic-wind"), [], 0, index++, null),

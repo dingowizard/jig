@@ -113,7 +113,6 @@ public class PartialContinuationForCallWithValues : PartialContinuation {
     }
 
     public override void Pop(Machine vm) {
-        vm.ENVT = vm.ENVT.Extend(Template.NumVarsForScope);
         // Console.WriteLine($"Env extended with {Template.NumVarsForScope} slots");
         // check that continuation we are returning to expects the number of values
         if (this.HasOptional) {
@@ -129,6 +128,12 @@ public class PartialContinuationForCallWithValues : PartialContinuation {
                     $"continuation expected exactly {this.Required} values, but received {vm.SP - vm.FP}");
             }
         }
+        System.Collections.Generic.List<SchemeValue> args = [];
+        while (vm.SP > vm.FP) {
+            args.Add(vm.Pop());
+        }
+        vm.ENVT = vm.ENVT.ExtendForProcCall(Template, args);
+        // TODO: I think everything above could be turned into a method on vm and then re-used?
         vm.PC = this.ReturnAddress;
         vm.FP = this.FP;
         vm.VARS = this.Variables;

@@ -11,11 +11,12 @@ public enum OpCode : byte {
     Top,
     SetTop,
     Arg,
+    DefArg,
     SetArg,
     Lex,
     SetLex,
-    Bind,
-    BindRest,
+    // Bind,
+    // BindRest,
     Jump,
     JumpIfFalse,
     Env,
@@ -31,4 +32,5 @@ public enum OpCode : byte {
     SPToFP,
     PopFP,
     ArgToArgs, // takes list arg from stack and pushes each element onto stack. TODO: yuck
+    Halt
 }

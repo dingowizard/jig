@@ -12,7 +12,8 @@ public class Machine : IRuntime {
         Evaluator = evaluator;
         ENVT = env;
         VARS = [];
-        CONT = new TopLevelContinuation(TopLevelContinuation);
+        // TODO: why do both Load and this constructor set the CONT?
+        CONT = new TopLevelTemplateContinuation(TopLevelContinuation);
         RuntimeEnvironment = ENVT;
         // TODO: no need for dictionary
         CoreSyntax = FreshCoreSyntax().Rules.Select(kvp => (kvp.Key, kvp.Value) ).ToArray();
@@ -88,10 +89,16 @@ public class Machine : IRuntime {
                     throw new Exception($"wrong num args: expected {proc.Required}, but got {SP - FP}. (SP = {SP}; FP = {FP}; stack = {StackToList()})");
                 }  
             }
-            // Console.WriteLine($"\tabout to extend Env with {proc.Template.NumVarsForScope} scope vars");
-            // Console.WriteLine("Template:");
-            // Array.ForEach(Disassembler.Disassemble(proc.Template), Console.WriteLine);
-            ENVT = proc.Environment.Extend(proc.Template.NumVarsForScope);
+            // NOTE: the reason why the procedure code has the job of binding the args
+            // is because of how primitives work. If the runtime bound the args for the procedures,
+            // then there would be nothing on the stack for the primitive functions to use.
+            // probably Primitives could be redesigned though.
+            // For example, primitives could get the arg values from the environment rather than the stack.
+            System.Collections.Generic.List<SchemeValue> args = [];
+            while (SP > FP) {
+                args.Add(Pop());
+            }
+            ENVT = proc.Environment.ExtendForProcCall(proc, args);
             VARS = proc.Locations;
             Template = proc.Template;
             PC = 0ul;
@@ -221,29 +228,6 @@ public class Machine : IRuntime {
                         true);
                     continue;
                 case OpCode.PopContinuation:
-                    // Console.WriteLine(Dissassembler.Decode((int)PC, IR, Template.Slots, Template.Bindings));
-                    if (CONT is TopLevelContinuation)
-                    {
-                        CONT.Pop(this);
-                        // Console.WriteLine($"about to return from case OpCode.PopContinuation");
-                        return;
-                        
-                    }
-
-                    if (CONT is WinderThunkCont.ThunkCont wtc)
-                    {
-                        // Console.WriteLine($"VM.PopContinuation: PC = {PC} wtc is {wtc.GetType()}");
-
-                        if (wtc.Continuation is WinderThunkCont.BaseCont bc &&
-                            bc.SavedContinuation.Saved is TopLevelContinuation)
-                        {
-                            wtc.Pop(this);
-                            return;
-
-                        }
-                        
-                    }
-
                     CONT.Pop(this);
                     continue;
                 case OpCode.Call:
@@ -253,30 +237,16 @@ public class Machine : IRuntime {
                     
                     // maybe by having another CompilationContext for operator
                     VAL = Pop();
-                    if (VAL is Primitive primitiveProc)
-                    {
+                    if (VAL is Primitive primitiveProc) {
                         primitiveProc.Apply(this);
-                        // NOTE: Primitive2 pushes it's result
-                        // TODO: grrr. do I have to repeat this business below?
-                        /*
-                        if (CONT is TopLevelContinuation) {
-                            return;
-                        }
-                        continue;
-                    */
-                        if (CONT is PartialContinuation pct) {
-                            pct.Pop(this);
-                            continue;
-                        }
+                        // TODO: does CONT.Pop belong in the Primitive procedure?
                         CONT.Pop(this);
-                        // Console.WriteLine($"about to return from case OpCode.Call, PrimitiveFn");
-                        return;
+                        continue;
                     }
                     
                     if (VAL is SavedContinuation cont) {
-                        // Console.WriteLine($"applying a saved continuation");
-                        // Console.WriteLine($"\tcont.SavedWinders.Length = {cont.SavedWinders.Length} and Winders = {Winders.Length}");
-                        // Console.WriteLine($"\tthey are ReferenceEquals: {object.ReferenceEquals(cont.SavedWinders, Winders) }");
+                        // TODO: could all this logic be inside SavedContinuation.Apply?
+                        // maybe not. It's making my brain hurt. 
                         if (!cont.SavedWinders.Equals(Winders)) { // TODO: ReferenceEquals?
                             CONT = cont.SavedWinders.DoWinders(this, cont);
                             if (CONT is not WinderThunkCont.ThunkCont wThunk)
@@ -292,21 +262,21 @@ public class Machine : IRuntime {
                             FP = SP;
                             CONT = wThunk.Continuation;
                             VAL = wThunk.Thunk;
-                            Call();
+                            Call(); // When we Call, the procedure is wThunk.Thunk, stored in VAL ... so NOT a SavedContinuation
                             continue;
 
                         }
                         cont.Apply(this);
-                        if (cont.Saved is TopLevelContinuation) {
-                            return;
-                        }
+                        // if (cont.Saved is TopLevelContinuation) {
+                        //     return;
+                        // }
                         continue;
                     }
                     Call();
                     continue;
                 case OpCode.CallWValues:
-                    var producer = (Procedure)Pop();
-                    var continuationProc = (Procedure)Pop();
+                    var producer = (Procedure)ENVT.GetArg(0);
+                    var continuationProc = (Procedure)ENVT.GetArg(1);
                     // Console.WriteLine($"in call-with-values: continuationProc:");
                     // Array.ForEach(Dissassembler.Disassemble(continuationProc.Template), Console.WriteLine);
                     // Console.WriteLine($"required params: {continuationProc.Required}. hasRest? {continuationProc.HasRest}");
@@ -323,7 +293,7 @@ public class Machine : IRuntime {
                     Call();
                     continue;
                 case OpCode.CallCC:
-                    VAL = (Procedure)Pop(); // put the lambda expr or procedure in VAL
+                    VAL = (Procedure)ENVT.GetArg(0); // put the lambda expr or procedure in VAL
                     Push(new SavedContinuation(CONT, Stack.Take((int)SP).ToArray(), Winders.Copy()));
                     // the following line is wrong because even though
                     // the call instruction expects procedure to be on the stack, the 
@@ -339,31 +309,34 @@ public class Machine : IRuntime {
                 case OpCode.PopWinder:
                     this.Winders.Pop();
                     continue;
-                case OpCode.Bind:
-                    ulong parameterNumber = (IR & 0x00000000FFFFFFFF);
-                    for (ulong n = 0; n < parameterNumber; n++) {
-                        try
-                        {
-                            ENVT.BindParameter(n, Pop());
-                        }
-                        catch (Exception) {
-                            Console.WriteLine($"VM @ {PC - 1}: trying to bind parameter in template:");
-                            Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
-                            Console.WriteLine($"Stack is {StackToList()}");
-                            
-                        }
-                    }
-                    continue;
-                case OpCode.BindRest:
-                    // bind zero should always be called first
-                    ulong restIndex = (IR & 0x00FFFFFFFFFFFFFF);
-                    // TODO:
-                    var xs = new System.Collections.Generic.List<SchemeValue>();
-                    while (SP != FP) {
-                        xs.Add(Pop());
-                    }
-                    ENVT.BindParameter(restIndex, xs.ToJigList());
-                    continue;
+                // case OpCode.Bind:
+                //     // NOTE: the reason why the procedure code has the job of binding the args
+                //     // is because of how primitives work. If the runtime bound the args for the procedures,
+                //     // then there would be nothing on the stack for the primitive functions to use.
+                //     ulong parameterNumber = (IR & 0x00000000FFFFFFFF);
+                //     for (ulong n = 0; n < parameterNumber; n++) {
+                //         try
+                //         {
+                //             ENVT.BindParameter(n, Pop());
+                //         }
+                //         catch (Exception) {
+                //             Console.WriteLine($"VM @ {PC - 1}: trying to bind parameter in template:");
+                //             Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
+                //             Console.WriteLine($"Stack is {StackToList()}");
+                //             
+                //         }
+                //     }
+                //     continue;
+                // case OpCode.BindRest:
+                //     // bind zero should always be called first
+                //     ulong restIndex = (IR & 0x00FFFFFFFFFFFFFF);
+                //     // TODO:
+                //     var xs = new System.Collections.Generic.List<SchemeValue>();
+                //     while (SP != FP) {
+                //         xs.Add(Pop());
+                //     }
+                //     ENVT.BindParameter(restIndex, xs.ToJigList());
+                //     continue;
                 case OpCode.Arg:
                     VAL = ENVT.GetArg(IR & 0x00FFFFFFFFFFFFFF);
                     continue;
@@ -403,6 +376,18 @@ public class Machine : IRuntime {
                     try
                     {
                         ENVT.SetArg(IR & 0x00FFFFFFFFFFFFFF, VAL = Pop());
+                    }
+                    catch (Exception exc)
+                    {
+                        Console.WriteLine($"PC = {PC}");
+                        // Console.WriteLine($"ARGS count = {ENVT.ArgsLength}. index was {IR & 0x00FFFFFFFFFFFFFF}");
+                        Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
+                        throw;
+                    }
+                    continue;
+                case OpCode.DefArg:
+                    try {
+                        ENVT.DefArg(IR & 0x00FFFFFFFFFFFFFF, VAL = Pop());
                     }
                     catch (Exception exc)
                     {
@@ -453,36 +438,20 @@ public class Machine : IRuntime {
                     continue;
                 case OpCode.Sum:
                     VAL = Integer.Zero;
-                    while (FP < SP)
-                    {
-                        try
-                        {
-                            SchemeValue form = Pop();
-                            Number? number = form as Number;
-                            if (number is null)
-                            {
-                                File.AppendAllLines("/home/dave/lan/projects/Jig/log.txt",
-                                    [$"in add popped arg was not a number! ({form.Print()}) "]);
-                            }
-
-                            File.AppendAllLines("/home/dave/lan/projects/Jig/log.txt",
-                                [$"stack is {StackToList().Print()} adding " + number.Print()]);
-                            VAL = (Number)VAL + number;
-                        } catch (Exception xn)
-                        {
-
-                            File.AppendAllLines("/home/dave/lan/projects/Jig/log.txt", [xn.Message]);
-                            throw;
-                        }
-
+                    // TODO: check for wrong type
+                    Jig.List args = (Jig.List)ENVT.GetArg(0);
+                    foreach (var arg in args) {
+                        // TODO: type check
+                        VAL = (Number)VAL + (Number)arg;
                     }
                     Push(VAL);
                     continue;
                 case OpCode.Product:
                     VAL = Integer.One;
-                    while (FP < SP) {
-                        Number p1 = (Number)Pop();
-                        VAL = (Number)VAL * p1 ;
+                    Jig.List productArgs = (Jig.List)ENVT.GetArg(0);
+                    foreach (var arg in productArgs) {
+                        // TODO: type check
+                        VAL = (Number)VAL * (Number)arg;
                     }
                     Push(VAL);
                     continue;
@@ -496,6 +465,17 @@ public class Machine : IRuntime {
                         Push((SchemeValue)form);
                     }
                     continue;
+                case OpCode.Halt:
+                    // if we're here then we've popped the top level continuation
+                    // Console.WriteLine($"Toplevel! sp = {SP}");
+                    var results = new System.Collections.Generic.List<SchemeValue>();
+                    while (SP > 0) {
+                        results.Add(Pop());
+                    }
+                    // TODO: this procedure could be a property of the VM rather than the continuation ...
+                    ((TopLevelTemplateContinuation)CONT).Procedure(results.ToArray());
+                    // TODO: make this the only return statement in the loop
+                    return;
                 default: throw new Exception($"unhandled case {opCode} in Execute");
             }
         }
@@ -509,7 +489,7 @@ public class Machine : IRuntime {
         VARS = proc.Locations;
         ClearStack();
         ENVT = env;
-        CONT = new TopLevelContinuation(cont);
+        CONT = new TopLevelTemplateContinuation(cont);
     }
 
 

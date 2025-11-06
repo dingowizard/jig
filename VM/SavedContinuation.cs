@@ -12,6 +12,7 @@ public class SavedContinuation : Continuation {
         SavedWinders = winders;
     }
     
+    
     public Winders SavedWinders { get; }
     
     public override void Pop(Machine machine) {
@@ -25,10 +26,14 @@ public class SavedContinuation : Continuation {
     }
 
     public void Apply(Machine vm) {
-        // Console.WriteLine($"\tat this point we ought to have done all the winders if there were any");
+
         var results = vm.SaveStackFrameToArray();
         // restore stack
         int i = 0;
+        
+        
+        
+        // Console.WriteLine($"\tat this point we ought to have done all the winders if there were any");
         foreach (var form in SavedStack) {
             vm.Stack[i] = form;
             i++;
@@ -43,7 +48,8 @@ public class SavedContinuation : Continuation {
         }
         // Console.WriteLine($"We're about to pop the saved cont. the stack is {vm.StackToList().Print()} fp = {vm.FP} sp = {vm.SP}");
         Saved.Pop(vm);
-        
+        return;
+
     }
     
     public Continuation Saved { get; }

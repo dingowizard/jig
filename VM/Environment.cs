@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Jig;
 using Jig.Expansion;
 namespace VM;
@@ -65,8 +66,18 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
 
     }
     
+    public Environment ExtendForProcCall(Procedure proc, IEnumerable<SchemeValue> args) {
+        return new Environment(this, new Frame(this, args, proc));
+    }
+    
+    
+    public Environment ExtendForProcCall(Template template, IEnumerable<SchemeValue> args) {
+        return new Environment(this, new Frame(this, args, template));
+    }
+    
     public void BindParameter(ulong p0, SchemeValue val) {
-        LexicalVars[p0].Value = val;
+        Debug.Assert(LexicalVars is not null);
+        LexicalVars[p0] = new Location(val);
     }
     
     private Frame? LexicalVars { get; }
@@ -86,8 +97,11 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
         Location[]  Locations { get; }
         
         ArraySegment<Location> InitializedLocations { get; }
-        
-        public Location this[ulong index] => Locations[index];
+
+        public Location this[ulong index] {
+            get => Locations[index];
+            set => Locations[index] = value;
+        }
 
         public Location GetAt(int scopeLevel, int index)
         {
@@ -118,10 +132,48 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
         }
 
         public Frame(Environment parent, int number) {
+            // TODO: new constructor that takes values of arguments
+            // and this same number.
+            // creates locations only for the ones with values
+            // then DefArg will create the locations
+            // locations will not have nullable values
             Parent = parent.LexicalVars;
             ScopeLevel = parent.ScopeLevel + 1;
-            Locations = Enumerable.Range(0, number).Select(_ => new Location()).ToArray();
+            Locations = new Location[number];
 
+        }
+        public Frame(Environment parent, IEnumerable<SchemeValue> args, Template template) {
+            Parent = parent.LexicalVars;
+            ScopeLevel = parent.ScopeLevel + 1;
+            Locations = new Location[template.NumVarsForScope];
+            SchemeValue[] arrayArgs = args.ToArray();
+            int index = 0;
+            if (template.RequiredParameterCount > 0) {
+                for (; index < template.RequiredParameterCount; index++) {
+                    Locations[index] = new Location(arrayArgs[index]);
+                }
+                
+            }
+            if (template.HasRestParameter) {
+                Locations[index] = new Location(args.Skip(index).ToJigList());
+            }
+        }
+        
+        public Frame(Environment parent, IEnumerable<SchemeValue> args, Procedure proc) {
+            Parent = parent.LexicalVars;
+            ScopeLevel = parent.ScopeLevel + 1;
+            Locations = new Location[proc.Template.NumVarsForScope];
+            SchemeValue[] arrayArgs = args.ToArray();
+            int index = 0;
+            if (proc.Template.RequiredParameterCount > 0) {
+                for (; index < proc.Template.RequiredParameterCount; index++) {
+                    Locations[index] = new Location(arrayArgs[index]);
+                }
+                
+            }
+            if (proc.Template.HasRestParameter) {
+                Locations[index] = new Location(args.Skip(index).ToJigList());
+            }
         }
     }
 
@@ -146,4 +198,10 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
         }
     }
 
+    public void DefArg(ulong ir, SchemeValue v) {
+        if (LexicalVars is null) {
+            throw new Exception($"DefArg isn't supposed to be used at toplevel");
+        }
+        LexicalVars[ir] = new Location(v);
+    }
 }

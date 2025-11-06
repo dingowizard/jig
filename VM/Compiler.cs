@@ -122,32 +122,16 @@ public class Compiler {
         int scopeLevel,
         int startLine = 0)
     {
-        // Sys.List<ulong> result = new();
-        // if (defForm.Variable is ParsedVariable.TopLevel topVar) {
-        //
-        //     var bing = bindings.Find(b => b.Symbol.Equals(topVar.Identifier.Symbol));
-        //     ulong code = (ulong)OpCode.SetTop << 56;
-        //     int index = bindings.IndexOf(bing);
-        //     code += (ulong)index;
-        //     result.Add(code);
-        // } else {
-        //     var lexVar = (ParsedVariable.Lexical)defForm.Variable;
-        //     ulong code;
-        //     if (lexVar.Parameter.ScopeLevel == scopeLevel) {
-        //         code = ((ulong)OpCode.SetArg << 56);
-        //     } else {
-        //         code = (ulong)OpCode.SetLex << 56;
-        //     }
-        //     int index = lexVar.Parameter.Index;
-        //     code += (ulong)index;
-        //     result.Add(code);
-        // }
+        
+        // definitions may need to be handled differently depending on whether they occur in a program body
+        // a library body or a lambda body
+        // in the case of a lambda body, these are scope variables. They are treated similarly to args
 
         Sys.List<ulong> result = new();
         ulong code;
         if (scopeLevel != 0 && defForm.Variable.Parameter.ScopeLevel == scopeLevel) {
             // local var
-            code = ((ulong)OpCode.SetArg << 56) + (ulong)defForm.Variable.Parameter.Index;
+            code = ((ulong)OpCode.DefArg << 56) + (ulong)defForm.Variable.Parameter.Index;
         } else {
             // top-level or lexical var outside of current scope
             var bing = defForm.Variable.Parameter;
@@ -356,17 +340,17 @@ public class Compiler {
         var bindings = new Sys.List<Parameter>();
         Sys.List<ulong> codes = [];
         
-        // TODO: should apply be responsible for this?
-        if (lambdaExpr.Parameters.Required.Length != 0) {
-            var bindCode = (ulong)OpCode.Bind << 56;
-            bindCode += (ulong)lambdaExpr.Parameters.Required.Length;
-            codes.Add(bindCode);
-        }
-        if (lambdaExpr.Parameters.HasRest) {
-            var bindRest = (ulong)OpCode.BindRest << 56;
-            bindRest += (ulong)lambdaExpr.Parameters.Required.Length;
-            codes.Add(bindRest);
-        }
+        // TODO: should apply be responsible for this? Yes, I think so.
+        // if (lambdaExpr.Parameters.Required.Length != 0) {
+        //     var bindCode = (ulong)OpCode.Bind << 56;
+        //     bindCode += (ulong)lambdaExpr.Parameters.Required.Length;
+        //     codes.Add(bindCode);
+        // }
+        // if (lambdaExpr.Parameters.HasRest) {
+        //     var bindRest = (ulong)OpCode.BindRest << 56;
+        //     bindRest += (ulong)lambdaExpr.Parameters.Required.Length;
+        //     codes.Add(bindRest);
+        // }
 
         var body = CompileSequence(
             lambdaExpr.Bodies,
@@ -484,7 +468,9 @@ public class Compiler {
             if (!ctEnv.TopLevels.ContainsKey(p)) {
                 // TODO: is this the only place in the Compiler where ct-env is used? (it looks like it is ...)
                 // if so we should eliminate because the ocmpiler should NOT create Locations
+                // Console.WriteLine($"first pass is putting {p.Symbol.Print()} in top levels");
                 var l = new Location();
+                
                 ctEnv.TopLevels.Add(p, new Binding(p, l));
             /*if (p.Symbol.Name is "b" or "a") {
                     Console.WriteLine($"\t{p.Symbol.Name} wasn't in dictionary, so adding a new location {l.GetHashCode()} bound to it");

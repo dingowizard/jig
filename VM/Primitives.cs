@@ -365,6 +365,10 @@ public static class Primitives {
     public static void vectorP(Machine vm) {
         vm.Push(vm.VAL = vm.Pop() is Vector ? Bool.True : Bool.False);
     }
+
+    public static void values(Machine vm) { }
+    
+    
 //     public static Primitive Expand { get; } = new("expand", expand, 1, false);
 //
 //     private static void expand(Machine vm) {
