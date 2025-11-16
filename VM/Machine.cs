@@ -390,6 +390,9 @@ public class Machine : IRuntime {
                     }
                     continue;
                 case OpCode.DefVar:
+                    // TODO: When is this used? for top levels?
+                    // we should simplify the number of instructions for putting a value in a location
+                    // Also for when we make a location
                     try {
                         VARS[IR & 0x00FFFFFFFFFFFFFF] = new Location(Pop());
                         VAL = SchemeValue.Void;
@@ -403,14 +406,9 @@ public class Machine : IRuntime {
                     }
                     continue;
                 
-                case OpCode.MkLoc:
-                    // NOTE: this works with DefArg below
-                    // the idea is to create the location before defarg
-                    // is called because we need the location to be in the environment
-                    // when a recursive procedure is being defined.
-                    ENVT.MakeLoc(IR & 0x00FFFFFFFFFFFFFF);
-                    continue;
                 case OpCode.DefArg:
+                    // An arg is either an argument or a variable defined at
+                    // the top of a lambda body.
                     try {
                         ENVT.DefArg(IR & 0x00FFFFFFFFFFFFFF, VAL = Pop());
                     }

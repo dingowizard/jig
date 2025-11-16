@@ -15,8 +15,12 @@ public partial class CoreParseRules {
         if (stxList.Rest is not SyntaxList.NonEmpty { First: Identifier variable } rest)
             throw new Exception($"malformed define: {Syntax.ToDatum(syntax).Print()} ");
         Parameter binding;
-        if (context.TryResolve(variable, out var parameter)) {
-            // we might be redefining something
+        if (context.TryResolve(variable, out var parameter) && context.ScopeLevel == 0) {
+            // TODO: whether or not we're allowed to redefine something that already has
+            // a binding depends on the context.
+            // if we're in the repl and re-defining a top-level at top-level, that's fine
+            // otherwise we should make a new binding
+            // or raise an error
             binding = parameter;
         } else {
             // TODO: this represents registering the var

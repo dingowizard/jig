@@ -16,7 +16,14 @@ public class Procedure : SchemeValue {
     private Location[] SaveVarLocations(Environment env, Template template) {
         var result = new System.Collections.Generic.List<Location>();
         foreach (var parameter in template.Vars) {
-            result.Add(env.LookUpLocation(parameter));
+            try {
+                var loc = env.LookUpLocation(parameter);
+                result.Add(loc);
+            } catch {
+                Console.WriteLine($"Error while looking up variable {parameter.Symbol}");
+                throw;
+            }
+
         }
         return result.ToArray();
             

@@ -38,7 +38,7 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
             throw new Exception();
         }
 
-        return LexicalVars[index].Value ?? throw new Exception("undefined");
+        return LexicalVars[index].Value ?? throw new Exception("GetArg: index = {index}. Not initialized.");
     }
 
     public Environment(IEnumerable<Jig.Binding> topVars)
@@ -159,25 +159,23 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
             }
             if (template.HasRestParameter) {
                 Locations[index] = new Location(args.Skip(index).ToJigList());
+                index++;
             }
-        }
-        
-        public Frame(Environment parent, IEnumerable<SchemeValue> args, Procedure proc) {
-            Parent = parent.LexicalVars;
-            ScopeLevel = parent.ScopeLevel + 1;
-            Locations = new Location[proc.Template.NumVarsForScope];
-            SchemeValue[] arrayArgs = args.ToArray();
-            int index = 0;
-            if (proc.Template.RequiredParameterCount > 0) {
-                for (; index < proc.Template.RequiredParameterCount; index++) {
-                    Locations[index] = new Location(arrayArgs[index]);
-                }
+
+            while (index < template.NumVarsForScope) {
+                // TODO: we need to create new locations for any number of
+                // lambda body defines. For example:
+                // (lambda ()
+                //     (define odd? <use even?>)
+                //     (define even? <use odd?>)
+                //     (even? 15))
+                // odd? needs a location for even in order to evaluate its rhs
+                Locations[index++] = new Location();
                 
             }
-            if (proc.Template.HasRestParameter) {
-                Locations[index] = new Location(args.Skip(index).ToJigList());
-            }
         }
+
+        public Frame(Environment parent, IEnumerable<SchemeValue> args, Procedure proc) : this (parent, args, proc.Template) { }
     }
 
     public override string Print() => "#<environment>";
@@ -199,10 +197,6 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
             throw new Exception($"DefineTopLevel: trying to add {p.Symbol.Print()} but it is already in _topLevels");
 
         }
-    }
-
-    public void MakeLoc(ulong ir) {
-        LexicalVars[ir] = new Location();
     }
 
     public void DefArg(ulong ir, SchemeValue v) {

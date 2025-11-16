@@ -135,8 +135,11 @@ public class Compiler {
             // if we define a recursive procedure here,
             // then we need to make the location BEFORE we instantiate the procedure
             // that is before we evaluate the lambda expression
-            code = ((ulong)OpCode.MkLoc << 56) + (ulong)defForm.Variable.Parameter.Index;
-            result.Add(code);
+            
+            // OR ... maybe we make all the locations when we extend the environment with a function call
+            
+            // code = ((ulong)OpCode.MkLoc << 56) + (ulong)defForm.Variable.Parameter.Index;
+            // result.Add(code);
             code = ((ulong)OpCode.DefArg << 56) + (ulong)defForm.Variable.Parameter.Index;
             result.Add(code);
         } else {
@@ -161,13 +164,13 @@ public class Compiler {
             // otherwise, just at the top
             // TODO: can we not repeat this logic? We shouldn't check whether its a scope level var
             // twice ...
-            if (scopeLevel != 0 && defForm.Variable.Parameter.ScopeLevel == scopeLevel) {
-                result.InsertRange(1,
-                    Compile(defForm.Value, ctEnv, literals, bindings, Context.Argument, scopeLevel, startLine));
-            } else {
+            // if (scopeLevel != 0 && defForm.Variable.Parameter.ScopeLevel == scopeLevel) {
+            //     result.InsertRange(1,
+            //         Compile(defForm.Value, ctEnv, literals, bindings, Context.Argument, scopeLevel, startLine));
+            // } else {
                 result.InsertRange(0,
                     Compile(defForm.Value, ctEnv, literals, bindings, Context.Argument, scopeLevel, startLine));
-            }
+            // }
         } else {
             // push literal void in cases like "(define a)"
             if (!literals.Contains(SchemeValue.Void)) {
@@ -176,12 +179,12 @@ public class Compiler {
             int index = literals.IndexOf(SchemeValue.Void);
             ulong lit = (ulong)OpCode.Lit << 56;
             lit += (ulong)index;
-            if (scopeLevel != 0 && defForm.Variable.Parameter.ScopeLevel == scopeLevel) {
+            // if (scopeLevel != 0 && defForm.Variable.Parameter.ScopeLevel == scopeLevel) {
                 result.InsertRange(1, [lit, (ulong)OpCode.Push << 56]);
-            } else {
+            // } else {
                 result.InsertRange(0, [lit, (ulong)OpCode.Push << 56]);
                 
-            }
+            // }
         }
         if (context == Context.Tail) {
             result.Add((ulong)OpCode.PopContinuation << 56);
