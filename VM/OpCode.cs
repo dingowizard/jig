@@ -8,16 +8,10 @@ public enum OpCode : byte {
     PushContinuationForNonTailBody,
     PopContinuation,
     Call,
-    Top,
-    SetTop,
+    Var,
+    SetVar,
     Arg,
-    DefArg,
-    DefVar,
     SetArg,
-    Lex,
-    SetLex,
-    // Bind,
-    // BindRest,
     Jump,
     JumpIfFalse,
     Env,
@@ -34,5 +28,4 @@ public enum OpCode : byte {
     PopFP,
     ArgToArgs, // takes list arg from stack and pushes each element onto stack. TODO: yuck
     Halt,
-    // MkLoc
 }

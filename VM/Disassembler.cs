@@ -62,14 +62,8 @@ public static class Disassembler {
                 return $"{lineNo:D3}\tENVT";
             case OpCode.Lambda:
                 return $"{lineNo:D3}\tLMBD";
-            case OpCode.Top:
+            case OpCode.Var:
                 return $"{lineNo:D3}\tTOP\t{operand:D3} ; {bindings[operand].Symbol.Print()} {bindings[operand].GetHashCode()}";
-            case OpCode.Lex:
-                return $"{lineNo:D3}\tLEX\t{depth:D3}\t{index:D3}" ;
-            case OpCode.SetLex:
-                return $"{lineNo:D3}\tLEX!\t{operand:D3}";
-            case OpCode.SetTop:
-                return $"{lineNo:D3}\tTOP!\t{operand:D3} ; {bindings[operand].Symbol.Print()} {bindings[operand].GetHashCode()}";
             case OpCode.Jump:
                 return $"{lineNo:D3}\tJMP\t{operand:D3}";
             case OpCode.JumpIfFalse:

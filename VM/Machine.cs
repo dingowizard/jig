@@ -313,43 +313,25 @@ public class Machine : IRuntime {
                 case OpCode.PopWinder:
                     this.Winders.Pop();
                     continue;
-                // case OpCode.Bind:
-                //     // NOTE: the reason why the procedure code has the job of binding the args
-                //     // is because of how primitives work. If the runtime bound the args for the procedures,
-                //     // then there would be nothing on the stack for the primitive functions to use.
-                //     ulong parameterNumber = (IR & 0x00000000FFFFFFFF);
-                //     for (ulong n = 0; n < parameterNumber; n++) {
-                //         try
-                //         {
-                //             ENVT.BindParameter(n, Pop());
-                //         }
-                //         catch (Exception) {
-                //             Console.WriteLine($"VM @ {PC - 1}: trying to bind parameter in template:");
-                //             Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
-                //             Console.WriteLine($"Stack is {StackToList()}");
-                //             
-                //         }
-                //     }
-                //     continue;
-                // case OpCode.BindRest:
-                //     // bind zero should always be called first
-                //     ulong restIndex = (IR & 0x00FFFFFFFFFFFFFF);
-                //     // TODO:
-                //     var xs = new System.Collections.Generic.List<SchemeValue>();
-                //     while (SP != FP) {
-                //         xs.Add(Pop());
-                //     }
-                //     ENVT.BindParameter(restIndex, xs.ToJigList());
-                //     continue;
                 case OpCode.Arg:
                     VAL = ENVT.GetArg(IR & 0x00FFFFFFFFFFFFFF);
                     continue;
-                case OpCode.Top:
+                case OpCode.SetArg:
+                    try {
+                        ENVT.SetArg(IR & 0x00FFFFFFFFFFFFFF, Pop());
+                    }
+                    catch (Exception) {
+                        Console.WriteLine($"PC = {PC - 1}");
+                        // Console.WriteLine($"ARGS count = {ENVT.ArgsLength}. index was {IR & 0x00FFFFFFFFFFFFFF}");
+                        Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
+                        throw;
+                    }
+                    continue;
+                case OpCode.Var:
                     // TODO: currently, referencing a undefined top level var
                     // is a syntax error.
                     // but it should be a runtime error.
-                    try
-                    {
+                    try {
                         VAL = VARS[IR & 0x00FFFFFFFFFFFFFF].Value;
                     }
                     catch (Exception)
@@ -360,92 +342,8 @@ public class Machine : IRuntime {
                         throw;
                     }
                     continue;
-                case OpCode.Lex:
-                    // TODO: no need for two opcodes if code is the same?
-                    // int index = (int)(IR & 0x00000000FFFFFFFF);
-                    // int depth = (int)(IR >> 32) & 0x00FFFFFF ;
-                    try {
-                        VAL = VARS[IR & 0x00FFFFFFFFFFFFFF].Value;
-                    }
-                    catch (Exception) {
-                        Console.WriteLine($"PC = {PC - 1}");
-                        if (VARS is null) Console.WriteLine("VARS is null");
-                        if (VARS[IR & 0x00FFFFFFFFFFFFFF] is null) Console.WriteLine($"VARS[{IR & 0x00FFFFFFFFFFFFFF}] is null");
-                        Console.WriteLine($"VARS count = {VARS.Length}. index was {IR & 0x00FFFFFFFFFFFFFF}");
-                        Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
-                        throw;
-                    }
-                    continue;
-                case OpCode.SetArg:
-                    try
-                    {
-                        ENVT.SetArg(IR & 0x00FFFFFFFFFFFFFF, VAL = Pop());
-                    }
-                    catch (Exception exc)
-                    {
-                        Console.WriteLine($"PC = {PC}");
-                        // Console.WriteLine($"ARGS count = {ENVT.ArgsLength}. index was {IR & 0x00FFFFFFFFFFFFFF}");
-                        Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
-                        throw;
-                    }
-                    continue;
-                case OpCode.DefVar:
-                    // TODO: When is this used? for top levels?
-                    // we should simplify the number of instructions for putting a value in a location
-                    // Also for when we make a location
-                    try {
-                        VARS[IR & 0x00FFFFFFFFFFFFFF] = new Location(Pop());
-                        VAL = SchemeValue.Void;
-                        
-                    }
-                    catch (Exception) {
-                        Console.WriteLine($"PC = {PC}");
-                        // Console.WriteLine($"ARGS count = {ENVT.ArgsLength}. index was {IR & 0x00FFFFFFFFFFFFFF}");
-                        Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
-                        throw;
-                    }
-                    continue;
-                
-                case OpCode.DefArg:
-                    // An arg is either an argument or a variable defined at
-                    // the top of a lambda body.
-                    try {
-                        ENVT.DefArg(IR & 0x00FFFFFFFFFFFFFF, VAL = Pop());
-                    }
-                    catch (Exception exc)
-                    {
-                        Console.WriteLine($"PC = {PC - 1}");
-                        // Console.WriteLine($"ARGS count = {ENVT.ArgsLength}. index was {IR & 0x00FFFFFFFFFFFFFF}");
-                        Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
-                        throw;
-                    }
-                    continue;
-                case OpCode.SetLex:
-                    // int x = (int)(IR & 0x00000000FFFFFFFF);
-                    // int h = (int)(IR >> 32) & 0x00FFFFFF ;
-                    try
-                    {
-                        VARS[IR & 0x00FFFFFFFFFFFFFF].Value = Pop();
-                        // Push(VAL = SchemeValue.Void);
-                    }
-                    catch (Exception exc)
-                    {
-                        Console.WriteLine($"PC = {PC}");
-                        Console.WriteLine($"VARS count = {VARS.Length}. index was {IR & 0x00FFFFFFFFFFFFFF}");
-                        Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
-                        throw;
-                    }
-
-                    continue;
-                case OpCode.SetTop:
-                    // Console.WriteLine($"VM: executing SetTop instruction");
-                    // Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
-                    if (VARS[IR & 0x00FFFFFFFFFFFFFF] is null) {
-                        VARS[IR & 0x00FFFFFFFFFFFFFF] = new Location(Pop());
-                        continue;
-                    }
+                case OpCode.SetVar:
                     VARS[IR & 0x00FFFFFFFFFFFFFF].Value = Pop();
-                    // Push(VAL = SchemeValue.Void);
                     continue;
                 case OpCode.Jump:
                     PC = IR & 0x00FFFFFFFFFFFFFF;
