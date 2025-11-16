@@ -129,7 +129,25 @@ public class Library : ILibrary
                     new Location(new Primitive("vector?", Primitives.vectorP, 1, false))),
             new (new Parameter(new Symbol("vector-length"), [], 0, index++, null),
                     new Location(new Primitive("vector-length", Primitives.vectorLength, 1, false))),
+            new (new Parameter(new Symbol("make-record-type-descriptor"), [], 0, index++, null),
+                    new Location(new Primitive("make-record-type-descriptor", Primitives.make_record_type_descriptor, 0, true))),
+            new (new Parameter(new Symbol("record-type-descriptor?"), [], 0, index++, null),
+                    new Location(new Primitive("record-type-descriptor?", Primitives.record_type_descriptor_p, 0, true))),
+            new (new Parameter(new Symbol("record-constructor-descriptor?"), [], 0, index++, null),
+                    new Location(new Primitive("record-constructor-descriptor?", Primitives.record_constructor_descriptor_p, 1, false))),
+            new (new Parameter(new Symbol("make-record-constructor-descriptor"), [], 0, index++, null),
+                    new Location(new Primitive("make-record-constructor-descriptor", Primitives.make_record_constructor_descriptor, 0, true))),
+            new (new Parameter(new Symbol("record?"), [], 0, index++, null),
+                    new Location(new Primitive("record?", Primitives.record_p, 1, false))),
+            new (new Parameter(new Symbol("record-predicate"), [], 0, index++, null),
+                    new Location(new Primitive("record-predicate", Primitives.record_predicate, 1, false))),
+            new (new Parameter(new Symbol("record-accessor"), [], 0, index++, null),
+                    new Location(new Primitive("record-accessor", Primitives.record_accessor, 2, false))),
+            new (new Parameter(new Symbol("record-constructor"), [], 0, index++, null),
+                    new Location(new Primitive("record-constructor", Primitives.record_constructor, 1, false))),
         ];
+        
+            // env._dict.Add(new Symbol("record-constructor"), new Procedure( (Builtin)Builtins.record_constructor));
         (Symbol, IExpansionRule)[] keywords = [
         
             new (new Symbol("and"), new BuiltinTransformer(BuiltinTransformer.and)),

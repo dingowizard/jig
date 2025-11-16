@@ -513,13 +513,13 @@ internal static partial class Builtins {
 
     }
     public static Thunk? make_record_type_descriptor(Delegate k, List args) {
-        return Continuation.ApplyDelegate(k, new Record.TypeDescriptor(args));
+        return Continuation.ApplyDelegate(k, new RecordTypeDescriptor(args));
 
     }
 
     public static Thunk? record_type_descriptor_p(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"record-type-descriptor?: expected a single argument but got {args.Count()}");
-        if (args.ElementAt(0) is Record.TypeDescriptor) {
+        if (args.ElementAt(0) is RecordTypeDescriptor) {
             return Continuation.ApplyDelegate(k, Bool.True);
         }
         return Continuation.ApplyDelegate(k, Bool.False);
@@ -562,7 +562,7 @@ internal static partial class Builtins {
     public static Thunk? record_predicate(Delegate k, List args) {
         if (args.Count() != 1) return Error(k, $"record-predicate: expected a single argument but got {args.Count()}");
         var arg = args.ElementAt(0);
-        if (arg is not Record.TypeDescriptor rtd) {
+        if (arg is not RecordTypeDescriptor rtd) {
             return Error(k, $"record-predicate: expected argument to be a record type descriptor but got {args.Count()}");
         }
         return Continuation.ApplyDelegate(k, rtd.Predicate());
@@ -571,7 +571,7 @@ internal static partial class Builtins {
 
     public static Thunk? record_accessor(Delegate k, List args) {
         if (args.Count() != 2) return Error(k, $"record-accessor: expected two arguments but got {args.Count()}");
-        if (args.ElementAt(0) is not Record.TypeDescriptor rtd) {
+        if (args.ElementAt(0) is not RecordTypeDescriptor rtd) {
             return Error(k, $"record-predicate: expected argument to be a record type descriptor but got {args.ElementAt(0)}");
         }
         if (args.ElementAt(1) is not Integer i) {

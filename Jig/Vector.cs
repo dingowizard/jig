@@ -4,12 +4,12 @@ using System.Diagnostics.CodeAnalysis;
 namespace Jig;
 
 public class Vector : SchemeValue, ISchemeValue, IEnumerable<ISchemeValue> {
-    public Vector(params ISchemeValue[] xs) {
-        Elements = xs;
 
+    public Vector() {
+        Elements = [];
     }
 
-    public Vector(List xs)
+    public Vector(IEnumerable<ISchemeValue> xs)
     {
         Elements = [.. xs];
     }
@@ -31,7 +31,7 @@ public class Vector : SchemeValue, ISchemeValue, IEnumerable<ISchemeValue> {
         }
     }
 
-    protected ISchemeValue[] Elements {get;}
+    protected internal ISchemeValue[] Elements {get;}
 
     public override string Print() => $"#({string.Join(' ', this.Select(x => x.Print()))})";
 

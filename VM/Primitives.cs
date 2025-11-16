@@ -1,3 +1,4 @@
+using System.Runtime.Intrinsics.X86;
 using Jig;
 using Char = Jig.Char;
 using String = Jig.String;
@@ -377,6 +378,116 @@ public static class Primitives {
     public static void values(Machine vm) { }
 
     
+    public static void make_record_type_descriptor(Machine vm) {
+        // TODO: probably this is supposed to have a specific num of args (6)
+        System.Collections.Generic.List<SchemeValue> args = [];
+        while (vm.SP != vm.FP) {
+            args.Add(vm.Pop());
+        }
+
+        vm.Push(vm.VAL = new RecordTypeDescriptor(args));
+
+    }
+
+    public static void record_type_descriptor_p(Machine vm) {
+        System.Collections.Generic.List<SchemeValue> args = [];
+        while (vm.SP != vm.FP) {
+            args.Add(vm.Pop());
+        }
+        if (args.Count() != 1) throw new Exception( $"record-type-descriptor?: expected a single argument but got {args.Count()}");
+        if (args.ElementAt(0) is RecordTypeDescriptor) {
+            vm.Push(vm.VAL = Bool.True);
+            return;
+        }
+        vm.Push(vm.VAL = Bool.False);
+
+    }
+    public static void record_constructor_descriptor_p(Machine vm) {
+        System.Collections.Generic.List<SchemeValue> args = [];
+        while (vm.SP != vm.FP) {
+            args.Add(vm.Pop());
+        }
+        if (args.Count() != 1) throw new Exception( $"record-constructor-descriptor?: expected a single argument but got {args.Count()}");
+        if (args.ElementAt(0) is Record.ConstructorDescriptor) {
+            vm.Push(vm.VAL = Bool.True);
+            return;
+        }
+        vm.Push(vm.VAL = Bool.False);
+
+    }
+
+    public static void make_record_constructor_descriptor(Machine vm) {
+        
+        System.Collections.Generic.List<SchemeValue> args = [];
+        while (vm.SP != vm.FP) {
+            args.Add(vm.Pop());
+        }
+
+        vm.Push(vm.VAL = new Record.ConstructorDescriptor(args));
+    }
+
+    public static void record_p(Machine vm) {
+        System.Collections.Generic.List<SchemeValue> args = [];
+        while (vm.SP != vm.FP) {
+            args.Add(vm.Pop());
+        }
+        if (args.Count() != 1) throw new Exception( $"record?: expected a single argument but got {args.Count()}");
+        var arg = args.ElementAt(0);
+        if (arg is Record) {
+            vm.Push(vm.VAL = Bool.True);
+            return;
+        }
+        vm.Push(vm.VAL = Bool.False);
+
+    }
+    public static void record_predicate(Machine vm) {
+        var arg = vm.Pop();
+        if (arg is not RecordTypeDescriptor rtd) {
+            throw new Exception( $"record-predicate: expected argument to be a record type descriptor but got {arg}");
+        }
+
+        void Predicate(Machine machine) {
+            var predicateArg = machine.Pop();
+            machine.Push(machine.VAL = rtd.Predicate()(predicateArg));
+        }
+
+        vm.Push(vm.VAL = new Primitive("", Predicate, 1, false));
+
+    }
+
+    public static void record_accessor(Machine vm) {
+        var arg1 = vm.Pop();
+        var arg2 = vm.Pop();
+        if (arg1 is not RecordTypeDescriptor rtd) {
+            throw new Exception($"record-predicate: expected argument to be a record type descriptor but got {arg1}");
+        }
+        if (arg2 is not Integer i) {
+            throw new Exception($"record-predicate: expected second argument to be an integer but got {arg2}");
+        }
+        void Accessor(Machine machine) {
+            var predicateArg = machine.Pop();
+            machine.Push(machine.VAL = (SchemeValue)rtd.Accessor(i)(predicateArg));
+        }
+
+        vm.Push(vm.VAL = new Primitive("", Accessor, 1, false));
+
+    }
+    public static void record_constructor(Machine vm) {
+        var arg = vm.Pop();
+        if (arg is not Record.ConstructorDescriptor rcd) {
+            throw new Exception($"record-constructor: expected argument to be a record constructor descriptor but got {arg}");
+        }
+        void Constructor(Machine machine) {
+            System.Collections.Generic.List<SchemeValue> constructorArg = [];
+            while (machine.SP != machine.FP) {
+                constructorArg.Add(machine.Pop());
+            }
+            machine.Push(machine.VAL = (SchemeValue)rcd.Constructor()(constructorArg.ToJigList()));
+        }
+
+        vm.Push(vm.VAL = new Primitive("", Constructor, 1, true));
+
+    }
     
 //     public static Primitive Expand { get; } = new("expand", expand, 1, false);
 //
