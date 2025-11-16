@@ -16,8 +16,8 @@ public class Transformer : Jig.Expansion.Transformer {
         SchemeValue result = List.Null;
         ContinuationAny cont = forms => result = forms[0];
         Machine.Load(Procedure.Template, Procedure.Environment, cont);
-        Machine.ENVT = Procedure.Environment.Extend(Procedure.Template.NumVarsForScope);
-        Machine.Push(syntax);
+        Machine.ENVT = Procedure.Environment.ExtendForProcCall(Procedure, [syntax]);
+        // Machine.Push(syntax);
         Machine.Run();
         return result as Syntax ?? throw new Exception("result of transformer should be a syntax");
     }

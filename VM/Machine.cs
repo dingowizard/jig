@@ -245,6 +245,10 @@ public class Machine : IRuntime {
                     }
                     
                     if (VAL is SavedContinuation cont) {
+                        // When you apply a saved continuation, you need to do the winders first.
+                        // We'll make a continuation that does all the winders. It's continuation will be this one.
+                        // That will get applied below. After the winders are done
+                        // We'll apply the saved continuation
                         // TODO: could all this logic be inside SavedContinuation.Apply?
                         // maybe not. It's making my brain hurt. 
                         if (!cont.SavedWinders.Equals(Winders)) { // TODO: ReferenceEquals?
@@ -360,13 +364,13 @@ public class Machine : IRuntime {
                     // TODO: no need for two opcodes if code is the same?
                     // int index = (int)(IR & 0x00000000FFFFFFFF);
                     // int depth = (int)(IR >> 32) & 0x00FFFFFF ;
-                    try
-                    {
+                    try {
                         VAL = VARS[IR & 0x00FFFFFFFFFFFFFF].Value;
                     }
-                    catch (Exception)
-                    {
-                        Console.WriteLine($"PC = {PC}");
+                    catch (Exception) {
+                        Console.WriteLine($"PC = {PC - 1}");
+                        if (VARS is null) Console.WriteLine("VARS is null");
+                        if (VARS[IR & 0x00FFFFFFFFFFFFFF] is null) Console.WriteLine($"VARS[{IR & 0x00FFFFFFFFFFFFFF}] is null");
                         Console.WriteLine($"VARS count = {VARS.Length}. index was {IR & 0x00FFFFFFFFFFFFFF}");
                         Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
                         throw;
@@ -385,13 +389,34 @@ public class Machine : IRuntime {
                         throw;
                     }
                     continue;
+                case OpCode.DefVar:
+                    try {
+                        VARS[IR & 0x00FFFFFFFFFFFFFF] = new Location(Pop());
+                        VAL = SchemeValue.Void;
+                        
+                    }
+                    catch (Exception) {
+                        Console.WriteLine($"PC = {PC}");
+                        // Console.WriteLine($"ARGS count = {ENVT.ArgsLength}. index was {IR & 0x00FFFFFFFFFFFFFF}");
+                        Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
+                        throw;
+                    }
+                    continue;
+                
+                case OpCode.MkLoc:
+                    // NOTE: this works with DefArg below
+                    // the idea is to create the location before defarg
+                    // is called because we need the location to be in the environment
+                    // when a recursive procedure is being defined.
+                    ENVT.MakeLoc(IR & 0x00FFFFFFFFFFFFFF);
+                    continue;
                 case OpCode.DefArg:
                     try {
                         ENVT.DefArg(IR & 0x00FFFFFFFFFFFFFF, VAL = Pop());
                     }
                     catch (Exception exc)
                     {
-                        Console.WriteLine($"PC = {PC}");
+                        Console.WriteLine($"PC = {PC - 1}");
                         // Console.WriteLine($"ARGS count = {ENVT.ArgsLength}. index was {IR & 0x00FFFFFFFFFFFFFF}");
                         Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
                         throw;
@@ -417,6 +442,10 @@ public class Machine : IRuntime {
                 case OpCode.SetTop:
                     // Console.WriteLine($"VM: executing SetTop instruction");
                     // Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
+                    if (VARS[IR & 0x00FFFFFFFFFFFFFF] is null) {
+                        VARS[IR & 0x00FFFFFFFFFFFFFF] = new Location(Pop());
+                        continue;
+                    }
                     VARS[IR & 0x00FFFFFFFFFFFFFF].Value = Pop();
                     // Push(VAL = SchemeValue.Void);
                     continue;
@@ -456,7 +485,7 @@ public class Machine : IRuntime {
                     Push(VAL);
                     continue;
                 case OpCode.ArgToArgs:
-                    var tmp = Pop();
+                    var tmp = ENVT.GetArg(IR & 0x00FFFFFFFFFFFFFF);
                     if (tmp is not IEnumerable<ISchemeValue> ys) {
                         throw new Exception($"expected list argument but got {tmp}");
                     }

@@ -38,10 +38,10 @@ public static class Builtins {
     // );
 
     public static readonly Template Apply = new (
-        numVarsForScope: 0,
+        numVarsForScope: 2,
         code: [
-            (ulong)OpCode.Pop << 56, // store proc in VAL
-            (ulong)OpCode.ArgToArgs << 56, // TODO: could we remove ArgToArgs and replace it with an APPLY instruction?
+            (ulong)OpCode.Arg << 56, // store proc in VAL
+            ((ulong)OpCode.ArgToArgs << 56) + 1, // TODO: could we remove ArgToArgs and replace it with an APPLY instruction?
             (ulong)OpCode.Push << 56, // put proc back on stack
             (ulong)OpCode.Call << 56,
             (ulong)OpCode.PopContinuation << 56,

@@ -174,10 +174,18 @@ public static class Primitives {
     public static Primitive Apply {get;} = new("apply", apply, 2, false);
 
     private static void apply(Machine vm) {
-        var proc = vm.Pop();
-        if (vm.Pop() is not Jig.List<SchemeValue> args) {
-            throw new Exception("apply: expected argument to be list, got {args}");
+        // TODO: this doesn't work because nothing pushes the result onto the stack
+        // You could do it by pushing down a continuation that will push the result onto the stack
+        vm.VAL = vm.Pop();
+        var arg1 = vm.Pop();
+        if (arg1 is not Jig.List args) {
+            throw new Exception($"apply: expected argument to be list, got {arg1.Print()}, a {arg1.GetType()}");
         }
+        foreach (var arg in args.Reverse<ISchemeValue>()) {
+            vm.Push((SchemeValue)arg);
+        }
+        vm.Call();
+        return;
 
     }
 
@@ -367,6 +375,7 @@ public static class Primitives {
     }
 
     public static void values(Machine vm) { }
+
     
     
 //     public static Primitive Expand { get; } = new("expand", expand, 1, false);

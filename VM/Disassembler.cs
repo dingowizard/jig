@@ -54,10 +54,10 @@ public static class Disassembler {
                 return $"{lineNo:D3}\tARG\t{operand:D3}";
             case OpCode.SetArg:
                 return $"{lineNo:D3}\tARG!\t{operand:D3}";
-            case OpCode.Bind:
-                return $"{lineNo:D3}\tBIND\t{operand:D3}";
-            case OpCode.BindRest:
-                return $"{lineNo:D3}\tBNDR\t{operand:D3}";
+            // case OpCode.Bind:
+            //     return $"{lineNo:D3}\tBIND\t{operand:D3}";
+            // case OpCode.BindRest:
+            //     return $"{lineNo:D3}\tBNDR\t{operand:D3}";
             case OpCode.Env:
                 return $"{lineNo:D3}\tENVT";
             case OpCode.Lambda:

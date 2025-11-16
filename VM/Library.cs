@@ -82,6 +82,7 @@ public class Library : ILibrary
                     new Location(new Procedure(Environment.Default, Builtins.Sum))),
             new (new Parameter(new Symbol("apply"), [], 0, index++, null),
                     new Location(new Procedure(Environment.Default, Builtins.Apply))),
+                    // new Location(Primitives.Apply)),
             // new (new Parameter(new Symbol("expand"), 0, index++, null),
             //         new Location(Primitives.Expand)),
             new (new Parameter(new Symbol(">"), [], 0, index++, null),

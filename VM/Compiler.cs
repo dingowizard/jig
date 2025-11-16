@@ -130,8 +130,15 @@ public class Compiler {
         Sys.List<ulong> result = new();
         ulong code;
         if (scopeLevel != 0 && defForm.Variable.Parameter.ScopeLevel == scopeLevel) {
-            // local var
+            // local var /scoped var
+            // this would be a define occuring in a lambda body
+            // if we define a recursive procedure here,
+            // then we need to make the location BEFORE we instantiate the procedure
+            // that is before we evaluate the lambda expression
+            code = ((ulong)OpCode.MkLoc << 56) + (ulong)defForm.Variable.Parameter.Index;
+            result.Add(code);
             code = ((ulong)OpCode.DefArg << 56) + (ulong)defForm.Variable.Parameter.Index;
+            result.Add(code);
         } else {
             // top-level or lexical var outside of current scope
             var bing = defForm.Variable.Parameter;
@@ -142,13 +149,25 @@ public class Compiler {
             }
             code = (ulong)OpCode.SetTop << 56;
             code += (ulong)index;
+            result.Add(code);
         }
 
-        result.Add(code);
         // We have to compile the lambda function after the variable,
         // because there might be a recursive call to a toplevel
         if (defForm.Value is not null) {
-            result.InsertRange(0, Compile(defForm.Value, ctEnv, literals, bindings, Context.Argument, scopeLevel, startLine));
+
+            // if we're defining a scoped variable, we need to insert the code
+            // for the value after the mkloc instruction
+            // otherwise, just at the top
+            // TODO: can we not repeat this logic? We shouldn't check whether its a scope level var
+            // twice ...
+            if (scopeLevel != 0 && defForm.Variable.Parameter.ScopeLevel == scopeLevel) {
+                result.InsertRange(1,
+                    Compile(defForm.Value, ctEnv, literals, bindings, Context.Argument, scopeLevel, startLine));
+            } else {
+                result.InsertRange(0,
+                    Compile(defForm.Value, ctEnv, literals, bindings, Context.Argument, scopeLevel, startLine));
+            }
         } else {
             // push literal void in cases like "(define a)"
             if (!literals.Contains(SchemeValue.Void)) {
@@ -157,7 +176,12 @@ public class Compiler {
             int index = literals.IndexOf(SchemeValue.Void);
             ulong lit = (ulong)OpCode.Lit << 56;
             lit += (ulong)index;
-            result.InsertRange(0, [lit, (ulong)OpCode.Push << 56]);
+            if (scopeLevel != 0 && defForm.Variable.Parameter.ScopeLevel == scopeLevel) {
+                result.InsertRange(1, [lit, (ulong)OpCode.Push << 56]);
+            } else {
+                result.InsertRange(0, [lit, (ulong)OpCode.Push << 56]);
+                
+            }
         }
         if (context == Context.Tail) {
             result.Add((ulong)OpCode.PopContinuation << 56);
@@ -204,6 +228,7 @@ public class Compiler {
         Sys.List<ulong> instructions = [];
 
         int lineNo = startLine;
+        // DoFirstPass(bindings, sequence, ctEnv);
         foreach (var x in sequence.Take(sequence.Length - 1)) {
             instructions = instructions.Concat(Compile(x, ctEnv, literals, bindings, Context.NonTailBody, scopeLevel, lineNo)).ToList();
             lineNo += instructions.Count();
@@ -264,11 +289,17 @@ public class Compiler {
         }
         var parameter = var.Parameter;
         int index = bindings.IndexOf(parameter);
+        // if (parameter.Symbol.Name == "loop") {
+        //     Console.WriteLine($"Compiler: loop has index {index}");
+        // }
         if (index == -1) {
             bindings.Add(parameter);
             index = bindings.Count - 1;
         }
-        ulong code = (ulong)OpCode.Top << 56;
+        // if (parameter.Symbol.Name == "loop") {
+        //     Console.WriteLine($"Compiler: loop NOW has index {index}");
+        // }
+        ulong code = (ulong)OpCode.Lex << 56;
         code += (ulong)index;
         // NOTE: this code for looking up how many ENVT frames the parameter is from the reference
         // will need to be re-created in the function that creates a closure

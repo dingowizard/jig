@@ -110,10 +110,13 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
                 throw new Exception();
                 
             }
-            while (frame.ScopeLevel < scopeLevel)
-            {
+            while (frame.ScopeLevel < scopeLevel) {
                 frame = frame.Parent;
                 scopeLevel--;
+            }
+
+            if (frame.Locations[index] is null) {
+                throw new Exception($"In GetAt: trying to get frame index {index} but it was never initialized.");
             }
             return frame.Locations[index];
 
@@ -198,10 +201,15 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
         }
     }
 
+    public void MakeLoc(ulong ir) {
+        LexicalVars[ir] = new Location();
+    }
+
     public void DefArg(ulong ir, SchemeValue v) {
         if (LexicalVars is null) {
             throw new Exception($"DefArg isn't supposed to be used at toplevel");
         }
-        LexicalVars[ir] = new Location(v);
+        Debug.Assert(LexicalVars[ir] is not null);
+        LexicalVars[ir].Value = v;
     }
 }

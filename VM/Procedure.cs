@@ -1,7 +1,7 @@
 using Jig;
 namespace VM;
 
-public class Procedure : Jig.SchemeValue {
+public class Procedure : SchemeValue {
     
     internal Template Template { get; }
     
