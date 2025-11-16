@@ -3,6 +3,10 @@ namespace Jig;
 public class RecordTypeDescriptor : Record {
 
     public RecordTypeDescriptor(IEnumerable<ISchemeValue> fields) : base(Base, fields) {
+        // TODO: it's bad that we're doing argument checking here.
+        // all that logic should be in the runtime procedures.
+        // this shouldn't detect errors or throw exceptions
+        // same comment for records
         if (fields.Count() != 6) {
             throw new Exception($"make-record-type-descriptor: expected six arguments, got {fields.ToJigList().Print()}");
         }
