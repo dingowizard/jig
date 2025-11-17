@@ -29,6 +29,11 @@ public static class Primitives {
         vm.Push(vm.VAL = (SchemeValue)Pair.Cons(car, cdr));
     }
 
+    public static void cons2(Machine vm) {
+        vm.Push(vm.VAL = (SchemeValue)Pair.Cons(vm.ENVT.GetArg(0), vm.ENVT.GetArg(1)));
+        vm.CONT.Pop(vm);
+    }
+
     public static Primitive Cons { get; } = new ("cons", cons, 2, false);
     
     private static void zerop(Machine vm) {
@@ -509,16 +514,13 @@ public static class Primitives {
 
 public delegate void PrimitiveProcedure(Machine vm);
 
-public class Primitive : SchemeValue
-{
+public class Primitive : SchemeValue {
 
-    public Primitive(string name, PrimitiveProcedure proc, int required, bool hasRest)
-    {
+    public Primitive(string name, PrimitiveProcedure proc, int required, bool hasRest) {
         Name = name;
         Delegate = proc;
         Required = required;
         HasRest = hasRest;
-
     }
     
     public string Name { get; }
@@ -529,8 +531,7 @@ public class Primitive : SchemeValue
 
     private PrimitiveProcedure Delegate { get; }
 
-    public void Apply(Machine vm)
-    {
+    public void Apply(Machine vm) {
         if (HasRest) {
             if (vm.SP - vm.FP < Required) {
                 throw new Exception(
@@ -544,6 +545,6 @@ public class Primitive : SchemeValue
         }
         Delegate(vm);
     }
-    public override string Print() => "#<procedure>";
+    public override string Print() => $"#<procedure {Name}>";
     
 }

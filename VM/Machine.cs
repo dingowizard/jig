@@ -105,6 +105,30 @@ public class Machine : IRuntime {
             return;
         }
 
+        if (VAL is Primitive2 primitive2) {
+            // TODO: collect this stuff into a common base class
+            if (primitive2.HasRest) {
+                if (SP - FP < primitive2.Required) {
+                    throw new Exception(
+                        $"wrong num args: expected at least {primitive2.Required}, but got only {SP - FP}");
+                }
+            } else {
+                if (SP - FP != primitive2.Required) {
+                    
+                    throw new Exception($"wrong num args: expected {primitive2.Required}, but got {SP - FP}. (SP = {SP}; FP = {FP}; stack = {StackToList()})");
+                }  
+            }
+            
+            System.Collections.Generic.List<SchemeValue> args = [];
+            while (SP > FP) {
+                args.Add(Pop());
+            }
+            ENVT = ENVT.ExtendForProcCall(primitive2, args);
+            // TODO: would be better if Primitive2 had its own Environment or would it?
+            primitive2.Procedure(this);
+            return;
+        }
+
         if (VAL is SavedContinuation sc) {
             sc.Apply(this);
             return;

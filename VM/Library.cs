@@ -59,8 +59,8 @@ public class Library : ILibrary
         var index = 0;
         Binding[] coreBindings =
         [ 
-            new (new Parameter(new Symbol("cons"), [],0, index++, null),
-                    new Location( Primitives.Cons)),
+            new (new Parameter(new Symbol("cons"), [], 0, index++, null),
+                    new Location(new Primitive2(Primitives.cons2, 2, false))),
             new (new Parameter(new Symbol("car"), [], 0, index++, null),
                     new Location(Primitives.Car)),
             new (new Parameter(new Symbol("cdr"), [], 0, index++, null),

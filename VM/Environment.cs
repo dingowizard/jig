@@ -69,6 +69,10 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
     public Environment ExtendForProcCall(Procedure proc, IEnumerable<SchemeValue> args) {
         return new Environment(this, new Frame(this, args, proc));
     }
+
+    public Environment ExtendForProcCall(Primitive2 prim2, IEnumerable<SchemeValue> args) {
+        return new Environment(this, new Frame(this, args, prim2));
+    }
     
     
     public Environment ExtendForProcCall(Template template, IEnumerable<SchemeValue> args) {
@@ -145,24 +149,27 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
             Locations = new Location[number];
 
         }
-        public Frame(Environment parent, IEnumerable<SchemeValue> args, Template template) {
+
+        private Frame(Environment parent, IEnumerable<SchemeValue> args, int numVarsForScope,
+            int requiredParameterCount, bool hasRestParameter) {
+            
             Parent = parent.LexicalVars;
             ScopeLevel = parent.ScopeLevel + 1;
-            Locations = new Location[template.NumVarsForScope];
+            Locations = new Location[numVarsForScope];
             SchemeValue[] arrayArgs = args.ToArray();
             int index = 0;
-            if (template.RequiredParameterCount > 0) {
-                for (; index < template.RequiredParameterCount; index++) {
+            if (requiredParameterCount > 0) {
+                for (; index < requiredParameterCount; index++) {
                     Locations[index] = new Location(arrayArgs[index]);
                 }
                 
             }
-            if (template.HasRestParameter) {
+            if (hasRestParameter) {
                 Locations[index] = new Location(args.Skip(index).ToJigList());
                 index++;
             }
 
-            while (index < template.NumVarsForScope) {
+            while (index < numVarsForScope) {
                 // TODO: we need to create new locations for any number of
                 // lambda body defines. For example:
                 // (lambda ()
@@ -174,8 +181,13 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
                 
             }
         }
+        public Frame(Environment parent, IEnumerable<SchemeValue> args, Template template)
+            : this(parent, args, template.NumVarsForScope, template.RequiredParameterCount, template.HasRestParameter) { }
 
         public Frame(Environment parent, IEnumerable<SchemeValue> args, Procedure proc) : this (parent, args, proc.Template) { }
+
+        public Frame(Environment parent, IEnumerable<SchemeValue> values, Primitive2 prim2)
+            : this (parent, values, prim2.NumVarsForScope, prim2.Required, prim2.HasRest) { }
     }
 
     public override string Print() => "#<environment>";
