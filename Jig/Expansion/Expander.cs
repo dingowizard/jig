@@ -88,9 +88,24 @@ public class Expander
         }
     }
 
+    // TODO: can't these Expand functions be static?
     public IEnumerable<ParsedForm> ExpandSequence(IEnumerable<Syntax> syntaxes, ExpansionContext context) {
-        var semiParsed = syntaxes.Select(stx => FirstPass(stx, context)).ToList();
-        return semiParsed.Select(s => SecondPass(s, context));
+        System.Collections.Generic.List<SemiParsedForm> semiParsedForms = [];
+        foreach (var stx in syntaxes) {
+            var semiParsedForm = FirstPass(stx, context);
+            if (semiParsedForm is SemiParsedBegin begin) {
+                // splice in the begins
+                
+                // TODO: when and where do we catch that we are no longer in a definition context?
+                // context needs to carry what kind of sequence we are in
+                // or there need to be different ExpandSequence methods
+                semiParsedForms.AddRange(begin.SemiParsed);
+            } else {
+                semiParsedForms.Add(semiParsedForm);
+            }
+        }
+            
+        return semiParsedForms.Select(s => SecondPass(s, context));
     }
 
     public ParsedForm ExpandREPLForm(Syntax syntax, ExpansionContext context) {

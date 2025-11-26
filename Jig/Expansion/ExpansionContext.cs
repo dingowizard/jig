@@ -14,9 +14,7 @@ public class ExpansionContext {
         _bindings = new System.Collections.Generic.List<Parameter>(); // TODO: this seems like it should be part of the environment
         int i = 0;
         foreach (var p in topLevels) {
-            // _bindings.Add(new Identifier(sym), new Parameter(sym, 0, i++, null));
-            _bindings.Add(p); // TODO: why????
-            
+            _bindings.Add(p);
         }
         ScopeLevel = 0;
         VarIndex = i;
@@ -27,7 +25,7 @@ public class ExpansionContext {
     private ExpansionContext(
         IRuntime runtime,
         Expander expander,
-        SyntaxEnvironment env/* = null*/,
+        SyntaxEnvironment env,
         System.Collections.Generic.List<Parameter> bindings,
         int scopeLevel = 0,
         int varIndex = 0,
@@ -35,7 +33,7 @@ public class ExpansionContext {
         
         Runtime = runtime;
         Expander = expander;
-        _syntaxEnvironment = env/* ?? SyntaxEnvironment.Default*/;
+        _syntaxEnvironment = env;
         _bindings = bindings; // TODO: this seems like it should be part of the environment
         ScopeLevel = scopeLevel;
         VarIndex = varIndex;

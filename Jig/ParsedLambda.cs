@@ -23,7 +23,6 @@ public class ParsedLambda : Expression {
         private LambdaParameters(Syntax stx, Parameter[] required, Parameter? rest)
             : base(Syntax.E(stx), stx.SrcLoc)
         {
-            // TODO: parameters are not variable references. These things should have a different type
             Required = required;
             Rest = rest;
         }

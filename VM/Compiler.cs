@@ -338,18 +338,6 @@ public class Compiler {
         var bindings = new Sys.List<Parameter>();
         Sys.List<ulong> codes = [];
         
-        // TODO: should apply be responsible for this? Yes, I think so.
-        // if (lambdaExpr.Parameters.Required.Length != 0) {
-        //     var bindCode = (ulong)OpCode.Bind << 56;
-        //     bindCode += (ulong)lambdaExpr.Parameters.Required.Length;
-        //     codes.Add(bindCode);
-        // }
-        // if (lambdaExpr.Parameters.HasRest) {
-        //     var bindRest = (ulong)OpCode.BindRest << 56;
-        //     bindRest += (ulong)lambdaExpr.Parameters.Required.Length;
-        //     codes.Add(bindRest);
-        // }
-
         var body = CompileSequence(
             lambdaExpr.Bodies,
             ctEnv,
@@ -357,11 +345,6 @@ public class Compiler {
             bindings,
             ++scopeLevel,
             codes.Count());
-
-        var scopeVars =
-            lambdaExpr.Parameters.HasRest
-                ? lambdaExpr.Parameters.Required.Append(lambdaExpr.Parameters.Rest).ToArray()
-                : lambdaExpr.Parameters.Required;
         var result =
             new Template(
                 lambdaExpr.ScopeVarsCount,
