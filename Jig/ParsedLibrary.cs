@@ -26,8 +26,7 @@ public class ParsedLibrary : ParsedForm {
 
 }
 
-public class ParsedLibraryName : ParsedForm
-{
+public class ParsedLibraryName : ParsedForm {
     public IEnumerable<Identifier> Names { get; }
     public ParsedLibraryVersion Version { get; }
 
@@ -99,19 +98,16 @@ public class ParsedLibraryBody : IEnumerable<ParsedForm>
     public IEnumerable<ParsedForm> Forms { get; }
 
     // TODO: r6rs mandates that a library body be any number of defs followed by any number of exprs
-    internal ParsedLibraryBody(IEnumerable<ParsedForm> forms, SrcLoc? srcLoc = null)
-    {
+    internal ParsedLibraryBody(IEnumerable<ParsedForm> forms, SrcLoc? srcLoc = null) {
         Forms = forms;
     }
-    public IEnumerator<ParsedForm> GetEnumerator()
-    {
+    public IEnumerator<ParsedForm> GetEnumerator() {
         foreach (var form in Forms) {
             yield return form;
         }
     }
 
-    IEnumerator IEnumerable.GetEnumerator()
-    {
+    IEnumerator IEnumerable.GetEnumerator() {
         return GetEnumerator();
     }
 

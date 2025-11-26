@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Jig;
 
-public class ParsedVariable : ParsedForm {
+public class ParsedVariable : Expression {
 
 
     private ParsedVariable(Identifier id, Expansion.Parameter parameter, SrcLoc? srcLoc) : base (id.Symbol, srcLoc) {

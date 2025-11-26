@@ -9,7 +9,14 @@ public abstract class ParsedForm : Syntax {
 
 }
 
-public class ParsedApplication : ParsedForm {
+public abstract class Definition : ParsedForm {
+    protected Definition(ISchemeValue x, SrcLoc? srcLoc = null) : base(x, srcLoc) {}
+}
+
+public abstract class Expression : ParsedForm {
+    protected Expression(ISchemeValue x, SrcLoc? srcLoc = null) : base(x, srcLoc) {}
+}
+public class ParsedApplication : Expression {
     public ParsedApplication(IEnumerable<ParsedForm> stxList, SrcLoc? srcLoc) : base(stxList.ToSyntaxList(), srcLoc) {
         ParsedExprs = stxList.ToArray();
     }
@@ -17,7 +24,7 @@ public class ParsedApplication : ParsedForm {
     public IEnumerable<ParsedForm> ParsedExprs {get;}
 }
 
-public class ParsedSet : ParsedForm {
+public class ParsedSet : Expression {
 
     internal ParsedSet(Syntax keyword, ParsedVariable id, ParsedForm val, SrcLoc? srcLoc = null)
       : base(SyntaxList.FromParams(keyword, id, val), srcLoc) {
@@ -31,13 +38,13 @@ public class ParsedSet : ParsedForm {
 }
 
 public class ParsedBegin(Syntax keyword, ParsedForm[] forms, SrcLoc? srcLoc = null) :
+    // TODO: there are begin forms that are definitions and begin forms that are expressions
     ParsedForm((SchemeValue)Pair.Cons(keyword, SyntaxList.FromIEnumerable(forms)), srcLoc) {
     public ParsedForm[] Forms {get;} = forms;
 
-
 }
 
-public class ParsedLiteral : ParsedForm {
+public class ParsedLiteral : Expression {
     internal ParsedLiteral(Syntax keyword, Syntax lit, SrcLoc? srcLoc = null)
     : base (SyntaxList.FromParams(keyword, lit), srcLoc) {
         Quoted = lit;
@@ -70,7 +77,7 @@ public class ParsedLiteral : ParsedForm {
 
 }
 
-public class ParsedQuoteSyntax : ParsedForm {
+public class ParsedQuoteSyntax : Expression {
     internal ParsedQuoteSyntax(Syntax keyword, Syntax lit, SrcLoc? srcLoc)
     : base (SyntaxList.FromParams(keyword, lit), srcLoc) {
         Quoted = lit;
@@ -95,7 +102,7 @@ public class ParsedQuoteSyntax : ParsedForm {
 
 }
 
-public class ParsedLambda : ParsedForm {
+public class ParsedLambda : Expression {
 
     internal ParsedLambda(Syntax keyword, LambdaParameters parameters, int scopeVarsCount, ParsedForm[] bodies, SrcLoc? srcLoc = null)
       : base(Pair.Cons(keyword, Pair.Cons(parameters, (ISchemeValue)bodies.ToJigList())), srcLoc)
@@ -222,7 +229,7 @@ public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
     }
 }
 
-public class ParsedIf : ParsedForm {
+public class ParsedIf : Expression {
     // should we subclass with ParsedIfThen and ParsedIfThenElse?
 
     

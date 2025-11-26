@@ -1,6 +1,6 @@
 namespace Jig;
 
-public class ParsedDefine : ParsedForm {
+public class ParsedDefine : Definition {
 
     internal ParsedDefine(Syntax keyword, ParsedVariable id, ParsedForm val, SrcLoc? srcLoc = null)
         : base(SyntaxList.FromParams(keyword, id, val), srcLoc) {
