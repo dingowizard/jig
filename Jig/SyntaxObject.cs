@@ -17,8 +17,7 @@ public class Syntax : SchemeValue {
             return id.Symbol;
         }
 
-        if (stx is Literal lit)
-        {
+        if (stx is Literal lit) {
             return lit.Expression;
         }
         var x = Syntax.E(stx);
@@ -56,10 +55,8 @@ public class Syntax : SchemeValue {
     //
     // }
 
-    private static void AddScope(ISchemeValue schemeValue, Scope scope)
-    {
-        switch (schemeValue)
-        {
+    private static void AddScope(ISchemeValue schemeValue, Scope scope) {
+        switch (schemeValue) {
             case Syntax stx:
                 AddScope(stx, scope);
                 return;

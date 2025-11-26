@@ -171,6 +171,15 @@ public class Library : ILibrary
             
     }
 
+    public Parameter FindParameter(string name) {
+            foreach (var binding in VariableExports) {
+                    if (binding.Parameter.Symbol.Name == name) {
+                            return binding.Parameter;
+                    }
+            }
+            throw new Exception($"couldn't find parameter with name = {name} in Library");
+    }
+
     public IEnumerable<Binding> VariableExports => _variableExports.Value;
 
     private Lazy<IEnumerable<Binding>> _variableExports;

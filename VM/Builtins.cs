@@ -26,16 +26,41 @@ public static class Builtins {
         true
     );
 
-    // public static readonly Template Values = new (
-    //     0,
-    //     code: [
-    //         (ulong)OpCode.PopContinuation << 56,
+    // public static readonly Template Car2 = new (
+    //     1,
+    //     [
+    //         // (pair? arg0)
+    //         (ulong)OpCode.PushContinuationForArg + (ulong)6, // address of jump if false
+    //         ((ulong)OpCode.Arg << 56) + (ulong)0, // arg0 -> VAL
+    //         ((ulong)OpCode.Push << 56),
+    //         ((ulong)OpCode.Var << 56) + (ulong)0, // pair?
+    //         ((ulong)OpCode.Push << 56),
+    //         ((ulong)OpCode.Call << 56),
+    //         ((ulong)OpCode.JumpIfFalse << 56) + (ulong)9,
+    //         // then branch
+    //         ((ulong)OpCode.Car << 56),
+    //         ((ulong)OpCode.PopContinuation), // return
+    //         // else branch
+    //         ((ulong) OpCode.Lit << 56) + (ulong)0, // error message
+    //         ((ulong)OpCode.Push << 56),
+    //         ((ulong)OpCode.Lit << 56), + (ulong)1, // symbol car
+    //         ((ulong)OpCode.Push << 56),
+    //         ((ulong)OpCode.Var << 56) + (ulong)0, // error
+    //         ((ulong)OpCode.Push << 56),
+    //         ((ulong)OpCode.Call << 56),
     //     ],
-    //     vars: [],
-    //     lits: [],
-    //     0,
-    //     true
+    //     [
+    //         Library.Core.FindParameter("pair?"),
+    //         Library.Core.FindParameter("error"),
+    //     ],
+    //     [
+    //         new Jig.String("expected argument to be a pair"),
+    //         new Symbol("car"),
+    //     ],
+    //     1,
+    //     false
     // );
+
 
     public static readonly Template Apply = new (
         numVarsForScope: 2,

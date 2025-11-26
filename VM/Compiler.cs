@@ -269,34 +269,19 @@ public class Compiler {
                 ((ulong)OpCode.Arg << 56) + (ulong)var.Parameter.Index,
                 context);
         }
+        
         var parameter = var.Parameter;
         int index = bindings.IndexOf(parameter);
-        // if (parameter.Symbol.Name == "loop") {
-        //     Console.WriteLine($"Compiler: loop has index {index}");
-        // }
         if (index == -1) {
             bindings.Add(parameter);
             index = bindings.Count - 1;
         }
-        // if (parameter.Symbol.Name == "loop") {
-        //     Console.WriteLine($"Compiler: loop NOW has index {index}");
-        // }
         ulong code = (ulong)OpCode.Var << 56;
         code += (ulong)index;
-        // NOTE: this code for looking up how many ENVT frames the parameter is from the reference
-        // will need to be re-created in the function that creates a closure
-        // from an environment and a template
-        
-        // ulong code = (ulong)OpCode.Lex << 56;
-        // int depth = scopeLevel - var.Parameter.ScopeLevel;
-        // code += ((ulong)depth) << 32; // TODO: this could be too big I suppose.
-        //
-        // code += (ulong)var.Parameter.VarIndex;
         return CodeForContext(code, context);
     }
     
-    private static ulong[] CodeForContext(ulong code, Context context)
-    {
+    private static ulong[] CodeForContext(ulong code, Context context) {
         if (context == Context.Tail) {
             return [code, (ulong)OpCode.Push << 56, (ulong)OpCode.PopContinuation << 56];
         }

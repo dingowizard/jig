@@ -377,6 +377,8 @@ public static class Primitives {
     }
     
     public static void vectorP(Machine vm) {
+        // TODO: should vector? return #f when given a record?
+        // The standard does not require this, but many implementations do it
         vm.Push(vm.VAL = vm.Pop() is Vector ? Bool.True : Bool.False);
     }
 
@@ -431,7 +433,7 @@ public static class Primitives {
         vm.Push(vm.VAL = new Record.ConstructorDescriptor(args));
     }
 
-    public static void record_p(Machine vm) {
+    public static void record_p(Machine vm) { // (Eg (record? pt) => #t
         System.Collections.Generic.List<SchemeValue> args = [];
         while (vm.SP != vm.FP) {
             args.Add(vm.Pop());
@@ -445,19 +447,19 @@ public static class Primitives {
         vm.Push(vm.VAL = Bool.False);
 
     }
-    public static void record_predicate(Machine vm) {
+    public static void record_predicate(Machine vm) { // Eg (record-predicate rtd) => #<procedure>
         var arg = vm.Pop();
         if (arg is not RecordTypeDescriptor rtd) {
             throw new Exception( $"record-predicate: expected argument to be a record type descriptor but got {arg}");
         }
 
+        vm.Push(vm.VAL = new Primitive("", Predicate, 1, false));
+        return;
+
         void Predicate(Machine machine) {
             var predicateArg = machine.Pop();
             machine.Push(machine.VAL = rtd.Predicate()(predicateArg));
         }
-
-        vm.Push(vm.VAL = new Primitive("", Predicate, 1, false));
-
     }
 
     public static void record_accessor(Machine vm) {
