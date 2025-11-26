@@ -129,18 +129,18 @@ public class Compiler {
 
         Sys.List<ulong> result = new();
         ulong code;
-        if (scopeLevel != 0 && defForm.Variable.Parameter.ScopeLevel == scopeLevel) {
+        if (scopeLevel != 0 && defForm.Variable.ScopeLevel == scopeLevel) {
             // local var /scoped var
             // this would be a define occuring in a lambda body
             // if we define a recursive procedure here,
             // then the location was already created when we called the procedure
             // that this is the body of
             
-            code = ((ulong)OpCode.SetArg << 56) + (ulong)defForm.Variable.Parameter.Index;
+            code = ((ulong)OpCode.SetArg << 56) + (ulong)defForm.Variable.Index;
             result.Add(code);
         } else {
             // top-level or lexical var outside of current scope
-            var bing = defForm.Variable.Parameter;
+            var bing = defForm.Variable;
             int index = bindings.IndexOf(bing);
             if (index == -1) {
                 bindings.Add(bing);
@@ -459,7 +459,7 @@ public class Compiler {
     private void DoFirstPassOneForm(Sys.List<Parameter> bindings, ParsedForm form, Environment ctEnv) {
         if (form is ParsedDefine def)
         {
-            var p = def.Variable.Parameter;
+            var p = def.Variable;
             // if (p.Symbol.Name is "b" or "a") {
             //     Console.WriteLine($"First pass encountered def of {p.Symbol.Name} (parameter is {p.GetHashCode()})");
             // }
