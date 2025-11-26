@@ -20,7 +20,7 @@ public class ParsedLambda : Expression {
 
 
     public class LambdaParameters : Syntax {
-        private LambdaParameters(Syntax stx, ParsedVariable.Lexical[] required, ParsedVariable.Lexical? rest)
+        private LambdaParameters(Syntax stx, Parameter[] required, Parameter? rest)
             : base(Syntax.E(stx), stx.SrcLoc)
         {
             // TODO: parameters are not variable references. These things should have a different type
@@ -31,8 +31,8 @@ public class ParsedLambda : Expression {
 
         public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
             var namesSeen = new System.Collections.Generic.List<string>();
-            var required = new System.Collections.Generic.List<ParsedVariable.Lexical>();
-            ParsedVariable.Lexical? rest = null;
+            var required = new System.Collections.Generic.List<Parameter>();
+            Parameter? rest = null;
             if (Syntax.E(stx) is SyntaxList psStxList) {
                 foreach(Syntax p in psStxList.Cast<Syntax>()) {
                     Identifier id = p as Identifier ??
@@ -49,7 +49,7 @@ public class ParsedLambda : Expression {
                     id.Symbol.Binding = parameter;
                     context.AddBinding(parameter);
                     namesSeen.Add(id.Symbol.Name);
-                    required.Add(new ParsedVariable.Lexical(id, parameter, id.SrcLoc));
+                    required.Add(parameter);
                 }
             } else if (Syntax.E(stx) is IPair pair) {
                 Identifier? id = pair.Car as Identifier;
@@ -66,7 +66,7 @@ public class ParsedLambda : Expression {
                         context.VarIndex++,
                         id.SrcLoc);
                 id.Symbol.Binding = parameter;
-                required.Add(new ParsedVariable.Lexical(id, parameter, id.SrcLoc));
+                required.Add(parameter);
                 context.AddBinding(parameter);
                 while (pair.Cdr is IPair cdrPair) {
                     id = cdrPair.Car as Identifier;
@@ -85,7 +85,7 @@ public class ParsedLambda : Expression {
                     context.AddBinding(parameter);
                     pair = cdrPair;
                     namesSeen.Add(id.Symbol.Name);
-                    required.Add(new ParsedVariable.Lexical(id, parameter, id.SrcLoc));
+                    required.Add(parameter);
                 }
                 id = pair.Cdr as Identifier;
                 if (id is null) throw new Exception($"lambda: expected parameters to be identifiers, but got {pair.Cdr}");
@@ -101,7 +101,7 @@ public class ParsedLambda : Expression {
                 id.Symbol.Binding = parameter;
                 context.AddBinding(parameter);
                 namesSeen.Add(id.Symbol.Name);
-                rest = new ParsedVariable.Lexical(id, parameter, id.SrcLoc);
+                rest = parameter;
             } else if (stx is Identifier psId) {
                 Parameter parameter =
                     new Parameter(
@@ -112,7 +112,7 @@ public class ParsedLambda : Expression {
                         psId.SrcLoc);
                 psId.Symbol.Binding = parameter;
                 context.AddBinding(parameter);
-                rest = new ParsedVariable.Lexical(psId, parameter, psId.SrcLoc);
+                rest = parameter;
             } else if (Syntax.E(stx) is List.Empty) {
 
             } else {
@@ -124,7 +124,7 @@ public class ParsedLambda : Expression {
 
         public bool HasRest => Rest is not null;
 
-        public ParsedVariable.Lexical[] Required { get; }
-        public ParsedVariable.Lexical? Rest { get; }
+        public Parameter[] Required { get; }
+        public Parameter? Rest { get; }
     }
 }
