@@ -93,17 +93,21 @@ public class ParsedImportForm : ParsedForm
     }
 }
 
-public class ParsedLibraryBody : IEnumerable<ParsedForm>
-{
-    public IEnumerable<ParsedForm> Forms { get; }
+public class ParsedLibraryBody : IEnumerable<ParsedForm> {
 
     // TODO: r6rs mandates that a library body be any number of defs followed by any number of exprs
-    internal ParsedLibraryBody(IEnumerable<ParsedForm> forms, SrcLoc? srcLoc = null) {
-        Forms = forms;
+    internal ParsedLibraryBody(IEnumerable<Definition> defns, IEnumerable<Expression> exprs, SrcLoc? srcLoc = null) {
+        Definitions = defns;
+        Expressions = exprs;
     }
+    public IEnumerable<Expression> Expressions {get; }
+    public IEnumerable<Definition> Definitions {get; }
     public IEnumerator<ParsedForm> GetEnumerator() {
-        foreach (var form in Forms) {
-            yield return form;
+        foreach (var definition in Definitions) {
+            yield return definition;
+        }
+        foreach (var expr in Expressions) {
+            yield return expr;
         }
     }
 

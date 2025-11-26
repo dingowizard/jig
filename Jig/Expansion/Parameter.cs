@@ -26,8 +26,5 @@ public class Parameter : Identifier {
     }
 
 
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(Symbol, ScopeLevel, Index);
-    }
+    public override int GetHashCode() => HashCode.Combine(Symbol, ScopeLevel, Index);
 }
