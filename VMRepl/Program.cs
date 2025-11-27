@@ -63,7 +63,7 @@ public static class Program {
                     Console.Error.WriteLine($"failed to read {expr}.");
                     System.Environment.Exit(-1);
                 }
-                evaluator.Eval(TopLevelContinuation, stx);
+                evaluator.REPLEval(TopLevelContinuation, stx);
             }
             System.Environment.Exit(0);
         
@@ -87,7 +87,7 @@ public static class Program {
                             break;
                         }
 
-                        evaluator.Eval(TopLevelContinuation, input);
+                        evaluator.REPLEval(TopLevelContinuation, input);
 
                     } catch (Exception x) {
                         Console.Error.WriteLine(x);

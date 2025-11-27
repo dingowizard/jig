@@ -45,9 +45,9 @@ public class Evaluator : IEvaluator<Machine> {
 
     public SyntaxEnvironment Keywords { get; }
 
-    public void Eval(ContinuationAny continuation, Syntax syntax)
+    public void REPLEval(ContinuationAny continuation, Syntax syntax)
     {
-        var context = new ExpansionContext(this, Environment.TopLevels.Keys);
+        var context = new ExpansionContext(this, Environment.TopLevels.Keys, ExpansionContextType.REPL);
         var program = Expander.ExpandREPLForm(syntax, context);
         
         // TODO: put compiler in runtime and hide loading and running?
@@ -65,16 +65,17 @@ public class Evaluator : IEvaluator<Machine> {
         throw new NotImplementedException();
     }
 
-    public void EvalSequence(IEnumerable<Syntax> syntax, ContinuationAny? continuation = null)
+    public void EvalSequence(IEnumerable<Syntax> syntax, ExpansionContextType type = ExpansionContextType.LibraryBody, ContinuationAny? continuation = null)
     {
-        if (continuation is null)
-        {
+        if (continuation is null) {
             continuation = Evaluator.DefaultContinuation;
 
         }
-        var parsedProgram = Expander.ExpandSequence(syntax, new ExpansionContext(this, Environment.TopLevels.Keys));
+        var parsedProgram =
+            Expander.ExpandSequence(syntax, new ExpansionContext(this, Environment.TopLevels.Keys, type));
         var compiler = new Compiler();
-        var compiled = compiler.CompileFile(parsedProgram.ToArray(), Environment);
+        ParsedForm[] program = parsedProgram.ToArray();
+        var compiled = compiler.CompileFile(program, Environment);
         Runtime.Load(compiled, Environment, continuation);
         Runtime.Run();
     }

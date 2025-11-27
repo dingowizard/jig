@@ -78,7 +78,10 @@
 ;;               (newline))
 ;;            (k (void))))))
 
+(define list (lambda xs xs))
+
 (call/cc
  (lambda (k)
    (set! error (lambda args (k 'error)))
    (void)))
+

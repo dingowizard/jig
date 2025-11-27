@@ -4,7 +4,7 @@ public partial class CoreParseRules {
 
     public static SemiParsedForm ParseDefineForm(Syntax syntax, ExpansionContext context) {
         if (!context.DefinesAllowed) {
-            throw new Exception($"definition encountered in expression context: {syntax.Print()}");
+            throw new Exception($"definition encountered in expression context: {syntax.Print()}. context type is {context.Type}");
         }
         // NOTE: these are first pass expander tasks
         if (Syntax.E(syntax) is not SyntaxList.NonEmpty stxList) {

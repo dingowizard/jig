@@ -21,6 +21,7 @@ public class Library : ILibrary
             // TODO: should specify in arguments which phases imports go to
             evaluator.Import(import, 1);
         }
+        
 
 
         var vars = evaluator.Variables;
@@ -32,7 +33,8 @@ public class Library : ILibrary
 
         var port = new InputPort(path);
         var stxes = reader(port);
-        evaluator.EvalSequence(stxes);
+        evaluator.EvalSequence(stxes, ExpansionContextType.LibraryBody);
+        
         // this is crude until we get importing and exporting specific bindings. Just don't export anything you imported
         var varsToExport =
             evaluator

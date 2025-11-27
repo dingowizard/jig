@@ -32,7 +32,7 @@ public class SemiParsedIf : SemiParsedExpression {
     public Syntax? Else {get;}
     public override ParsedForm SecondPass(ExpansionContext context) {
 
-        var newContext = context.ExtendWithExpressionContext();
+        var newContext = context.ExtendWithExpressionContext(ExpansionContextType.Argument);
         return Else is not null ?
             new ParsedIf(
                 Keyword,

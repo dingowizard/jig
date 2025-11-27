@@ -1,4 +1,3 @@
-(define list (lambda xs xs))
 
 ; (define length
 ;    (lambda (xs)

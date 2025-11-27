@@ -212,8 +212,9 @@ public class Compiler {
         int lineNo = startLine;
         // DoFirstPass(bindings, sequence, ctEnv);
         foreach (var x in sequence.Take(sequence.Length - 1)) {
-            instructions = instructions.Concat(Compile(x, ctEnv, literals, bindings, Context.NonTailBody, scopeLevel, lineNo)).ToList();
-            lineNo += instructions.Count();
+            var codes = Compile(x, ctEnv, literals, bindings, Context.NonTailBody, scopeLevel, lineNo);
+            lineNo += codes.Count();
+            instructions.AddRange(codes);
         }
         // add instruction for expr in tail position
         instructions = instructions.Concat(Compile(sequence[sequence.Length - 1], ctEnv, literals, bindings, Context.Tail, scopeLevel, lineNo)).ToList();
@@ -424,6 +425,7 @@ public class Compiler {
         }
         // add instruction for expr in tail position
         var last = Compile(parsedFile[^1], cte, literals, bindings, Context.Tail, 0, lineNo);
+        
         if (last.Length == 0)
         {
             // NOTE: the last form might be something that compiles to no instructions, like define-syntax

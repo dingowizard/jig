@@ -89,10 +89,41 @@ public class Expander
     }
 
     // TODO: can't these Expand functions be static?
-    public IEnumerable<ParsedForm> ExpandSequence(IEnumerable<Syntax> syntaxes, ExpansionContext context) {
+    // I think they can be, but First pass accesses the expander's owner property
+    // it could instead get it through context.Expander.Owner. Is that better though?
+    public ParsedForm[] ExpandSequence(IEnumerable<Syntax> syntaxes, ExpansionContext context) {
+        SemiParsedForm[] firstPass = ExpandSequenceFirstPass(syntaxes, context);
+            
+        return firstPass.Select(s => SecondPass(s, context)).ToArray();
+    }
+
+    private static bool OnlyExpressionsAllowedAfterLastDefinition(ExpansionContext context) {
+        return context.Type is ExpansionContextType.LibraryBody or ExpansionContextType.LambdaBody;
+    }
+
+    private static bool HasOrIsAnExpression(SemiParsedForm semiParsedForm) {
+        if (semiParsedForm is not SemiParsedDefine &&
+            semiParsedForm is not SemiParsedDefineSyntax &&
+            semiParsedForm is not SemiParsedBegin) {
+            // defines, define-syntaxes and possibly begins are the only defns. So if it's not one of those things, it's an expression
+            return true;
+        }
+        // so at this point, the form might be an expression or it might be a begin that has an expression
+        return semiParsedForm is SemiParsedBegin {HasExpression: true};
+    }
+
+    public SemiParsedForm[] ExpandSequenceFirstPass(IEnumerable<Syntax> syntaxes, ExpansionContext context) {
+        
         System.Collections.Generic.List<SemiParsedForm> semiParsedForms = [];
         foreach (var stx in syntaxes) {
             var semiParsedForm = FirstPass(stx, context);
+            
+            if ( OnlyExpressionsAllowedAfterLastDefinition(context) && HasOrIsAnExpression(semiParsedForm) ) {
+                // the semi parsed form is in a lambda body or a library body
+                // AND it is the first expression after the definitions
+                
+                context = context.ExtendWithExpressionContext();
+            }
             if (semiParsedForm is SemiParsedBegin begin) {
                 // splice in the begins
                 
@@ -104,10 +135,10 @@ public class Expander
                 semiParsedForms.Add(semiParsedForm);
             }
         }
-            
-        return semiParsedForms.Select(s => SecondPass(s, context));
+        return semiParsedForms.ToArray();
     }
 
+    
     public ParsedForm ExpandREPLForm(Syntax syntax, ExpansionContext context) {
         return Expand(syntax, context);
     }

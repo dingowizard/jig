@@ -6,7 +6,7 @@ namespace Jig.Expansion;
 
 public class ExpansionContext {
 
-    public ExpansionContext(IEvaluator evaluator, IEnumerable<Parameter> topLevels) {
+    public ExpansionContext(IEvaluator evaluator, IEnumerable<Parameter> topLevels, ExpansionContextType type) {
         Runtime = evaluator.Runtime;
         // TODO: seems like we can simplify the arguments to a bunch of these constructors once we get things running
         Expander = evaluator.Expander;
@@ -18,15 +18,18 @@ public class ExpansionContext {
         }
         ScopeLevel = 0;
         VarIndex = i;
+        Type = type;
         DefinesAllowed = true;
         
     }
+    public ExpansionContextType Type {get;}
 
     private ExpansionContext(
         IRuntime runtime,
         Expander expander,
         SyntaxEnvironment env,
         System.Collections.Generic.List<Parameter> bindings,
+        ExpansionContextType type,
         int scopeLevel = 0,
         int varIndex = 0,
         bool definesAllowed = true) {
@@ -37,6 +40,7 @@ public class ExpansionContext {
         _bindings = bindings; // TODO: this seems like it should be part of the environment
         ScopeLevel = scopeLevel;
         VarIndex = varIndex;
+        Type = type;
         DefinesAllowed = definesAllowed;
         
         // TODO: _bindings, ScopeLevel and VarIndex should be collected into one Type whose job it is to keep track of the resolved bindings for the parsed program
@@ -92,7 +96,7 @@ public class ExpansionContext {
     
     internal IRuntime Runtime {get;}
 
-    public ExpansionContext ExtendWithScope(Scope scope) {
+    public ExpansionContext ExtendWithScope(Scope scope, ExpansionContextType? type = null) {
         // new context has ScopeLevel = this.ScopeLevel + 1
         // not sure if we need to have the Scope. Not doing anything with it yet
 
@@ -101,18 +105,20 @@ public class ExpansionContext {
             this.Expander,
             this._syntaxEnvironment.Extend(),
             this._bindings,
+            type ?? this.Type,
             this.ScopeLevel + 1,
             0,
             true // TODO: I'm assuming defines are always allowed in a new scope
             
         );
     }
-    public ExpansionContext ExtendWithExpressionContext() {
+    public ExpansionContext ExtendWithExpressionContext(ExpansionContextType? type = null) {
         return new ExpansionContext(
             this.Runtime,
             this.Expander,
             this._syntaxEnvironment,
             this._bindings,
+            type ?? this.Type, // this maybe needs to change to argument
             this.ScopeLevel,
             this.VarIndex,
             false
@@ -125,4 +131,16 @@ public class ExpansionContext {
         return Expander.ExpandSequence(syntaxes, this).ToArray();
     }
 
+    public ParsedForm[] ExpandLambdaBody(IEnumerable<Syntax> stxes) {
+        return this.Expander.ExpandSequence(stxes, this).ToArray();
+    }
+
+}
+
+public enum ExpansionContextType {
+    LambdaBody,
+    LibraryBody,
+    ProgramBody,
+    Argument,
+    REPL,
 }

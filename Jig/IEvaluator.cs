@@ -14,11 +14,11 @@ public interface IEvaluator {
     
     public SyntaxEnvironment Keywords { get; }
 
-    public void Eval(ContinuationAny k, Syntax syntax);
+    public void REPLEval(ContinuationAny k, Syntax syntax);
 
     public void Eval(ContinuationAny k, Syntax syntax, IRuntimeEnvironment env);
     
-    public void EvalSequence(IEnumerable<Syntax> syntax,  ContinuationAny? k = null);
+    public void EvalSequence(IEnumerable<Syntax> syntax, ExpansionContextType type,  ContinuationAny? k = null);
 
     public void Import(ILibrary library, uint phase = 0);
     public IExpansionRule EvaluateTransformerExpression(ParsedLambda transformerLambdaExpr, ExpansionContext context);

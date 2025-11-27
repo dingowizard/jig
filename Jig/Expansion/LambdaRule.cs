@@ -21,7 +21,7 @@ public class SemiParsedLambda : SemiParsedExpression {
 
     public override ParsedForm SecondPass(ExpansionContext context) {
         var lambdaScope = new Scope();
-        context = context.ExtendWithScope(lambdaScope); // this resets VarIndex to zero
+        context = context.ExtendWithScope(lambdaScope, ExpansionContextType.LambdaBody); // this resets VarIndex to zero
         foreach (var x in SubForms.Skip(1)) {
             Syntax.AddScope(x, lambdaScope);
         }
@@ -31,7 +31,7 @@ public class SemiParsedLambda : SemiParsedExpression {
         // call to ParsedLambda cstor below, because
         // otherwise VarIndex won't give the right number of scope variables. Yuck!
         // var bodies = subForms.Skip<Syntax>(2).Select(context.Expand).ToArray();
-        ParsedForm[] bodies = context.ExpandSequence(SubForms.Skip<Syntax>(2));
+        ParsedForm[] bodies = context.ExpandLambdaBody(SubForms.Skip<Syntax>(2));
         
         // TODO: ensure that bodies has at least one expression
         return new ParsedLambda(
