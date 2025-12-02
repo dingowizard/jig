@@ -5,9 +5,10 @@ using Jig.IO;
 
 namespace VM;
 
-public class Library : ILibrary
-{
-
+public class Library : ILibrary {
+        public IEnumerable<Binding> VariableExports => _variableExports.Value;
+        // TODO: why are these two different?
+        public IEnumerable<(Symbol, IExpansionRule)> KeywordExports { get; }
     public static Library FromFile(
         string path,
         Func<InputPort, IEnumerable<Syntax>> reader,
@@ -182,11 +183,9 @@ public class Library : ILibrary
             throw new Exception($"couldn't find parameter with name = {name} in Library");
     }
 
-    public IEnumerable<Binding> VariableExports => _variableExports.Value;
 
     private Lazy<IEnumerable<Binding>> _variableExports;
     
-    public IEnumerable<(Symbol, IExpansionRule)> KeywordExports { get; }
     
     
 }
