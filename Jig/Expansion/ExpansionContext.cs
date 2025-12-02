@@ -135,9 +135,6 @@ public class ExpansionContext {
         return this.Expander.ExpandSequence(stxes, this).ToArray();
     }
 
-    public static ExpansionContext FromImportForm(ParsedImportForm parsedImportForm) {
-        throw new NotImplementedException();
-    }
 }
 
 public enum ExpansionContextType {

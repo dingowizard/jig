@@ -102,6 +102,7 @@ public class Evaluator : IEvaluator<Machine> {
             phase--;
 
         }
+        
         foreach (var binding in library.VariableExports) {
             evaluator.Variables.DefineTopLevel(binding.Parameter, binding);
         }

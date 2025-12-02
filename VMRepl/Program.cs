@@ -43,7 +43,17 @@ public static class Program {
             System.Environment.Exit(0);
         }
 
-        LibraryLibrary.Initialize();
+        ILibrary FromFileFn(string path) => Library.FromFile(path, Reader.ReadFileSyntax, new VMFactory());
+        ILibrary FromFormFn(ParsedLibrary lib) => Library.FromForm(lib, new VMFactory());
+
+        LibraryLibrary.Initialize(
+            FromFileFn,
+            FromFormFn,
+            ["."],
+            new System.Collections.Generic.List<(Symbol[], ILibrary)>()
+            {
+                new ValueTuple<Symbol[], ILibrary>([new Symbol("core-primitives")], Library.Core),
+            });
         IEvaluator evaluator = new Evaluator();
         ILibrary coreBuiltins = Library.Core;
         

@@ -45,6 +45,7 @@ public class Compiler {
             ParsedDefine define => CompileDefinition(define, ctEnv, literals, bindings, context, scopeLevel, startLine),
             ParsedSet set => CompileSet(set, ctEnv, literals, bindings, context, scopeLevel, startLine),
             ParsedDefineSyntax defineSyntax => CompileDefineSyntax(defineSyntax, context),
+            ParsedLibrary library => CompileLibrary(library, context),
             _ => throw new NotImplementedException($"{x.Print()} of type {x.GetType()} is not supported yet")
         };
     }
@@ -56,6 +57,12 @@ public class Compiler {
         return [];
     }
 
+    private ulong[] CompileLibrary(ParsedLibrary library, Context context) {
+        // TODO: Shouldn't this compile to a pop continuation if it is tail?
+        // NOTE: Idk. breaks some tests
+        // return CodeForContext([], context);
+        return [];
+    }
     private ulong[] CompileBegin(ParsedBegin begin, Environment ctEnv, Sys.List<SchemeValue> literals,
         Sys.List<Parameter> bindings,
         Context context, int scopeLevel, int startLine)

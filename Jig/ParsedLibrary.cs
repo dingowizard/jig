@@ -77,11 +77,26 @@ public class ParsedExportForm : ParsedForm
     }
 }
 
+public class ParsedImportSpec : ParsedForm {
+    
+    // NOTE: import spec is needed by LibraryLibrary to find the library
+    // then it's needed by import to put bindings into right level, rename them, etc
+
+    public ParsedImportSpec(ISchemeValue x, SrcLoc? srcLoc = null) : base(x, srcLoc) {}
+    
+    public Symbol[] Name { get; } // TODO: not sure whether to prefer Symbols or identifiers.
+                                  // In ParsedLibraryName it was ids for whatever.
+    // TODO: meta level
+    // TODO: version constraints
+    // TODO: subset of exports to import
+    // TODO: renames
+}
+
 public class ParsedImportForm : ParsedForm
 {
-    public IEnumerable<ParsedLibraryName> Libs { get; }
+    public IEnumerable<ParsedImportSpec> Libs { get; }
 
-    internal ParsedImportForm(Identifier kw, IEnumerable<ParsedLibraryName> libs, SrcLoc? srcLoc = null) :
+    internal ParsedImportForm(Identifier kw, IEnumerable<ParsedImportSpec> libs, SrcLoc? srcLoc = null) :
         base(SyntaxList.FromParams(kw).Concat<Syntax>(libs).ToSyntaxList(), srcLoc)
     {
         Libs = libs;

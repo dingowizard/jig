@@ -16,13 +16,13 @@ public partial class CoreParseRules
         if (!ParsedImportForm.TryParse(syntaxes[3], out ParsedImportForm importForm)) {
             throw new Exception($"malformed import form {syntaxes[2].Print()}");
         }
-        // At this point, we need to have a new ExpansionContext to expand/parse the library bodies in
-        ExpansionContext newContext = ExpansionContext.FromImportForm(importForm);
-        // if (!ParsedLibraryBody.TryParse(syntaxes.AsSpan(4), newContext, out ParsedLibraryBody body)) {
-        //     // TODO: probably TryParse should throw more specific Exception.
-        //     // or whatever we're going to do when we don't use exceptions anymore
-        //     throw new Exception($"malformed library body");
-        // }
+        if (!ParsedLibraryBody.TryParse(syntaxes.AsSpan(4), context, out ParsedLibraryBody body)) {
+            // TODO: probably TryParse should throw more specific Exception.
+            // or whatever we're going to do when we don't use exceptions anymore
+            throw new Exception($"malformed library body");
+        }
+        
+        return new SemiParsedLibraryForm((Identifier)syntaxes[0], name, exportForm,  importForm, body, syntax.SrcLoc);
         
         // return new ParsedLibrary(stxList[0], name, exportForm, importForm, body, syntax.SrcLoc);
         throw new NotImplementedException();
@@ -31,14 +31,31 @@ public partial class CoreParseRules
 
 }
 public class SemiParsedLibraryForm : SemiParsedForm {
-    public SemiParsedLibraryForm(SyntaxList syntaxList, SrcLoc? syntaxSrcLoc) : base(syntaxList, syntaxSrcLoc) {
+    public SemiParsedLibraryForm(
+        Identifier keyword,
+        ParsedLibraryName parsedLibraryName,
+        ParsedExportForm exportForm,
+        ParsedImportForm parsedImportForm,
+        ParsedLibraryBody parsedLibraryBody, SrcLoc? srcLoc)
+        : base(SyntaxList.FromParams(keyword, parsedLibraryName, exportForm, parsedImportForm).Concat<Syntax>(parsedLibraryBody).ToSyntaxList(), srcLoc)
+    {
+        Keyword = keyword;
+        LibraryName = parsedLibraryName;
+        ExportForm = exportForm;
+        ImportForm = parsedImportForm;
+        Body = parsedLibraryBody;
     }
-    
+    public ParsedLibraryBody Body {get;}
+    public ParsedImportForm ImportForm {get;}
+    public ParsedExportForm ExportForm {get;}
+    public ParsedLibraryName LibraryName {get;}
+
     public Identifier Keyword {get;}
     public override ParsedForm SecondPass(ExpansionContext context) {
-        throw new NotImplementedException();
-
-
-
+        // Do the second pass expansion of the library bodies
+        ParsedLibrary result = new ParsedLibrary(Keyword, LibraryName, ExportForm, ImportForm, Body);
+        LibraryLibrary.Instance.RegisterLibrary(result);
+        return result;
     }
+    
 }

@@ -13,17 +13,17 @@ public class Library : ILibrary {
         string path,
         Func<InputPort, IEnumerable<Syntax>> reader,
         IEvaluatorFactory evaluatorFactory,
-        IEnumerable<ILibrary> imports)
+        IEnumerable<ILibrary>? imports = null)
     {
         // TODO: we need to make a reader interface or instance methods or something
         IEvaluator evaluator = evaluatorFactory.Build();
-        foreach (var import in imports) {
-            evaluator.Import(import);
-            // TODO: should specify in arguments which phases imports go to
-            evaluator.Import(import, 1);
+        if (imports is not null) {
+                foreach (var import in imports) {
+                        evaluator.Import(import);
+                        // TODO: should specify in arguments which phases imports go to
+                        evaluator.Import(import, 1);
+                }
         }
-        
-
 
         var vars = evaluator.Variables;
         if (vars is null) throw new Exception($"evaluator.Variables was null");
@@ -185,7 +185,10 @@ public class Library : ILibrary {
 
 
     private Lazy<IEnumerable<Binding>> _variableExports;
-    
-    
-    
+
+
+
+    public static ILibrary FromForm(ParsedLibrary lib, VMFactory vmFactory) {
+            throw new NotImplementedException();
+    }
 }
