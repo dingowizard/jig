@@ -80,7 +80,7 @@ public class Evaluator : IEvaluator<Machine> {
         Runtime.Run();
     }
 
-    private static void DefaultContinuation(SchemeValue[] results)
+    public static void DefaultContinuation(SchemeValue[] results)
     {
         // TODO: this should use the default output port
         // TODO: Evaluator should have a field and an option for passing a continuation to its constructor
@@ -93,8 +93,53 @@ public class Evaluator : IEvaluator<Machine> {
         }
     }
 
-    public void Import(ILibrary library, uint phase = 0)
-    {
+    public void ImportKeywords(ParsedImportForm importForm) {
+        foreach (var importSpec in importForm.Libs) {
+            if (LibraryLibrary.Instance.TryFindLibrary(importSpec, out ILibrary? library)) {
+                ImportKeywords(library, importSpec.Level);
+            } else {
+                throw new  Exception($"unable to import library: {importSpec}");
+            }
+        }
+    }
+
+    public void ImportKeywords(ILibrary library, int phase = 0) {
+        
+        IEvaluator evaluator = this;
+        while (phase != 0) {
+            evaluator = evaluator.Expander.Evaluator;
+            phase--;
+        }
+        foreach (var tup in library.KeywordExports) {
+            // TODO: it's so wrong that we are passing around symbols here :(
+            evaluator.Keywords.Add(new Identifier(tup.Item1), tup.Item2);
+        }
+    }
+
+    public void ImportVariables(ParsedImportForm importForm) {
+        foreach (var importSpec in importForm.Libs) {
+            if (LibraryLibrary.Instance.TryFindLibrary(importSpec, out ILibrary? library)) {
+                ImportVariables(library, importSpec.Level);
+            } else {
+                throw new Exception($"unable to import library: {importSpec}");
+            }
+        }
+    }
+    
+    public void ImportVariables(ILibrary library, int phase = 0) {
+        IEvaluator evaluator = this;
+        while (phase != 0) {
+            evaluator = evaluator.Expander.Evaluator;
+            phase--;
+        }
+        
+        foreach (var binding in library.VariableExports) {
+            evaluator.Variables.DefineTopLevel(binding.Parameter, binding);
+        }
+        
+    }
+
+    public void Import(ILibrary library, int phase = 0) {
         IEvaluator evaluator = this;
         while (phase != 0)
         {

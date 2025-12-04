@@ -20,7 +20,10 @@ public interface IEvaluator {
     
     public void EvalSequence(IEnumerable<Syntax> syntax, ExpansionContextType type,  ContinuationAny? k = null);
 
-    public void Import(ILibrary library, uint phase = 0);
+    public void Import(ILibrary library, int phase = 0);
+
+    public void ImportKeywords(ParsedImportForm importForm);
+    public void ImportVariables(ParsedImportForm importForm);
     public IExpansionRule EvaluateTransformerExpression(ParsedLambda transformerLambdaExpr, ExpansionContext context);
     
     // public Syntax ApplyTransformer(Jig.Expansion.Transformer transformer, Syntax syntax);
