@@ -16,16 +16,16 @@ public partial class CoreParseRules
         if (!ParsedImportForm.TryParse(syntaxes[3], out ParsedImportForm importForm)) {
             throw new Exception($"malformed import form {syntaxes[3].Print()}");
         }
-        if (!ParsedLibraryBody.TryParse(syntaxes.AsSpan(4), context, out ParsedLibraryBody body)) {
+        if (!ParsedLibraryBody.TryParse(syntaxes.Skip(3).ToSyntaxList(), context, out ParsedLibraryBody body)) {
             // TODO: probably TryParse should throw more specific Exception.
             // or whatever we're going to do when we don't use exceptions anymore
             throw new Exception($"malformed library body");
         }
-        
-        return new SemiParsedLibraryForm((Identifier)syntaxes[0], name, exportForm,  importForm, body, syntax.SrcLoc);
+
+        var result = new SemiParsedLibraryForm((Identifier)syntaxes[0], name, exportForm,  importForm, body, syntax.SrcLoc);
+        return result;
         
         // return new ParsedLibrary(stxList[0], name, exportForm, importForm, body, syntax.SrcLoc);
-        throw new NotImplementedException();
 
     }
 

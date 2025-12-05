@@ -121,7 +121,9 @@ public class ParsedImportSpec : ParsedForm {
     // NOTE: import spec is needed by LibraryLibrary to find the library
     // then it's needed by import to put bindings into right level, rename them, etc
 
-    public ParsedImportSpec(ISchemeValue x, SrcLoc? srcLoc = null) : base(x, srcLoc) {}
+    public ParsedImportSpec(IEnumerable<Identifier> ids, SrcLoc? srcLoc = null) : base(ids.ToSyntaxList(), srcLoc) {
+        Name = ids.Select(id => id.Symbol).ToArray();
+    }
     
     public Symbol[] Name { get; } // TODO: not sure whether to prefer Symbols or identifiers.
     public int Level {get; set;}
@@ -130,8 +132,27 @@ public class ParsedImportSpec : ParsedForm {
     // TODO: version constraints
     // TODO: subset of exports to import
     // TODO: renames
-    public static bool TryParse(Syntax next, out ParsedImportSpec parsedImportSpec) {
-        throw new NotImplementedException();
+    public static bool TryParse(Syntax stx, out ParsedImportSpec parsedImportSpec) {
+        // TODO: handle situations where import spec is more than an library name
+        if (Syntax.E(stx) is not SyntaxList.NonEmpty list) {
+            throw new Exception($"stx was {stx.Print()}");
+        }
+        Syntax first =  list.First;
+        if (first is not Identifier) {
+            throw new  Exception($"malformed library name {stx.Print()}");
+        }
+        SyntaxList rest = list.Rest;
+        System.Collections.Generic.List<Identifier> ids = [];
+        while (first is Identifier id && rest is SyntaxList.NonEmpty more) {
+            ids.Add(id);
+            rest = more.Rest;
+            first = more.First;
+            
+        }
+        // TODO: handle situations where there is a version number
+        // TODO: catch some more errors
+        parsedImportSpec = new ParsedImportSpec(ids.ToArray());
+        return true;
     }
 }
 
@@ -153,17 +174,19 @@ public class ParsedImportForm : ParsedForm
         if (kw is null) {
             throw new Exception("malformed library form: expected 'import'");
         }
-        if (kw.Symbol.Name != "export") {
+        if (kw.Symbol.Name != "import") {
             throw new Exception("malformed library form: expected 'import'");
         }
-        Syntax next = list.First;
         List more = list.Rest;
         System.Collections.Generic.List<ParsedImportSpec> importSpecs = [];
         while (more is SyntaxList.NonEmpty rest) {
-            while (ParsedImportSpec.TryParse(next, out ParsedImportSpec spec)) {
+            Syntax next = rest.First;
+            if (ParsedImportSpec.TryParse(next, out ParsedImportSpec spec)) {
                 importSpecs.Add(spec);
+                more = rest.Rest;
+                continue;
             }
-            more = rest.Rest;
+            throw new Exception("in import form, expected an import spec, but got {next.Print()}");
         }
         parsedImportForm = new ParsedImportForm(kw, importSpecs);
         return true;
@@ -188,8 +211,9 @@ public class ParsedLibraryBody : IEnumerable<Syntax> {
         return GetEnumerator();
     }
 
-    public static bool TryParse(Span<Syntax> stxes, ExpansionContext context, out ParsedLibraryBody parsedLibraryBody) {
-        throw new NotImplementedException();
+    public static bool TryParse(SyntaxList stxes, ExpansionContext context, out ParsedLibraryBody parsedLibraryBody) {
+        parsedLibraryBody = new ParsedLibraryBody(stxes);
+        return true;
     }
     
 }
