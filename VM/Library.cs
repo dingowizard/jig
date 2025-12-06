@@ -22,7 +22,7 @@ public class Library : ILibrary {
     private Evaluator Evaluator {get;}
 
     private IEnumerable<Binding> GetVariables() {
-        Evaluator.ImportVariables(LibraryForm.Imports);
+        Evaluator.ImportVariables(LibraryForm.ImportForm);
         var context = new ExpansionContext(Evaluator, Evaluator.Variables.TopLevels.Keys, ExpansionContextType.LibraryBody);
         System.Collections.Generic.List<ParsedForm> parsedProgram = [];
         foreach (var semiParsed in SemiParsedBody) {
@@ -38,17 +38,62 @@ public class Library : ILibrary {
     }
 
     private IEnumerable<(Symbol, IExpansionRule)> GetKeywords() {
-        Evaluator.ImportKeywords(LibraryForm.Imports);
+        Evaluator.ImportKeywords(LibraryForm.ImportForm);
         var context = new ExpansionContext(Evaluator, [], ExpansionContextType.LibraryBody);
         SemiParsedBody = Evaluator.Expander.ExpandSequenceFirstPass(LibraryForm.Body, context);
         return Evaluator.Keywords.Rules.Select(kvp => (kvp.Key, kvp.Value)).ToList();
     }
     private SemiParsedForm[] SemiParsedBody {get; set;}
 
-    public static ILibrary FromForm(ParsedLibrary lib, VMFactory vmFactory) {
-        
-        IEvaluator evaluator = vmFactory.Build();
-        throw new NotImplementedException();
+    public static ILibrary FromForm(ParsedLibrary parsedLibraryForm, VMFactory vmFactory) {
+
+        IEvaluator evaluator = vmFactory.Build(); // this creates a new (empty?) env
+        // get the imported libraries
+        System.Collections.Generic.List<ILibrary> importedLibraries = [];
+        System.Collections.Generic.List<string> importLibraryNames = [];
+        foreach (var iSpec in parsedLibraryForm.ImportForm.Specs) {
+            importLibraryNames.Add(string.Join("+", iSpec.Name.Select(symbol => symbol.Name)));
+        }
+        foreach (var importSpec in parsedLibraryForm.ImportForm.Specs) {
+            if (LibraryLibrary.Instance.TryFindLibrary(importSpec, out ILibrary? library)) {
+                importedLibraries.Add(library);
+            } else {
+                throw new Exception($"could not find library from spec: {importSpec.Print()}");
+            }
+        }
+        // put their bindings into the env
+        foreach (var import in importedLibraries) {
+            evaluator.Import(import);
+            // TODO: should specify in arguments which phases imports go to
+            evaluator.Import(import, 1);
+        }
+
+        evaluator.EvalSequence(parsedLibraryForm.Body, ExpansionContextType.LibraryBody);
+
+        // this is crude until we get importing and exporting specific bindings. Just don't export anything you imported
+        IRuntimeEnvironment? vars = evaluator.Variables;
+        if (vars is null) throw new Exception($"evaluator.Variables was null");
+        var toplevels = vars.TopLevels;
+        if (toplevels is null) throw new Exception($"TopLevels was null");
+        var importedVars = evaluator.Variables.TopLevels.Keys.ToArray();
+        var importedKeywords = evaluator.Keywords.Rules.Keys.ToArray();
+        var varsToExport =
+            evaluator
+                .Variables
+                .TopLevels
+                .Values
+                .Where(b => !importedVars.Contains(b.Parameter));
+
+        var kwsToExport = new System.Collections.Generic.List<(Symbol, IExpansionRule)>();
+        foreach (var k in evaluator.Keywords.Rules) {
+            if (!importedKeywords.Contains(k.Key)) {
+                kwsToExport.Add((k.Key, k.Value));
+            }
+        }
+
+
+        return new Library(varsToExport, kwsToExport);
+
     }
     public static Library FromFile(string path, Func<InputPort, IEnumerable<Syntax>> reader, IEvaluatorFactory evaluatorFactory, IEnumerable<ILibrary>? imports = null) {
         // TODO: we need to make a reader interface or instance methods or something

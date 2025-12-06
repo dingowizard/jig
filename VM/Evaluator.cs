@@ -94,7 +94,7 @@ public class Evaluator : IEvaluator<Machine> {
     }
 
     public void ImportKeywords(ParsedImportForm importForm) {
-        foreach (var importSpec in importForm.Libs) {
+        foreach (var importSpec in importForm.Specs) {
             if (LibraryLibrary.Instance.TryFindLibrary(importSpec, out ILibrary? library)) {
                 ImportKeywords(library, importSpec.Level);
             } else {
@@ -117,7 +117,7 @@ public class Evaluator : IEvaluator<Machine> {
     }
 
     public void ImportVariables(ParsedImportForm importForm) {
-        foreach (var importSpec in importForm.Libs) {
+        foreach (var importSpec in importForm.Specs) {
             if (LibraryLibrary.Instance.TryFindLibrary(importSpec, out ILibrary? library)) {
                 ImportVariables(library, importSpec.Level);
             } else {

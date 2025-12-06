@@ -6,21 +6,21 @@ namespace Jig;
 public class ParsedLibrary : ParsedForm {
     public ParsedLibraryName Name { get; }
     public ParsedExportForm Exports { get; }
-    public ParsedImportForm Imports { get; }
+    public ParsedImportForm ImportForm { get; }
     public ParsedLibraryBody Body { get; }
 
     internal ParsedLibrary(
         Syntax keyword,
         ParsedLibraryName name,
         ParsedExportForm exports,
-        ParsedImportForm imports,
+        ParsedImportForm importForm,
         ParsedLibraryBody body,
         SrcLoc? srcLoc = null)
-        : base(SyntaxList.FromParams(keyword, name, exports, imports).Concat<Syntax>(body).ToSyntaxList(), srcLoc)
+        : base(SyntaxList.FromParams(keyword, name, exports, importForm).Concat<Syntax>(body).ToSyntaxList(), srcLoc)
     {
         Name = name;
         Exports = exports;
-        Imports = imports;
+        ImportForm = importForm;
         Body = body;
     }
 
@@ -138,11 +138,13 @@ public class ParsedImportSpec : ParsedForm {
             throw new Exception($"stx was {stx.Print()}");
         }
         Syntax first =  list.First;
-        if (first is not Identifier) {
+        System.Collections.Generic.List<Identifier> ids = [];
+        if (first is Identifier i) {
+            ids.Add(i);
+        } else {
             throw new  Exception($"malformed library name {stx.Print()}");
         }
         SyntaxList rest = list.Rest;
-        System.Collections.Generic.List<Identifier> ids = [];
         while (first is Identifier id && rest is SyntaxList.NonEmpty more) {
             ids.Add(id);
             rest = more.Rest;
@@ -158,12 +160,12 @@ public class ParsedImportSpec : ParsedForm {
 
 public class ParsedImportForm : ParsedForm
 {
-    public IEnumerable<ParsedImportSpec> Libs { get; }
+    public IEnumerable<ParsedImportSpec> Specs { get; }
 
-    internal ParsedImportForm(Identifier kw, IEnumerable<ParsedImportSpec> libs, SrcLoc? srcLoc = null) :
-        base(SyntaxList.FromParams(kw).Concat<Syntax>(libs).ToSyntaxList(), srcLoc)
+    internal ParsedImportForm(Identifier kw, IEnumerable<ParsedImportSpec> specs, SrcLoc? srcLoc = null) :
+        base(SyntaxList.FromParams(kw).Concat<Syntax>(specs).ToSyntaxList(), srcLoc)
     {
-        Libs = libs;
+        Specs = specs;
     }
 
     public static bool TryParse(Syntax stx, out ParsedImportForm parsedImportForm) {
