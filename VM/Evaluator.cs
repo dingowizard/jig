@@ -71,8 +71,9 @@ public class Evaluator : IEvaluator<Machine> {
             continuation = Evaluator.DefaultContinuation;
 
         }
+        var context = new ExpansionContext(this, Environment.TopLevels.Keys, type);
         var parsedProgram =
-            Expander.ExpandSequence(syntax, new ExpansionContext(this, Environment.TopLevels.Keys, type));
+            Expander.ExpandSequence(syntax, context);
         var compiler = new Compiler();
         ParsedForm[] program = parsedProgram.ToArray();
         var compiled = compiler.CompileFile(program, Environment);

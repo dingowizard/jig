@@ -56,6 +56,7 @@ public static class Program {
             });
         IEvaluator evaluator = new Evaluator();
         ILibrary coreBuiltins = Library.Core;
+        // LibraryLibrary.Instance.RegisterLibrary([new Symbol("core-primitives")], Library.Core);
         
         evaluator.Import(coreBuiltins);
         evaluator.Import(coreBuiltins, 1); // "for syntax"

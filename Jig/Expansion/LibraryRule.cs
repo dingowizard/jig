@@ -16,7 +16,7 @@ public partial class CoreParseRules
         if (!ParsedImportForm.TryParse(syntaxes[3], out ParsedImportForm importForm)) {
             throw new Exception($"malformed import form {syntaxes[3].Print()}");
         }
-        if (!ParsedLibraryBody.TryParse(syntaxes.Skip(3).ToSyntaxList(), context, out ParsedLibraryBody body)) {
+        if (!ParsedLibraryBody.TryParse(syntaxes.Skip(4).ToSyntaxList(), context, out ParsedLibraryBody body)) {
             // TODO: probably TryParse should throw more specific Exception.
             // or whatever we're going to do when we don't use exceptions anymore
             throw new Exception($"malformed library body");
