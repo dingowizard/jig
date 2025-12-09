@@ -51,15 +51,18 @@ public class ParsedLibraryName : ParsedForm {
             throw new Exception();
         }
         Syntax first =  list.First;
-        if (first is not Identifier) {
+        if (first is not Identifier id) {
             throw new  Exception($"malformed library name {stx.Print()}");
         }
         SyntaxList rest = list.Rest;
         System.Collections.Generic.List<Identifier> ids = [];
-        while (first is Identifier id && rest is SyntaxList.NonEmpty more) {
-            ids.Add(id);
+        ids.Add(id);
+        while (rest is SyntaxList.NonEmpty more) {
+            // TODO: barf
+            Identifier? name = more.First as Identifier;
+            if (name is null) throw new NotImplementedException();
+            ids.Add(name);
             rest = more.Rest;
-            first = more.First;
             
         }
         // TODO: handle situations where there is a version number
@@ -104,14 +107,19 @@ public class ParsedExportForm : ParsedForm
         if (kw.Symbol.Name != "export") {
             throw new Exception("malformed libary form: expected 'export'");
         }
-        Syntax next = list.First;
         List more = list.Rest;
-        System.Collections.Generic.List<Identifier> ids = [];
-        while (next is Identifier id && more is SyntaxList.NonEmpty rest) {
-            ids.Add(id);
-            more = rest.Rest;
+        System.Collections.Generic.List<Identifier> vars = [];
+        while (more is SyntaxList.NonEmpty rest) {
+            if (rest.First is Identifier var) {
+                vars.Add(var);
+                more = rest.Rest;
+                continue;
+            } else {
+                throw new Exception($"export doesn't know what to do with {rest.Print()}");
+
+            }
         }
-        exportForm = new ParsedExportForm(kw, ids);
+        exportForm = new ParsedExportForm(kw, vars);
         return true;
     }
 }

@@ -22,11 +22,14 @@ public interface IEvaluator {
 
     public void Import(ILibrary library, int phase = 0);
 
+
     public void ImportKeywords(ParsedImportForm importForm);
     public void ImportVariables(ParsedImportForm importForm);
     public IExpansionRule EvaluateTransformerExpression(ParsedLambda transformerLambdaExpr, ExpansionContext context);
     
     // public Syntax ApplyTransformer(Jig.Expansion.Transformer transformer, Syntax syntax);
+    void ImportKeywords(ILibrary importForm, int importSpecLevel);
+    void ImportVariables(ILibrary importForm, int importSpecLevel);
 }
 
 public interface IEvaluator<TRuntime> : IEvaluator where TRuntime : IRuntime {

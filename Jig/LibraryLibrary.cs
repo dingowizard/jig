@@ -35,7 +35,6 @@ public class LibraryLibrary {
             library = enumerable.First();
             return true;
         }
-        // TODO: why was it possible to register a library twice?
         foreach (var basePath in LibraryPaths) {
             var fileStem = Path.Combine(new string[] {
                 basePath
@@ -79,9 +78,22 @@ public class LibraryLibrary {
         _dict.Add(new LibraryKey(names.Select(s => s.Name)), [library]);
     }
     public void RegisterLibrary(ParsedLibrary parsedLibrary) {
+        var key = new LibraryKey(parsedLibrary.Name.Names.Select(id => id.Symbol.Name));
         _dict.Add(
-            new LibraryKey(parsedLibrary.Name.Names.Select(id => id.Symbol.Name)),
+            key,
             [LibraryFromForm(parsedLibrary)]);
+    }
+
+    public ILibrary[] Libraries {
+        get {
+            System.Collections.Generic.List<ILibrary> result = [];
+            foreach (var enumerable in _dict.Select(kvp => kvp.Value)) {
+                result.AddRange(enumerable);
+                
+            }
+
+            return result.ToArray();
+        }
     }
 }
 

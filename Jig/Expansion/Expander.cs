@@ -140,7 +140,16 @@ public class Expander
 
     
     public ParsedForm ExpandREPLForm(Syntax syntax, ExpansionContext context) {
-        return Expand(syntax, context);
+        SemiParsedForm semiParsed = FirstPass(syntax, context);
+        // TODO: maybe this should be tucked away inside SemiParsedImportForm
+        if (semiParsed is SemiParsedImportForm importForm) {
+            foreach (var library in importForm.Libraries) {
+                foreach (var kw in library.KeywordExports) {
+                    context.Expander.Owner.Keywords.REPLAdd(kw);
+                }
+            }
+        }
+        return SecondPass(semiParsed, context);
     }
 }
 

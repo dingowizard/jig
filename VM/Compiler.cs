@@ -46,8 +46,16 @@ public class Compiler {
             ParsedSet set => CompileSet(set, ctEnv, literals, bindings, context, scopeLevel, startLine),
             ParsedDefineSyntax defineSyntax => CompileDefineSyntax(defineSyntax, context),
             ParsedLibrary library => CompileLibrary(library, context),
+            ParsedImportForm importForm => CompileImportForm(importForm, context),
             _ => throw new NotImplementedException($"{x.Print()} of type {x.GetType()} is not supported yet")
         };
+    }
+
+    private ulong[] CompileImportForm(ParsedImportForm importForm, Context context) {
+        // TODO: Shouldn't this compile to a pop continuation if it is tail?
+        // NOTE: Idk. breaks some tests
+        // return CodeForContext([], context);
+        return [];
     }
 
     private ulong[] CompileDefineSyntax(ParsedDefineSyntax defineSyntax, Context context) {

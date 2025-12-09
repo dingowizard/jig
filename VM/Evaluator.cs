@@ -99,7 +99,7 @@ public class Evaluator : IEvaluator<Machine> {
             if (LibraryLibrary.Instance.TryFindLibrary(importSpec, out ILibrary? library)) {
                 ImportKeywords(library, importSpec.Level);
             } else {
-                throw new  Exception($"unable to import library: {importSpec}");
+                throw new  Exception($"failed to find library: {importSpec}");
             }
         }
     }
@@ -149,15 +149,15 @@ public class Evaluator : IEvaluator<Machine> {
 
         }
         
+        foreach (var tup in library.KeywordExports) {
+            // TODO: it's so wrong that we are passing around symbols here :(
+            evaluator.Keywords.Add(new Identifier(tup.Item1), tup.Item2);
+        }
+        
         foreach (var binding in library.VariableExports) {
             evaluator.Variables.DefineTopLevel(binding.Parameter, binding);
         }
 
-        foreach (var tup in library.KeywordExports)
-        {
-            // TODO: it's so wrong that we are passing around symbols here :(
-            evaluator.Keywords.Add(new Identifier(tup.Item1), tup.Item2);
-        }
     }
 
     public Machine Runtime { get; }

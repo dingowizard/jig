@@ -28,6 +28,7 @@ public abstract class SyntaxEnvironment {
 
     public abstract void Add(Identifier kw, IExpansionRule expansionRule);
 
+    public abstract void REPLAdd((Symbol, IExpansionRule) kw);
 }
 
 
@@ -36,22 +37,27 @@ public class TopLevelSyntaxEnvironment : SyntaxEnvironment {
     public TopLevelSyntaxEnvironment(Dictionary<Symbol, IExpansionRule> rules) {
         Rules = rules;
     }
-    public TopLevelSyntaxEnvironment(IEnumerable<(Symbol Key, IExpansionRule Value)> pairs)
-    {
+    public TopLevelSyntaxEnvironment(IEnumerable<(Symbol Key, IExpansionRule Value)> pairs) {
         Rules = pairs.ToDictionary(pair => pair.Key, pair => pair.Value);
-        
     }
     public override Dictionary<Symbol, IExpansionRule> Rules {get;}
     public override void Add(Identifier kw, IExpansionRule expansionRule) {
         Rules.Add(kw.Symbol, expansionRule);
     }
 
+    public override void REPLAdd((Symbol, IExpansionRule) kw) {
+        Rules[kw.Item1] = kw.Item2;
+    }
 }
 
 public class ScopedSyntaxEnvironment(SyntaxEnvironment parent, Dictionary<Symbol, IExpansionRule> rules) : SyntaxEnvironment {
     public override Dictionary<Symbol, IExpansionRule> Rules {get;} = rules;
     public override void Add(Identifier kw, IExpansionRule expansionRule) {
         Rules.Add(kw.Symbol, expansionRule);
+    }
+
+    public override void REPLAdd((Symbol, IExpansionRule) kw) {
+        Rules[kw.Item1] = kw.Item2;
     }
 
     public SyntaxEnvironment Parent = parent;

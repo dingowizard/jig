@@ -470,6 +470,7 @@ public class Machine : IRuntime {
         coreForms.Add(new Symbol("if"), new CoreSyntaxRule(CoreParseRules.ParseIfForm));
         coreForms.Add(new Symbol("lambda"), new CoreSyntaxRule(CoreParseRules.ParseLambdaForm));
         coreForms.Add(new Symbol("library"), new CoreSyntaxRule(CoreParseRules.ParseLibraryForm));
+        coreForms.Add(new Symbol("import"), new CoreSyntaxRule(CoreParseRules.ParseImportForm));
         coreForms.Add(new Symbol("quote"), new CoreSyntaxRule(CoreParseRules.ParseQuoteForm));
         coreForms.Add(new Symbol("quote-syntax"), new CoreSyntaxRule(CoreParseRules.ParseQuoteSyntaxForm));
         coreForms.Add(new Symbol("set!"), new CoreSyntaxRule(CoreParseRules.ParseSetForm));
