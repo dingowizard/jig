@@ -1,0 +1,3 @@
+[submodule "scheme-tests"]
+	path = scheme-tests
+	url = https://github.com/dingowizard/scheme-tests
