@@ -8,120 +8,41 @@ namespace VM;
 // VMFactory and Evaluator
 
 public class Library : ILibrary {
-    public IEnumerable<Binding> VariableExports => _variableExports.Value;
+    public IEnumerable<Binding> VariableExports {get;}
     // TODO: why are these two different?
     // Because keywords have to be bound to expansion rules
-    public IEnumerable<(Symbol, IExpansionRule)> KeywordExports => _keywordExports.Value;
+    public IEnumerable<(Symbol, IExpansionRule)> KeywordExports {get;}
 
-    public Library(ParsedLibrary parsedLibrary, VMFactory vmFactory) {
-        _keywordExports = new Lazy<IEnumerable<(Symbol, IExpansionRule)>>(GetKeywords);
-        _variableExports = new Lazy<IEnumerable<Binding>>(GetVariables);
-        Evaluator = (Evaluator)vmFactory.Build(); // TODO: hm
-        LibraryForm = parsedLibrary;
-
-    }
-
-
-    public string Name { get; }
-    private IEnumerable<Binding> GetVariables() {
-        Evaluator.ImportVariables(LibraryForm.ImportForm);
-        var context = new ExpansionContext(Evaluator, Evaluator.Variables.TopLevels.Keys.Union(ExpansionContext.Expander.Owner.Variables.TopLevels.Keys), ExpansionContextType.LibraryBody);
-        System.Collections.Generic.List<ParsedForm> parsedProgram = [];
-        foreach (var semiParsed in SemiParsedBody) {
-            parsedProgram.Add(semiParsed.SecondPass(context));
-        }
-        ParsedForm[] program = parsedProgram.ToArray();
-        var compiler = new Compiler();
-        var compiled = compiler.CompileFile(program, Evaluator.Environment);
-        Evaluator.Runtime.Load(compiled, Evaluator.Environment, Evaluator.DefaultContinuation);
-        Evaluator.Runtime.Run();
-        System.Collections.Generic.List<Binding> result = [];
-        foreach (var export in LibraryForm.Exports.Vars.Select(id => id.Symbol)) {
-            Parameter? p = Evaluator.Variables.TopLevels.Keys.FirstOrDefault(p => p.Symbol.Name.Equals(export.Name));
-            if (p is not null) {
-                var binding = Evaluator.Variables.TopLevels[p];
-                result.Add(binding);
-            }
-            
-        }
-
-        return result;
-    
-    }
-    
-    private ExpansionContext ExpansionContext { get; set; }
-    
-    private IEnumerable<(Symbol, IExpansionRule)> GetKeywords() {
-        Evaluator.ImportKeywords(LibraryForm.ImportForm);
-        ExpansionContext = new ExpansionContext(Evaluator, Evaluator.Environment.TopLevels.Keys, ExpansionContextType.LibraryBody);
-        SemiParsedBody = ExpansionContext.Expander.ExpandSequenceFirstPass(LibraryForm.Body, ExpansionContext);
+    public Library(ParsedLibrary parsedLibrary, VMFactory vmFactory, bool alwaysTrue) {
+        // TODO: no real reason for alwaysTrue except to give this version of factory a different signature
         
-        System.Collections.Generic.List<(Symbol, IExpansionRule)> result = [];
-        foreach (var export in LibraryForm.Exports.Vars.Select(id => id.Symbol)) {
-            if (Evaluator.Keywords.Rules.Any(kvp => kvp.Key.Name.Equals(export.Name))) {
-                result.Add((export, Evaluator.Keywords.Rules[export]));
-            }
-            
-        }
+        // this version of library evaluates the library doing first- and second-pass expansion
+        // and executing its body code.
+        // nothing is really "lazy"
+        
+        var evaluator = (Evaluator)vmFactory.Build(); // TODO: hm
+        evaluator.Import(parsedLibrary.ImportForm);
+        evaluator.EvalSequence(parsedLibrary.Body);
+        KeywordExports = evaluator.Keywords.Rules
+                .Select(kvp => (kvp.Key, kvp.Value))
+                .Where(tuple => parsedLibrary.Exports.Vars.Select(id => id.Symbol).Contains(tuple.Key)); ;
+        VariableExports = evaluator.Variables.TopLevels.Values
+                .Where(b => parsedLibrary.Exports.Vars.Select(id => id.Symbol)
+                    .Contains(b.Parameter.Symbol));
 
-        return result;
     }
     
-    private Evaluator Evaluator { get; }
-    private SemiParsedForm[] SemiParsedBody {get; set;}
-    
-    public ParsedLibrary LibraryForm { get; }
 
     public static ILibrary FromForm(ParsedLibrary parsedLibraryForm, VMFactory vmFactory) {
 
-        return new Library(parsedLibraryForm, vmFactory);
-
-        // IEvaluator evaluator = vmFactory.Build(); // this creates a new (empty?) env
-        // // get the imported libraries
-        // System.Collections.Generic.List<ILibrary> importedLibraries = [];
-        // foreach (var importSpec in parsedLibraryForm.ImportForm.Specs) {
-        //     if (LibraryLibrary.Instance.TryFindLibrary(importSpec, out ILibrary? library)) {
-        //         importedLibraries.Add(library);
-        //     } else {
-        //         throw new Exception($"could not find library from spec: {importSpec.Print()}");
-        //     }
-        // }
-        // // put their bindings into the env
-        // foreach (var import in importedLibraries) {
-        //     evaluator.Import(import);
-        //     // TODO: should specify in arguments which phases imports go to
-        //     evaluator.Import(import, 1);
-        // }
-        //
-        // evaluator.EvalSequence(parsedLibraryForm.Body, ExpansionContextType.LibraryBody);
-        //
-        // // this is crude until we get importing and exporting specific bindings. Just don't export anything you imported
-        // IRuntimeEnvironment? vars = evaluator.Variables;
-        // if (vars is null) throw new Exception($"evaluator.Variables was null");
-        // var toplevels = vars.TopLevels;
-        // if (toplevels is null) throw new Exception($"TopLevels was null");
-        // var importedVars = evaluator.Variables.TopLevels.Keys.ToArray();
-        // var importedKeywords = evaluator.Keywords.Rules.Keys.ToArray();
-        // var varsToExport =
-        //     evaluator
-        //         .Variables
-        //         .TopLevels
-        //         .Values
-        //         .Where(b => !importedVars.Contains(b.Parameter));
-        //
-        // var kwsToExport = new System.Collections.Generic.List<(Symbol, IExpansionRule)>();
-        // foreach (var k in evaluator.Keywords.Rules) {
-        //     if (!importedKeywords.Contains(k.Key)) {
-        //         kwsToExport.Add((k.Key, k.Value));
-        //     }
-        // }
-        //
-        //
-        // return new Library(varsToExport, kwsToExport);
-
+        return new Library(parsedLibraryForm, vmFactory, true);
     }
+    
     public static Library FromFile(string path, Func<InputPort, IEnumerable<Syntax>> reader, IEvaluatorFactory evaluatorFactory, IEnumerable<ILibrary>? imports = null) {
         // TODO: we need to make a reader interface or instance methods or something
+        
+        
+        // TODO: most of this code is not necessary if the file contains a single library from, which it should
         IEvaluator evaluator = evaluatorFactory.Build();
         if (imports is not null) {
             foreach (ILibrary import in imports) {
@@ -268,8 +189,8 @@ public class Library : ILibrary {
 
 
     private Library(IEnumerable<Binding> vars, IEnumerable<(Symbol, IExpansionRule)> keywords) {
-        _variableExports = new Lazy<IEnumerable<Binding>>(() => vars);
-        _keywordExports = new Lazy<IEnumerable<(Symbol, IExpansionRule)>>(() => keywords);
+        VariableExports = vars;
+        KeywordExports = keywords;
     }
 
     public Parameter FindParameter(string name) {
@@ -280,12 +201,5 @@ public class Library : ILibrary {
         }
         throw new Exception($"couldn't find parameter with name = {name} in Library");
     }
-
-
-    private Lazy<IEnumerable<Binding>> _variableExports;
-    
-    private Lazy<IEnumerable<(Symbol, IExpansionRule)>> _keywordExports;
-
-
 
 }

@@ -6,5 +6,4 @@ public interface ILibrary {
     public IEnumerable<Binding> VariableExports { get; }
     
     public IEnumerable<(Symbol, IExpansionRule)> KeywordExports { get; }
-    string Name { get; }
 }

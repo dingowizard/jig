@@ -94,6 +94,17 @@ public class Evaluator : IEvaluator<Machine> {
         }
     }
 
+    public void Import(ParsedImportForm importForm) {
+        foreach (var importSpec in importForm.Specs) {
+            if (LibraryLibrary.Instance.TryFindLibrary(importSpec, out ILibrary? library)) {
+                ImportKeywords(library, importSpec.Level);
+                ImportVariables(library, importSpec.Level);
+            } else {
+                throw new  Exception($"failed to find library: {importSpec}");
+            }
+        }
+    }
+
     public void ImportKeywords(ParsedImportForm importForm) {
         foreach (var importSpec in importForm.Specs) {
             if (LibraryLibrary.Instance.TryFindLibrary(importSpec, out ILibrary? library)) {
