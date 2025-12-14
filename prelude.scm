@@ -1,18 +1,3 @@
-
-; (define length
-;    (lambda (xs)
-;       (if (null? xs)
-;           0
-;           (+ 1 (length (cdr xs))))))
-
-;; (define list?
-;;   (lambda (x)
-;;     (if (null? x)
-;;         #t
-;;         (if (pair? x)
-;;             (list? (cdr x))
-;;             #f))))
-
 (define list-tail
   (lambda (xs k)
     (if (= k 0)

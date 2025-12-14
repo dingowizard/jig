@@ -13,12 +13,10 @@ public class Library : ILibrary {
     // Because keywords have to be bound to expansion rules
     public IEnumerable<(Symbol, IExpansionRule)> KeywordExports {get;}
 
-    public Library(ParsedLibrary parsedLibrary, VMFactory vmFactory, bool alwaysTrue) {
-        // TODO: no real reason for alwaysTrue except to give this version of factory a different signature
+    public Library(ParsedLibrary parsedLibrary, VMFactory vmFactory) {
         
         // this version of library evaluates the library doing first- and second-pass expansion
         // and executing its body code.
-        // nothing is really "lazy"
         
         var evaluator = (Evaluator)vmFactory.Build(); // TODO: hm
         evaluator.Import(parsedLibrary.ImportForm);
@@ -35,7 +33,7 @@ public class Library : ILibrary {
 
     public static ILibrary FromForm(ParsedLibrary parsedLibraryForm, VMFactory vmFactory) {
 
-        return new Library(parsedLibraryForm, vmFactory, true);
+        return new Library(parsedLibraryForm, vmFactory);
     }
     
     public static Library FromFile(string path, Func<InputPort, IEnumerable<Syntax>> reader, IEvaluatorFactory evaluatorFactory, IEnumerable<ILibrary>? imports = null) {
