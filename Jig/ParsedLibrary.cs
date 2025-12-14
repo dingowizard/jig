@@ -129,8 +129,9 @@ public class ParsedImportSpec : ParsedForm {
     // NOTE: import spec is needed by LibraryLibrary to find the library
     // then it's needed by import to put bindings into right level, rename them, etc
 
-    public ParsedImportSpec(IEnumerable<Identifier> ids, SrcLoc? srcLoc = null) : base(ids.ToSyntaxList(), srcLoc) {
+    public ParsedImportSpec(IEnumerable<Identifier> ids, int level = 0, SrcLoc? srcLoc = null) : base(ids.ToSyntaxList(), srcLoc) {
         Name = ids.Select(id => id.Symbol).ToArray();
+        Level = level;
     }
     
     public Symbol[] Name { get; } // TODO: not sure whether to prefer Symbols or identifiers.
@@ -146,6 +147,40 @@ public class ParsedImportSpec : ParsedForm {
             throw new Exception($"stx was {stx.Print()}");
         }
         Syntax first =  list.First;
+        // an import set might start with for
+        // in which case it has the form
+        // (for <import set> <import level> ...)
+
+        if (first is Identifier {Symbol.Name: "for"}) {
+            if (list.Rest is not SyntaxList.NonEmpty forMore) {
+                throw new  Exception($"malformed library name {stx.Print()}");
+            }
+            if (!ParsedImportSet.TryParse(forMore.First, out var importSet)) {
+                throw new  Exception($"malformed library name {stx.Print()}");
+            }
+            SyntaxList.NonEmpty importLevels = forMore.Rest as  SyntaxList.NonEmpty ?? throw new Exception("malformed import list");
+            
+            // for now we'll just support one import-level and it will either be 'run or 'expand
+            int level = 0;
+            if (importLevels.First is Identifier {Symbol.Name: "run"}) {
+                level = 0;
+            } else if (importLevels.First is Identifier {Symbol.Name: "expand"}) {
+                level = 1;
+            } else {
+                throw new  Exception($"malformed import level {importLevels.Print()}");
+            }
+            parsedImportSpec = new ParsedImportSpec(importSet.Names, level);
+            return true;
+        }
+
+        if (ParsedImportSet.TryParse(stx, out ParsedImportSet parsedImportSet)) {
+            parsedImportSpec = new ParsedImportSpec(parsedImportSet.Names);
+            return true;
+        } else {
+            throw  new  Exception($"malformed import spec {stx.Print()}");
+            
+        }
+        
         System.Collections.Generic.List<Identifier> ids = [];
         if (first is Identifier i) {
             ids.Add(i);
@@ -164,6 +199,38 @@ public class ParsedImportSpec : ParsedForm {
         parsedImportSpec = new ParsedImportSpec(ids.ToArray());
         return true;
     }
+}
+
+public class ParsedImportSet {
+
+    public ParsedImportSet(IEnumerable<Identifier> names) {
+        Names = names;
+    }
+    public static bool TryParse(Syntax stx, out ParsedImportSet importSet) {
+        if (Syntax.E(stx) is not SyntaxList.NonEmpty list) {
+            throw new Exception($"stx was {stx.Print()}");
+        }
+        Syntax first =  list.First;
+        
+        System.Collections.Generic.List<Identifier> ids = [];
+        if (first is Identifier i) {
+            ids.Add(i);
+        } else {
+            throw new  Exception($"malformed library name {stx.Print()}");
+        }
+        SyntaxList rest = list.Rest;
+        while (first is Identifier id && rest is SyntaxList.NonEmpty more) {
+            ids.Add(id);
+            rest = more.Rest;
+            first = more.First;
+            
+        }
+        // TODO: handle situations where there is a version number
+        // TODO: catch some more errors
+        importSet = new ParsedImportSet(ids.ToArray());
+        return true;
+    }
+    public IEnumerable<Identifier> Names {get;}
 }
 
 public class ParsedImportForm : ParsedForm
