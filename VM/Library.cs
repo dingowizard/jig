@@ -29,6 +29,18 @@ public class Library : ILibrary {
                     .Contains(b.Parameter.Symbol));
 
     }
+
+    public Library(ParsedLibrary parsedLibrary, Evaluator evaluator) {
+        
+        evaluator.Import(parsedLibrary.ImportForm);
+        evaluator.EvalSequence(parsedLibrary.Body);
+        KeywordExports = evaluator.Keywords.Rules
+            .Select(kvp => (kvp.Key, kvp.Value))
+            .Where(tuple => parsedLibrary.Exports.Vars.Select(id => id.Symbol).Contains(tuple.Key)); ;
+        VariableExports = evaluator.Variables.TopLevels.Values
+            .Where(b => parsedLibrary.Exports.Vars.Select(id => id.Symbol)
+                .Contains(b.Parameter.Symbol));
+    }
     
 
     public static ILibrary FromForm(ParsedLibrary parsedLibraryForm, VMFactory vmFactory) {
@@ -36,48 +48,16 @@ public class Library : ILibrary {
         return new Library(parsedLibraryForm, vmFactory);
     }
     
-    public static Library FromFile(string path, Func<InputPort, IEnumerable<Syntax>> reader, IEvaluatorFactory evaluatorFactory, IEnumerable<ILibrary>? imports = null) {
-        // TODO: we need to make a reader interface or instance methods or something
+    public static Library FromFile(string path, Func<InputPort, Syntax> reader, IEvaluatorFactory evaluatorFactory) {
         
-        
-        // TODO: most of this code is not necessary if the file contains a single library from, which it should
-        IEvaluator evaluator = evaluatorFactory.Build();
-        if (imports is not null) {
-            foreach (ILibrary import in imports) {
-                evaluator.Import(import);
-                // TODO: should specify in arguments which phases imports go to
-                evaluator.Import(import, 1);
-            }
-        }
-
-        IRuntimeEnvironment? vars = evaluator.Variables;
-        if (vars is null) throw new Exception($"evaluator.Variables was null");
-        var toplevels = vars.TopLevels;
-        if (toplevels is null) throw new Exception($"TopLevels was null");
-        var importedVars = evaluator.Variables.TopLevels.Keys.ToArray();
-        var importedKeywords = evaluator.Keywords.Rules.Keys.ToArray();
-
+        Evaluator evaluator = (Evaluator)evaluatorFactory.Build();
         var port = new InputPort(path);
-        var stxes = reader(port);
-        evaluator.EvalSequence(stxes, ExpansionContextType.LibraryBody);
+        var stx = reader(port);
+        var context = new ExpansionContext(evaluator, evaluator.Variables.TopLevels.Keys, ExpansionContextType.REPL);
+        var program = evaluator.Expander.ExpandREPLForm(stx, context);
+        if (program is not ParsedLibrary parsedLibrary) throw new Exception($"expected library form, got {program}");
 
-        // this is crude until we get importing and exporting specific bindings. Just don't export anything you imported
-        var varsToExport =
-            evaluator
-                .Variables
-                .TopLevels
-                .Values
-                .Where(b => !importedVars.Contains(b.Parameter));
-
-        var kwsToExport = new System.Collections.Generic.List<(Symbol, IExpansionRule)>();
-        foreach (var k in evaluator.Keywords.Rules) {
-            if (!importedKeywords.Contains(k.Key)) {
-                kwsToExport.Add((k.Key, k.Value));
-            }
-        }
-
-
-        return new Library(varsToExport, kwsToExport);
+        return new Library(parsedLibrary, evaluator);
 
     }
 

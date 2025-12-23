@@ -1,5 +1,6 @@
 using Jig;
 using Jig.Expansion;
+using Jig.IO;
 
 namespace VM;
 
@@ -21,9 +22,10 @@ public class Evaluator : IEvaluator<Machine> {
         
         // TODO: needs a compiler, a compile-time environment
         if (Environment is null) throw new Exception($"unable to evaluate transformer expression: Environment was null.");
-        if (Environment.TopLevels.Keys.Count == 0)
-        {
-            throw new Exception($"unable to evaluate transformer expression: Environment {Environment.GetHashCode()} is empty");
+        if (Environment.TopLevels.Keys.Count == 0) {
+            Console.WriteLine($"EvaluatoTransformExpression: empty env. phase is {this.Phase}");
+            Console.WriteLine($"{transformerLambdaExpr.SrcLoc?.ToString() ?? "null"}");
+            throw new Exception($"unable to evaluate transformer expression {transformerLambdaExpr.Print()}: Environment {Environment.GetHashCode()} is empty. owner phase = {context.Expander.Owner.Phase}");
         }
         var compiler = new Compiler(); // should class be static?
         var code = compiler.CompileExprForREPL(transformerLambdaExpr, Environment);
@@ -153,8 +155,7 @@ public class Evaluator : IEvaluator<Machine> {
 
     public void Import(ILibrary library, int phase = 0) {
         IEvaluator evaluator = this;
-        while (phase != 0)
-        {
+        while (phase != 0) {
             evaluator = evaluator.Expander.Evaluator;
             phase--;
 

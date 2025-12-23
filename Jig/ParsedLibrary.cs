@@ -210,23 +210,25 @@ public class ParsedImportSet {
         if (Syntax.E(stx) is not SyntaxList.NonEmpty list) {
             throw new Exception($"stx was {stx.Print()}");
         }
-        Syntax first =  list.First;
         
         System.Collections.Generic.List<Identifier> ids = [];
-        if (first is Identifier i) {
-            ids.Add(i);
-        } else {
-            throw new  Exception($"malformed library name {stx.Print()}");
-        }
-        SyntaxList rest = list.Rest;
-        while (first is Identifier id && rest is SyntaxList.NonEmpty more) {
+        // if (first is Identifier i) {
+        //     ids.Add(i);
+        // } else {
+        //     throw new  Exception($"malformed library name {stx.Print()}");
+        // }
+        SyntaxList rest = list;
+        while (rest is SyntaxList.NonEmpty more) {
+            if (more.First is not Identifier id) {
+                throw new  Exception($"malformed import set {stx.Print()}");
+            }
             ids.Add(id);
             rest = more.Rest;
-            first = more.First;
             
         }
         // TODO: handle situations where there is a version number
         // TODO: catch some more errors
+        // Console.WriteLine($"making import set with {string.Join(",", ids)}");
         importSet = new ParsedImportSet(ids.ToArray());
         return true;
     }

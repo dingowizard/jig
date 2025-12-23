@@ -92,7 +92,7 @@ public class Parser {
             case Token.EOFTokenType _:
                 return null;
             default:
-                throw new Exception($"parse error: unhandled Token {peeked}");
+                throw new Exception($"parse error: unhandled Token {peeked} @ line = {tokenStream.Port.Line} col = {tokenStream.Port.Column}");
         }
     }
 

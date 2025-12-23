@@ -28,6 +28,7 @@ public class LibraryLibrary {
     public bool TryFindLibrary(ParsedImportSpec importSpec, [NotNullWhen(true)]  out ILibrary? library) {
         LibraryKey key = new LibraryKey(importSpec.Name.Select(sym => sym.Name));
         if (_dict.TryGetValue(key, out var tmp) && tmp is {} candidates) {
+            // Console.WriteLine($"found lib {key}");
             var enumerable = candidates as ILibrary[] ?? candidates.ToArray();
             if (enumerable.Count() != 1) {
                 throw new NotImplementedException($"Looking up {importSpec.Print()} found more than one version, but multiple versions aren't supported yet");
@@ -35,15 +36,18 @@ public class LibraryLibrary {
             library = enumerable.First();
             return true;
         }
+        // Console.WriteLine($"didnt find {key} in LibraryLibrary. looking in paths");
         foreach (var basePath in LibraryPaths) {
             var fileStem = Path.Combine(new string[] {
                 basePath
             }.Concat(importSpec.Name.Select(sym => sym.Name)).ToArray());
-            var filePath = Path.ChangeExtension(fileStem, ".scm");
+            var filePath = Path.ChangeExtension(fileStem, ".sls");
             // TODO: look for compiled first, make it if it doesn't exist
+            // Console.WriteLine($"looking for {filePath}");
             if (File.Exists(filePath)) {
+                // where does libraryfromfile add the library to libary-library?
+                // probably in LibraryRule
                 library = LibraryFromFile(filePath);
-                _dict.Add(new LibraryKey(importSpec.Name.Select(sym => sym.Name)), [library]);
                 return true;
             }
         }
@@ -67,7 +71,9 @@ public class LibraryLibrary {
         LibraryPaths = libraryPaths;
         if (libraries is not {} libs) return;
         foreach ((var name, ILibrary lib) in libs) {
-            _dict.Add(new LibraryKey(name.Select(s => s.Name)), [lib]);
+            this.RegisterLibrary(name, lib);
+            
+            // _dict.Add(new LibraryKey(name.Select(s => s.Name)), [lib]);
         }
     }
     public LibraryFromForm LibraryFromForm {get; set;}
@@ -75,10 +81,15 @@ public class LibraryLibrary {
     private static readonly Dictionary<LibraryKey, IEnumerable<ILibrary>> _dict = new Dictionary<LibraryKey, IEnumerable<ILibrary>>();
 
     public void RegisterLibrary(IEnumerable<Symbol> names, ILibrary library) {
-        _dict.Add(new LibraryKey(names.Select(s => s.Name)), [library]);
+        // Console.WriteLine($"registering {string.Join(",", names)} 1");
+        var key = new LibraryKey(names.Select(s => s.Name));
+        if (_dict.ContainsKey(key)) return;
+        _dict.Add(key, [library]);
     }
     public void RegisterLibrary(ParsedLibrary parsedLibrary) {
+        // Console.WriteLine($"registering {string.Join(",", parsedLibrary.Name.Names.Select(id => id.Symbol.Name))} 2");
         var key = new LibraryKey(parsedLibrary.Name.Names.Select(id => id.Symbol.Name));
+        if (_dict.ContainsKey(key)) return; // TODO: maybe this should be an error?
         _dict.Add(
             key,
             [LibraryFromForm(parsedLibrary)]);

@@ -26,7 +26,7 @@ public class InputPort : IDisposable {
 
     public InputPort(string path) {
         _reader = File.OpenText(path);
-        Source = _reader.ToString() ?? "string";
+        Source = path ?? "string";
         Line = 1;
         Column = 0;
         Position = 1;

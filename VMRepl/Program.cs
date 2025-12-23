@@ -43,29 +43,21 @@ public static class Program {
             System.Environment.Exit(0);
         }
 
-        ILibrary FromFileFn(string path) => Library.FromFile(path, Reader.ReadFileSyntax, new VMFactory());
+        ILibrary FromFileFn(string path) => Library.FromFile(path, Reader.ReadSyntax, new VMFactory());
         ILibrary FromFormFn(ParsedLibrary lib) => Library.FromForm(lib, new VMFactory());
 
         LibraryLibrary.Initialize(
             FromFileFn,
             FromFormFn,
-            ["."],
+            [".", "./lib"],
             new System.Collections.Generic.List<(Symbol[], ILibrary)>()
             {
                 new ValueTuple<Symbol[], ILibrary>([new Symbol("core-primitives")], Library.Core),
             });
         IEvaluator evaluator = new Evaluator();
-        ILibrary coreBuiltins = Library.Core;
-        // LibraryLibrary.Instance.RegisterLibrary([new Symbol("core-primitives")], Library.Core);
-        
-        evaluator.Import(coreBuiltins);
-        evaluator.Import(coreBuiltins, 1); // "for syntax"
-        var prelude1Lib = Library.FromFile("prelude-1.scm", Reader.ReadFileSyntax, new VMFactory(), [coreBuiltins]);
-        var preludeLib = Library.FromFile("prelude.scm", Reader.ReadFileSyntax, new VMFactory(), [coreBuiltins, prelude1Lib]);
-        evaluator.Import(prelude1Lib);
-        evaluator.Import(prelude1Lib, 1);
-        evaluator.Import(preludeLib);
-        evaluator.Import(preludeLib, 1);
+        var jigLib = Library.FromFile("lib/jig.sls", Reader.ReadSyntax, new VMFactory());
+        evaluator.Import(jigLib);
+        evaluator.Import(jigLib, 1);
         
         if (expr != "") {
             using (InputPort port = InputPort.FromString(expr)) {

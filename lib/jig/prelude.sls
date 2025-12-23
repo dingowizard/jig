@@ -65,9 +65,9 @@
   (define void (lambda () (if #f #f)))
   (define error #f)
 
-  (define-syntax or2
-    (lambda (stx)
-      (datum->syntax stx `((lambda (x) (if x x ,(car (cdr (cdr (syntax->list stx)))))) ,(car (cdr (syntax->list stx)))))))
+  ;; (define-syntax or2
+  ;;   (lambda (stx)
+  ;;     (datum->syntax stx `((lambda (x) (if x x ,(car (cdr (cdr (syntax->list stx)))))) ,(car (cdr (syntax->list stx)))))))
 
   ;; ; ; TODO: shouldn't this call raise or raise continuable?
   ;; (call/cc
