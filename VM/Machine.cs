@@ -115,7 +115,7 @@ public class Machine : IRuntime {
             } else {
                 if (SP - FP != primitive2.Required) {
                     
-                    throw new Exception($"wrong num args: expected {primitive2.Required}, but got {SP - FP}. (SP = {SP}; FP = {FP}; stack = {StackToList()})");
+                    throw new Exception($"{primitive2.Print()}: wrong num args: expected {primitive2.Required}, but got {SP - FP}. (SP = {SP}; FP = {FP}; stack = {StackToList()})");
                 }  
             }
             

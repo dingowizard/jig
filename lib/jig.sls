@@ -4,6 +4,7 @@
           ; (jig)
           list-tail list-ref positive? negative? abs fold-left filter partition compose reverse for-each
           memv odd? even? let or let* letrec cond case when do
+          make-parameter parameterize
           ; (core-primitives)
           cons car cdr append pair? list? null? zero? call/cc + apply expand > < - * = eqv?
           values call-with-values dynamic-wind datum->syntax syntax->datum syntax->list syntax-e
@@ -195,4 +196,28 @@
                                  (begin
                                     command ...
                                     (loop step ...)))))
-             (loop init ...)))))))
+             (loop init ...))))))
+
+  (define make-parameter
+    (lambda (init . o)
+      (let* ((converter (if (not (null? o)) (car o) (lambda (x) x)))
+             (value (converter init)))
+        (lambda args
+          (if (null? args)
+              value
+              (let ((len (length args)))
+                (cond ((= len 1)
+                       (set! value (converter (car args))))
+                      ((= len 2)
+                       (set! value ((cadr args) (car args))))
+                      (#t 'error))))))))
+
+  (define-syntax parameterize
+     (syntax-rules ()
+        ((parameterize ((p0 v0) (p v) ...) body0 body ...)
+         ((lambda olds
+             (dynamic-wind
+                (lambda () (p0 v0) (p v) ...)
+                (lambda () body0 body ...)
+                (lambda () (for-each (lambda (pr old) (pr old (lambda (x) x))) (list p0 p ...) olds)))) (p0) (p) ...))))
+  )
