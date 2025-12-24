@@ -180,15 +180,13 @@ public class Evaluator : IEvaluator<Machine> {
 
 public class VMFactory : IEvaluatorFactory {
 
-    public VMFactory(uint phase = 0)
-    {
+    public VMFactory(uint phase = 0) {
         Phase = phase;
     }
 
     public uint Phase { get;  }
 
-    public IEvaluator Build()
-    {
+    public IEvaluator Build() {
         return new Evaluator(Phase);
 
     }

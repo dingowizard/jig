@@ -1,7 +1,10 @@
 (library (jig)
-  (export length not caar cadr cdar cddr caddr cdddr fold-right map all any void error list
+  (export ; (jig prelude)
+          length not caar cadr cdar cddr caddr cdddr fold-right map all any void error list
+          ; (jig)
           list-tail list-ref positive? negative? abs fold-left filter partition compose reverse for-each
           memv odd? even? let or let* letrec cond case when do
+          ; (core-primitives)
           cons car cdr append pair? list? null? zero? call/cc + apply expand > < - * = eqv?
           values call-with-values dynamic-wind datum->syntax syntax->datum syntax->list syntax-e
           symbol? displayln display newline vector vector-ref vector? vector-length
@@ -113,13 +116,13 @@
         ((or a rest ...) (let ((tmp a)) (if tmp tmp (or rest ...))))))
 
 
-  ;; (define-syntax let*
-  ;;   (syntax-rules ()
-  ;;     ((let* () body1 body2 ...)
-  ;;      (let () body1 body2 ...))
-  ;;     ((let* ((name1 expr1) (name2 expr2) ...) body1 body2 ...)
-  ;;      (let ((name1 expr1))
-  ;;        (let* ((name2 expr2) ...) body1 body2 ...)))))
+  (define-syntax let*
+    (syntax-rules ()
+      ((let* () body1 body2 ...)
+       (let () body1 body2 ...))
+      ((let* ((name1 expr1) (name2 expr2) ...) body1 body2 ...)
+       (let ((name1 expr1))
+         (let* ((name2 expr2) ...) body1 body2 ...)))))
 
 
   (define-syntax letrec

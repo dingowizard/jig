@@ -18,7 +18,15 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
             throw new Exception($"couldn't find toplevel var {parameter.Symbol} in env. keys in toplevels are: {string.Join(", ", _topLevels.Keys.Select(p => p.Symbol.Print()))}");
         }
 
-        return GetLexVarLocation(parameter.ScopeLevel, parameter.Index);
+        try {
+
+            return GetLexVarLocation(parameter.ScopeLevel, parameter.Index);
+        } catch {
+            Console.Error.WriteLine($"LookUpLocation: failed to find {parameter.Symbol} whose scope level is {parameter.ScopeLevel}");
+            throw;
+
+
+        }
     }
 
     public void SetArg(ulong ir, SchemeValue val)
@@ -110,13 +118,11 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
         public Location GetAt(int scopeLevel, int index)
         {
             var frame = this;
-            if (scopeLevel < ScopeLevel) {
-                throw new Exception();
-                
+            if (frame.ScopeLevel < scopeLevel) {
+                throw new Exception($"We expect the var's binding at scopeLevel = {scopeLevel}. We are looking from scope {ScopeLevel}");
             }
-            while (frame.ScopeLevel < scopeLevel) {
+            while (frame.ScopeLevel > scopeLevel) {
                 frame = frame.Parent;
-                scopeLevel--;
             }
 
             if (frame.Locations[index] is null) {

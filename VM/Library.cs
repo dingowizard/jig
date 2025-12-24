@@ -151,6 +151,8 @@ public class Library : ILibrary {
                 new Location(new Primitive("record-accessor", Primitives.record_accessor, 2, false))),
             new (new Parameter(new Symbol("record-constructor"), [], 0, index++, null),
                 new Location(new Primitive("record-constructor", Primitives.record_constructor, 1, false))),
+            new (new Parameter(new Symbol("expand"), [], 0, index++, null),
+                new Location(new Primitive("expand", Primitives.expand, 1, false))),
         ];
 
         // env._dict.Add(new Symbol("record-constructor"), new Procedure( (Builtin)Builtins.record_constructor));

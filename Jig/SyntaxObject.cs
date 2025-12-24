@@ -16,16 +16,21 @@ public class Syntax : SchemeValue {
         if (stx is Identifier id) {
             return id.Symbol;
         }
-
         if (stx is Literal lit) {
             return lit.Expression;
         }
-        var x = Syntax.E(stx);
-        switch (x) {
+        switch (E(stx)) {
             case SyntaxPair stxPair:
                 return Pair.Cons(ToDatum(stxPair.Car), ToDatum(stxPair.Cdr));
             case SyntaxList stxList:
                 return stxList.Select<Syntax, ISchemeValue>(ToDatum).ToJigList();
+            case IEmptyList:
+                return List.Null;
+            case VoidType:
+                return SchemeValue.Void;
+            case Symbol s: return s; // TODO: why wasn't this caught up above by stx is Identifier?
+            case List.NonEmpty xs: // TODO: I think there's something wrong with how Syntax.FromDatum made this stx
+                return xs.Select(x => x is Syntax sx ? ToDatum(sx) : x).ToJigList();
             // case IPair p:
             //     return ToDatum(p);
             // case List list: {
@@ -33,10 +38,10 @@ public class Syntax : SchemeValue {
             //     if (list.Count() != slist.Count()) {
             //         throw new Exception("ToDatum: expected all elements to be syntax");
             //     }
-            //     return list.Cast<Syntax>().Select<Syntax, IForm>(ToDatum).ToJigList();
+            //     return list.Cast<Syntax>().Select<Syntax, SchemeValue>(stx => ToDatum(stx)).ToJigList();
             // }
             default:
-                return x;
+                throw new Exception($"unhandled case {E(stx)}, a {E(stx).GetType()}");
         }
     }
 
