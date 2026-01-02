@@ -1,6 +1,39 @@
 (library (jig prelude)
-  (export length not caar cadr cdar cddr caddr cdddr fold-right map all any void error list)
+  (export length not error car cdr caar cadr cdar cddr caddr cdddr fold-left fold-right map all any void error list list? zero? +)
   (import (core-primitives))
+
+  (define car
+    (lambda (x)
+      (if (pair? x)
+          (unchecked-car x)
+          (error 'car "expected its argument to be a pair")))) ; TODO: irritants
+                                        ;
+  (define cdr
+    (lambda (x)
+      (if (pair? x)
+          (unchecked-cdr x)
+          (error 'cdr "expected its argument to be a pair")))) ; TODO: irritants
+
+  (define zero?
+    (lambda (x)
+      (if (number? x)
+          (= x 0)
+          (error 'zero? "expected its argument to be a number"))))
+
+  (define list?
+    (lambda (x)
+      (if (null? x)
+          #t
+          (if (pair? x)
+              (list? (cdr x))
+              #f)))) ; TODO: better to have this builtin?
+
+  ; TODO: problem redefining call/cc like this
+  ;; (define call/cc
+  ;;   (lambda (x)
+  ;;     (if (procedure? x)
+  ;;         (unchecked-call/cc x)
+  ;;         (error 'call/cc "expected its argument to be a procedure"))))
 
   (define length
       (lambda (l)
@@ -13,23 +46,22 @@
 
   (define not (lambda (x) (if x #f #t)))
 
-  (define caar (lambda (p) (car (car p))))
-
-  (define cadr (lambda (p) (car (cdr p))))
-
-  (define cdar (lambda (p) (cdr (car p))))
-
-  (define cddr (lambda (p) (cdr (cdr p))))
-
-  (define caddr (lambda (p) (car (cdr (cdr p)))))
-
-  (define cdddr (lambda (p) (cdr (cdr (cdr p)))))
 
   (define fold-right
     (lambda (fn acc xs)
       (if (null? xs)
           acc
           (fn (car xs) (fold-right fn acc (cdr xs))))))
+
+  (define +
+    (lambda xs
+      (fold-right (lambda (a b) (if (and (number? a) (number? b)) (unchecked-bin-op-+ a b) (error '+ "expected all arguments to be numbers"))) 0 xs)))
+
+  (define fold-left
+    (lambda (fn acc xs)
+      (if (null? xs)
+          acc
+          (fold-left fn (fn (car xs) acc) (cdr xs)))))
 
   ;; (define map-1
   ;;   (lambda (fn xs)
@@ -63,7 +95,6 @@
                             (any pred (cdr xs))))))))
 
   (define void (lambda () (if #f #f)))
-  (define error #f)
 
   ;; (define-syntax or2
   ;;   (lambda (stx)

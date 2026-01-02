@@ -29,6 +29,9 @@ public abstract class SyntaxEnvironment {
     public abstract void Add(Identifier kw, IExpansionRule expansionRule);
 
     public abstract void REPLAdd((Symbol, IExpansionRule) kw);
+    public bool HasEntry(Symbol tupItem1) {
+        return Rules.Keys.Any(s => Equals(s, tupItem1));
+    }
 }
 
 

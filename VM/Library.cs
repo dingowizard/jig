@@ -20,7 +20,12 @@ public class Library : ILibrary {
         
         var evaluator = (Evaluator)vmFactory.Build(); // TODO: hm
         evaluator.Import(parsedLibrary.ImportForm);
-        evaluator.EvalSequence(parsedLibrary.Body);
+        if (parsedLibrary.Body.Count() != 0) {
+            // TODO: maybe EvalSequence should not throw when the body is empty?
+            evaluator.EvalSequence(parsedLibrary.Body);
+        }
+        // TODO: this is backwards. We should look up every exported symbol in the current environment
+        // rather than filtering our anything not exported. Repeat below
         KeywordExports = evaluator.Keywords.Rules
                 .Select(kvp => (kvp.Key, kvp.Value))
                 .Where(tuple => parsedLibrary.Exports.Vars.Select(id => id.Symbol).Contains(tuple.Key)); ;
@@ -33,7 +38,10 @@ public class Library : ILibrary {
     public Library(ParsedLibrary parsedLibrary, Evaluator evaluator) {
         
         evaluator.Import(parsedLibrary.ImportForm);
-        evaluator.EvalSequence(parsedLibrary.Body);
+        if (parsedLibrary.Body.Count() != 0) {
+            // TODO: maybe EvalSequence should not throw when the body is empty?
+            evaluator.EvalSequence(parsedLibrary.Body);
+        }
         KeywordExports = evaluator.Keywords.Rules
             .Select(kvp => (kvp.Key, kvp.Value))
             .Where(tuple => parsedLibrary.Exports.Vars.Select(id => id.Symbol).Contains(tuple.Key)); ;
@@ -67,25 +75,31 @@ public class Library : ILibrary {
         [
             new (new Parameter(new Symbol("cons"), [], 0, index++, null),
                 new Location(new Primitive2(Primitives.cons2, 2, false))),
-            new (new Parameter(new Symbol("car"), [], 0, index++, null),
+            new (new Parameter(new Symbol("error"), [], 0, index++, null),
+                new Location(SchemeValue.Void)),
+            new (new Parameter(new Symbol("unchecked-car"), [], 0, index++, null),
                 new Location(Primitives.Car)),
-            new (new Parameter(new Symbol("cdr"), [], 0, index++, null),
+            new (new Parameter(new Symbol("unchecked-cdr"), [], 0, index++, null),
                 new Location(Primitives.Cdr)),
             new (new Parameter(new Symbol("append"), [], 0, index++, null),
                 new Location(Primitives.Append)),
             new (new Parameter(new Symbol("pair?"), [], 0, index++, null),
                 new Location(Primitives.PairP)),
-            new (new Parameter(new Symbol("list?"), [], 0, index++, null),
-                new Location(Primitives.ListP)),
+            // new (new Parameter(new Symbol("list?"), [], 0, index++, null),
+            //     new Location(Primitives.ListP)),
             new (new Parameter(new Symbol("null?"), [], 0, index++, null),
                 new Location(Primitives.NullP)),
-            new (new Parameter(new Symbol("zero?"), [], 0, index++, null),
-                new Location(Primitives.ZeroP)),
+            // new (new Parameter(new Symbol("zero?"), [], 0, index++, null),
+            //     new Location(Primitives.ZeroP)),
             // TODO: Default environment isn't used and should be empty?
+            new (new Parameter(new Symbol("number?"), [], 0, index++, null),
+                new Location(new Primitive("number?", Primitives.numberP, 1, false))),
+            new (new Parameter(new Symbol("procedure?"), [], 0, index++, null),
+                new Location(new Primitive("procedure?", Primitives.procedureP, 1, false))),
             new (new Parameter(new Symbol("call/cc"), [], 0, index++, null),
                 new Location(new Procedure(Environment.Default, Builtins.CallCC))),
-            new (new Parameter(new Symbol("+"), [], 0, index++, null),
-                new Location(new Procedure(Environment.Default, Builtins.Sum))),
+            new (new Parameter(new Symbol("unchecked-bin-op-+"), [], 0, index++, null),
+                new Location(new Procedure(Environment.Default, Builtins.BinOpPlus))),
             new (new Parameter(new Symbol("apply"), [], 0, index++, null),
                 new Location(new Procedure(Environment.Default, Builtins.Apply))),
             // new Location(Primitives.Apply)),
@@ -158,6 +172,9 @@ public class Library : ILibrary {
         // env._dict.Add(new Symbol("record-constructor"), new Procedure( (Builtin)Builtins.record_constructor));
         (Symbol, IExpansionRule)[] keywords =
         [
+            
+            // TODO: it should be necessary to export the core syntactic forms (lambda, set! , define, etc ...)
+            // but for some reason these are available everywhere
 
             new (new Symbol("and"), new BuiltinTransformer(BuiltinTransformer.and)),
             new (new Symbol("quasiquote"), new BuiltinTransformer(BuiltinTransformer.quasiquote)),

@@ -126,6 +126,13 @@ public class Evaluator : IEvaluator<Machine> {
         }
         foreach (var tup in library.KeywordExports) {
             // TODO: it's so wrong that we are passing around symbols here :(
+            if (evaluator.Keywords.HasEntry(tup.Item1)) {
+                // TODO: here we should have the identifer, but we don't so we can't check to see
+                // if the same name was imported from the same library. Boo.
+                
+                // no need to add same rule again
+                continue;
+            }
             evaluator.Keywords.Add(new Identifier(tup.Item1), tup.Item2);
         }
     }

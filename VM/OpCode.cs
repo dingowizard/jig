@@ -16,7 +16,7 @@ public enum OpCode : byte {
     JumpIfFalse,
     Env,
     Lambda,
-    Sum,
+    Add,
     Product,
     CallCC,
     CallWValues,

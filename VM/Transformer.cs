@@ -18,7 +18,14 @@ public class Transformer : Jig.Expansion.Transformer {
         Machine.Load(Procedure.Template, Procedure.Environment, cont);
         Machine.ENVT = Procedure.Environment.ExtendForProcCall(Procedure, [syntax]);
         // Machine.Push(syntax);
-        Machine.Run();
+        try {
+
+            Machine.Run();
+        }
+        catch {
+            Console.WriteLine($"exception while expanding {Syntax.ToDatum(syntax).Print()} @ {syntax.SrcLoc}");
+            throw;
+        }
         return result as Syntax ?? throw new Exception("result of transformer should be a syntax");
     }
 }

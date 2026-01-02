@@ -132,7 +132,8 @@ public class PartialContinuationForCallWithValues : PartialContinuation {
         while (vm.SP > vm.FP) {
             args.Add(vm.Pop());
         }
-        vm.ENVT = vm.ENVT.ExtendForProcCall(Template, args);
+        // vm.ENVT = vm.ENVT.ExtendForProcCall(Template, args);
+        vm.ENVT = this.Environment.ExtendForProcCall(Template, args);
         // TODO: I think everything above could be turned into a method on vm and then re-used?
         vm.PC = this.ReturnAddress;
         vm.FP = this.FP;

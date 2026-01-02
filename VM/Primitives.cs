@@ -376,6 +376,14 @@ public static class Primitives {
         Vector vector = vm.Pop() as Vector ?? throw new Exception("vector-length: expected first argument to be a vector.");
         vm.Push(vm.VAL = vector.Length);
     }
+
+    public static void numberP(Machine vm) {
+        vm.Push(vm.VAL = vm.Pop() is Number ? Bool.True : Bool.False);
+    }
+
+    public static void procedureP(Machine vm) {
+        vm.Push(vm.VAL = vm.Pop() is Procedure ? Bool.True : Bool.False);
+    }
     
     public static void vectorP(Machine vm) {
         // TODO: should vector? return #f when given a record?

@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Jig;
 using Jig.Expansion;
 namespace VM;
@@ -98,7 +99,14 @@ public class Machine : IRuntime {
             while (SP > FP) {
                 args.Add(Pop());
             }
-            ENVT = proc.Environment.ExtendForProcCall(proc, args);
+            try {
+                ENVT = proc.Environment.ExtendForProcCall(proc, args);
+            }
+            catch {
+                Array.ForEach(Disassembler.Disassemble(proc.Template), Console.WriteLine);
+                throw;
+            }
+
             VARS = proc.Locations;
             Template = proc.Template;
             PC = 0ul;
@@ -385,14 +393,11 @@ public class Machine : IRuntime {
                 case OpCode.Env:
                     VAL = ENVT;
                     continue;
-                case OpCode.Sum:
-                    VAL = Integer.Zero;
-                    // TODO: check for wrong type
-                    Jig.List args = (Jig.List)ENVT.GetArg(0);
-                    foreach (var arg in args) {
-                        // TODO: type check
-                        VAL = (Number)VAL + (Number)arg;
-                    }
+                case OpCode.Add:
+                    // TODO: this is wrong. this operation should pop two numbers off stack and then push the sum onto the stack 
+                    Number n1 = (Number)ENVT.GetArg(0);
+                    Number n2 = (Number)ENVT.GetArg(1);
+                    VAL = n1 + n2;
                     Push(VAL);
                     continue;
                 case OpCode.Product:
@@ -422,7 +427,16 @@ public class Machine : IRuntime {
                         results.Add(Pop());
                     }
                     // TODO: this procedure could be a property of the VM rather than the continuation ...
-                    ((TopLevelTemplateContinuation)CONT).Procedure(results.ToArray());
+                    if (CONT is TopLevelContinuation top) {
+                        top.Procedure(results.ToArray());
+                    } else {
+                        // Console.WriteLine($"CONT is {CONT.GetType()}");
+                        // TODO: how did we get here without changing CONT to the TopLevelContinuation?
+                        // it's concerning that we need to use this continuation procedure
+                        // we're getting here when error applies the continuation from and argument position
+                        // so the bug is probably somewhere in the code for applying continuations
+                        Machine.TopLevelContinuation(results.ToArray());
+                    }
                     // TODO: make this the only return statement in the loop
                     return;
                 default: throw new Exception($"unhandled case {opCode} in Execute");

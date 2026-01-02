@@ -5,13 +5,25 @@ public static class Builtins {
     public static readonly Template Sum = new (
         1,
         code: [
-            (ulong)OpCode.Sum << 56,
+            (ulong)OpCode.Add << 56,
             (ulong)OpCode.PopContinuation << 56,
         ],
         vars: [],
         lits: [],
         0,
         true
+    );
+    
+    public static readonly Template BinOpPlus = new (
+        2,
+        code: [
+            (ulong)OpCode.Add << 56,
+            (ulong)OpCode.PopContinuation << 56,
+        ],
+        vars: [],
+        lits: [],
+        2,
+        false
     );
     
     public static readonly Template Product = new (

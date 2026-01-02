@@ -1,51 +1,90 @@
 (library (rnrs lists)
-  (export all any fold-right length list map)
-  (import (core-primitives))
+  (export find for-all exists filter partition fold-right fold-left
+          ; remp remove
+          remv ; remq
+          ; memp member
+          memv ; TODO: why can't I have a bare parenthesis on a line after commented out lines?
+          ; memq
+          ; assp assoc
+          assv ; assq
+          cons*)
+          ;
+  (import (core-primitives)
+          (jig prelude) ; TODO: just for any?
+          (for (rnrs base) run))
 
-  ;; TODO: not rnrs I don't think
-  ;; NOTE: syntax-case uses all
-    (define all
-       (lambda (pred xs)
-          (if (null? xs)
-              #t
-              (if (pred (car xs)) (all pred (cdr xs)) #f))))
+  (define find
+    (lambda (pred lst)
+      (if (null? lst)
+          #f
+          (let ((x (car lst)))
+            (if (pred x)
+                x
+                (find pred (cdr lst)))))))
 
-  ;; TODO: any is a SRFI-1 procedure, I think.
-  ;; NOTE: map uses any. maybe don't export it
-    (define any
-       (lambda (pred xs)
-          (call/cc (lambda (return)
-                      (if (null? xs)
-                          #f
-                          (if (pred (car xs))
-                              (return #t)
-                              (any pred (cdr xs))))))))
+  (define exists any)
 
-    (define fold-right
-      (lambda (fn acc xs)
+  (define for-all ; aka every
+    (lambda (pred xs . rest)
+      (let ((ls (cons xs rest)))
+        (call/cc (lambda (cc)
+                   (define loop
+                     (lambda (rem)
+                       (if (any null? rem) ; TODO: should have tested that all ls the same length
+                           #t
+                           (if (apply pred (map car rem))
+                               (loop (map cdr rem))
+                               (cc #f)))))
+                   (loop ls))))))
+
+  (define filter
+     (lambda (pred xs)
         (if (null? xs)
-            acc
-            (fn (car xs) (fold-right fn acc (cdr xs))))))
+            '()
+            (if (pred (car xs))
+                (cons (car xs) (filter pred (cdr xs)))
+                (filter pred (cdr xs))))))
 
-    (define length
-      (lambda (l)
+  (define partition
+     (lambda (pred xs)
         (define loop
-          (lambda (acc l)
-            (if (null? l)
-                acc
-                (loop (+ 1 acc) (cdr l)))))
-        (loop 0 l)))
+           (lambda (ts fs xs)
+              (if (null? xs)
+                  (values (reverse ts) (reverse fs))
+                  (if (pred (car xs))
+                      (loop (cons (car xs) ts) fs (cdr xs))
+                      (loop ts (cons (car xs) fs) (cdr xs))))))
+        (loop '() '() xs)))
 
-    (define list (lambda xs xs))
+  (define memv
+     (lambda (x xs)
+        (if (null? xs)
+            #f
+            (if (eqv? (car xs) x)
+                xs
+                (memv x (cdr xs))))))
 
-    (define map
-      (lambda (fn xs . rest)
-        ((lambda (ls)
-            (if (not (apply = (fold-right (lambda (x acc) (cons (length x) acc)) '() ls)))
-                (error "map: lists must be same length" ls))
-          (if (any null? ls)
-              '()
-              (cons (apply fn (fold-right (lambda (x acc) (cons (car x) acc)) '() ls))
-                    (apply map (cons fn (fold-right (lambda (x acc) (cons (cdr x) acc)) '() ls)))))) (cons xs rest))))
+  (define remv
+    (lambda (x xs)
+      (if (null? xs)
+          '()
+          (let ((y (car xs)))
+            (if (eqv? x y)
+                (remv x (cdr xs))
+                (cons y (remv x (cdr xs))))))))
+
+  (define assv
+    (lambda (key alist)
+      (if (null? alist)
+          #f
+          (if (eqv? key (caar alist))
+              (car alist)
+              (assv key (cdr alist))))))
+
+  (define cons*
+    (lambda (x . rest)
+      (if (null? rest)
+          x
+          (cons x (apply cons* rest)))))
 
   )

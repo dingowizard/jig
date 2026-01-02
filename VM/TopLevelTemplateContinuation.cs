@@ -15,7 +15,7 @@ public class TopLevelTemplateContinuation : TopLevelContinuation {
     
     
     private static readonly Template End = new (
-        0,
+        1,
         code: [
             (ulong)OpCode.Halt << 56,
         ],

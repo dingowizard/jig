@@ -56,6 +56,7 @@ public static class Program {
             });
         IEvaluator evaluator = new Evaluator();
         var jigLib = Library.FromFile("lib/jig.sls", Reader.ReadSyntax, new VMFactory());
+        // var jigLib = Library.FromFile("lib/rnrs/base.sls", Reader.ReadSyntax, new VMFactory());
         evaluator.Import(jigLib);
         evaluator.Import(jigLib, 1);
         

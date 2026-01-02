@@ -166,7 +166,19 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
             int index = 0;
             if (requiredParameterCount > 0) {
                 for (; index < requiredParameterCount; index++) {
-                    Locations[index] = new Location(arrayArgs[index]);
+                    try {
+
+                        Locations[index] = new Location(arrayArgs[index]);
+
+                    }
+                    catch {
+                        Console.WriteLine("new Frame:");
+                        foreach (var arg in args) {
+                            Console.WriteLine(arg.Print());
+                        }
+                        throw;
+                    }
+                    
                 }
                 
             }
@@ -211,6 +223,12 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
     }
     public void DefineTopLevel(Parameter p, Binding runtimeBinding)
     {
+        // TODO: no need to re-add same parameter and it's ok to do so, but a top level parameter with the same symbol
+        // for example, it's wrong in scheme to import the same symbol from two different libraries
+        if (_topLevels.Keys.Any(p0 => p0.Equals(p))) {
+            // no need to add. already in dict
+            return;
+        }
         if (!_topLevels.TryAdd(p, runtimeBinding)) {
             throw new Exception($"DefineTopLevel: trying to add {p.Symbol.Print()} but it is already in _topLevels");
 
