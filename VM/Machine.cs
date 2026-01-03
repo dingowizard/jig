@@ -270,6 +270,10 @@ public class Machine : IRuntime {
                     // maybe by having another CompilationContext for operator
                     VAL = Pop();
                     if (VAL is Primitive primitiveProc) {
+                        // Primitives are handled differently from user-defined procedures
+                        // args are not bound in the environment
+                        // it should not be possible to have errors
+                        // so type checking needs to have already been done.
                         primitiveProc.Apply(this);
                         // TODO: does CONT.Pop belong in the Primitive procedure?
                         CONT.Pop(this);
@@ -308,6 +312,7 @@ public class Machine : IRuntime {
                         // }
                         continue;
                     }
+                    // Primitive2 and user-defined procedures are here. Builtins are here
                     Call();
                     continue;
                 case OpCode.CallWValues:
@@ -393,22 +398,6 @@ public class Machine : IRuntime {
                 case OpCode.Env:
                     VAL = ENVT;
                     continue;
-                case OpCode.Add:
-                    // TODO: this is wrong. this operation should pop two numbers off stack and then push the sum onto the stack 
-                    Number n1 = (Number)ENVT.GetArg(0);
-                    Number n2 = (Number)ENVT.GetArg(1);
-                    VAL = n1 + n2;
-                    Push(VAL);
-                    continue;
-                case OpCode.Product:
-                    VAL = Integer.One;
-                    Jig.List productArgs = (Jig.List)ENVT.GetArg(0);
-                    foreach (var arg in productArgs) {
-                        // TODO: type check
-                        VAL = (Number)VAL * (Number)arg;
-                    }
-                    Push(VAL);
-                    continue;
                 case OpCode.ArgToArgs:
                     var tmp = ENVT.GetArg(IR & 0x00FFFFFFFFFFFFFF);
                     if (tmp is not IEnumerable<ISchemeValue> ys) {
@@ -455,6 +444,15 @@ public class Machine : IRuntime {
         CONT = new TopLevelTemplateContinuation(cont);
     }
 
+    public void Load(Template program, Environment env, Continuation cont) {
+        PC = 0;
+        var proc = new Procedure(env, program);
+        Template = proc.Template;
+        VARS = proc.Locations;
+        ClearStack();
+        ENVT = env;
+        CONT = cont;
+    }
 
     public IRuntimeEnvironment RuntimeEnvironment {
         get => ENVT;

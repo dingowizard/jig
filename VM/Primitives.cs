@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Intrinsics.X86;
 using Jig;
 using Jig.Expansion;
@@ -7,22 +8,30 @@ using String = Jig.String;
 namespace VM;
 
 public static class Primitives {
-    private static void car(Machine vm) {
-        SchemeValue arg = vm.Pop();
-        IPair? pair = arg as IPair;
-        if (pair is null) throw new Exception($"car: expected argument to be a pair. Got ${arg}");
-        vm.Push(vm.VAL = (SchemeValue)pair.Car);
+
+    public static void uncheckedBinOpAdd(Machine vm) {
+        Number n1 = (Number)vm.Pop();
+        Number n2 = (Number)vm.Pop();
+        vm.Push(vm.VAL = n1 + n2);
     }
-    public static Primitive Car { get; } = new("car", car, 1, false);
+    public static void uncheckedBinOpMul(Machine vm) {
+        Number n1 = (Number)vm.Pop();
+        Number n2 = (Number)vm.Pop();
+        vm.Push(vm.VAL = n1 * n2);
+    }
+    
+    private static void car(Machine vm) {
+        IPair arg = (IPair)vm.Pop();
+        vm.Push(vm.VAL = (SchemeValue)arg.Car);
+    }
+    public static Primitive Car { get; } = new("unchecked-car", car, 1, false);
 
     private static void cdr(Machine vm) {
-        SchemeValue arg = vm.Pop();
-        IPair? pair = arg as IPair;
-        if (pair is null) throw new Exception($"cdr: expected argument to be a pair. Got {arg}");
-        vm.Push(vm.VAL = (SchemeValue)pair.Cdr);
+        IPair arg = (IPair)vm.Pop();
+        vm.Push(vm.VAL = (SchemeValue)arg.Cdr);
     }
 
-    public static Primitive Cdr { get; } = new ("cdr", cdr, 1, false);
+    public static Primitive Cdr { get; } = new ("unchecked-cdr", cdr, 1, false);
     
     private static void cons(Machine vm) {
         SchemeValue car  = vm.Pop();
@@ -37,14 +46,14 @@ public static class Primitives {
 
     public static Primitive Cons { get; } = new ("cons", cons, 2, false);
     
-    private static void zerop(Machine vm) {
-        SchemeValue schemeValue = vm.Pop();
-        if (schemeValue is Number number) {
-            vm.Push(vm.VAL = (number == Integer.Zero));
-            return;
-        }
-        throw new Exception($"zero?: expected argument to be number, got {schemeValue}");
-    }
+    // private static void zerop(Machine vm) {
+    //     SchemeValue schemeValue = vm.Pop();
+    //     if (schemeValue is Number number) {
+    //         vm.Push(vm.VAL = (number == Integer.Zero));
+    //         return;
+    //     }
+    //     throw new Exception($"zero?: expected argument to be number, got {schemeValue}");
+    // }
 
     public static Primitive Eqvp {get;} = new("eqv?", eqvp, 2, false);
 
@@ -99,31 +108,38 @@ public static class Primitives {
         return;
 
     }
-    public static Primitive NumEq { get; } = new("=", numEq, 1, true);
 
-    private static void numEq(Machine vm)
-    {
-        // TODO: what if args aren't numbers?
-        Number number1 = (Number)vm.Pop();
-        while (vm.SP > vm.FP)
-        {
-            Number number2 = (Number)vm.Pop();
-            if ((number1 != number2).Value)
-            {
-                // you don't have to keep testing arguments for equality
-                // so throw away rest of args to call
-                vm.SP = vm.FP;
-                vm.Push(Bool.False);
-                return;
-
-            }
-            
-        }
-
-        vm.Push(Bool.True);
-        return;
-
+    public static void uncheckedBinOpNumEq(Machine vm) {
+        
+        Number n1 = (Number)vm.Pop();
+        Number n2 = (Number)vm.Pop();
+        vm.Push(vm.VAL = n1 == n2);
     }
+    // public static Primitive NumEq { get; } = new("=", numEq, 1, true);
+    //
+    // private static void numEq(Machine vm)
+    // {
+    //     // TODO: what if args aren't numbers?
+    //     Number number1 = (Number)vm.Pop();
+    //     while (vm.SP > vm.FP)
+    //     {
+    //         Number number2 = (Number)vm.Pop();
+    //         if ((number1 != number2).Value)
+    //         {
+    //             // you don't have to keep testing arguments for equality
+    //             // so throw away rest of args to call
+    //             vm.SP = vm.FP;
+    //             vm.Push(Bool.False);
+    //             return;
+    //
+    //         }
+    //         
+    //     }
+    //
+    //     vm.Push(Bool.True);
+    //     return;
+    //
+    // }
 
     public static Primitive Append {get;} = new("append", append, 0, true);
 
@@ -176,6 +192,12 @@ public static class Primitives {
         }
         vm.Push(vm.VAL = arg0);
         return;
+    }
+
+    public static void uncheckedBinOpMinus(Machine vm) {
+        Number n1 = (Number)vm.Pop();
+        Number n2 = (Number)vm.Pop();
+        vm.Push(vm.VAL = n1 - n2);
     }
 
     public static Primitive Apply {get;} = new("apply", apply, 2, false);
@@ -245,7 +267,7 @@ public static class Primitives {
         vm.Push(vm.VAL = Bool.True);
         return;
     }
-    public static Primitive ZeroP { get; } = new("zero?", zerop, 1, false);
+    // public static Primitive ZeroP { get; } = new("zero?", zerop, 1, false);
     
     private static void nullp(Machine vm) {
         SchemeValue schemeValue = vm.Pop();
@@ -382,7 +404,16 @@ public static class Primitives {
     }
 
     public static void procedureP(Machine vm) {
-        vm.Push(vm.VAL = vm.Pop() is Procedure ? Bool.True : Bool.False);
+        SchemeValue arg = vm.Pop();
+        if (arg is Procedure) {
+            vm.Push(vm.VAL = Bool.True);
+            return;
+        }
+        if (arg is SavedContinuation) {
+            vm.Push(vm.VAL = Bool.True);
+            return;
+        }
+        vm.Push(vm.VAL = Bool.False);
     }
     
     public static void vectorP(Machine vm) {
@@ -392,6 +423,7 @@ public static class Primitives {
     }
 
     public static void values(Machine vm) { }
+
 
     
     public static void make_record_type_descriptor(Machine vm) {
@@ -520,6 +552,7 @@ public static class Primitives {
          return;
 
      }
+     
 }
 
 public delegate void PrimitiveProcedure(Machine vm);

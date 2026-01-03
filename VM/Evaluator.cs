@@ -57,9 +57,36 @@ public class Evaluator : IEvaluator<Machine> {
         var code = compiler.CompileExprForREPL(program, Environment);
         // TODO: if we load a different environment here, doesn't that clobber the old one. And then what?
         // NOTE: also a problem in ExecuteFile
-        Runtime.Load(code, Environment, continuation);
+        LoadAndRun(code, Environment, continuation);
+        // Runtime.Load(code, Environment, continuation);
+        // // TODO: move continuation argument to Run?
+        // try {
+        //     Runtime.Run();
+        // } catch (SchemeRuntimeException ex) {
+        //     
+        // }
+        
+    }
+
+    public void LoadAndRun(Template template, Environment env, ContinuationAny continuation) {
+        Runtime.Load(template, env, continuation);
         // TODO: move continuation argument to Run?
-        Runtime.Run();
+        try {
+            Runtime.Run();
+        } catch (SchemeRuntimeException ex) {
+            LoadAndRun(ex.Template, ex.Environment, ex.Continuation);
+        }
+        
+    }
+
+    public void LoadAndRun(Template template, Environment env, Continuation continuation) {
+        Runtime.Load(template, env, continuation);
+        // TODO: move continuation argument to Run?
+        try {
+            Runtime.Run();
+        } catch (SchemeRuntimeException ex) {
+            LoadAndRun(ex.Template, ex.Environment, ex.Continuation);
+        }
     }
 
     public void Eval(ContinuationAny continuation, Syntax syntax, IRuntimeEnvironment env)
@@ -183,6 +210,14 @@ public class Evaluator : IEvaluator<Machine> {
     public IRuntimeEnvironment Variables { get; }
     
     public Environment Environment { get; }
+}
+
+public class SchemeRuntimeException : Exception {
+    
+    public SchemeRuntimeException(Template template, Continuation continuation, Environment env, string message, Exception innerException) : base(message, innerException) {}
+    public Template Template {get;}
+    public Continuation Continuation {get;}
+    public Environment Environment {get; set;}
 }
 
 public class VMFactory : IEvaluatorFactory {

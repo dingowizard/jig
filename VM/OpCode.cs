@@ -16,8 +16,6 @@ public enum OpCode : byte {
     JumpIfFalse,
     Env,
     Lambda,
-    Add,
-    Product,
     CallCC,
     CallWValues,
     PushWinder,
@@ -28,6 +26,4 @@ public enum OpCode : byte {
     PopFP,
     ArgToArgs, // takes list arg from stack and pushes each element onto stack. TODO: yuck
     Halt,
-    // Experimental:
-    Car,
 }

@@ -6,6 +6,9 @@
           cons car cdr append pair? number? procedure? list? null? zero? call/cc + apply expand > < - * = eqv?
           values call-with-values dynamic-wind symbol? vector vector-ref vector? vector-length
           and quasiquote syntax-rules
+
+          ; TODO: which library?
+          raise raise-continuable with-exception-handler
           ; (rnrs records procedural)
           make-record-type-descriptor record-type-descriptor? make-record-constructor-descriptor
           record-predicate record-accessor record-constructor
@@ -68,4 +71,48 @@
              (dynamic-wind
                 (lambda () (p0 v0) (p v) ...)
                 (lambda () body0 body ...)
-                (lambda () (for-each (lambda (pr old) (pr old (lambda (x) x))) (list p0 p ...) olds)))) (p0) (p) ...)))))
+                (lambda () (for-each (lambda (pr old) (pr old (lambda (x) x))) (list p0 p ...) olds)))) (p0) (p) ...))))
+
+  (define abort)
+
+
+
+(call/cc
+ (lambda (k)
+   (define *current-exception-handlers*
+     (list (lambda (condition)
+             (display "unhandled exception ")
+             (display condition)
+             (newline)
+             (k (void)))))
+   (define with-exception-handlers
+       (lambda (new-handlers thunk)
+           (let ((previous-handlers *current-exception-handlers*))
+            (dynamic-wind
+                (lambda ()
+                 (set! *current-exception-handlers* new-handlers))
+                thunk
+                (lambda ()
+                 (set! *current-exception-handlers* previous-handlers))))))
+   (set! with-exception-handler
+       (lambda (handler thunk)
+           (with-exception-handlers (cons handler *current-exception-handlers*)
+                                   thunk)))
+   (set! raise
+       (lambda (obj)
+           (let ((handlers *current-exception-handlers*))
+            (with-exception-handlers (cdr handlers)
+                (lambda ()
+                 ((car handlers) obj)
+                 (abort "user-defined handler returned on non-continuable exception"
+                         (car handlers)
+                         obj))))))
+   (set! raise-continuable
+       (lambda (obj)
+           (let ((handlers *current-exception-handlers*))
+            (with-exception-handlers (cdr handlers)
+                (lambda ()
+                 ((car handlers) obj))))))
+   (set! abort (lambda xs (displayln (car xs)) (k (void))))))
+
+)
