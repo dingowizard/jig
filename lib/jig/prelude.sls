@@ -1,6 +1,6 @@
 (library (jig prelude)
   (export append apply length not error car cdr caar cadr cdar cddr caddr cdddr
-          fold-left fold-right map all any void error list list? zero? + * - =
+          fold-left fold-right map all any void error list list? zero? + * - / =
           raise raise-continuable with-exception-handler)
   (import (core-primitives))
 
@@ -38,7 +38,6 @@
               (list? (cdr x))
               #f)))) ; TODO: better to have this builtin?
 
-
   ; TODO: problem redefining call/cc like this
   ;; (define call/cc
   ;;   (lambda (x)
@@ -46,7 +45,7 @@
   ;;         (unchecked-call/cc x)
   ;;         (error 'call/cc "expected its argument to be a procedure"))))
 
-  (define length
+  (define length ; TODO: error if not list
       (lambda (l)
         (define loop
           (lambda (acc l)
@@ -105,6 +104,21 @@
                             (if (number? a)
                                 (unchecked-bin-op-- b a)
                                 (error '- "expected all arguments to be numbers" a)))
+                         x
+                         rest))
+          (error '- "expected first argument to be a number" x))))
+
+  (define /
+    (lambda (x . rest)
+      (if (number? x)
+          (if (null? rest)
+              (if (zero? x) (error '/ "division by zero is undefined") (unchecked-bin-op-/ 1 x))
+              (fold-left (lambda (a b)
+                            (if (number? a)
+                                (if (zero? a)
+                                  (error '/ "division by zero is undefined")
+                                  (unchecked-bin-op-/ b a))
+                                (error '/ "expected all arguments to be numbers" a)))
                          x
                          rest))
           (error '- "expected first argument to be a number" x))))
@@ -186,9 +200,9 @@
 
   (define list (lambda xs xs))
 
-(define with-exception-handler #f)
-(define raise #f)
-(define raise-continuable #f)
+  (define with-exception-handler #f)
+  (define raise #f)
+  (define raise-continuable #f)
 
   (call/cc
    (lambda (k)

@@ -109,37 +109,18 @@ public static class Primitives {
 
     }
 
+    public static void uncheckedBinOpDiv(Machine vm) {
+        
+        Number n1 = (Number)vm.Pop();
+        Number n2 = (Number)vm.Pop();
+        vm.Push(vm.VAL = n1 / n2);
+    }
     public static void uncheckedBinOpNumEq(Machine vm) {
         
         Number n1 = (Number)vm.Pop();
         Number n2 = (Number)vm.Pop();
         vm.Push(vm.VAL = n1 == n2);
     }
-    // public static Primitive NumEq { get; } = new("=", numEq, 1, true);
-    //
-    // private static void numEq(Machine vm)
-    // {
-    //     // TODO: what if args aren't numbers?
-    //     Number number1 = (Number)vm.Pop();
-    //     while (vm.SP > vm.FP)
-    //     {
-    //         Number number2 = (Number)vm.Pop();
-    //         if ((number1 != number2).Value)
-    //         {
-    //             // you don't have to keep testing arguments for equality
-    //             // so throw away rest of args to call
-    //             vm.SP = vm.FP;
-    //             vm.Push(Bool.False);
-    //             return;
-    //
-    //         }
-    //         
-    //     }
-    //
-    //     vm.Push(Bool.True);
-    //     return;
-    //
-    // }
 
     public static Primitive Append {get;} = new("append", append, 0, true);
 

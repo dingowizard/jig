@@ -98,6 +98,8 @@ public class Library : ILibrary {
                 new Location(new Primitive("unchecked-bin-op--", Primitives.uncheckedBinOpMinus, 2, false))),
             new (new Parameter(new Symbol("unchecked-bin-op-*"), [], 0, index++, null),
                 new Location(new Primitive("unchecked-bin-op-*", Primitives.uncheckedBinOpMul, 2, false))),
+            new (new Parameter(new Symbol("unchecked-bin-op-/"), [], 0, index++, null),
+                new Location(new Primitive("unchecked-bin-op-/", Primitives.uncheckedBinOpDiv, 2, false))),
             new (new Parameter(new Symbol("unchecked-bin-op-="), [], 0, index++, null),
                 new Location(new Primitive("unchecked-bin-op-=", Primitives.uncheckedBinOpNumEq, 2, false))),
             new (new Parameter(new Symbol("unchecked-apply"), [], 0, index++, null),
