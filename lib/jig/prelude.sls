@@ -148,12 +148,6 @@
           acc
           (fold-left fn (fn (car xs) acc) (cdr xs)))))
 
-  ;; (define map-1
-  ;;   (lambda (fn xs)
-  ;;     (if (null? xs)
-  ;;         '()
-  ;;         (cons (fn (car xs)) (map-1 fn (cdr xs))))))
-
   (define map
     (lambda (fn xs . rest)
       ((lambda (ls)
@@ -168,7 +162,9 @@
      (lambda (pred xs)
         (if (null? xs)
             #t
-            (if (pred (car xs)) (all pred (cdr xs)) #f))))
+            (if (pred (car xs))
+                (all pred (cdr xs))
+                #f))))
 
   (define any
      (lambda (pred xs)
@@ -180,23 +176,6 @@
                             (any pred (cdr xs))))))))
 
   (define void (lambda () (if #f #f)))
-
-  ;; (define-syntax or2
-  ;;   (lambda (stx)
-  ;;     (datum->syntax stx `((lambda (x) (if x x ,(car (cdr (cdr (syntax->list stx)))))) ,(car (cdr (syntax->list stx)))))))
-
-  ;; ; ; TODO: shouldn't this call raise or raise continuable?
-  ;; (call/cc
-  ;;  (lambda (k)
-  ;;    (set! error
-  ;;          (lambda (msg . xs)
-  ;;            (display msg)
-  ;;            (newline)
-  ;;            (when (not (null? xs))
-  ;;               (display "    in:")
-  ;;               (display (car xs))
-  ;;               (newline))
-  ;;            (k (void))))))
 
   (define list (lambda xs xs))
 
