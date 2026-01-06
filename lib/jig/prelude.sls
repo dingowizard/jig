@@ -71,6 +71,12 @@
   (define not (lambda (x) (if x #f #t)))
 
 
+  (define fold-left
+    (lambda (fn acc xs)
+      (if (null? xs)
+          acc
+          (fold-left fn (fn acc (car xs)) (cdr xs)))))
+
   (define fold-right
     (lambda (fn acc xs)
       (if (null? xs)
@@ -83,8 +89,8 @@
                     (if (number? a)
                         (unchecked-bin-op-+ a b)
                         (error '+ "expected all arguments to be numbers." a)))
-                  0
-                  xs)))
+                 0
+                 xs)))
 
   (define *
     (lambda xs
@@ -92,8 +98,8 @@
                     (if (number? a)
                         (unchecked-bin-op-* a b)
                         (error '+ "expected all arguments to be numbers." a)))
-                  1
-                  xs)))
+                 1
+                 xs)))
 
   (define -
     (lambda (x . rest)
@@ -142,11 +148,6 @@
                      #t))
           (error '= "expected first argument to be a number." x))))
 
-  (define fold-left
-    (lambda (fn acc xs)
-      (if (null? xs)
-          acc
-          (fold-left fn (fn (car xs) acc) (cdr xs)))))
 
   (define map
     (lambda (fn xs . rest)
@@ -198,5 +199,5 @@
                    (display (car irritants)))) ; TODO: what if there are more than one irritant?
              (newline)
              (k)))
-     (void)))
-  )
+     (void))))
+  
