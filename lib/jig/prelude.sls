@@ -127,7 +127,7 @@
                                 (error '/ "expected all arguments to be numbers" a)))
                          x
                          rest))
-          (error '- "expected first argument to be a number" x))))
+          (error '/ "expected first argument to be a number" x))))
 
   ; NOTE: this fo-each is just for = below. Not exported
   (define for-each
