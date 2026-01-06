@@ -86,7 +86,7 @@
   (define +
     (lambda xs
       (fold-left (lambda (a b)
-                    (if (number? a)
+                    (if (number? b)
                         (unchecked-bin-op-+ a b)
                         (error '+ "expected all arguments to be numbers." a)))
                  0
@@ -95,7 +95,7 @@
   (define *
     (lambda xs
       (fold-left (lambda (a b)
-                    (if (number? a)
+                    (if (number? b)
                         (unchecked-bin-op-* a b)
                         (error '+ "expected all arguments to be numbers." a)))
                  1
@@ -107,8 +107,8 @@
           (if (null? rest)
               (unchecked-bin-op-- 0 x)
               (fold-left (lambda (a b)
-                            (if (number? a)
-                                (unchecked-bin-op-- b a)
+                            (if (number? b)
+                                (unchecked-bin-op-- a b)
                                 (error '- "expected all arguments to be numbers" a)))
                          x
                          rest))
@@ -120,10 +120,10 @@
           (if (null? rest)
               (if (zero? x) (error '/ "division by zero is undefined") (unchecked-bin-op-/ 1 x))
               (fold-left (lambda (a b)
-                            (if (number? a)
-                                (if (zero? a)
+                            (if (number? b)
+                                (if (zero? b)
                                   (error '/ "division by zero is undefined")
-                                  (unchecked-bin-op-/ b a))
+                                  (unchecked-bin-op-/ a b))
                                 (error '/ "expected all arguments to be numbers" a)))
                          x
                          rest))
