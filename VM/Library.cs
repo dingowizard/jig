@@ -95,6 +95,8 @@ public class Library : ILibrary {
                 new Location(new Procedure(Environment.Default, Builtins.CallCC))),
             new (new Parameter(new Symbol("error"), [], 0, index++, null),
                 new Location(SchemeValue.Void)),
+            new (new Parameter(new Symbol("display-stack-trace"), [], 0, index++, null),
+                new Location(new Primitive("display-stack-trace", Primitives.stackTrace, 0, false))),
             new (new Parameter(new Symbol("unchecked-bin-op-+"), [], 0, index++, null),
                 new Location(new Primitive("unchecked-bin-op-+", Primitives.uncheckedBinOpAdd, 2, false))),
             new (new Parameter(new Symbol("unchecked-bin-op--"), [], 0, index++, null),
