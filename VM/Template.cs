@@ -21,6 +21,8 @@ public class Template : SchemeValue { // TODO: is this a scheme value? should it
         RequiredParameterCount = 0;
         HasRestParameter = false;
     }
+
+    public Identifier Name { get; set; } = new Identifier(new Symbol("#<anonymous>"));
     
     public static Template Empty => new Template(0, [], [], [], 0, false);
     

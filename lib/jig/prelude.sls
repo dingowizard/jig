@@ -198,6 +198,7 @@
                    (display " irritant: ")
                    (display (car irritants)))) ; TODO: what if there are more than one irritant?
              (newline)
+             (display-stack-trace)
              (k)))
      (void))))
   

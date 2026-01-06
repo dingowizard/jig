@@ -3,6 +3,7 @@ using Jig;
 namespace VM;
 
 public class TopLevelTemplateContinuation : TopLevelContinuation {
+    // TODO: why does this class exist? When is it used rather than just TopLevelContinuation?
     public TopLevelTemplateContinuation(ContinuationAny cont) : base(cont) {
     }
 

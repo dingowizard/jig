@@ -9,6 +9,34 @@ namespace VM;
 
 public static class Primitives {
 
+
+    public static void stackTrace(Machine vm) {
+        // TODO: for right now, stackTrace is being called by error, which we don't need 
+        // to include as part of the stack trace.
+        // So we're jumping one continuation down the call stack to start with whatever called error.
+        Console.WriteLine($"stack-trace called by {vm.Template.Name}");
+        Continuation cont = vm.CONT;
+        while (true) {
+            if (cont is TopLevelContinuation tc) {
+                Console.WriteLine("called from top-level");
+                break;
+            }
+            if (cont is SavedContinuation sc) {
+                cont = sc.Saved;
+                Console.WriteLine("called by saved continuation");
+                continue;
+            }
+            if (cont is PartialContinuation pc) {
+                Console.WriteLine($"called by {pc.Template.Name.Symbol.Print()} defined at {pc.Template.Name.SrcLoc?.ToString() ?? "" }");
+                cont = pc.Continuation;
+                continue;
+            }
+
+            throw new Exception($"unhandled case {cont.GetType()}");
+        }
+
+    }
+
     public static void uncheckedBinOpAdd(Machine vm) {
         Number n1 = (Number)vm.Pop();
         Number n2 = (Number)vm.Pop();

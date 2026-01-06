@@ -121,7 +121,16 @@ public class Compiler {
 
         // We have to compile the value after the variable in case of lambda expr,
         // because there might be a recursive call to a toplevel
-        result.InsertRange(0, Compile(setForm.Value, ctEnv, literals, bindings, Context.Argument, scopeLevel, startLine));
+        
+        ulong[] compiledValue;
+        if (setForm.Value is ParsedLambda parsedLambda) {
+            compiledValue = CompileLambdaExpr(parsedLambda, ctEnv, literals, Context.Argument, scopeLevel,
+                startLine, setForm.Variable.Identifier);
+        } else {
+            compiledValue = Compile(setForm.Value, ctEnv, literals, bindings, Context.Argument, scopeLevel,
+                startLine);
+        }
+        result.InsertRange(0, compiledValue);
         // TODO: should this be CodeForContext?
         if (context == Context.Tail) {
             result.Add((ulong)OpCode.PopContinuation << 56);
@@ -170,8 +179,20 @@ public class Compiler {
         // We have to compile the lambda function after the variable,
         // because there might be a recursive call to a toplevel
         if (defForm.Value is not null) {
-            result.InsertRange(0,
-                    Compile(defForm.Value, ctEnv, literals, bindings, Context.Argument, scopeLevel, startLine));
+            
+            // TODO: ok this is grotesque, but will have to serve for now
+            // we're going to check if the value is a lambda expression,
+            // so that we can pass the identifier along to the template
+            // we should consolidate all this stuff into a compiler context class
+            ulong[] compiledValue;
+            if (defForm.Value is ParsedLambda parsedLambda) {
+                compiledValue = CompileLambdaExpr(parsedLambda, ctEnv, literals, Context.Argument, scopeLevel,
+                    startLine, defForm.Variable);
+            } else {
+                compiledValue = Compile(defForm.Value, ctEnv, literals, bindings, Context.Argument, scopeLevel,
+                    startLine);
+            }
+            result.InsertRange(0, compiledValue);
         } else {
             // push literal void in cases like "(define a)"
             if (!literals.Contains(SchemeValue.Void)) {
@@ -329,9 +350,13 @@ public class Compiler {
         Sys.List<SchemeValue> literals,
         Context context,
         int scopeLevel,
-        int startLine = 0) {
+        int startLine = 0,
+        Identifier? name = null) {
 
         Template template = CompileLambdaTemplate(lambdaExpr, ctEnv, scopeLevel);
+        if (name is not null) {
+            template.Name = name;
+        }
         literals.Add(template);
         int templateIndex = literals.IndexOf(template);
         Sys.List<ulong> result = [
