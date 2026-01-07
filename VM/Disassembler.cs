@@ -38,7 +38,7 @@ public static class Disassembler {
                 return $"{lineNo:D3}\tPOPFP";
             case OpCode.PushFP:
                 return $"{lineNo:D3}\tPUSHFP";
-            case OpCode.Call:
+            case OpCode.CallDB:
                 return $"{lineNo:D3}\tCALL";
             case OpCode.Lit:
                 return $"{lineNo:D3}\tLIT\t{operand:D3} ; {literals[operand].Print()}";
@@ -48,7 +48,7 @@ public static class Disassembler {
                 return $"{lineNo:D3}\tCONTNT\t{operand:D3}";
             case OpCode.PushContinuationForBodyThunk:
                 return $"{lineNo:D3}\tCONTBT\t{operand:D3}";
-            case OpCode.PopContinuation:
+            case OpCode.PopContinuationDB:
                 return $"{lineNo:D3}\tRET";
             case OpCode.Arg:
                 return $"{lineNo:D3}\tARG\t{operand:D3}";

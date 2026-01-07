@@ -24,11 +24,12 @@
               (error 'apply "expected second argument to be a proper list." xs))
           (error 'apply "expected first arguement to be a procedure." p))))
 
-  (define zero?
-    (lambda (x)
-      (if (number? x)
-          (= x 0)
-          (error 'zero? "expected its argument to be a number."))))
+  ; TODO: put this back
+  ;; (define zero?
+  ;;   (lambda (x)
+  ;;     (if (number? x)
+  ;;         (= x 0)
+  ;;         (error 'zero? "expected its argument to be a number."))))
 
   (define list?
     (lambda (x)

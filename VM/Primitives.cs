@@ -11,6 +11,14 @@ public static class Primitives {
 
 
     public static void stackTrace(Machine vm) {
+
+
+        if (!vm.ActivationStack.Empty) {
+            vm.ActivationStack.StackTrace(Console.Out);
+            return;
+        }
+
+
         // TODO: for right now, stackTrace is being called by error, which we don't need 
         // to include as part of the stack trace.
         // So we're jumping one continuation down the call stack to start with whatever called error.
@@ -27,14 +35,13 @@ public static class Primitives {
                 continue;
             }
             if (cont is PartialContinuation pc) {
-                Console.WriteLine($"called by {pc.Template.Name.Symbol.Print()} defined at {pc.Template.Name.SrcLoc?.ToString() ?? "" }");
+                Console.WriteLine($"called by {pc.Template.Name.Symbol.Print()} defined at {pc.Template.Name.SrcLoc?.ToString() ?? ""}");
                 cont = pc.Continuation;
                 continue;
             }
-
             throw new Exception($"unhandled case {cont.GetType()}");
-        }
 
+        }
     }
 
     public static void uncheckedBinOpAdd(Machine vm) {
@@ -61,27 +68,38 @@ public static class Primitives {
 
     public static Primitive Cdr { get; } = new ("unchecked-cdr", cdr, 1, false);
     
-    private static void cons(Machine vm) {
+    public static void cons(Machine vm) {
         SchemeValue car  = vm.Pop();
         SchemeValue cdr  = vm.Pop();
         vm.Push(vm.VAL = (SchemeValue)Pair.Cons(car, cdr));
     }
 
-    public static void cons2(Machine vm) {
-        vm.Push(vm.VAL = (SchemeValue)Pair.Cons(vm.ENVT.GetArg(0), vm.ENVT.GetArg(1)));
-        vm.CONT.Pop(vm);
-    }
+    // public static void cons2(Machine vm) {
+    //     vm.Push(vm.VAL = (SchemeValue)Pair.Cons(vm.ENVT.GetArg(0), vm.ENVT.GetArg(1)));
+    //     vm.CONT.Pop(vm);
+    // }
 
     public static Primitive Cons { get; } = new ("cons", cons, 2, false);
     
-    // private static void zerop(Machine vm) {
-    //     SchemeValue schemeValue = vm.Pop();
-    //     if (schemeValue is Number number) {
-    //         vm.Push(vm.VAL = (number == Integer.Zero));
-    //         return;
-    //     }
-    //     throw new Exception($"zero?: expected argument to be number, got {schemeValue}");
-    // }
+    // TODO: make this unchecked
+    public static void zeroP(Machine vm) {
+        SchemeValue schemeValue = vm.Pop();
+        if (schemeValue is Number number) {
+            vm.Push(vm.VAL = (number == Integer.Zero));
+            return;
+        }
+        throw new Exception($"zero?: expected argument to be number, got {schemeValue}");
+    }
+
+    public static void template(Machine vm) {
+        SchemeValue schemeValue = vm.Pop();
+        if (schemeValue is Procedure proc) {
+            Array.ForEach(Disassembler.Disassemble(proc.Template), Console.WriteLine);
+            return;
+        }
+        throw new Exception();
+
+    }
 
     public static Primitive Eqvp {get;} = new("eqv?", eqvp, 2, false);
 

@@ -74,7 +74,9 @@ public class Library : ILibrary {
         Binding[] coreBindings =
         [
             new (new Parameter(new Symbol("cons"), [], 0, index++, null),
-                new Location(new Primitive2(Primitives.cons2, 2, false))),
+                new Location(new Primitive("cons", Primitives.cons, 2, false))),
+            // new (new Parameter(new Symbol("cons"), [], 0, index++, null),
+            //     new Location(new Primitive2(Primitives.cons2, 2, false))),
             new (new Parameter(new Symbol("pair?"), [], 0, index++, null),
                 new Location(Primitives.PairP)),
             new (new Parameter(new Symbol("unchecked-car"), [], 0, index++, null),
@@ -85,6 +87,10 @@ public class Library : ILibrary {
                 new Location(Primitives.NullP)),
             new (new Parameter(new Symbol("number?"), [], 0, index++, null),
                 new Location(new Primitive("number?", Primitives.numberP, 1, false))),
+            new (new Parameter(new Symbol("zero?"), [], 0, index++, null),
+                new Location(new Primitive("zero?", Primitives.zeroP, 1, false))),
+            new (new Parameter(new Symbol("template"), [], 0, index++, null),
+                new Location(new Primitive("template", Primitives.template, 1, false))),
             new (new Parameter(new Symbol("symbol?"), [], 0, index++, null),
                 new Location(Primitives.SymbolP)),
             new (new Parameter(new Symbol("symbol=?"), [], 0, index++, null),

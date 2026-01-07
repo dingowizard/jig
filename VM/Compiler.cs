@@ -17,7 +17,7 @@ public class Compiler {
         DoFirstPassOneForm(bindings, x, ctEnv);
         ulong[] code = Compile(x, ctEnv, literals, bindings, Context.Tail, scopeLevel, startLine);
         if (code.Length == 0) {
-            code = [(ulong)OpCode.PopContinuation << 56];
+            code = [(ulong)OpCode.PopContinuationDB << 56];
         }
         var result = new Template(code,bindings.ToArray(), literals.ToArray());
         // Array.ForEach(Disassembler.Disassemble(result), Console.WriteLine);
@@ -133,7 +133,7 @@ public class Compiler {
         result.InsertRange(0, compiledValue);
         // TODO: should this be CodeForContext?
         if (context == Context.Tail) {
-            result.Add((ulong)OpCode.PopContinuation << 56);
+            result.Add((ulong)OpCode.PopContinuationDB << 56);
         }
         return result.ToArray();
     }
@@ -205,7 +205,7 @@ public class Compiler {
                 
         }
         if (context == Context.Tail) {
-            result.Add((ulong)OpCode.PopContinuation << 56);
+            result.Add((ulong)OpCode.PopContinuationDB << 56);
         }
         return result.ToArray();
     }
@@ -320,7 +320,7 @@ public class Compiler {
     
     private static ulong[] CodeForContext(ulong code, Context context) {
         if (context == Context.Tail) {
-            return [code, (ulong)OpCode.Push << 56, (ulong)OpCode.PopContinuation << 56];
+            return [code, (ulong)OpCode.Push << 56, (ulong)OpCode.PopContinuationDB << 56];
         }
 
         if (context == Context.Argument) {
@@ -334,7 +334,7 @@ public class Compiler {
     private static ulong[] CodeForContext(IEnumerable<ulong> codes, Context context)
     {
         if (context == Context.Tail) {
-            return [.. codes, (ulong)OpCode.Push << 56, (ulong)OpCode.PopContinuation << 56];
+            return [.. codes, (ulong)OpCode.Push << 56, (ulong)OpCode.PopContinuationDB << 56];
         }
 
         if (context == Context.Argument) {
@@ -426,7 +426,7 @@ public class Compiler {
         instructions.AddRange(codeForProc);
         lineNo += codeForProc.Length;
         
-        instructions.Add((ulong)OpCode.Call << 56);
+        instructions.Add((ulong)OpCode.CallDB << 56);
         lineNo++;
         
         if (context != Context.Tail) {
@@ -469,7 +469,7 @@ public class Compiler {
         if (last.Length == 0)
         {
             // NOTE: the last form might be something that compiles to no instructions, like define-syntax
-            last = [(ulong)OpCode.PopContinuation << 56];
+            last = [(ulong)OpCode.PopContinuationDB << 56];
         }
         instructions = instructions.Concat(last).ToList();
         return new Template(

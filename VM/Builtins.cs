@@ -45,8 +45,8 @@ public static class Builtins {
             (ulong)OpCode.Arg << 56, // store proc in VAL
             ((ulong)OpCode.ArgToArgs << 56) + 1, // TODO: could we remove ArgToArgs and replace it with an APPLY instruction?
             (ulong)OpCode.Push << 56, // put proc back on stack
-            (ulong)OpCode.Call << 56,
-            (ulong)OpCode.PopContinuation << 56,
+            (ulong)OpCode.CallDB << 56,
+            (ulong)OpCode.PopContinuationDB << 56,
         
         ],
         vars: [],
@@ -60,7 +60,7 @@ public static class Builtins {
         2,
         code: [
             (ulong)OpCode.CallWValues << 56,
-            (ulong)OpCode.PopContinuation << 56,
+            (ulong)OpCode.PopContinuationDB << 56,
         ],
         vars: [],
         lits: [],
@@ -73,7 +73,7 @@ public static class Builtins {
         1,
         code: [
             (ulong)OpCode.CallCC << 56,
-            (ulong)OpCode.PopContinuation << 56,
+            (ulong)OpCode.PopContinuationDB << 56,
         ],
         vars: [],
         lits: [],
@@ -89,7 +89,7 @@ public static class Builtins {
             ((ulong)OpCode.PushContinuationForNonTailBody << 56) + 4,
             ((ulong)OpCode.Arg << 56), // + 0 + 0 omitted.
             ((ulong)OpCode.Push << 56),
-            ((ulong)OpCode.Call << 56),
+            ((ulong)OpCode.CallDB << 56),
             // push winders
             ((ulong)OpCode.Arg << 56) + 2, // + 0 + 2 
             ((ulong)OpCode.Push << 56),
@@ -105,19 +105,19 @@ public static class Builtins {
                                                                     // before or after popwinder instr
             ((ulong)OpCode.Arg << 56) + 1, // + 0 + 1 omitted.
             ((ulong)OpCode.Push << 56),
-            ((ulong)OpCode.Call << 56),
+            ((ulong)OpCode.CallDB << 56),
             (ulong)OpCode.PopWinder << 56,
             (ulong)OpCode.PushFP << 56, // save the frame pointer on the stack
             (ulong)OpCode.SPToFP << 56, // set current fp to sp
             ((ulong)OpCode.PushContinuationForNonTailBody << 56) + 20,
             ((ulong)OpCode.Arg << 56) + 2, // + 0 + 2
             ((ulong)OpCode.Push << 56),
-            ((ulong)OpCode.Call << 56),
+            ((ulong)OpCode.CallDB << 56),
             // Now out-thunk ran and results were discarded.
             // we need to restore results of body-thunk
             // SP should be one ahead of where SP is stored on stack
             ((ulong)OpCode.PopFP <<56),
-            ((ulong)OpCode.PopContinuation << 56),
+            ((ulong)OpCode.PopContinuationDB << 56),
         ],
         vars: [],
         lits: [],

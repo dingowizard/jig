@@ -24,6 +24,7 @@
           ; (jig prelude)
           map all any void error list
           ; (jig)
+          template
           compose make-parameter parameterize record-constructor-descriptor?)
   (import (for (core-primitives) run)
           (for (core-primitives) expand)

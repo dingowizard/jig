@@ -73,8 +73,10 @@ public class Machine : IRuntime {
         SP = 0;
         FP = 0;
     }
+    
+    internal ActivationStack ActivationStack = new();
 
-    internal void Call() {
+    internal void Call(bool debug = false) {
         
         // Console.WriteLine($"call: (stack is {StackToList().Print()}");
         if (VAL is Procedure proc) {
@@ -107,13 +109,17 @@ public class Machine : IRuntime {
                 throw;
             }
 
+            if (debug) {
+                ActivationStack.Push(proc.Template.Name.Symbol.Name, CONT);
+            }
+
             VARS = proc.Locations;
             Template = proc.Template;
             PC = 0ul;
             return;
         }
 
-        if (VAL is Primitive2 primitive2) {
+        /*if (VAL is Primitive2 primitive2) {
             // TODO: collect this stuff into a common base class
             if (primitive2.HasRest) {
                 if (SP - FP < primitive2.Required) {
@@ -135,7 +141,7 @@ public class Machine : IRuntime {
             // TODO: would be better if Primitive2 had its own Environment or would it?
             primitive2.Procedure(this);
             return;
-        }
+        }*/
 
         if (VAL is SavedContinuation sc) {
             sc.Apply(this);
@@ -262,6 +268,10 @@ public class Machine : IRuntime {
                 case OpCode.PopContinuation:
                     CONT.Pop(this);
                     continue;
+                case OpCode.PopContinuationDB:
+                    CONT.Pop(this);
+                    ActivationStack.PopTo(this);
+                    continue;
                 case OpCode.Call:
                     // TODO: VAL already has the procedure
                     // seems silly to pop it into VAL again
@@ -269,26 +279,26 @@ public class Machine : IRuntime {
                     
                     // maybe by having another CompilationContext for operator
                     VAL = Pop();
-                    if (VAL is Primitive primitiveProc) {
+                    if (VAL is Primitive primProc) {
                         // Primitives are handled differently from user-defined procedures
                         // args are not bound in the environment
                         // it should not be possible to have errors
                         // so type checking needs to have already been done.
-                        primitiveProc.Apply(this);
+                        primProc.Apply(this);
                         // TODO: does CONT.Pop belong in the Primitive procedure?
                         CONT.Pop(this);
                         continue;
                     }
                     
-                    if (VAL is SavedContinuation cont) {
+                    if (VAL is SavedContinuation cnt) {
                         // When you apply a saved continuation, you need to do the winders first.
                         // We'll make a continuation that does all the winders. It's continuation will be this one.
                         // That will get applied below. After the winders are done
                         // We'll apply the saved continuation
                         // TODO: could all this logic be inside SavedContinuation.Apply?
                         // maybe not. It's making my brain hurt. 
-                        if (!cont.SavedWinders.Equals(Winders)) { // TODO: ReferenceEquals?
-                            CONT = cont.SavedWinders.DoWinders(this, cont);
+                        if (!cnt.SavedWinders.Equals(Winders)) { // TODO: ReferenceEquals?
+                            CONT = cnt.SavedWinders.DoWinders(this, cnt);
                             if (CONT is not WinderThunkCont.ThunkCont wThunk)
                                 throw new Exception( "if winders aren't equal, we SHOULD have a WinderThunk (or BaseCont?)");
                             // winders need to be called with no arguments, but if we're applying a saved
@@ -306,7 +316,7 @@ public class Machine : IRuntime {
                             continue;
 
                         }
-                        cont.Apply(this);
+                        cnt.Apply(this);
                         // if (cont.Saved is TopLevelContinuation) {
                         //     return;
                         // }
@@ -314,6 +324,34 @@ public class Machine : IRuntime {
                     }
                     // Primitive2 and user-defined procedures are here. Builtins are here
                     Call();
+                    continue;
+                case OpCode.CallDB:
+                    VAL = Pop();
+                    if (VAL is Primitive primitiveProc) {
+                        ActivationStack.Push(primitiveProc.Name, CONT);
+                        primitiveProc.Apply(this);
+                        CONT.Pop(this);
+                        ActivationStack.PopTo(this);
+                        continue;
+                    }
+                    
+                    if (VAL is SavedContinuation cont) {
+                        if (!cont.SavedWinders.Equals(Winders)) { // TODO: ReferenceEquals?
+                            CONT = cont.SavedWinders.DoWinders(this, cont);
+                            if (CONT is not WinderThunkCont.ThunkCont wThunk)
+                                throw new Exception( "if winders aren't equal, we SHOULD have a WinderThunk (or BaseCont?)");
+                            Push(new Integer((int)FP));
+                            FP = SP;
+                            CONT = wThunk.Continuation;
+                            VAL = wThunk.Thunk;
+                            Call();
+                            continue;
+
+                        }
+                        cont.Apply(this);
+                        continue;
+                    }
+                    Call(debug: true);
                     continue;
                 case OpCode.CallWValues:
                     var producer = (Procedure)ENVT.GetArg(0);
@@ -440,6 +478,7 @@ public class Machine : IRuntime {
         Template = proc.Template;
         VARS = proc.Locations;
         ClearStack();
+        ActivationStack.Reset(); // TODO: this has to be done on errror. 
         ENVT = env;
         CONT = new TopLevelTemplateContinuation(cont);
     }
@@ -450,6 +489,7 @@ public class Machine : IRuntime {
         Template = proc.Template;
         VARS = proc.Locations;
         ClearStack();
+        ActivationStack.Reset();
         ENVT = env;
         CONT = cont;
     }
@@ -488,4 +528,55 @@ public class Machine : IRuntime {
         coreForms.Add(new Symbol("set!"), new CoreSyntaxRule(CoreParseRules.ParseSetForm));
         return new TopLevelSyntaxEnvironment(coreForms);
     }
+}
+
+internal class ActivationStack {
+    public void Push(string name, Continuation cont) {
+        var ar = new ActivationRecord(name, cont);
+        _stack.Push(ar);
+        // Console.WriteLine($"push {ar.Name}: |{Print()}");
+    }
+
+    public void Reset() {
+        _stack.Clear();
+    }
+    
+    private Stack<ActivationRecord> _stack = new();
+    public void PopTo(Machine vm) {
+        // this is the vm after we returned from some function
+        // possible skipping several calls (tail calls)
+        // we want to remove every call until we're down to the current one
+        // if (cc is TopLevelContinuation) {
+        //     _stack.Clear();
+        //     return;
+        // }
+
+        if (_stack.Count == 0) return;
+        var ar =  _stack.Peek();
+        while (ar.Name != vm.Template.Name.Symbol.Name) {
+            // if (_stack.Count == 0) return;
+            ar = _stack.Pop();
+            // Console.WriteLine($"pop {ar.Name}: |{Print()}");
+            if (_stack.Count == 0) return;
+            ar = _stack.Peek();
+        }
+
+    }
+
+    private string Print() {
+        var arr = _stack.ToArray();
+        return string.Join(" -> ", arr.Reverse().Select(ar => ar.Name));
+    }
+    public bool Empty => _stack.Count == 0;
+    public void StackTrace(TextWriter @out) {
+        var arr = _stack.ToArray();
+        foreach (var ar in arr) {
+            @out.WriteLine(ar.Name);
+        }
+    }
+}
+
+internal class ActivationRecord(string name, Continuation cont) {
+    public string Name {get;} = name;
+    public Continuation Cont {get;} = cont; // this is the continuation to the procedure call
 }
