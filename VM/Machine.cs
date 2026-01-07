@@ -552,13 +552,9 @@ internal class ActivationStack {
         // }
 
         if (_stack.Count == 0) return;
-        var ar =  _stack.Peek();
-        while (ar.Name != vm.Template.Name.Symbol.Name) {
-            // if (_stack.Count == 0) return;
-            ar = _stack.Pop();
-            // Console.WriteLine($"pop {ar.Name}: |{Print()}");
+        while (_stack.Peek().Name != vm.Template.Name.Symbol.Name) {
+            _stack.Pop();
             if (_stack.Count == 0) return;
-            ar = _stack.Peek();
         }
 
     }
