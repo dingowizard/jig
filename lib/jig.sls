@@ -6,6 +6,7 @@
           cons car cdr append pair? number? char? string? procedure? list? null? zero? call/cc + apply expand > < - * / = eqv?
           values call-with-values dynamic-wind symbol? vector vector-ref vector? vector-length
           and quasiquote syntax-rules
+          define define-syntax begin lambda if set! quote quasiquote
 
           ; TODO: which library?
           raise raise-continuable with-exception-handler

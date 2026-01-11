@@ -2,39 +2,81 @@
   (export ; 11.1 Base types
           boolean? symbol? char? vector? null? pair? number? string? procedure?
           ; 11.2 Definitions
-          ; define define-syntax
-          not list? cons car cdr caar cadr cdar cddr ; caaar caadr cadar cdaar
-          ; symbol->string string->symbol
+          define define-syntax
+          ; 11.4.1 Quotation
+          quote
+          ; 11.4.2 Procedures
+          lambda
+          ; 11.4.3 Conditionals
+          if
+          ; 11.4.4 Assignments
+          set!
+          ; 11.4.5 Derived Conditionals
+          cond case and or
+          ; 11.4.6 Binding constructs
+          let let* letrec ; letrec* let-values let*-values
+          ; 11.4.7 Sequencing
+          begin
+          ; 11.5 Equivalence Predicates
+          eqv? ; eq? equal?
+          ; 11.6 Procedure predicate NOTE: already exported under 11.1
+          ; 11.7.4 Numerical operations
+          ; number? NOTE: already exported 11.1
+          ; complex? real? rational? integer? real-valued? rational-valued? integer-valued?
+          ; exact? inexact? exact inexact
+          ; Arithmetic operations
+          = < > ; <= >=
+          zero? positive? negative? odd? even? ; finite? infinite? nan?
+          ; max min
+          + * - /
+          ; abs div-and-mod div mod div0 mod0 div0-and-mod0
+          ; gcd lcm
+          ; numerator denominator
+          ; truncate floor ceiling round
+          ;  rationalize
+          ;  exp log sin cos tan asin acos atan
+          ;  sqrt
+          ;  exact-integer-sqrt
+          ;  expt
+          ;  real-part imag-part make-rectangular make-polar magnitude angle
+          ;  number->string
+          ;  string->number
+          ;  11.8 Booleans
+          ;  NOTE: boolean? already imported at 11.1
+          not ; boolean=?
+          ; 11.9 Pairs and lists
+          ; NOTE: null? and pair? already imported
+          cons car cdr caar cadr cdar cddr ; caaar caadr cadar cdaar
           caddr ; cdadr cddar
           cdddr ; caaaar caaadr caadar cadaar cdaaar cddaar cdadar cdaadr cadadr caaddr caddar cadddr cdaddr cddadr cdddar cddddr
-          ; TODO: it should be possible to export these core syntactic forms, but it's not because they are automatically included in every environment
-          ; set!  let-syntax letrec-syntax identifier-syntax
-          syntax-rules ; lambda
-          let let* letrec ; letrec* let-values let*-values
-          ; begin
-          ; quote
-          quasiquote
-          ; unquote unquote-splicing ; TODO: why does base eport these if they have no meaning at top-level?
-          ; if
-          ; char=? char<? char>? char<=? char>=? integer->char char->integer
-          cond case and or ; eq?
-          eqv? ; equal? symbol=? complex? real-part imag-part make-rectangular make-polar magnitude angle sqrt exp expt log sin cos tan asin acos atan real? rational? numerator denominator rationalize
-               ; exact? inexact?
-               ; exact inexact
-               ; integer?
-          odd? even? ; gcd lcm exact-integer-sqrt
-          = < > ; <= >=
-          zero? positive? negative?
-          for-each list error length list-ref list-tail append reverse
-          ; number->string string->number
-          ; string make-string
-          ; list->string string->list string-length string-ref string-copy substring string=? string<? string>? string<=? string>=? string-append string-for-each
-          + - * ; / max min abs truncate floor ceiling round div mod div-and-mod div0 mod0 div0-and-mod0 real-valued? rational-valued? nan? infinite? finite?
-                ; assert
-                ; error assertion-violation vector-map vector-for-each
+          list? list length append reverse list-tail list-ref map for-each
+          ; 11.10 Symbols
+          ; NOTE: symbol? already exported
+          ; symbol->string string->symbol symbol=?
+          ; 11.11 Characters NOTE: char? already exported
+          ;  integer->char char->integer char=? char<? char>? char<=? char>=?
+          ; 11.12 Strings NOTE: string? already exported
+          ;  string make-string string-length string-ref string=? string<? string>? string<=? string>=?
+          ;  substring string-append list->string string->list string-copy string-for-each
+          ; 11.13 Vectors NOTE: vector? already exported
           vector ; make-vector list->vector vector->list
           vector-length vector-ref ; vector-set! vector-fill!
-          call-with-current-continuation call/cc values call-with-values dynamic-wind apply)
+          ; vector-map vector-for-each
+          ; 11.14 Errors and violations
+          error
+          ; assert assertion-violation
+          ; 11.15 Control features
+          apply
+          call-with-current-continuation call/cc
+          values call-with-values
+          dynamic-wind
+          ; 11.16 Iteration NOTE: let already exported
+          ; 11.17 Quasiquotation
+          quasiquote
+          ; 11.18 Binding constructs for syntactic keywords
+          ; let-syntax letrec-syntax
+          ; 11.19 Macro transformers
+          syntax-rules) ; identifier-syntax)
 
   (import (for (core-primitives) run)
           (for (core-primitives) expand)

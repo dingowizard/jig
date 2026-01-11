@@ -516,16 +516,7 @@ public class Machine : IRuntime {
         // TODO: these should be identifiers, not symbols, but they need to be resolved correctly
         // TODO: probably we don't want to create new identifiers and symbols ...
         // TODO: the ids should have source locations -- names not rows and columns
-        coreForms.Add(new Symbol("begin"), new CoreSyntaxRule(CoreParseRules.ParseBeginForm));
-        coreForms.Add(new Symbol("define"), new CoreSyntaxRule(CoreParseRules.ParseDefineForm));
-        coreForms.Add(new Symbol("define-syntax"), new CoreSyntaxRule(CoreParseRules.DefineSyntax));
-        coreForms.Add(new Symbol("if"), new CoreSyntaxRule(CoreParseRules.ParseIfForm));
-        coreForms.Add(new Symbol("lambda"), new CoreSyntaxRule(CoreParseRules.ParseLambdaForm));
         coreForms.Add(new Symbol("library"), new CoreSyntaxRule(CoreParseRules.ParseLibraryForm));
-        coreForms.Add(new Symbol("import"), new CoreSyntaxRule(CoreParseRules.ParseImportForm));
-        coreForms.Add(new Symbol("quote"), new CoreSyntaxRule(CoreParseRules.ParseQuoteForm));
-        coreForms.Add(new Symbol("quote-syntax"), new CoreSyntaxRule(CoreParseRules.ParseQuoteSyntaxForm));
-        coreForms.Add(new Symbol("set!"), new CoreSyntaxRule(CoreParseRules.ParseSetForm));
         return new TopLevelSyntaxEnvironment(coreForms);
     }
 }

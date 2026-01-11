@@ -180,6 +180,16 @@ public class Library : ILibrary {
             // TODO: it should be necessary to export the core syntactic forms (lambda, set! , define, etc ...)
             // but for some reason these are available everywhere
 
+            new (new Symbol("begin"), new CoreSyntaxRule(CoreParseRules.ParseBeginForm)),
+            new (new  Symbol("define"), new CoreSyntaxRule(CoreParseRules.ParseDefineForm)),
+            new (new  Symbol("define-syntax"), new CoreSyntaxRule(CoreParseRules.DefineSyntax)),
+            new (new  Symbol("if"), new CoreSyntaxRule(CoreParseRules.ParseIfForm)),
+            new (new  Symbol("lambda"), new CoreSyntaxRule(CoreParseRules.ParseLambdaForm)),
+            new (new  Symbol("library"), new CoreSyntaxRule(CoreParseRules.ParseLibraryForm)),
+            new (new  Symbol("import"), new CoreSyntaxRule(CoreParseRules.ParseImportForm)),
+            new (new  Symbol("quote"), new CoreSyntaxRule(CoreParseRules.ParseQuoteForm)),
+            new (new  Symbol("quote-syntax"), new CoreSyntaxRule(CoreParseRules.ParseQuoteSyntaxForm)),
+            new (new  Symbol("set!"), new CoreSyntaxRule(CoreParseRules.ParseSetForm)),
             new (new Symbol("and"), new BuiltinTransformer(BuiltinTransformer.and)),
             new (new Symbol("quasiquote"), new BuiltinTransformer(BuiltinTransformer.quasiquote)),
             new (new Symbol("syntax-rules"), new BuiltinTransformer(BuiltinTransformer.syntax_rules)),
