@@ -430,6 +430,14 @@ public static class Primitives {
         vm.Push(vm.VAL = vm.Pop() is Number ? Bool.True : Bool.False);
     }
 
+    public static void charP(Machine vm) {
+        vm.Push(vm.VAL = vm.Pop() is Char ? Bool.True : Bool.False);
+    }
+    
+    public static void stringP(Machine vm) {
+        vm.Push(vm.VAL = vm.Pop() is String ? Bool.True : Bool.False);
+    }
+    
     public static void procedureP(Machine vm) {
         SchemeValue arg = vm.Pop();
         if (arg is Procedure) {

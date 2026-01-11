@@ -1,14 +1,14 @@
 (library (rnrs base)
-  (export boolean? not symbol? ; symbol->string string->symbol
-          ; char?  char=? char<? char>? char<=? char>=? integer->char char->integer
-          list? null? pair? cons car cdr caar cadr cdar cddr ; caaar caadr cadar cdaar
+  (export ; 11.1 Base types
+          boolean? symbol? char? vector? null? pair? number? string? procedure?
+          ; 11.2 Definitions
+          ; define define-syntax
+          not list? cons car cdr caar cadr cdar cddr ; caaar caadr cadar cdaar
+          ; symbol->string string->symbol
           caddr ; cdadr cddar
           cdddr ; caaaar caaadr caadar cadaar cdaaar cddaar cdadar cdaadr cadadr caaddr caddar cadddr cdaddr cddadr cdddar cddddr
-          number?
-         ;  string?
-          procedure?
           ; TODO: it should be possible to export these core syntactic forms, but it's not because they are automatically included in every environment
-          ; define set! define-syntax ; let-syntax letrec-syntax identifier-syntax
+          ; set!  let-syntax letrec-syntax identifier-syntax
           syntax-rules ; lambda
           let let* letrec ; letrec* let-values let*-values
           ; begin
@@ -16,6 +16,7 @@
           quasiquote
           ; unquote unquote-splicing ; TODO: why does base eport these if they have no meaning at top-level?
           ; if
+          ; char=? char<? char>? char<=? char>=? integer->char char->integer
           cond case and or ; eq?
           eqv? ; equal? symbol=? complex? real-part imag-part make-rectangular make-polar magnitude angle sqrt exp expt log sin cos tan asin acos atan real? rational? numerator denominator rationalize
                ; exact? inexact?
@@ -31,7 +32,7 @@
           + - * ; / max min abs truncate floor ceiling round div mod div-and-mod div0 mod0 div0-and-mod0 real-valued? rational-valued? nan? infinite? finite?
                 ; assert
                 ; error assertion-violation vector-map vector-for-each
-          vector vector? ; make-vector list->vector vector->list
+          vector ; make-vector list->vector vector->list
           vector-length vector-ref ; vector-set! vector-fill!
           call-with-current-continuation call/cc values call-with-values dynamic-wind apply)
 
@@ -39,6 +40,7 @@
           (for (core-primitives) expand)
           (for (jig prelude) run)
           (for (jig prelude) expand))
+
   (define boolean? ; TODO: is eqv? the right test?
     (lambda (x)
       (if (eqv? x #t)
