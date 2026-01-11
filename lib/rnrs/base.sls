@@ -39,7 +39,6 @@
           (for (core-primitives) expand)
           (for (jig prelude) run)
           (for (jig prelude) expand))
-
   (define boolean? ; TODO: is eqv? the right test?
     (lambda (x)
       (if (eqv? x #t)
@@ -93,7 +92,6 @@
           (odd? (- n 1)))))
 
   (define abs (lambda (n) (if (< n 0) (- n) n)))
-
 
   (define reverse
     (lambda (xs)
@@ -179,5 +177,4 @@
          clause clauses ...)
        (if (memv key '(atoms ...))
            (begin result1 result2 ...)
-           (case key clause clauses ...)))))
-  )
+           (case key clause clauses ...))))))
