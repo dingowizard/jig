@@ -3,7 +3,7 @@
           length not
           list-tail list-ref caar cadr cdar cddr caddr cdddr positive? negative? abs reverse for-each
           memv odd? even? let or let* letrec cond case
-          cons car cdr append pair? number? char? string? procedure? list? null? zero? call/cc + apply expand > < - * / = eqv?
+          cons car cdr append pair? number? char? string? procedure? list? null? zero? call/cc apply expand > < max + * - / = eqv?
           values call-with-values dynamic-wind symbol? vector vector-ref vector? vector-length
           and quasiquote syntax-rules
           define define-syntax begin lambda if set! quote quasiquote

@@ -49,6 +49,12 @@ public static class Primitives {
         Number n2 = (Number)vm.Pop();
         vm.Push(vm.VAL = n1 + n2);
     }
+    
+    public static void uncheckedBinOpGT(Machine vm) {
+        Number n1 = (Number)vm.Pop();
+        Number n2 = (Number)vm.Pop();
+        vm.Push(vm.VAL = n1 > n2);
+    }
     public static void uncheckedBinOpMul(Machine vm) {
         Number n1 = (Number)vm.Pop();
         Number n2 = (Number)vm.Pop();
@@ -244,32 +250,7 @@ public static class Primitives {
         return;
 
     }
-
-    public static Primitive GT {get;} = new(">", gt, 1, true);
-
-    // public static Primitive2 CallWValues { get; } = new(callWValues, 2, false);
-
-    private static void gt(Machine vm) {
-        
-        Number arg0 = (Number)vm.Pop();
-        if (vm.SP == vm.FP) {
-            vm.Push(vm.VAL = Bool.True);
-            return;
-        }
-        while (vm.SP != vm.FP) {
-            Number n = (Number)vm.Pop();
-            if ((arg0 <= n).Value) {
-                // throw away rest of arguments
-                vm.SP = vm.FP;
-                vm.Push(vm.VAL = Bool.False);
-                return;
-            }
-            arg0 = n;
-        }
-        vm.Push(vm.VAL = Bool.True);
-        return;
-    }
-
+    
     public static Primitive LT {get;} = new("<", lt, 1, true);
 
 

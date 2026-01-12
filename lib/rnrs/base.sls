@@ -27,7 +27,7 @@
           ; Arithmetic operations
           = < > ; <= >=
           zero? positive? negative? odd? even? ; finite? infinite? nan?
-          ; max min
+          max ; min
           + * - /
           ; abs div-and-mod div mod div0 mod0 div0-and-mod0
           ; gcd lcm

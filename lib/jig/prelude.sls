@@ -1,6 +1,6 @@
 (library (jig prelude)
   (export append apply length not error car cdr caar cadr cdar cddr caddr cdddr
-          fold-left fold-right map all any void error list list? zero? + * - / =
+          fold-left fold-right map all any void error list list? zero? + * - / = > max
           raise raise-continuable with-exception-handler)
   (import (core-primitives))
 
@@ -110,10 +110,40 @@
               (fold-left (lambda (a b)
                             (if (number? b)
                                 (unchecked-bin-op-- a b)
-                                (error '- "expected all arguments to be numbers" a)))
+                                (error '- "expected all arguments to be numbers." a)))
                          x
                          rest))
-          (error '- "expected first argument to be a number" x))))
+          (error '- "expected first argument to be a number." x))))
+
+  (define >
+    (lambda (x . rest)
+      (if (number? x)
+          (if (null? rest)
+              #t
+              (call/cc (lambda (return)
+                         (for-each (lambda (n)
+                                     (if (number? n)
+                                         (if (unchecked-bin-op-> x n)
+                                             (set! x n)
+                                             (return #f))
+                                         (error '> "expected all arguments to be numbers." n)))
+                                   rest)
+                         #t)))
+          (error '> "expected first argument to be a number." x))))
+
+  (define max
+    (lambda (x . rest)
+      (if (number? x)
+          (fold-left (lambda (a b)
+                       (if (number? b)
+                           (if (unchecked-bin-op-> a b)
+                               a
+                               b)
+                           (error 'max "expected all arguments to be numbers." b)))
+                     x
+                     rest)
+          (error 'max "expected first argument to be a number." x))))
+
 
   (define /
     (lambda (x . rest)
@@ -202,4 +232,3 @@
              (display-stack-trace)
              (k)))
      (void))))
-  
