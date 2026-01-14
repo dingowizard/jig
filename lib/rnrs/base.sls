@@ -43,7 +43,7 @@
           ;  string->number
           ;  11.8 Booleans
           ;  NOTE: boolean? already imported at 11.1
-          not ; boolean=?
+          not boolean=?
           ; 11.9 Pairs and lists
           ; NOTE: null? and pair? already imported
           cons car cdr caar cadr cdar cddr ; caaar caadr cadar cdaar
@@ -90,6 +90,24 @@
           (if (eqv? x #f)
               #t
               #f))))
+
+  (define boolean=?
+    (lambda (a b . rest)
+      (if (boolean? a)
+          (if (boolean? b)
+              (if (eqv? a b)
+                  (call/cc (lambda (return)
+                             (for-each (lambda (x)
+                                         (if (boolean? x)
+                                             (if (eqv? b x)
+                                                 (void)
+                                                 (return #f))
+                                             (error 'boolean=? "expected arguments to be booleans." x)))
+                                      rest)
+                             #t))
+                  #f)
+              (error 'boolean=? "expected arguments to be booleans." b))
+          (error 'boolean=? "expected arguments to be booleans." a))))
 
   (define call-with-current-continuation call/cc)
 
