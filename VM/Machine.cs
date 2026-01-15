@@ -23,6 +23,7 @@ public class Machine : IRuntime {
         // NOTE: this will affect the Disassembler and debugging.
         // maybe hold off until we figure out debug table and stack tracing
         Template = Template.Empty;
+        DynamicEnvironment = new DynamicEnvironment.TopLevel();
     }
     
     internal Winders Winders = new Winders();
@@ -498,6 +499,8 @@ public class Machine : IRuntime {
         get => ENVT;
         private init => ENVT = (Environment)value;
     }
+    
+    public DynamicEnvironment DynamicEnvironment {get;}
 
     public IEnumerable<(Symbol, IExpansionRule)> CoreSyntax { get; }
 
