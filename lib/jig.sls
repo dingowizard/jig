@@ -1,6 +1,7 @@
 (library (jig)
   (export ; (rnrs base)
           length not
+          map list error
           list-tail list-ref caar cadr cdar cddr caddr cdddr positive? negative? abs reverse for-each
           memv odd? even? let or let* letrec cond case
           cons car cdr append pair? number? char? string? procedure? list? null? zero? call/cc apply expand > < max min + * - / = eqv?
@@ -24,7 +25,7 @@
           datum->syntax syntax->datum syntax->list syntax-e
           displayln display newline
           ; (jig prelude)
-          map all any void error list
+          all any void
           ; (jig)
           template
           compose make-parameter parameterize record-constructor-descriptor?)
