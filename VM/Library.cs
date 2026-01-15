@@ -171,6 +171,12 @@ public class Library : ILibrary {
                 new Location(new Primitive("record-constructor", Primitives.record_constructor, 1, false))),
             new (new Parameter(new Symbol("expand"), [], 0, index++, null),
                 new Location(new Primitive("expand", Primitives.expand, 1, false))),
+            new (new Parameter(new Symbol("new-dyn-env-slot"), [], 0, index++, null),
+                new Location(new Primitive("new-dyn-env-slot", Primitives.newDynEnvSlot, 1, false))),
+            new (new Parameter(new Symbol("get-dyn-env-value"), [], 0, index++, null),
+                new Location(new Primitive("get-dyn-env-value", Primitives.getDynEnvVal, 1, false))),
+            new (new Parameter(new Symbol("set-dyn-env-slot!"), [], 0, index++, null),
+                new Location(new Primitive("set-dyn-env-slot!", Primitives.setDynEnvSlot, 2, false))),
         ];
 
         // env._dict.Add(new Symbol("record-constructor"), new Procedure( (Builtin)Builtins.record_constructor));

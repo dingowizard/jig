@@ -11,6 +11,11 @@ public abstract class DynamicEnvironment {
     
     public abstract void Set(uint id, SchemeValue schemeValue);
 
+    public uint MakeParameter(SchemeValue schemeValue) {
+        Frame.Add((nextID, schemeValue));
+        return nextID++;
+    }
+
     public class TopLevel : DynamicEnvironment {
 
         public TopLevel() {

@@ -550,7 +550,25 @@ public static class Primitives {
          return;
 
      }
-     
+
+     public static void newDynEnvSlot(Machine vm) {
+         SchemeValue arg = vm.Pop();
+         uint slotID = vm.DynamicEnvironment.MakeParameter(arg);
+         vm.Push(vm.VAL = new Integer((int)slotID)); // TODO: get rid of cast
+     }
+
+     public static void getDynEnvVal(Machine vm) {
+         Integer slotID = (Integer)vm.Pop();
+         vm.Push(vm.VAL = vm.DynamicEnvironment.LookUp((uint)slotID.Value)); // TODO: get rid of cast
+     }
+
+     public static void setDynEnvSlot(Machine vm) {
+         Integer slotID = (Integer)vm.Pop();
+         SchemeValue val = vm.Pop();
+         vm.DynamicEnvironment.Set((uint)slotID.Value, val); // TODO: get rid of cast
+         vm.VAL = SchemeValue.Void;
+         
+     }
 }
 
 public delegate void PrimitiveProcedure(Machine vm);

@@ -57,16 +57,17 @@
   (define make-parameter
     (lambda (init . o)
       (let* ((converter (if (not (null? o)) (car o) (lambda (x) x)))
-             (value (converter init)))
+             (value (converter init))
+             (slot (new-dyn-env-slot value)))
         (lambda args
           (if (null? args)
-              value
+              (get-dyn-env-value slot)
               (let ((len (length args)))
                 (cond ((= len 1)
-                       (set! value (converter (car args))))
+                       (set-dyn-env-slot! slot (converter (car args))))
                       ((= len 2)
-                       (set! value ((cadr args) (car args))))
-                      (#t 'error))))))))
+                       (set-dyn-env-slot! slot ((cadr args) (car args))))
+                      (error 'parameter "expected 0, 1 or 2 arguments but received more"))))))))
 
   (define-syntax parameterize
      (syntax-rules ()
