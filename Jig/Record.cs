@@ -1,10 +1,9 @@
 namespace Jig;
 
-// TODO: separate this into one common class for Jig and then another for runtime specific code (to stay here)
 public class Record : Vector {
 
     public static Record Make(RecordTypeDescriptor rtd, ConstructorDescriptor rcd, List args) {
-        // Maybe this should be on ConstructorDescriptor. ParameterCount logic is repeated there
+        //TODO:  Maybe this should be on ConstructorDescriptor. ParameterCount logic is repeated there
         if (rcd.ParentRCD is null) {
             return new Record(rtd, args);
         }
@@ -16,16 +15,16 @@ public class Record : Vector {
                 args.Skip(parentArgNum).ToJigList());
             
     }
-        private static int ParameterCount(ConstructorDescriptor ParentRCD, RecordTypeDescriptor rtd) {
-            int result = rtd.Fields.Length;
-            ConstructorDescriptor? parent = ParentRCD;
-            while (parent is not null)
-            {
-                result += parent.RTD.Fields.Length;
-                parent = parent.ParentRCD;
-            }
-            return result;
+    protected static int ParameterCount(ConstructorDescriptor parentRcd, RecordTypeDescriptor rtd) {
+        int result = rtd.Fields.Length;
+        ConstructorDescriptor? parent = parentRcd;
+        while (parent is not null)
+        {
+            result += parent.RTD.Fields.Length;
+            parent = parent.ParentRCD;
         }
+        return result;
+    }
 
     public Record(RecordTypeDescriptor rtd, IEnumerable<ISchemeValue> fields) : base(fields) {
         RecordTypeDescriptor = rtd;
@@ -43,7 +42,21 @@ public class Record : Vector {
 
     public class ConstructorDescriptor : Record {
 
+        public ConstructorDescriptor(RecordTypeDescriptor rtd, ConstructorDescriptor parentRCD) {
+            
+            RTD = rtd;
+            ParentRCD = parentRCD;
+
+        }
+
+        public ConstructorDescriptor(RecordTypeDescriptor rtd) {
+            
+            RTD = rtd;
+            ParentRCD = null;
+
+        }
         public ConstructorDescriptor(IEnumerable<ISchemeValue> fields) : base(TypeDescriptorForConstructor, fields) {
+            // TODO: none of this type checking belongs in this class
             if (fields.ElementAt(0) is not RecordTypeDescriptor rtd) {
                 throw new Exception("in ConstructorDescriptor cstor: expected first field to be a record type descriptor");
             }

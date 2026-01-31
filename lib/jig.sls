@@ -21,6 +21,8 @@
           find exists for-all filter partition fold-left fold-right memv remv assv cons*
           ; (rnrs control)
           when unless do
+          ; (rnrs conditions) .. should really be (rnrs conditions (6)) whenever we get version numbers going
+          condition? condition make-message-condition
           ; (core-primitives)
           datum->syntax syntax->datum syntax->list syntax-e
           displayln display newline
@@ -79,6 +81,18 @@
                 (lambda () (for-each (lambda (pr old) (pr old (lambda (x) x))) (list p0 p ...) olds)))) (p0) (p) ...))))
 
   (define abort)
+
+  ; TODO: move these to (rnrs conditions)
+  (define make-message-condition
+    (lambda (msg)
+      (if (string? msg)
+          (make-message-condition-unsafe msg)
+          (error 'make-message-condition "expected a string argument." msg))))
+  (define condition
+    (lambda cs
+      (if (all condition? cs)
+          (apply condition-unsafe cs)
+          (error 'condition "expected all arguments to be conditions" (find (lambda (x) (not (condition? x))) cs)))))
 
 
 

@@ -1,9 +1,15 @@
 namespace Jig;
 
-public class RecordTypeDescriptor : Record
-{
+public class RecordTypeDescriptor : Record {
+
+    public RecordTypeDescriptor(Symbol name, RecordTypeDescriptor parent, Tuple<Symbol, bool>[] fields) {
+        // TODO: handle opaque, sealed, uid
+        Name = name;
+        Parent = parent;
+        Fields = fields;
+    }
     public RecordTypeDescriptor(IEnumerable<ISchemeValue> fields)
-        : base(Base, fields)
+        : base(Base, fields) // TODO: these fields aren't the same as the fields of the rtd are they?
     {
         // TODO: it's bad that we're doing argument checking here.
         // all that logic should be in the runtime procedures.
@@ -81,20 +87,14 @@ public class RecordTypeDescriptor : Record
     public Tuple<Symbol, bool>[] Fields { get; }
     public new RecordTypeDescriptor? Parent { get; } = null;
 
-    private Bool IsOfMe(Record record)
-    {
-        if (object.ReferenceEquals(this, record.RecordTypeDescriptor))
-        {
+    public Bool IsOfMe(Record record) {
+        if (object.ReferenceEquals(this, record.RecordTypeDescriptor)) {
             return Bool.True;
         }
-        else
-        {
-            if (record.Parent is not null)
-            {
-                return IsOfMe(record.Parent);
-            }
-            return Bool.False;
+        if (record.Parent is not null) {
+            return IsOfMe(record.Parent);
         }
+        return Bool.False;
     }
 
     private ISchemeValue GetField(Record record, int i)
@@ -110,7 +110,7 @@ public class RecordTypeDescriptor : Record
         throw new Exception($"record access: expected record of type {this.Name}");
     }
 
-    public Func<SchemeValue, Bool> Predicate()
+    public virtual Func<SchemeValue, Bool> Predicate()
     {
         return (arg) =>
         {
@@ -122,7 +122,7 @@ public class RecordTypeDescriptor : Record
         };
     }
 
-    public Func<SchemeValue, ISchemeValue> Accessor(Integer i)
+    public virtual Func<SchemeValue, ISchemeValue> Accessor(Integer i)
     {
         if (i.Value >= Fields.Length)
         {
@@ -134,6 +134,7 @@ public class RecordTypeDescriptor : Record
         return (arg) =>
         {
             // TODO: better error message by getting field name from spec in rtd
+            // TODO: type-checking should already have happened
             if (arg is not Record record)
             {
                 throw new Exception(
@@ -145,8 +146,9 @@ public class RecordTypeDescriptor : Record
     }
 
     public Symbol Name { get; }
+    
     public static readonly RecordTypeDescriptor Base = new BaseType();
-    public static readonly RecordTypeDescriptor Condition = new ConditionType();
+    public static readonly RecordTypeDescriptor Condition = new ConditionRTD();
 
     private class BaseType : RecordTypeDescriptor
     {

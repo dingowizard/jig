@@ -407,6 +407,11 @@ public static class Primitives {
             vm.Push(vm.VAL = Bool.True);
             return;
         }
+        if (arg is Primitive) {
+            // TODO: make an ICallable
+            vm.Push(vm.VAL = Bool.True);
+            return;
+        }
         if (arg is SavedContinuation) {
             vm.Push(vm.VAL = Bool.True);
             return;
@@ -481,6 +486,30 @@ public static class Primitives {
         vm.Push(vm.VAL = Bool.False);
 
     }
+
+    public static void condition(Machine vm) {
+        System.Collections.Generic.List<SchemeValue> args = [];
+        while (vm.SP != vm.FP) {
+            args.Add(vm.Pop());
+        }
+        vm.Push(vm.VAL = CompoundCondition.Make(args.Cast<Condition>().ToArray()));
+    }
+
+    public static void condition_p(Machine vm) {
+        var arg = vm.Pop();
+        if (arg is Condition) {
+            vm.Push(vm.VAL = Bool.True);
+            return;
+        }
+        vm.Push(vm.VAL = Bool.False);
+    }
+
+    public static void makeMessageConditionUnsafe(Machine vm) {
+        String arg = (String)vm.Pop();
+        vm.Push(new Message(arg));
+        
+    }
+    
     public static void record_predicate(Machine vm) { // Eg (record-predicate rtd) => #<procedure>
         var arg = vm.Pop();
         if (arg is not RecordTypeDescriptor rtd) {
