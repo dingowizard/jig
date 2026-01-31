@@ -107,7 +107,7 @@ public class RecordTypeDescriptor : Record {
         {
             return GetField(record.Parent, i);
         }
-        throw new Exception($"record access: expected record of type {this.Name}");
+        throw new Exception($"record access: expected record of type {this.Name} but got {record.RecordTypeDescriptor.Name}");
     }
 
     public virtual Func<SchemeValue, Bool> Predicate()

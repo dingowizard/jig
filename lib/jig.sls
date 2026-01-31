@@ -22,7 +22,7 @@
           ; (rnrs control)
           when unless do
           ; (rnrs conditions) .. should really be (rnrs conditions (6)) whenever we get version numbers going
-          condition? condition make-message-condition
+          condition? condition make-message-condition condition-message message-condition?
           ; (core-primitives)
           datum->syntax syntax->datum syntax->list syntax-e
           displayln display newline
@@ -44,7 +44,9 @@
           (for (rnrs records inspection) run)
           (for (rnrs records inspection) expand)
           (for (rnrs lists) run)
-          (for (rnrs lists) expand))
+          (for (rnrs lists) expand)
+          (for (rnrs conditions) run)
+          (for (rnrs conditions) expand))
 
   (define compose2
       (lambda (f1 f2)
@@ -82,17 +84,6 @@
 
   (define abort)
 
-  ; TODO: move these to (rnrs conditions)
-  (define make-message-condition
-    (lambda (msg)
-      (if (string? msg)
-          (make-message-condition-unsafe msg)
-          (error 'make-message-condition "expected a string argument." msg))))
-  (define condition
-    (lambda cs
-      (if (all condition? cs)
-          (apply condition-unsafe cs)
-          (error 'condition "expected all arguments to be conditions" (find (lambda (x) (not (condition? x))) cs)))))
 
 
 

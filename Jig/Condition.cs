@@ -68,6 +68,13 @@ public class CompoundCondition : Condition {
 public class Message : Condition {
     
     private readonly String MessageString;
+    
+    public static Func<Condition, SchemeValue> StringAccessor = ConditionRTD.Message.Accessor(((RecordTypeDescriptor)ConditionRTD.Message).Accessor(Integer.Zero));
+
+    public static Func<SchemeValue, Bool> Predicate = ConditionRTD.Message.Predicate();
+    public Func<Condition, ISchemeValue> MessageAccessor() {
+        return this.ConditionRtd.Accessor(this.RecordTypeDescriptor.Accessor(Integer.Zero));
+    }
 
     public Message(String msg) : base(ConditionRTD.Message, [msg]) {
         MessageString = msg;

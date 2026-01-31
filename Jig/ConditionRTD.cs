@@ -33,7 +33,7 @@ public class ConditionRTD : RecordTypeDescriptor {
     public override Func<SchemeValue, Bool> Predicate() {
         
         return (arg) => {
-            if (arg is not Record record) {
+            if (arg is not Condition condition) {
                 return Bool.False;
             }
             if (arg is CompoundCondition compound) {
@@ -46,9 +46,30 @@ public class ConditionRTD : RecordTypeDescriptor {
                 }
                 return Bool.False;
             }
-            return IsOfMe(record);
+            return IsOfMe(condition);
         };
     }
+
+    public Func<Condition, SchemeValue> Accessor(Func<SchemeValue, ISchemeValue> proc) {
+
+        return (arg) => {
+
+            if (arg is CompoundCondition compound) {
+                foreach (var c in compound.SimpleConditions) {
+                    Debug.Assert(c.RecordTypeDescriptor is not null);
+                    if (ReferenceEquals(c.RecordTypeDescriptor, this)) {
+                        // we found a simple record with the right type
+                        return (SchemeValue)proc(c);
+                    }
+                }
+                // TODO: this needs to be wrapped in something that checks to make sure the compound condtion has the right type
+                throw new Exception("called accessor on value of wrong type");
+            }
+            return (SchemeValue)proc(arg);
+        };
+    }
+    
+    
 }
 
 public class CompoundConditionRtd : ConditionRTD {

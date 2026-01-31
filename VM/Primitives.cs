@@ -504,10 +504,25 @@ public static class Primitives {
         vm.Push(vm.VAL = Bool.False);
     }
 
+    public static void messageCondition_p(Machine vm) {
+        var arg = vm.Pop();
+        if (arg is Condition c) {
+            vm.Push(vm.VAL = Message.Predicate(c));
+            return;
+        }
+        vm.Push(vm.VAL = Bool.False);
+    }
     public static void makeMessageConditionUnsafe(Machine vm) {
         String arg = (String)vm.Pop();
         vm.Push(new Message(arg));
         
+    }
+
+    public static void conditionMessage(Machine vm) {
+        var arg  = (Condition)vm.Pop();
+        var proc = Message.StringAccessor;
+        vm.Push(vm.VAL = proc(arg));
+
     }
     
     public static void record_predicate(Machine vm) { // Eg (record-predicate rtd) => #<procedure>
