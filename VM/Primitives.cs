@@ -473,12 +473,7 @@ public static class Primitives {
     }
 
     public static void record_p(Machine vm) { // (Eg (record? pt) => #t
-        System.Collections.Generic.List<SchemeValue> args = [];
-        while (vm.SP != vm.FP) {
-            args.Add(vm.Pop());
-        }
-        if (args.Count() != 1) throw new Exception( $"record?: expected a single argument but got {args.Count()}");
-        var arg = args.ElementAt(0);
+        var arg = vm.Pop();
         if (arg is Record) {
             vm.Push(vm.VAL = Bool.True);
             return;

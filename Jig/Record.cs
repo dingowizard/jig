@@ -78,7 +78,7 @@ public class Record : Vector {
 
         public Func<List, Record> Constructor() {
             return (args) => {
-                if (args.Count() != ParameterCount) {
+                if (args.Count() != ParameterCount) { // TODO: someone else has to check the argument count
                     throw new Exception($"{RTD.Name} constructor: expected {ParameterCount} arguments but got {args.Count()}");
                 }
                 return Record.Make(
