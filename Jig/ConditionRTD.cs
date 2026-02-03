@@ -3,12 +3,14 @@ namespace Jig;
 
 public class ConditionRTD : RecordTypeDescriptor {
     
-    public static ConditionRTD Condition = new ConditionRTD();
-    public static CompoundConditionRtd Compound = new CompoundConditionRtd();
-    public static MessageRtd Message = new MessageRtd();
-    public static SeriousConditionRtd Serious = new SeriousConditionRtd();
-    public static ViolationConditionRtd Violation = new ViolationConditionRtd();
-    public static AssertionConditionRtd Assertion = new AssertionConditionRtd();
+    public static ConditionRTD Condition = new ();
+    public static CompoundConditionRtd Compound = new ();
+    public static MessageRtd Message = new ();
+    public static WhoRtd Who = new ();
+    public static IrritantsRtd Irritants = new ();
+    public static SeriousConditionRtd Serious = new ();
+    public static ViolationConditionRtd Violation = new ();
+    public static AssertionConditionRtd Assertion = new ();
     public ConditionRTD()
         : base(
             List.NewList(
@@ -78,7 +80,17 @@ public class CompoundConditionRtd : ConditionRTD {
     
 }
 
+public class WhoRtd : ConditionRTD {
+    
+    public WhoRtd() : base (new Symbol("&who"), ConditionRTD.Condition, [new Tuple<Symbol, bool>(new Symbol("who"), false)]) {}
+    
+}
 
+public class IrritantsRtd : ConditionRTD {
+    
+    public IrritantsRtd() : base (new Symbol("&irritants"), ConditionRTD.Condition, [new Tuple<Symbol, bool>(new Symbol("irritants"), false)]) {}
+    
+}
 public class MessageRtd : ConditionRTD {
     public MessageRtd() 
         : base(new Symbol("&message"), ConditionRTD.Condition, [new Tuple<Symbol, bool>(new Symbol("message"), false)]) {}

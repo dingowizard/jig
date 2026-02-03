@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using Jig;
 using Jig.Expansion;
+using String = Jig.String;
 namespace VM;
 
 
@@ -79,6 +80,7 @@ public class Machine : IRuntime {
 
     internal void Call(bool debug = false) {
         
+        
         // Console.WriteLine($"call: (stack is {StackToList().Print()}");
         if (VAL is Procedure proc) {
             if (proc.HasRest) {
@@ -120,29 +122,6 @@ public class Machine : IRuntime {
             return;
         }
 
-        /*if (VAL is Primitive2 primitive2) {
-            // TODO: collect this stuff into a common base class
-            if (primitive2.HasRest) {
-                if (SP - FP < primitive2.Required) {
-                    throw new Exception(
-                        $"wrong num args: expected at least {primitive2.Required}, but got only {SP - FP}");
-                }
-            } else {
-                if (SP - FP != primitive2.Required) {
-                    
-                    throw new Exception($"{primitive2.Print()}: wrong num args: expected {primitive2.Required}, but got {SP - FP}. (SP = {SP}; FP = {FP}; stack = {StackToList()})");
-                }  
-            }
-            
-            System.Collections.Generic.List<SchemeValue> args = [];
-            while (SP > FP) {
-                args.Add(Pop());
-            }
-            ENVT = ENVT.ExtendForProcCall(primitive2, args);
-            // TODO: would be better if Primitive2 had its own Environment or would it?
-            primitive2.Procedure(this);
-            return;
-        }*/
 
         if (VAL is SavedContinuation sc) {
             sc.Apply(this);
@@ -280,6 +259,28 @@ public class Machine : IRuntime {
                     
                     // maybe by having another CompilationContext for operator
                     VAL = Pop();
+                    
+                    // *************
+                    // we need to check the arg count of any kind of callable thing
+                    // TODO: and remove that logic other places it currently appears
+                    // If the arg cound is wrong, we create a compound condition
+                    // that contains a
+                    // &assertion
+                    var ass = new AssertionViolation();
+                    // &who
+                    // &message
+                    var msg = new Message(new String("wrong number of arguments in call"));
+                    // &irritants
+                    // probably also a &continuation condition, but we'll come to this later.
+                    var compoundCondition = CompoundCondition.Make(ass, msg);
+                    // we need to push that onto the stack (but what do we do about the current stack frame
+                    // and are we making a new continuation?)
+                    // and we need to get the top exception handler out of the dynamic env slot
+                    // that has current exception handlers
+                    // then we need to transfer call the exception handler
+                    // by doing everything we normally do for a call
+                    // ************
+                    // right now that means Procedure, 
                     if (VAL is Primitive primProc) {
                         // Primitives are handled differently from user-defined procedures
                         // args are not bound in the environment

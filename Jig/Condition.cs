@@ -1,3 +1,4 @@
+using System.Xml.Schema;
 namespace Jig;
 
 public class Condition : Record {
@@ -48,10 +49,7 @@ public class CompoundCondition : Condition {
             
         }
         return result;
-
-
     }
-    
     
     public Condition[] SimpleConditions {get;}
     
@@ -62,8 +60,9 @@ public class CompoundCondition : Condition {
     private CompoundCondition(ConditionRTD rtd, Record parent, Condition[] conditions) : base(rtd, parent, new SchemeValue[]{conditions.ToJigList()}.ToJigList()) {
         SimpleConditions = conditions;
     }
-    
 }
+
+
 
 public class Message : Condition {
     
@@ -79,5 +78,11 @@ public class Message : Condition {
     public Message(String msg) : base(ConditionRTD.Message, [msg]) {
         MessageString = msg;
     }
+
+}
+
+public class AssertionViolation : Condition {
+
+    public AssertionViolation() : base(ConditionRTD.Assertion, []) {}
 
 }
