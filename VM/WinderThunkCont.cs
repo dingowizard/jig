@@ -49,6 +49,7 @@ public static class WinderThunkCont
             vm.SP = vm.FP;
             vm.PC = this.ReturnAddress;
             vm.ENVT = this.Environment;
+            vm.VARS = this.Variables;
             vm.Template = this.Template;
             vm.CONT = this.Continuation;
             
@@ -88,7 +89,7 @@ public static class WinderThunkCont
 
         public override int Required => SavedContinuation.Required;
 
-        public override bool HasOptional => SavedContinuation.HasOptional;
+        public override bool HasRest => SavedContinuation.HasRest;
     }
 
 }
