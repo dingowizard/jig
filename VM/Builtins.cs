@@ -1,6 +1,7 @@
 namespace VM;
 
 public static class Builtins {
+    // TODO: move this to Template?
 
 
     // public static readonly Template Car2 = new (
@@ -54,6 +55,19 @@ public static class Builtins {
         2,
         false
     );
+
+    public static readonly Template Abort = new (
+        1,
+        code:
+        [
+            (ulong)OpCode.Arg << 56,
+            (ulong)OpCode.Abort << 56,
+        ],
+        vars: [],
+        lits: [],
+        1,
+        false
+        );
     
     public static readonly Template CallWithValues = new (
         // TODO: can this by re-done more in the style of DynamicWind?

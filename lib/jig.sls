@@ -10,8 +10,6 @@
           and quasiquote syntax-rules
           define define-syntax begin lambda if set! quote quasiquote
 
-          ; TODO: which library?
-          raise raise-continuable with-exception-handler
           ; (rnrs records procedural)
           make-record-type-descriptor record-type-descriptor? make-record-constructor-descriptor
           record-predicate record-accessor record-constructor
@@ -21,6 +19,8 @@
           find exists for-all filter partition fold-left fold-right memv remv assv cons*
           ; (rnrs control)
           when unless do
+          ; (rnrs exceptions)
+          with-exception-handler raise raise-continuable ; guard
           ; (rnrs conditions) .. should really be (rnrs conditions (6)) whenever we get version numbers going
           condition? condition make-message-condition condition-message message-condition?
           ; (core-primitives)
@@ -28,13 +28,17 @@
           displayln display newline
           ; (jig prelude)
           all any void
+          ; (jig parameters)
+          make-parameter parameterize 
           ; (jig)
           template
-          compose make-parameter parameterize record-constructor-descriptor?)
+          compose record-constructor-descriptor?)
   (import (for (core-primitives) run)
           (for (core-primitives) expand)
           (for (jig prelude) run)
           (for (jig prelude) expand)
+          (for (jig parameters) run)
+          (for (jig parameters) expand)
           (for (rnrs base) run)
           (for (rnrs base) expand)
           (for (rnrs control) run)
@@ -46,7 +50,9 @@
           (for (rnrs lists) run)
           (for (rnrs lists) expand)
           (for (rnrs conditions) run)
-          (for (rnrs conditions) expand))
+          (for (rnrs conditions) expand)
+          (for (rnrs exceptions) run)
+          (for (rnrs exceptions) expand))
 
   (define compose2
       (lambda (f1 f2)
@@ -55,72 +61,4 @@
 
   (define compose
       (lambda xs
-        (fold-left compose2 (lambda (x) x) xs)))
-
-
-  (define make-parameter
-    (lambda (init . o)
-      (let* ((converter (if (not (null? o)) (car o) (lambda (x) x)))
-             (value (converter init))
-             (slot (new-dyn-env-slot value)))
-        (lambda args
-          (if (null? args)
-              (get-dyn-env-value slot)
-              (let ((len (length args)))
-                (cond ((= len 1)
-                       (set-dyn-env-slot! slot (converter (car args))))
-                      ((= len 2)
-                       (set-dyn-env-slot! slot ((cadr args) (car args))))
-                      (error 'parameter "expected 0, 1 or 2 arguments but received more"))))))))
-
-  (define-syntax parameterize
-     (syntax-rules ()
-        ((parameterize ((p0 v0) (p v) ...) body0 body ...)
-         ((lambda olds
-             (dynamic-wind
-                (lambda () (p0 v0) (p v) ...)
-                (lambda () body0 body ...)
-                (lambda () (for-each (lambda (pr old) (pr old (lambda (x) x))) (list p0 p ...) olds)))) (p0) (p) ...))))
-
-  (define abort)
-
-
-
-
- (call/cc
-  (lambda (k)
-    (define *current-exception-handlers*
-      (list (lambda (condition)
-              (display "unhandled exception ")
-              (display condition)
-              (newline)
-              (k (void)))))
-    (define with-exception-handlers
-        (lambda (new-handlers thunk)
-            (let ((previous-handlers *current-exception-handlers*))
-             (dynamic-wind
-                 (lambda ()
-                  (set! *current-exception-handlers* new-handlers))
-                 thunk
-                 (lambda ()
-                  (set! *current-exception-handlers* previous-handlers))))))
-    (set! with-exception-handler
-        (lambda (handler thunk)
-            (with-exception-handlers (cons handler *current-exception-handlers*)
-                                    thunk)))
-    (set! raise
-        (lambda (obj)
-            (let ((handlers *current-exception-handlers*))
-             (with-exception-handlers (cdr handlers)
-                 (lambda ()
-                  ((car handlers) obj)
-                  (abort "user-defined handler returned on non-continuable exception"
-                          (car handlers)
-                          obj))))))
-    (set! raise-continuable
-        (lambda (obj)
-            (let ((handlers *current-exception-handlers*))
-             (with-exception-handlers (cdr handlers)
-                 (lambda ()
-                  ((car handlers) obj))))))
-    (set! abort (lambda xs (displayln (car xs)) (k (void)))))))
+        (fold-left compose2 (lambda (x) x) xs))))

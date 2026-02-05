@@ -2,17 +2,20 @@ using Jig;
 
 namespace VM;
 
-public class SavedContinuation : Continuation {
+public class SavedContinuation : Continuation, ICallable {
 
-    public SavedContinuation(Continuation cont, SchemeValue[] savedStack, Winders winders) {
+    public SavedContinuation(Continuation cont, SchemeValue[] savedStack, Winders winders, DynamicEnvironment dynEnv) {
+        // TODO: saved continuations have to save and restore the dynamic env
         Required = cont.Required;
-        HasOptional = cont.HasOptional;
+        HasRest = cont.HasRest;
         Saved = cont;
         SavedStack = savedStack;
         SavedWinders = winders;
+        DynamicEnvironment =  dynEnv;
     }
-    
-    
+    public DynamicEnvironment DynamicEnvironment {get;}
+
+
     public Winders SavedWinders { get; }
     
     public override void Pop(Machine machine) {
@@ -26,6 +29,8 @@ public class SavedContinuation : Continuation {
     }
 
     public void Apply(Machine vm) {
+        
+        vm.DynamicEnvironment = DynamicEnvironment;
 
         var results = vm.SaveStackFrameToArray();
         // restore stack
@@ -54,7 +59,7 @@ public class SavedContinuation : Continuation {
     
     public Continuation Saved { get; }
     public override int Required { get; }
-    public override bool HasOptional { get; }
+    public override bool HasRest { get; }
     
     public SchemeValue[] SavedStack { get; }
 }

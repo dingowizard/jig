@@ -592,7 +592,7 @@ public static class Primitives {
 
      public static void newDynEnvSlot(Machine vm) {
          SchemeValue arg = vm.Pop();
-         uint slotID = vm.DynamicEnvironment.MakeParameter(arg);
+         uint slotID = vm.DynamicEnvironment.MakeDynamicVariable(arg);
          vm.Push(vm.VAL = new Integer((int)slotID)); // TODO: get rid of cast
      }
 
@@ -612,7 +612,7 @@ public static class Primitives {
 
 public delegate void PrimitiveProcedure(Machine vm);
 
-public class Primitive : SchemeValue {
+public class Primitive : SchemeValue, ICallable {
 
     public Primitive(string name, PrimitiveProcedure proc, int required, bool hasRest) {
         Name = name;
@@ -630,17 +630,18 @@ public class Primitive : SchemeValue {
     private PrimitiveProcedure Delegate { get; }
 
     public void Apply(Machine vm) {
-        if (HasRest) {
-            if (vm.SP - vm.FP < Required) {
-                throw new Exception(
-                    $"wrong num args: expected at least {Required}, but got only {vm.SP - vm.FP}");
-            }
-        } else {
-            if (vm.SP - vm.FP != Required) {
-                    
-                throw new Exception($"{this.Name}: wrong num args: expected {Required}, but got {vm.SP - vm.FP}. (SP = {vm.SP}; FP = {vm.FP}; stack = {vm.StackToList()})");
-            }  
-        }
+        // NOTE: I think args have already been checked in logic for OpCode.Call
+        // if (HasRest) {
+        //     if (vm.SP - vm.FP < Required) {
+        //         throw new Exception(
+        //             $"wrong num args: expected at least {Required}, but got only {vm.SP - vm.FP}");
+        //     }
+        // } else {
+        //     if (vm.SP - vm.FP != Required) {
+        //             
+        //         throw new Exception($"{this.Name}: wrong num args: expected {Required}, but got {vm.SP - vm.FP}. (SP = {vm.SP}; FP = {vm.FP}; stack = {vm.StackToList()})");
+        //     }  
+        // }
         Delegate(vm);
     }
     public override string Print() => $"#<procedure {Name}>";

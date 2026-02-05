@@ -1,4 +1,4 @@
-using System.Xml.Schema;
+using System.Diagnostics;
 namespace Jig;
 
 public class Condition : Record {
@@ -26,7 +26,23 @@ public class Condition : Record {
     }
     
     public ConditionRTD ConditionRtd { get; }
-    
+
+    public override string Print() {
+        Debug.Assert(RecordTypeDescriptor is not null);
+        string name = RecordTypeDescriptor.Name.Name;
+        System.Collections.Generic.List<string> fields = [];
+        int n = 0;
+        foreach (var field in RecordTypeDescriptor.Fields) {
+
+            fields.Add(field.Item1.Name + ": " + Elements[n].Print());
+            n++;
+
+
+        }
+        return $"#<{name} {string.Join(", ", fields)}>";
+
+    }
+
 }
 
 public class CompoundCondition : Condition {
@@ -60,6 +76,20 @@ public class CompoundCondition : Condition {
     private CompoundCondition(ConditionRTD rtd, Record parent, Condition[] conditions) : base(rtd, parent, new SchemeValue[]{conditions.ToJigList()}.ToJigList()) {
         SimpleConditions = conditions;
     }
+
+    public override string Print() {
+        string name;
+        string[] fields;
+        if (SimpleConditions.Any(x => x is AssertionViolation)) {
+            var ass = Array.Find(SimpleConditions, x => x is AssertionViolation);
+            name = "&assertion";
+            fields = SimpleConditions.ToList().Where(x => x != ass).Select(x => x.Print()).ToArray();
+        } else {
+            name = "&condition";
+            fields = SimpleConditions.ToList().Select(x => x.Print()).ToArray();
+        }
+        return $"#<{name} {string.Join(" ", fields)}>";
+    }
 }
 
 
@@ -78,6 +108,8 @@ public class Message : Condition {
     public Message(String msg) : base(ConditionRTD.Message, [msg]) {
         MessageString = msg;
     }
+    
+    
 
 }
 

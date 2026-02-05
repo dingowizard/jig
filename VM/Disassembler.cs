@@ -63,7 +63,7 @@ public static class Disassembler {
             case OpCode.Lambda:
                 return $"{lineNo:D3}\tLMBD";
             case OpCode.Var:
-                return $"{lineNo:D3}\tTOP\t{operand:D3} ; {bindings[operand].Symbol.Print()} {bindings[operand].GetHashCode()}";
+                return $"{lineNo:D3}\tVAR\t{operand:D3} ; {bindings[operand].Symbol.Print()} {bindings[operand].GetHashCode()}";
             case OpCode.Jump:
                 return $"{lineNo:D3}\tJMP\t{operand:D3}";
             case OpCode.JumpIfFalse:

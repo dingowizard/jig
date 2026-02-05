@@ -1,6 +1,7 @@
 ﻿namespace VM;
 
 public enum OpCode : byte {
+    Abort,
     Push,
     Pop,
     Lit,

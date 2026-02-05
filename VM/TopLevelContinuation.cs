@@ -20,6 +20,6 @@ public class TopLevelContinuation : Continuation {
     public ContinuationAny Procedure { get; }
     
     public override int Required => 0;
-    public override bool HasOptional => true;
+    public override bool HasRest => true;
 
 }

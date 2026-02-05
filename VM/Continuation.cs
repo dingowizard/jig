@@ -9,5 +9,5 @@ public abstract class Continuation : SchemeValue {
 
     public abstract int Required { get; }
     
-    public abstract bool HasOptional { get; }
+    public abstract bool HasRest { get; }
 }

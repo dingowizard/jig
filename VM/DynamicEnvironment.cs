@@ -3,6 +3,8 @@ namespace VM;
 
 public abstract class DynamicEnvironment {
 
+    public abstract DynamicEnvironment Copy();
+
     protected static uint nextID = 0;
     
     protected abstract HashSet<(uint id, SchemeValue val)> Frame {get;}
@@ -11,7 +13,7 @@ public abstract class DynamicEnvironment {
     
     public abstract void Set(uint id, SchemeValue schemeValue);
 
-    public uint MakeParameter(SchemeValue schemeValue) {
+    public uint MakeDynamicVariable(SchemeValue schemeValue) {
         Frame.Add((nextID, schemeValue));
         return nextID++;
     }
@@ -19,7 +21,22 @@ public abstract class DynamicEnvironment {
     public class TopLevel : DynamicEnvironment {
 
         public TopLevel() {
-            Frame = [];
+            // note: it's a little loosey-goosey that we're depending on nextID to be 0 here
+            Frame =
+            [
+                (nextID++, (SchemeValue)Pair.Cons(new Procedure(Environment.Default, Builtins.Abort), List.Null)),
+
+            ];
+            // make a dynamic variable for *current-exception-handlers*
+            // at slot 0
+        }
+
+        public override DynamicEnvironment Copy() {
+            return new TopLevel(new HashSet<(uint id, SchemeValue val)>(Frame));
+        }
+
+        private TopLevel(HashSet<(uint id, SchemeValue val)> frame) {
+            Frame = frame;
         }
 
         protected override HashSet<(uint id, SchemeValue val)> Frame {get;}
@@ -45,6 +62,16 @@ public abstract class DynamicEnvironment {
         public Nested(DynamicEnvironment parent) {
             Parent = parent;
             Frame = [];
+        }
+
+        public override DynamicEnvironment Copy() {
+            return new Nested(Parent, new HashSet<(uint id, SchemeValue val)>(Frame));
+        }
+
+        private Nested(DynamicEnvironment parent, HashSet<(uint id, SchemeValue val)> frame) {
+            Parent = parent;
+            Frame = frame;
+                
         }
         
         public DynamicEnvironment Parent {get;}

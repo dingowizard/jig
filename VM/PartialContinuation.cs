@@ -36,7 +36,7 @@ public class PartialContinuation : Continuation {
     public override void Pop(Machine vm) {
         
         // check that continuation we are returning to expects the number of values
-        if (this.Continuation.HasOptional) {
+        if (this.Continuation.HasRest) {
             if (vm.SP - vm.FP < this.Continuation.Required) {
                 throw new Exception(
                     $"continuation expected at least {this.Continuation.Required} values, but received {vm.SP - vm.FP}");
@@ -80,7 +80,7 @@ public class PartialContinuation : Continuation {
         Environment = environment;
         Variables = vars;
         Required = requiredValues;
-        HasOptional = hasOptional;
+        HasRest = hasOptional;
     }
 
     public Template Template { get; }
@@ -91,7 +91,7 @@ public class PartialContinuation : Continuation {
 
     public virtual ulong ReturnAddress { get; }
     public override int Required { get; }
-    public override bool HasOptional { get; }
+    public override bool HasRest { get; }
 
     public virtual Environment Environment { get; protected set; }
     
@@ -115,7 +115,7 @@ public class PartialContinuationForCallWithValues : PartialContinuation {
     public override void Pop(Machine vm) {
         // Console.WriteLine($"Env extended with {Template.NumVarsForScope} slots");
         // check that continuation we are returning to expects the number of values
-        if (this.HasOptional) {
+        if (this.HasRest) {
             // Console.WriteLine($"continuation expected at least {this.Required} values and received {vm.SP - vm.FP} (SP = {vm.SP} FP = {vm.FP} stack = {vm.StackToList()}");
             if (vm.SP - vm.FP < this.Required) {
                 throw new Exception(

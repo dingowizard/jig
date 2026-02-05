@@ -28,6 +28,6 @@ public class TopLevelTemplateContinuation : TopLevelContinuation {
     
     
     public override int Required => 0;
-    public override bool HasOptional => true;
+    public override bool HasRest => true;
 
 }

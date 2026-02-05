@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Jig;
 using Jig.Expansion;
@@ -83,18 +84,6 @@ public class Machine : IRuntime {
         
         // Console.WriteLine($"call: (stack is {StackToList().Print()}");
         if (VAL is Procedure proc) {
-            if (proc.HasRest) {
-                if (SP - FP < proc.Required) {
-                    throw new Exception(
-                        $"wrong num args: expected at least {proc.Required}, but got only {SP - FP}");
-                }
-            } else {
-                if (SP - FP != proc.Required) {
-                    
-                    Array.ForEach(Disassembler.Disassemble(proc.Template), Console.WriteLine);
-                    throw new Exception($"wrong num args: expected {proc.Required}, but got {SP - FP}. (SP = {SP}; FP = {FP}; stack = {StackToList()})");
-                }  
-            }
             // NOTE: the reason why the procedure code has the job of binding the args
             // is because of how primitives work. If the runtime bound the args for the procedures,
             // then there would be nothing on the stack for the primitive functions to use.
@@ -259,28 +248,21 @@ public class Machine : IRuntime {
                     
                     // maybe by having another CompilationContext for operator
                     VAL = Pop();
-                    
                     // *************
+                    // TODO: all of this logic needs to be done by OpCode.Call too
                     // we need to check the arg count of any kind of callable thing
                     // TODO: and remove that logic other places it currently appears
-                    // If the arg cound is wrong, we create a compound condition
-                    // that contains a
-                    // &assertion
-                    var ass = new AssertionViolation();
-                    // &who
-                    // &message
-                    var msg = new Message(new String("wrong number of arguments in call"));
-                    // &irritants
-                    // probably also a &continuation condition, but we'll come to this later.
-                    var compoundCondition = CompoundCondition.Make(ass, msg);
-                    // we need to push that onto the stack (but what do we do about the current stack frame
-                    // and are we making a new continuation?)
-                    // and we need to get the top exception handler out of the dynamic env slot
-                    // that has current exception handlers
-                    // then we need to transfer call the exception handler
-                    // by doing everything we normally do for a call
-                    // ************
-                    // right now that means Procedure, 
+                    var callableThing = VAL as ICallable;
+                    if (callableThing is null) {
+                        // TODO: we need to raise a different condition from wrong num.
+                        // we'll get to this later.
+                        throw new Exception($"trying to call a non-callable: {VAL.Print()}");
+                    }
+                    if (ArgsAreBad(callableThing, out (bool atleast, int expected, int actual) argsInfo)) {
+                        SetUpRaiseBadArgs(argsInfo);
+                        Call();
+                        continue;
+                    }
                     if (VAL is Primitive primProc) {
                         // Primitives are handled differently from user-defined procedures
                         // args are not bound in the environment
@@ -329,6 +311,21 @@ public class Machine : IRuntime {
                     continue;
                 case OpCode.CallDB:
                     VAL = Pop();
+                    // *************
+                    // TODO: all of this logic needs to be done by OpCode.Call too
+                    // we need to check the arg count of any kind of callable thing
+                    // TODO: and remove that logic other places it currently appears
+                    var callable = VAL as ICallable;
+                    if (callable is null) {
+                        // TODO: we need to raise a different condition from wrong num.
+                        // we'll get to this later.
+                        throw new Exception($"trying to call a non-callable: {VAL.Print()}");
+                    }
+                    if (ArgsAreBad(callable, out (bool atleast, int expected, int actual) badArgsInfo)) {
+                        SetUpRaiseBadArgs(badArgsInfo);
+                        Call(true);
+                        continue;
+                    }
                     if (VAL is Primitive primitiveProc) {
                         ActivationStack.Push(primitiveProc.Name, CONT);
                         primitiveProc.Apply(this);
@@ -346,7 +343,7 @@ public class Machine : IRuntime {
                             FP = SP;
                             CONT = wThunk.Continuation;
                             VAL = wThunk.Thunk;
-                            Call();
+                            Call(true); // NOTE: we're calling the first winder
                             continue;
 
                         }
@@ -375,7 +372,7 @@ public class Machine : IRuntime {
                     continue;
                 case OpCode.CallCC:
                     VAL = (Procedure)ENVT.GetArg(0); // put the lambda expr or procedure in VAL
-                    Push(new SavedContinuation(CONT, Stack.Take((int)SP).ToArray(), Winders.Copy()));
+                    Push(new SavedContinuation(CONT, Stack.Take((int)SP).ToArray(), Winders.Copy(), DynamicEnvironment.Copy()));
                     // the following line is wrong because even though
                     // the call instruction expects procedure to be on the stack, the 
                     // Call function does not. Ew.
@@ -413,7 +410,7 @@ public class Machine : IRuntime {
                     }
                     catch (Exception)
                     {
-                        Console.WriteLine($"PC = {PC}");
+                        Console.WriteLine($"PC = {PC - 1}");
                         Console.WriteLine($"VARS count = {VARS.Length}. index was {IR & 0x00FFFFFFFFFFFFFF}");
                         Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
                         throw;
@@ -468,10 +465,101 @@ public class Machine : IRuntime {
                     }
                     // TODO: make this the only return statement in the loop
                     return;
+                case OpCode.Abort:
+                    var cond = (Condition)VAL;
+                    Debug.Assert(cond is not null, "in Machine.Run OpCode.Abort: VAL was null");
+                    // TODO: get message from cond and write it
+                    Console.Error.WriteLine($"unhandled exception: {cond.Print()}");
+                    if (!ActivationStack.Empty) {
+                        ActivationStack.StackTrace(Console.Error); // TODO: this should be some Port
+                    }
+                    if (!TopLevelSavedContinuation.SavedWinders.Equals(Winders)) { // TODO: ReferenceEquals?
+                            CONT = TopLevelSavedContinuation.SavedWinders.DoWinders(this, TopLevelSavedContinuation);
+                            if (CONT is not WinderThunkCont.ThunkCont wThunk)
+                                throw new Exception( "if winders aren't equal, we SHOULD have a WinderThunk (or BaseCont?)");
+                            Push(new Integer((int)FP));
+                            FP = SP;
+                            CONT = wThunk.Continuation;
+                            VAL = wThunk.Thunk;
+                            Call(); // NOTE: we're calling the first winder
+                            continue;
+
+                    }
+                    TopLevelSavedContinuation.Apply(this);
+                    return;
                 default: throw new Exception($"unhandled case {opCode} in Execute");
             }
         }
 
+    }
+    private void SetUpRaiseBadArgs((bool atleast, int expected, int actual) badArgsInfo) {
+            // If the arg count is wrong, we create a compound condition
+            // that contains a
+            // &assertion
+            var ass = new AssertionViolation();
+            // &who
+            // &message
+            var msg = new Message(new String($"wrong number of arguments in call. expected {(badArgsInfo.atleast ? "at least " : "")}{badArgsInfo.expected} but got {badArgsInfo.actual}"));
+            // &irritants
+            // probably also a &continuation condition, but we'll come to this later.
+            var compoundCondition = CompoundCondition.Make(ass, msg);
+            // we need to push that onto the stack (but what do we do about the current stack frame
+            // and are we making a new continuation?)
+            // Let's just clear these bad args.
+            SP = FP;
+            Push(compoundCondition);
+            // the current continuation I think is the continuation for the call, which is maybe fine
+            // it would be nice if we could have the continuation for what needs to be done with _good_ arguments
+            // but there's not an easy way to get that from here I don't think
+            // and we need to get the top exception handler out of the dynamic env slot
+            // that has current exception handlers
+            
+            // var handlerList = DynamicEnvironment.LookUp(0) as List.NonEmpty;
+            // Debug.Assert(handlerList is not null, "for wrong num args: *current-exception-handlers* was not a list");
+            // var handler = handlerList.Car;
+            // var handlerProc = handler as Procedure;
+            // Debug.Assert(handlerProc is not null, "for wrong num args: exception handler was not a procedure");
+            // Debug.Assert(handlerProc.Required == 1, "for wrong num args: handler should be a procedure that takes one and only one argument");
+            // Debug.Assert(!handlerProc.HasRest, "for wrong num args: handler should be a procedure that takes one and only one argument");
+            // VAL = handlerProc;
+
+            // TODO: notice that this does not DIRECTLY use the dynamic environment.
+            // originally we got *current-exception-handlers* directly
+            // the problem with this is that we then need to set *curren-etc* to its cdr
+            // but then restore it later
+            // in other words we need to parameterize it.
+            // it is still not clear to me that we _want_ a DynEnv 
+            var p = ENVT.TopLevels.Keys.FirstOrDefault(p => p.Symbol.Name.Equals("raise-continuable"));
+            Debug.Assert(p is  not null, "for wrong num args: no raise-continuable found in top levels");
+            var binding = ENVT.TopLevels[p];
+            var v = binding.Location.Value;
+            var raiseProc = v as Procedure;
+            Debug.Assert(raiseProc is not null, "for wrong num args: raise-continuable was not a procedure");
+            Debug.Assert(raiseProc.Required == 1, "for wrong num args: raise-continuable should be a procedure that takes one and only one argument");
+            Debug.Assert(!raiseProc.HasRest, "for wrong num args: raise-continuable should be a procedure that takes one and only one argument");
+            VAL = raiseProc;
+            // ActivationStack.Push(raiseProc.Template.Name.Symbol.Name, CONT);
+
+
+            // then we need to transfer call the exception handler
+            // by doing everything we normally do for a call
+
+    }
+    private bool ArgsAreBad(ICallable callable, out (bool atleast, int expected, int actual) valueTuple) {
+            if (callable.HasRest) {
+                if (SP - FP < callable.Required) {
+                    valueTuple = (true, callable.Required, (int)(SP - FP));
+                    return true;
+                }
+            } else {
+                if (SP - FP != callable.Required) {
+                    // Array.ForEach(Disassembler.Disassemble(callable.Template), Console.WriteLine);
+                    valueTuple = (false, callable.Required, (int)(SP - FP));
+                    return true;
+                }  
+            }
+            valueTuple = (false, 0, 0);
+            return false;
     }
 
     public void Load(Template program, Environment env, ContinuationAny cont) {
@@ -483,6 +571,8 @@ public class Machine : IRuntime {
         ActivationStack.Reset(); // TODO: this has to be done on errror. 
         ENVT = env;
         CONT = new TopLevelTemplateContinuation(cont);
+        // TODO: we could probably just make this once _after_ we load all the libraries
+        TopLevelSavedContinuation = new SavedContinuation(CONT, Stack.Take((int)SP).ToArray(), Winders.Copy(), DynamicEnvironment.Copy());
     }
 
     public void Load(Template program, Environment env, Continuation cont) {
@@ -494,14 +584,17 @@ public class Machine : IRuntime {
         ActivationStack.Reset();
         ENVT = env;
         CONT = cont;
+        TopLevelSavedContinuation = new SavedContinuation(CONT, Stack.Take((int)SP).ToArray(), Winders.Copy(), DynamicEnvironment.Copy());
     }
+    
+    private SavedContinuation TopLevelSavedContinuation {get; set;}
 
     public IRuntimeEnvironment RuntimeEnvironment {
         get => ENVT;
         private init => ENVT = (Environment)value;
     }
     
-    public DynamicEnvironment DynamicEnvironment {get;}
+    public DynamicEnvironment DynamicEnvironment {get; set; }
 
     public IEnumerable<(Symbol, IExpansionRule)> CoreSyntax { get; }
 

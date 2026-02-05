@@ -77,7 +77,7 @@ public class Parser {
                         return pair;
                     }
                 } else {
-                    throw new Exception($"Expected ')' but got {tokenStream.Peek()}");
+                    throw new Exception($"Expected ')' but got {tokenStream.Peek()}. {tokenStream.Port.Source} line: {tokenStream.Port.Line} col: {tokenStream.Port.Column}");
                 }
             case Token.Identifier id:
                 return ParseSymbol(id, tokenStream, syntax);
