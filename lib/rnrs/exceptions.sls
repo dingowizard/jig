@@ -48,9 +48,3 @@
 
 
   
-(call/cc (lambda (k) ((lambda (handler thunk)
-                                    ((lambda (old)
-                                       (dynamic-wind
-                                          (lambda () (list? (cons handler old)))
-                                          (lambda () (thunk))
-                                          (lambda () list? old))) 7)) 1 (k 'oops))))
