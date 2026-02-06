@@ -102,7 +102,7 @@ public class Machine : IRuntime {
             }
 
             if (debug) {
-                ActivationStack.Push(proc.Template.Name.Symbol.Name, CONT);
+                ActivationStack.Push(proc, CONT);
             }
 
             VARS = proc.Locations;
@@ -327,7 +327,7 @@ public class Machine : IRuntime {
                         continue;
                     }
                     if (VAL is Primitive primitiveProc) {
-                        ActivationStack.Push(primitiveProc.Name, CONT);
+                        ActivationStack.Push(primitiveProc, CONT);
                         primitiveProc.Apply(this);
                         CONT.Pop(this);
                         ActivationStack.PopTo(this);
@@ -471,7 +471,15 @@ public class Machine : IRuntime {
                     // TODO: get message from cond and write it
                     Console.Error.WriteLine($"unhandled exception: {cond.Print()}");
                     if (!ActivationStack.Empty) {
-                        ActivationStack.StackTrace(Console.Error); // TODO: this should be some Port
+                        if (cond.TryGet<ContinuationCondition>(out ContinuationCondition cCond)) {
+                            if (cCond.ActivationStack is not null) {
+                                cCond.ActivationStack.StackTrace(Console.Error);
+                            } else {
+                                ActivationStack.StackTrace(Console.Error); // TODO: this should be some Port
+                            }
+                        } else {
+                            ActivationStack.StackTrace(Console.Error); // TODO: this should be some Port
+                        }
                     }
                     if (!TopLevelSavedContinuation.SavedWinders.Equals(Winders)) { // TODO: ReferenceEquals?
                             CONT = TopLevelSavedContinuation.SavedWinders.DoWinders(this, TopLevelSavedContinuation);
@@ -502,7 +510,8 @@ public class Machine : IRuntime {
             var msg = new Message(new String($"wrong number of arguments in call. expected {(badArgsInfo.atleast ? "at least " : "")}{badArgsInfo.expected} but got {badArgsInfo.actual}"));
             // &irritants
             // probably also a &continuation condition, but we'll come to this later.
-            var compoundCondition = CompoundCondition.Make(ass, msg);
+            var continuationCondition = new ContinuationCondition(CONT, ActivationStack.Copy());
+            var compoundCondition = CompoundCondition.Make(ass, msg, continuationCondition);
             // we need to push that onto the stack (but what do we do about the current stack frame
             // and are we making a new continuation?)
             // Let's just clear these bad args.
@@ -619,8 +628,15 @@ public class Machine : IRuntime {
 }
 
 internal class ActivationStack {
-    public void Push(string name, Continuation cont) {
-        var ar = new ActivationRecord(name, cont);
+
+
+    public ActivationStack() {}
+    private ActivationStack(Stack<ActivationRecord> stack) {
+        _stack = stack;
+        
+    }
+    public void Push(ICallable callable, Continuation cont) {
+        var ar = new ActivationRecord(callable, cont);
         _stack.Push(ar);
         // Console.WriteLine($"push {ar.Name}: |{Print()}");
     }
@@ -639,6 +655,7 @@ internal class ActivationStack {
         //     return;
         // }
 
+        // TODO: we should be using something better than name to test whether we've popped enough
         if (_stack.Count == 0) return;
         while (_stack.Peek().Name != vm.Template.Name.Symbol.Name) {
             _stack.Pop();
@@ -658,9 +675,31 @@ internal class ActivationStack {
             @out.WriteLine(ar.Name);
         }
     }
+    public ActivationStack Copy() {
+        return new ActivationStack(new  Stack<ActivationRecord>(_stack.Reverse()));
+    }
 }
 
-internal class ActivationRecord(string name, Continuation cont) {
-    public string Name {get;} = name;
+internal class ActivationRecord(ICallable callable, Continuation cont) {
+    
+    public ICallable Callable => callable;
+    public string Name {
+        get {
+            if (callable is Procedure p) {
+                return p.Template.Name.Symbol.Name;
+            }
+            if (callable is Primitive prim) {
+                return prim.Name;
+            }
+            if (callable is SavedContinuation sc) {
+                // TODO: we shouldn't really be here.
+                return "#<continuation>";
+            }
+            throw new Exception("Unknown callable type");
+            
+        }
+    }
     public Continuation Cont {get;} = cont; // this is the continuation to the procedure call
+                                            // TODO: it's not used for anything but it might be useful to make sure we popto the right place
+                                            // in situations where there are multiple calls to same procedure in the activationStack
 }

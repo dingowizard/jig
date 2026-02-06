@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 namespace Jig;
 
 public class Condition : Record {
@@ -43,6 +44,25 @@ public class Condition : Record {
 
     }
 
+    public bool TryGet<T>([NotNullWhen(true)] out T? condition) where T : Condition {
+        if (this is CompoundCondition cc) {
+            foreach (var c in cc.SimpleConditions) {
+                if (c is T result) {
+                    condition = result;
+                    return true;
+                }
+            }
+            condition = null;
+            return false;
+        }
+        if (this is T t) {
+            condition = t;
+            return true;
+        }
+        condition = null;
+        return false;
+        
+    }
 }
 
 public class CompoundCondition : Condition {
