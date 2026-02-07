@@ -27,10 +27,10 @@ public static class ClrImport {
         Console.WriteLine($"We compiled a ClrPrimitive for Succ and passed it 1. The result is {result.Print()}");
         var shout = typeof(ClrImport).GetMethod(nameof(Shout), BindingFlags.Static | BindingFlags.Public);
 
-        result = new ClrPrimitive(shout).Delegate(List.ListFromEnumerable([new Jig.String("i don't want to shout")]));
+        result = new ClrPrimitive(shout!).Delegate(List.ListFromEnumerable([new Jig.String("i don't want to shout")]));
         Console.WriteLine($"called shout with 'i don't want to shout': {result}");
         var stringCat  = typeof(ClrImport).GetMethod(nameof(StringCat), BindingFlags.Static | BindingFlags.Public);
-        result = new ClrPrimitive(stringCat).Delegate(List.ListFromEnumerable([new String("beep"), new String("boop")]));
+        result = new ClrPrimitive(stringCat!).Delegate(List.ListFromEnumerable([new String("beep"), new String("boop")]));
         Console.WriteLine($"called stringcat with 'beep' and 'boop': {result}");
     }
     

@@ -29,17 +29,14 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
         }
     }
 
-    public void SetArg(ulong ir, SchemeValue val)
-    {
-        if (LexicalVars is null)
-        {
+    public void SetArg(ulong ir, SchemeValue val) {
+        if (LexicalVars is null) {
             throw new Exception();
         }
 
         LexicalVars[ir].Value = val;
     }
 
-    public int ArgsLength => LexicalVars.Length;
     public SchemeValue GetArg(ulong index) {
         if (LexicalVars is null)
         {
@@ -49,7 +46,7 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
         return LexicalVars[index].Value ?? throw new Exception("GetArg: index = {index}. Not initialized.");
     }
 
-    public Environment(IEnumerable<Jig.Binding> topVars)
+    private Environment(IEnumerable<Binding> topVars)
     {
         ScopeLevel = 0;
         _topLevels = new();
@@ -105,10 +102,8 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
     private class Frame {
         int ScopeLevel { get; }
         
-        public int Length => Locations.Length;
         Location[]  Locations { get; }
         
-        ArraySegment<Location> InitializedLocations { get; }
 
         public Location this[ulong index] {
             get => Locations[index];
@@ -123,6 +118,9 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
             }
             while (frame.ScopeLevel > scopeLevel) {
                 frame = frame.Parent;
+                if (frame is null) {
+                    throw new Exception();
+                }
             }
 
             if (frame.Locations[index] is null) {
@@ -133,16 +131,6 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
         }
         
         private Frame? Parent { get; }
-
-        public Frame(Environment parent, IEnumerable<SchemeValue> values) {
-            // TODO: use this when binding args in procedure calls
-            // NOTE: but you'd actually need one that also takes
-            // the total number of locals as an argument,
-            // then sets up the backing array and the arraysegment (the inititialized vars)
-            Parent = parent.LexicalVars;
-            ScopeLevel = parent.ScopeLevel + 1;
-            Locations = values.Select(v =>  new Location(v)).ToArray();
-        }
 
         public Frame(Environment parent, int number) {
             // TODO: new constructor that takes values of arguments
@@ -156,13 +144,17 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
 
         }
 
-        private Frame(Environment parent, IEnumerable<SchemeValue> args, int numVarsForScope,
-            int requiredParameterCount, bool hasRestParameter) {
+        private Frame(Environment parent,
+            IEnumerable<SchemeValue> args,
+            int numVarsForScope,
+            int requiredParameterCount,
+            bool hasRestParameter) {
             
             Parent = parent.LexicalVars;
             ScopeLevel = parent.ScopeLevel + 1;
             Locations = new Location[numVarsForScope];
-            SchemeValue[] arrayArgs = args.ToArray();
+            var schemeValues = args as SchemeValue[] ?? args.ToArray();
+            SchemeValue[] arrayArgs = schemeValues.ToArray();
             int index = 0;
             if (requiredParameterCount > 0) {
                 for (; index < requiredParameterCount; index++) {
@@ -173,7 +165,7 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
                     }
                     catch {
                         Console.WriteLine("new Frame:");
-                        foreach (var arg in args) {
+                        foreach (var arg in schemeValues) {
                             Console.WriteLine(arg.Print());
                         }
                         throw;
@@ -183,7 +175,7 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
                 
             }
             if (hasRestParameter) {
-                Locations[index] = new Location(args.Skip(index).ToJigList());
+                Locations[index] = new Location(schemeValues.Skip(index).ToJigList());
                 index++;
             }
 

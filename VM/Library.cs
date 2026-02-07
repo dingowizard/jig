@@ -56,11 +56,11 @@ public class Library : ILibrary {
         return new Library(parsedLibraryForm, vmFactory);
     }
     
-    public static Library FromFile(string path, Func<InputPort, Syntax> reader, IEvaluatorFactory evaluatorFactory) {
-        
+    public static Library FromFile(string path, Func<InputPort, Syntax?> reader, IEvaluatorFactory evaluatorFactory) {
+
         Evaluator evaluator = (Evaluator)evaluatorFactory.Build();
         var port = new InputPort(path);
-        var stx = reader(port);
+        var stx = reader(port) ?? throw new Exception($"failed to read library from {path}");
         var context = new ExpansionContext(evaluator, evaluator.Variables.TopLevels.Keys, ExpansionContextType.REPL);
         var program = evaluator.Expander.ExpandREPLForm(stx, context);
         if (program is not ParsedLibrary parsedLibrary) throw new Exception($"expected library form, got {program}");

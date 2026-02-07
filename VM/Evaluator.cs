@@ -214,7 +214,11 @@ public class Evaluator : IEvaluator<Machine> {
 
 public class SchemeRuntimeException : Exception {
     
-    public SchemeRuntimeException(Template template, Continuation continuation, Environment env, string message, Exception innerException) : base(message, innerException) {}
+    public SchemeRuntimeException(Template template, Continuation continuation, Environment env, string message, Exception innerException) : base(message, innerException) {
+        Template = template;
+        Continuation = continuation;
+        Environment = env;
+    }
     public Template Template {get;}
     public Continuation Continuation {get;}
     public Environment Environment {get; set;}

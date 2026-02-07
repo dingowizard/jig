@@ -406,7 +406,7 @@ public class Machine : IRuntime {
                     // is a syntax error.
                     // but it should be a runtime error.
                     try {
-                        VAL = VARS[IR & 0x00FFFFFFFFFFFFFF].Value;
+                        VAL = VARS[IR & 0x00FFFFFFFFFFFFFF].Value!;
                     }
                     catch (Exception)
                     {
@@ -467,11 +467,10 @@ public class Machine : IRuntime {
                     return;
                 case OpCode.Abort:
                     var cond = (Condition)VAL;
-                    Debug.Assert(cond is not null, "in Machine.Run OpCode.Abort: VAL was null");
                     // TODO: get message from cond and write it
                     Console.Error.WriteLine($"unhandled exception: {cond.Print()}");
                     if (!ActivationStack.Empty) {
-                        if (cond.TryGet<ContinuationCondition>(out ContinuationCondition cCond)) {
+                        if (cond.TryGet<ContinuationCondition>(out ContinuationCondition? cCond)) {
                             if (cCond.ActivationStack is not null) {
                                 cCond.ActivationStack.StackTrace(Console.Error);
                             } else {
@@ -596,7 +595,7 @@ public class Machine : IRuntime {
         TopLevelSavedContinuation = new SavedContinuation(CONT, Stack.Take((int)SP).ToArray(), Winders.Copy(), DynamicEnvironment.Copy());
     }
     
-    private SavedContinuation TopLevelSavedContinuation {get; set;}
+    private SavedContinuation TopLevelSavedContinuation {get; set;} = null!;
 
     public IRuntimeEnvironment RuntimeEnvironment {
         get => ENVT;

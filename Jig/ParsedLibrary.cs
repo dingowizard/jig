@@ -178,26 +178,7 @@ public class ParsedImportSpec : ParsedForm {
             return true;
         } else {
             throw  new  Exception($"malformed import spec {stx.Print()}");
-            
         }
-        
-        System.Collections.Generic.List<Identifier> ids = [];
-        if (first is Identifier i) {
-            ids.Add(i);
-        } else {
-            throw new  Exception($"malformed library name {stx.Print()}");
-        }
-        SyntaxList rest = list.Rest;
-        while (first is Identifier id && rest is SyntaxList.NonEmpty more) {
-            ids.Add(id);
-            rest = more.Rest;
-            first = more.First;
-            
-        }
-        // TODO: handle situations where there is a version number
-        // TODO: catch some more errors
-        parsedImportSpec = new ParsedImportSpec(ids.ToArray());
-        return true;
     }
 }
 

@@ -3,7 +3,7 @@ namespace Jig;
 
 public class ConditionRTD : RecordTypeDescriptor {
     
-    public static ConditionRTD Condition = new ();
+    public new static ConditionRTD Condition = new ();
     public static CompoundConditionRtd Compound = new ();
     public static MessageRtd Message = new ();
     public static WhoRtd Who = new ();

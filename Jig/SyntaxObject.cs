@@ -202,10 +202,6 @@ public class Syntax : SchemeValue {
     private string StxPrint()
     {
         return $"#<syntax: {Syntax.ToDatum(this).Print()}>";
-        var sb = new StringBuilder("#<syntax: ");
-        InnerStxPrint(sb);
-        sb.Append(">");
-        return sb.ToString();
     }
 
     public static Syntax FromDatum(SrcLoc? srcLoc, SchemeValue x) {

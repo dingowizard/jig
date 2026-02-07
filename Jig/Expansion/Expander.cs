@@ -192,7 +192,7 @@ internal class SemiParsedLiteral : SemiParsedExpression
     public SemiParsedLiteral(Literal lit)  : base(lit.Expression, lit.SrcLoc) {
         Literal = lit;
     }
-    public Literal Literal {get;}
+    public new Literal Literal {get;}
 
     public override ParsedForm SecondPass(ExpansionContext context) {
         return new ParsedLiteral(new Identifier(new Symbol("quote")), Literal, Literal.SrcLoc);

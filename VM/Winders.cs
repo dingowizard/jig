@@ -15,21 +15,24 @@ public class Winders {
         _list = Jig.List.Null;
     }
 
-    public override bool Equals(object? obj)
-    {
+    public override bool Equals(object? obj) {
 
         if (obj is null) return false;
-        if (obj is Winders w)
-        {
-            return w._list .Equals(_list);
+        if (obj is Winders w) {
+            return w._list.Equals(_list);
         }
-
         return false;
-
     }
 
-    private Winders(Jig.List ws)
-    {
+    public override int GetHashCode() {
+        var hash = new HashCode();
+
+        foreach (var item in _list) hash.Add(item);
+
+        return hash.ToHashCode();
+    }
+    
+    private Winders(Jig.List ws) {
         // TODO: hopefully we can remove copying?
         // this seems wrong
         _list = ws;
@@ -88,8 +91,7 @@ public class Winders {
         _list = List.Cons(new Winder(inThunk, outThunk), _list);
     }
 
-    public Winder Pop()
-    {
+    public Winder Pop() {
         if (_list is List.NonEmpty proper) {
             var result = (Winder)proper.Car;
             _list = proper.Rest;
@@ -120,8 +122,7 @@ public class Winders {
     public class Winder(Procedure @in, Procedure @out) : SchemeValue {
         public Procedure In { get; } = @in;
         public Procedure Out { get; } = @out;
-        public override string Print()
-        {
+        public override string Print() {
             throw new NotImplementedException();
         }
     }

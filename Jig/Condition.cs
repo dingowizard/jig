@@ -122,7 +122,7 @@ public class Message : Condition {
 
     public static Func<SchemeValue, Bool> Predicate = ConditionRTD.Message.Predicate();
     public Func<Condition, SchemeValue> MessageAccessor() {
-        return this.ConditionRtd.Accessor(this.RecordTypeDescriptor.Accessor(Integer.Zero));
+        return this.ConditionRtd.Accessor(this.RecordTypeDescriptor!.Accessor(Integer.Zero));
     }
 
     public Message(String msg) : base(ConditionRTD.Message, [msg]) {
