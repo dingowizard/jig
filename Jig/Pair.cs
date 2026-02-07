@@ -8,23 +8,22 @@ public class Pair : SchemeValue, IPair {
         if (car is Syntax stxCar) {
             if (cdr is List { IsEmpty: true }) {
                 return SyntaxList.Cons(stxCar, SyntaxList.Null);
-            } else if (cdr is SyntaxList stxListCdr) {
-                return SyntaxList.Cons(stxCar, stxListCdr);
-            } else if (cdr is Syntax stxCdr) {
-                return new SyntaxPair(stxCar, stxCdr);
-            } else {
-                if (cdr is List l) {
-                    return  new List.NonEmpty(car, l);
-                } else {
-                    return  new Pair(car, cdr);
-                }
             }
+            if (cdr is SyntaxList stxListCdr) {
+                return SyntaxList.Cons(stxCar, stxListCdr);
+            }
+            if (cdr is Syntax stxCdr) {
+                return new SyntaxPair(stxCar, stxCdr);
+            }
+            if (cdr is List l) {
+                return  new List.NonEmpty(car, l);
+            }
+            return  new Pair(car, cdr);
         }
         if (cdr is List list) {
             return new List.NonEmpty(car, list);
-        } else {
-            return  new Pair(car, cdr);
         }
+        return  new Pair(car, cdr);
     }
 
     protected Pair(SchemeValue car, SchemeValue cdr) {
