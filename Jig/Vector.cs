@@ -3,18 +3,18 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Jig;
 
-public class Vector : SchemeValue, ISchemeValue, IEnumerable<ISchemeValue> {
+public class Vector : SchemeValue, IEnumerable<SchemeValue> {
 
     public Vector() {
         Elements = [];
     }
 
-    public Vector(IEnumerable<ISchemeValue> xs)
+    public Vector(IEnumerable<SchemeValue> xs)
     {
         Elements = [.. xs];
     }
 
-    public bool TryGetAtIndex(Integer i, [NotNullWhen(returnValue: true)] out ISchemeValue? result) {
+    public bool TryGetAtIndex(Integer i, [NotNullWhen(returnValue: true)] out SchemeValue? result) {
         if (i.Value >= Elements.Length) {
             result = null;
             return false;
@@ -31,11 +31,11 @@ public class Vector : SchemeValue, ISchemeValue, IEnumerable<ISchemeValue> {
         }
     }
 
-    protected internal ISchemeValue[] Elements {get;}
+    protected internal SchemeValue[] Elements {get;}
 
     public override string Print() => $"#({string.Join(' ', this.Select(x => x.Print()))})";
 
-    public IEnumerator<ISchemeValue> GetEnumerator() {
+    public IEnumerator<SchemeValue> GetEnumerator() {
         foreach (var x in Elements) {
             yield return x;
         }

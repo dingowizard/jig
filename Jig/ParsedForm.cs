@@ -4,16 +4,16 @@ namespace Jig;
 
 public abstract class ParsedForm : Syntax {
 
-    protected ParsedForm(ISchemeValue x, SrcLoc? srcLoc = null) : base(x, srcLoc) {}
+    protected ParsedForm(SchemeValue x, SrcLoc? srcLoc = null) : base(x, srcLoc) {}
 
 }
 
 public abstract class Definition : ParsedForm {
-    protected Definition(ISchemeValue x, SrcLoc? srcLoc = null) : base(x, srcLoc) {}
+    protected Definition(SchemeValue x, SrcLoc? srcLoc = null) : base(x, srcLoc) {}
 }
 
 public abstract class Expression : ParsedForm {
-    protected Expression(ISchemeValue x, SrcLoc? srcLoc = null) : base(x, srcLoc) {}
+    protected Expression(SchemeValue x, SrcLoc? srcLoc = null) : base(x, srcLoc) {}
 }
 public class ParsedApplication : Expression {
     public ParsedApplication(IEnumerable<ParsedForm> stxList, SrcLoc? srcLoc) : base(stxList.ToSyntaxList(), srcLoc) {

@@ -103,7 +103,11 @@ public class SemiParsedBegin : SemiParsedForm {
     // TODO: should we be able to decide whether or not it is a defn or expr during first pass
     // if so, there be two different forms, or is it sufficient just to error out
     // when a definition is encountered where it is not allowed?
-    public SemiParsedBegin(IEnumerable<SemiParsedForm> semiParsed, SyntaxList stxList, bool hasExpression, SrcLoc? syntaxSrcLoc) : base (stxList, syntaxSrcLoc) {
+    public SemiParsedBegin(IEnumerable<SemiParsedForm> semiParsed,
+        SyntaxList stxList,
+        bool hasExpression,
+        SrcLoc? syntaxSrcLoc) : base(stxList, syntaxSrcLoc)
+    {
         Keyword = (Identifier)stxList.ElementAt<Syntax>(0);
         SemiParsed = semiParsed;
         HasExpression = hasExpression;

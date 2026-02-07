@@ -26,7 +26,7 @@ public class Record : Vector {
         return result;
     }
 
-    public Record(RecordTypeDescriptor rtd, IEnumerable<ISchemeValue> fields) : base(fields) {
+    public Record(RecordTypeDescriptor rtd, IEnumerable<SchemeValue> fields) : base(fields) {
         RecordTypeDescriptor = rtd;
     }
     public Record(RecordTypeDescriptor rtd, Record parent, List fields) : base(fields) {
@@ -55,7 +55,7 @@ public class Record : Vector {
             ParentRCD = null;
 
         }
-        public ConstructorDescriptor(IEnumerable<ISchemeValue> fields) : base(TypeDescriptorForConstructor, fields) {
+        public ConstructorDescriptor(IEnumerable<SchemeValue> fields) : base(TypeDescriptorForConstructor, fields) {
             // TODO: none of this type checking belongs in this class
             if (fields.ElementAt(0) is not RecordTypeDescriptor rtd) {
                 throw new Exception("in ConstructorDescriptor cstor: expected first field to be a record type descriptor");

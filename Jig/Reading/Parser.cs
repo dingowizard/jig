@@ -8,7 +8,7 @@ public class Parser {
         return (Syntax?)ParseExpr(tokenStream, syntax: true);
     }
 
-    public static ISchemeValue? ParseExpr(TokenStream tokenStream, bool syntax = false) {
+    public static SchemeValue? ParseExpr(TokenStream tokenStream, bool syntax = false) {
         // TODO: handle comments!
         var peeked = tokenStream.Peek();
         while (peeked is Token.Comment) {
@@ -18,7 +18,7 @@ public class Parser {
         switch (peeked) {
             case Token.Quote quoteToken:
                 tokenStream.Read();
-                ISchemeValue? arg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
+                SchemeValue? arg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
                    return new Syntax(SyntaxList.FromParams(new Identifier(Symbol.FromName("quote"), quoteToken.SrcLoc),
                                                            (Syntax)arg),
@@ -28,7 +28,7 @@ public class Parser {
                 }
             case Token.QuasiQuote quasiquoteToken:
                 tokenStream.Read();
-                ISchemeValue? quasiArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
+                SchemeValue? quasiArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
                    return new Syntax(SyntaxList.FromParams(new Identifier(Symbol.FromName("quasiquote"), quasiquoteToken.SrcLoc),
                                                            (Syntax)quasiArg),
@@ -38,7 +38,7 @@ public class Parser {
                 }
             case Token.UnQuote unquoteToken:
                 tokenStream.Read();
-                ISchemeValue? unquoteArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
+                SchemeValue? unquoteArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
                    return new Syntax(SyntaxList.FromParams(new Identifier(Symbol.FromName("unquote"), unquoteToken.SrcLoc),
                                                            (Syntax)unquoteArg),
@@ -48,7 +48,7 @@ public class Parser {
                 }
             case Token.UnQuoteSplicing unquoteSplicingToken:
                 tokenStream.Read();
-                ISchemeValue? unquoteSplicingArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
+                SchemeValue? unquoteSplicingArg = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
                 if (syntax) {
                    return new Syntax(SyntaxList.FromParams(new Identifier(Symbol.FromName("unquote-splicing"), unquoteSplicingToken.SrcLoc),
                                                            (Syntax)unquoteSplicingArg),
@@ -68,7 +68,7 @@ public class Parser {
                         return List.Null;
                     }
                 }
-                ISchemeValue pair =  ParsePair(tokenStream, syntax);
+                SchemeValue pair =  (SchemeValue)ParsePair(tokenStream, syntax);
                 if (tokenStream.Peek() is Token.CloseParen close) {
                     tokenStream.Read();
                     if (syntax) {
@@ -174,11 +174,11 @@ public class Parser {
         // they should be the same. NOTE: no they shouldn't. they are different syntaxes even though they have the same datum
         // see Racket
         // The first one makes two syntax pairs: (stx-pair (#<stx 1> . #<syntax (stx-pair (#<syntax 2> . #<syntax 3>)))
-        ISchemeValue car = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
+        SchemeValue car = ParseExpr(tokenStream, syntax) ?? throw new Exception("unexpected EOF");
         if (syntax && car is not Syntax) {
             Console.WriteLine($"ParsePair: expected car to be syntax but got {car}, a {car.GetType()}");
         }
-        ISchemeValue? cdr;
+        SchemeValue? cdr;
         if (tokenStream.Peek() is Token.Dot) {
             tokenStream.Read();
             cdr = ParseExpr(tokenStream, syntax);
@@ -190,7 +190,7 @@ public class Parser {
             cdr = List.Null;
             return Pair.Cons(car, cdr);
         }
-        cdr = ParsePair(tokenStream, syntax);
+        cdr = (SchemeValue)ParsePair(tokenStream, syntax);
         if (cdr is null) throw new Exception("unexpected EOF");
         return Pair.Cons(car, cdr);
 

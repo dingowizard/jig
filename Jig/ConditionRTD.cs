@@ -52,7 +52,7 @@ public class ConditionRTD : RecordTypeDescriptor {
         };
     }
 
-    public Func<Condition, SchemeValue> Accessor(Func<SchemeValue, ISchemeValue> proc) {
+    public Func<Condition, SchemeValue> Accessor(Func<SchemeValue, SchemeValue> proc) {
 
         return (arg) => {
 

@@ -8,7 +8,7 @@ public class RecordTypeDescriptor : Record {
         Parent = parent;
         Fields = fields;
     }
-    public RecordTypeDescriptor(IEnumerable<ISchemeValue> fields)
+    public RecordTypeDescriptor(IEnumerable<SchemeValue> fields)
         : base(Base, fields) // TODO: these fields aren't the same as the fields of the rtd are they?
     {
         // TODO: it's bad that we're doing argument checking here.
@@ -97,7 +97,7 @@ public class RecordTypeDescriptor : Record {
         return Bool.False;
     }
 
-    private ISchemeValue GetField(Record record, int i)
+    private SchemeValue GetField(Record record, int i)
     {
         if (ReferenceEquals(this, record.RecordTypeDescriptor))
         {
@@ -122,7 +122,7 @@ public class RecordTypeDescriptor : Record {
         };
     }
 
-    public virtual Func<SchemeValue, ISchemeValue> Accessor(Integer i)
+    public virtual Func<SchemeValue, SchemeValue> Accessor(Integer i)
     {
         if (i.Value >= Fields.Length)
         {

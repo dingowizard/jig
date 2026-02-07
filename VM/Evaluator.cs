@@ -29,7 +29,7 @@ public class Evaluator : IEvaluator<Machine> {
         }
         var compiler = new Compiler(); // should class be static?
         var code = compiler.CompileExprForREPL(transformerLambdaExpr, Environment);
-        ISchemeValue result = List.Null;
+        SchemeValue result = List.Null;
         Runtime.Load(code, Environment, Cont);
         Runtime.Run();
         Procedure proc = result as Procedure ?? throw new Exception("a transformer should evaluate to a procedure");

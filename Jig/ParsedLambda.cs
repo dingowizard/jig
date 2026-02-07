@@ -3,8 +3,15 @@ namespace Jig;
 
 public class ParsedLambda : Expression {
 
-    internal ParsedLambda(Syntax keyword, LambdaParameters parameters, int scopeVarsCount, ParsedForm[] bodies, SrcLoc? srcLoc = null)
-        : base(Pair.Cons(keyword, Pair.Cons(parameters, (ISchemeValue)bodies.ToJigList())), srcLoc)
+    internal ParsedLambda(Syntax keyword,
+        LambdaParameters parameters,
+        int scopeVarsCount,
+        ParsedForm[] bodies,
+        SrcLoc? srcLoc = null)
+        : base((SchemeValue)Pair.Cons(keyword,
+                (SchemeValue)Pair.Cons(parameters,
+                    (SchemeValue)bodies.ToJigList())),
+            srcLoc)
     {
         Parameters = parameters;
         Bodies = bodies;

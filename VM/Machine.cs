@@ -437,10 +437,10 @@ public class Machine : IRuntime {
                     continue;
                 case OpCode.ArgToArgs:
                     var tmp = ENVT.GetArg(IR & 0x00FFFFFFFFFFFFFF);
-                    if (tmp is not IEnumerable<ISchemeValue> ys) {
+                    if (tmp is not IEnumerable<SchemeValue> ys) {
                         throw new Exception($"expected list argument but got {tmp}");
                     }
-                    foreach (var form in ys.Reverse<ISchemeValue>()) {
+                    foreach (var form in ys.Reverse<SchemeValue>()) {
                         // TODO: barf
                         Push((SchemeValue)form);
                     }

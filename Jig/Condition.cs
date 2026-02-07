@@ -18,7 +18,7 @@ public class Condition : Record {
             
     }
     
-    public Condition(ConditionRTD rtd, IEnumerable<ISchemeValue> fields) : base(rtd, fields) {
+    public Condition(ConditionRTD rtd, IEnumerable<SchemeValue> fields) : base(rtd, fields) {
         ConditionRtd = rtd;
     }
 
@@ -121,7 +121,7 @@ public class Message : Condition {
     public static Func<Condition, SchemeValue> StringAccessor = ConditionRTD.Message.Accessor(((RecordTypeDescriptor)ConditionRTD.Message).Accessor(Integer.Zero));
 
     public static Func<SchemeValue, Bool> Predicate = ConditionRTD.Message.Predicate();
-    public Func<Condition, ISchemeValue> MessageAccessor() {
+    public Func<Condition, SchemeValue> MessageAccessor() {
         return this.ConditionRtd.Accessor(this.RecordTypeDescriptor.Accessor(Integer.Zero));
     }
 

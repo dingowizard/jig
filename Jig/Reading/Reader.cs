@@ -5,7 +5,7 @@ namespace Jig.Reader;
 
 public static class Reader {
 
-    public static ISchemeValue? Read(InputPort port) {
+    public static SchemeValue? Read(InputPort port) {
         // TODO: all of these should return an EOF object rather than null
         if (port.Peek() == -1) return null;
         return Parser.ParseExpr(new TokenStream(port));

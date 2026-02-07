@@ -1,6 +1,6 @@
 namespace Jig;
 
-public interface IPair : ISchemeValue {
-    ISchemeValue Car {get;}
-    ISchemeValue Cdr {get;}
+public interface IPair  {
+    SchemeValue Car {get;}
+    SchemeValue Cdr {get;}
 }

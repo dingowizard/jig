@@ -201,17 +201,17 @@ internal class SemiParsedLiteral : SemiParsedExpression
 
 public abstract class SemiParsedForm : Syntax // note: has to be a syntax because this is what is returned by IExpansionRule
 {
-    public SemiParsedForm(ISchemeValue expr, SrcLoc? srcLoc = null) : base(expr, srcLoc)
+    public SemiParsedForm(SchemeValue expr, SrcLoc? srcLoc = null) : base(expr, srcLoc)
     {
     }
     
     public abstract ParsedForm SecondPass(ExpansionContext context);
 }
 public abstract class SemiParsedDefinition : SemiParsedForm {
-    public SemiParsedDefinition(ISchemeValue expr, SrcLoc? srcLoc = null) : base(expr, srcLoc) { }
+    public SemiParsedDefinition(SchemeValue expr, SrcLoc? srcLoc = null) : base(expr, srcLoc) { }
     
 }
 public abstract class SemiParsedExpression : SemiParsedForm {
-    public SemiParsedExpression(ISchemeValue expr, SrcLoc? srcLoc = null) : base(expr, srcLoc) { }
+    public SemiParsedExpression(SchemeValue expr, SrcLoc? srcLoc = null) : base(expr, srcLoc) { }
     
 }
