@@ -7,6 +7,12 @@ public class Syntax : SchemeValue {
     // TODO: should this be an interface rather than a class? then e.g. Identifier : Symbol, ISyntaxObject
     //
 
+    public override IPair Prepend(SchemeValue car) {
+        if (car is Syntax stxCar)
+            return new SyntaxPair(stxCar, this);
+        return new Pair(car, this);
+    }
+
     public static SchemeValue E(Syntax stx) {
         return stx.Expression;
     }

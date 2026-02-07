@@ -4,29 +4,9 @@ namespace Jig;
 
 public class Pair : SchemeValue, IPair {
 
-    public static IPair Cons(SchemeValue car, SchemeValue cdr) {
-        if (car is Syntax stxCar) {
-            if (cdr is List { IsEmpty: true }) {
-                return SyntaxList.Cons(stxCar, SyntaxList.Null);
-            }
-            if (cdr is SyntaxList stxListCdr) {
-                return SyntaxList.Cons(stxCar, stxListCdr);
-            }
-            if (cdr is Syntax stxCdr) {
-                return new SyntaxPair(stxCar, stxCdr);
-            }
-            if (cdr is List l) {
-                return  new List.NonEmpty(car, l);
-            }
-            return  new Pair(car, cdr);
-        }
-        if (cdr is List list) {
-            return new List.NonEmpty(car, list);
-        }
-        return  new Pair(car, cdr);
-    }
+    public static IPair Cons(SchemeValue car, SchemeValue cdr) => cdr.Prepend(car);
 
-    protected Pair(SchemeValue car, SchemeValue cdr) {
+    internal Pair(SchemeValue car, SchemeValue cdr) {
         Car = car;
         Cdr = cdr;
     }

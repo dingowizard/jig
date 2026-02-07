@@ -12,6 +12,8 @@ public abstract class SchemeValue {
 
     public abstract string Print();
 
+    public virtual IPair Prepend(SchemeValue car) => new Pair(car, this);
+
     public static bool IsSymbol(SchemeValue ast)
     {
         switch (ast) {

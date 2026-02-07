@@ -20,6 +20,12 @@ public abstract class List : SchemeValue, IEnumerable<SchemeValue>
 
     public override string Print() => $"({string.Join(" ", this.Select<SchemeValue, string>(x => x.Print()))})";
 
+    public override IPair Prepend(SchemeValue car) {
+        if (car is Syntax stx && IsEmpty)
+            return SyntaxList.Cons(stx, SyntaxList.Null);
+        return new NonEmpty(car, this);
+    }
+
     public static List Cons(SchemeValue car, List cdr) {
         return new NonEmpty(car, cdr);
     }

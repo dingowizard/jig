@@ -50,6 +50,12 @@ public abstract class SyntaxList : List<Syntax> {
         }
     }
 
+    public override IPair Prepend(SchemeValue car) {
+        if (car is Syntax stx)
+            return SyntaxList.Cons(stx, this);
+        return new List.NonEmpty(car, this);
+    }
+
     public static NonEmpty Cons(Syntax car, SyntaxList cdr) {
         return new NonEmpty(car, cdr);
     }
