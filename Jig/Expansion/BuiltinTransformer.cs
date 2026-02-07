@@ -41,7 +41,7 @@ public class BuiltinTransformer  : Transformer {
             throw new Exception($"quasiquote: expected exactly one argument");
         }
         Syntax arg = stxList.ElementAt<Syntax>(1);
-        ISchemeValue argE = Syntax.E(arg);
+        SchemeValue argE = Syntax.E(arg);
         if (argE is List.Empty ||
             argE is not IPair) {
             return new Syntax(SyntaxList.FromParams(new Identifier(new Symbol("quote")),
@@ -111,7 +111,7 @@ public class BuiltinTransformer  : Transformer {
                 throw new Exception($"syntax-rules: expected sub-forms, but got none");
             }
             if (Syntax.E(macroArgs.First) is not SyntaxList literals) {
-                if (Syntax.E(macroArgs.First) is not IEmptyList) {
+                if (Syntax.E(macroArgs.First) is not List { IsEmpty: true }) {
                     throw new Exception($"syntax-rules: expected first subform to be a list, but got {Syntax.E(macroArgs.First).Print()}");
                 }
                 literals = SyntaxList.FromParams();

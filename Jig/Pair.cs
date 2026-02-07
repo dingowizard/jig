@@ -4,9 +4,9 @@ namespace Jig;
 
 public class Pair : SchemeValue, IPair {
 
-    public static IPair Cons(ISchemeValue car, ISchemeValue cdr) {
+    public static IPair Cons(SchemeValue car, SchemeValue cdr) {
         if (car is Syntax stxCar) {
-            if (cdr is IEmptyList) {
+            if (cdr is List { IsEmpty: true }) {
                 return SyntaxList.Cons(stxCar, SyntaxList.Null);
             } else if (cdr is SyntaxList stxListCdr) {
                 return SyntaxList.Cons(stxCar, stxListCdr);
@@ -27,7 +27,7 @@ public class Pair : SchemeValue, IPair {
         }
     }
 
-    protected Pair(ISchemeValue car, ISchemeValue cdr) {
+    protected Pair(SchemeValue car, SchemeValue cdr) {
         Car = car;
         Cdr = cdr;
     }
@@ -50,8 +50,8 @@ public class Pair : SchemeValue, IPair {
     }
 
 
-    public ISchemeValue Car {get; set;}
-    public ISchemeValue Cdr {get; set;}
+    public SchemeValue Car {get; set;}
+    public SchemeValue Cdr {get; set;}
 
     public override string Print() {
         StringBuilder sb = new("(");

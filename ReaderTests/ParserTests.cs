@@ -39,9 +39,9 @@ public class ParserTests {
         Syntax? stx = Parser.ParseSyntax(tokenStream);
         Assert.IsNotNull(stx);
         Assert.IsInstanceOfType(stx, typeof(Syntax));
-        ISchemeValue x = Syntax.E(stx);
+        SchemeValue x = Syntax.E(stx);
         Assert.IsInstanceOfType(x, typeof(IPair));
-        ISchemeValue car = ((IPair)x).Car;
+        SchemeValue car = ((IPair)x).Car;
         Assert.IsInstanceOfType(car, typeof(Syntax));
         Syntax so = (Syntax)car;
         Assert.AreEqual(new Symbol("abc"), Syntax.ToDatum(so));
@@ -52,10 +52,10 @@ public class ParserTests {
         var tokenStream = new TokenStream(InputPort.FromString("(abc)"));
         Syntax? stx = Parser.ParseSyntax(tokenStream);
         Assert.IsNotNull(stx);
-        ISchemeValue x = Syntax.E(stx);
-        ISchemeValue cdr = ((IPair) x).Cdr;
+        SchemeValue x = Syntax.E(stx);
+        SchemeValue cdr = ((IPair) x).Cdr;
         // Assert.AreEqual(List.Null, cdr);
-        Assert.IsInstanceOfType(cdr, typeof(IEmptyList));
+        Assert.IsTrue(cdr is List { IsEmpty: true });
     }
 
 
@@ -91,7 +91,7 @@ public class ParserTests {
         Assert.IsNotNull(stx);
         IPair? stxPair = Syntax.E(stx) as IPair;
         Assert.IsNotNull(stxPair);
-        INonEmptyList? rest = stxPair.Cdr as INonEmptyList;
+        IPair? rest = stxPair.Cdr as IPair;
         Assert.IsNotNull(rest);
         Identifier? id = rest.Car as Identifier;
         Assert.IsNotNull(id);
@@ -106,7 +106,7 @@ public class ParserTests {
         Assert.IsInstanceOfType(stx, typeof(Syntax));
         IPair? stxPair = Syntax.E(stx) as IPair;
         Assert.IsNotNull(stxPair);
-        INonEmptyList? rest = stxPair.Cdr as INonEmptyList;
+        IPair? rest = stxPair.Cdr as IPair;
         Assert.IsNotNull(rest);
         // rest should be ((abc def))
         Syntax? carCdr = rest.Car as Syntax; // should be (abc def)

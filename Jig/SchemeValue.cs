@@ -1,6 +1,6 @@
 namespace Jig;
 
-public abstract class SchemeValue : ISchemeValue {
+public abstract class SchemeValue {
 
 
     public static readonly VoidType Void = new();
@@ -12,7 +12,7 @@ public abstract class SchemeValue : ISchemeValue {
 
     public abstract string Print();
 
-    public static bool IsSymbol(ISchemeValue ast)
+    public static bool IsSymbol(SchemeValue ast)
     {
         switch (ast) {
             case Symbol:
@@ -23,7 +23,7 @@ public abstract class SchemeValue : ISchemeValue {
         }
     }
 
-    public static bool IsNonEmptyList(ISchemeValue ast)
+    public static bool IsNonEmptyList(SchemeValue ast)
     {
         if (ast is Syntax stx) {
             if (Syntax.E(stx) is List list) {
@@ -34,10 +34,10 @@ public abstract class SchemeValue : ISchemeValue {
     }
 
 
-    public static bool IsKeyword(string name, ISchemeValue ast) {
+    public static bool IsKeyword(string name, SchemeValue ast) {
         switch (ast) {
             case Syntax stx when Syntax.E(stx) is List list: {
-                if (list is IEmptyList) {
+                if (list.IsEmpty) {
                     throw new Exception($"IsKeyword: ast is ()");
                 }
                 if (list.ElementAt(0) is Identifier id) {

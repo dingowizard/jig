@@ -7,12 +7,12 @@ public class Syntax : SchemeValue {
     // TODO: should this be an interface rather than a class? then e.g. Identifier : Symbol, ISyntaxObject
     //
 
-    public static ISchemeValue E(Syntax stx) {
+    public static SchemeValue E(Syntax stx) {
         return stx.Expression;
     }
 
 
-    public static ISchemeValue ToDatum(Syntax stx) {
+    public static SchemeValue ToDatum(Syntax stx) {
         if (stx is Identifier id) {
             return id.Symbol;
         }
@@ -21,10 +21,10 @@ public class Syntax : SchemeValue {
         }
         switch (E(stx)) {
             case SyntaxPair stxPair:
-                return Pair.Cons(ToDatum(stxPair.Car), ToDatum(stxPair.Cdr));
+                return (SchemeValue)Pair.Cons(ToDatum(stxPair.Car), ToDatum(stxPair.Cdr));
             case SyntaxList stxList:
-                return stxList.Select<Syntax, ISchemeValue>(ToDatum).ToJigList();
-            case IEmptyList:
+                return stxList.Select<Syntax, SchemeValue>(ToDatum).ToJigList();
+            case List { IsEmpty: true }:
                 return List.Null;
             case VoidType:
                 return SchemeValue.Void;
@@ -60,7 +60,7 @@ public class Syntax : SchemeValue {
     //
     // }
 
-    private static void AddScope(ISchemeValue schemeValue, Scope scope) {
+    private static void AddScope(SchemeValue schemeValue, Scope scope) {
         switch (schemeValue) {
             case Syntax stx:
                 AddScope(stx, scope);
@@ -89,7 +89,7 @@ public class Syntax : SchemeValue {
         return;
     }
 
-    private static void RemoveScope(ISchemeValue schemeValue, Scope scope) {
+    private static void RemoveScope(SchemeValue schemeValue, Scope scope) {
         if (schemeValue is Syntax stx) {
             RemoveScope(stx, scope);
             return;
@@ -118,7 +118,7 @@ public class Syntax : SchemeValue {
         return;
     }
 
-    private static void ToggleScope(ISchemeValue schemeValue, Scope scope) {
+    private static void ToggleScope(SchemeValue schemeValue, Scope scope) {
         if (schemeValue is Syntax stx) {
             ToggleScope(stx, scope);
             return;
@@ -150,7 +150,7 @@ public class Syntax : SchemeValue {
     }
 
     public static bool ToList(Syntax stx, [NotNullWhen(returnValue: true)] out SyntaxList? stxList) {
-        ISchemeValue e = Syntax.E(stx);
+        SchemeValue e = Syntax.E(stx);
         if (e is SyntaxList slist) {
             stxList = slist;
             return true;
@@ -202,7 +202,7 @@ public class Syntax : SchemeValue {
         return sb.ToString();
     }
 
-    public static Syntax FromDatum(SrcLoc? srcLoc, ISchemeValue x) {
+    public static Syntax FromDatum(SrcLoc? srcLoc, SchemeValue x) {
         switch (x) {
             case Syntax stx:
                 return stx;
@@ -227,7 +227,7 @@ public class Syntax : SchemeValue {
     }
 
 
-    public Syntax(ISchemeValue expr, SrcLoc? srcLoc = null) {
+    public Syntax(SchemeValue expr, SrcLoc? srcLoc = null) {
         if (expr is List list) {
             
         }
@@ -236,14 +236,14 @@ public class Syntax : SchemeValue {
     }
 
     public class Literal : Syntax {
-        public Literal(ISchemeValue x, SrcLoc? srcLoc = null) : base (x, srcLoc) {}
+        public Literal(SchemeValue x, SrcLoc? srcLoc = null) : base (x, srcLoc) {}
     }
 
     public override string Print() => StxPrint();
 
     public override string ToString() => StxPrint();
 
-    internal virtual ISchemeValue Expression {get;}
+    internal virtual SchemeValue Expression {get;}
 
     public SrcLoc? SrcLoc {get;}
     // public LexicalContext LexicalContext {get;}

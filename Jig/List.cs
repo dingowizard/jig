@@ -2,21 +2,29 @@ using System.Collections;
 
 namespace Jig;
 
-public abstract class List : SchemeValue, IEnumerable<ISchemeValue>, IList
+public abstract class List : SchemeValue, IEnumerable<SchemeValue>
 {
-    public Bool NullP => this is IEmptyList ? Bool.True : Bool.False;
+    public abstract bool IsEmpty { get; }
 
-    public Integer Length => this is INonEmptyList p ?  Integer.One + p.Rest.Length : Integer.Zero;
+    internal virtual SchemeValue GetFirst() => throw new InvalidOperationException("Empty list");
+    internal virtual List GetRest() => throw new InvalidOperationException("Empty list");
+
+    public virtual SchemeValue First => GetFirst();
+    public virtual List Rest => GetRest();
+
+    public Bool NullP => IsEmpty ? Bool.True : Bool.False;
+
+    public Integer Length => !IsEmpty ?  Integer.One + GetRest().Length : Integer.Zero;
 
     public static Empty Null { get; } = new Empty();
 
-    public override string Print() => $"({string.Join(" ", this.Select<ISchemeValue, string>(x => x.Print()))})";
+    public override string Print() => $"({string.Join(" ", this.Select<SchemeValue, string>(x => x.Print()))})";
 
-    public static List Cons(ISchemeValue car, List cdr) {
+    public static List Cons(SchemeValue car, List cdr) {
         return new NonEmpty(car, cdr);
     }
 
-    public static List NewList(params ISchemeValue[] args)
+    public static List NewList(params SchemeValue[] args)
     {
         List result = Null;
         for (int index = args.Length - 1; index >= 0; index--)
@@ -26,11 +34,11 @@ public abstract class List : SchemeValue, IEnumerable<ISchemeValue>, IList
         return result;
     }
 
-    public static List ListFromEnumerable(IEnumerable<ISchemeValue> elements)
+    public static List ListFromEnumerable(IEnumerable<SchemeValue> elements)
     {
         // WARNING: vs code says no references, but at runtime something uses method reflection to find and cache it
         List result = Null;
-        var enumerable = elements as ISchemeValue[] ?? elements.ToArray();
+        var enumerable = elements as SchemeValue[] ?? elements.ToArray();
         for (int index = enumerable.Length - 1; index >= 0; index--)
         {
             result = new NonEmpty(enumerable.ElementAt(index), result);
@@ -38,18 +46,19 @@ public abstract class List : SchemeValue, IEnumerable<ISchemeValue>, IList
         return result;
     }
 
-    public override string ToString() => $"({string.Join(' ', this)})"; 
+    public override string ToString() => $"({string.Join(' ', this)})";
 
 
 
 
-    public class Empty : List, IEmptyList {
-
-
+    public class Empty : List {
+        public override bool IsEmpty => true;
     }
 
-    public class NonEmpty(ISchemeValue car, List cdr) : List, INonEmptyList
+    public class NonEmpty(SchemeValue car, List cdr) : List, IPair
     {
+        public override bool IsEmpty => false;
+
         public override bool Equals(object? obj)
         {
             if (obj is null) return false;
@@ -61,16 +70,14 @@ public abstract class List : SchemeValue, IEnumerable<ISchemeValue>, IList
         }
 
 
-        public ISchemeValue First { get; } = car;
-        public List Rest { get; } = cdr;
-        public ISchemeValue Cdr => Rest;
-        public ISchemeValue Car => First;
+        public override SchemeValue First { get; } = car;
+        public override List Rest { get; } = cdr;
 
-        ISchemeValue IPair.Car => Car;
+        internal override SchemeValue GetFirst() => First;
+        internal override List GetRest() => Rest;
 
-        ISchemeValue IPair.Cdr => Cdr;
-
-        IList INonEmptyList.Rest => Rest;
+        public SchemeValue Cdr => Rest;
+        public SchemeValue Car => First;
 
         public override int GetHashCode()
         {
@@ -80,13 +87,13 @@ public abstract class List : SchemeValue, IEnumerable<ISchemeValue>, IList
     }
 
 
-    public IEnumerator<ISchemeValue> GetEnumerator()
+    public IEnumerator<SchemeValue> GetEnumerator()
     {
-        IList theList = this;
-        while (theList is INonEmptyList nonEmptyList)
+        List theList = this;
+        while (!theList.IsEmpty)
         {
-            yield return nonEmptyList.Car;
-            theList = nonEmptyList.Rest;
+            yield return theList.GetFirst();
+            theList = theList.GetRest();
         }
 
     }
@@ -110,11 +117,11 @@ public abstract class List : SchemeValue, IEnumerable<ISchemeValue>, IList
         return hash;
     }
 
-    public ISchemeValue Append(ISchemeValue x) {
-        if (this is INonEmptyList l) {
+    public SchemeValue Append(SchemeValue x) {
+        if (this is NonEmpty l) {
             return x switch {
-                IEmptyList => this,
-                _ => Pair.Cons(l.Car, l.Rest.Append(x)),
+                List { IsEmpty: true } => this,
+                _ => (SchemeValue)Pair.Cons(l.Car, l.Rest.Append(x)),
             };
         }
         return x;
@@ -123,33 +130,22 @@ public abstract class List : SchemeValue, IEnumerable<ISchemeValue>, IList
     public List Append(List x) {
         if (this is NonEmpty l) {
             return x switch {
-                IEmptyList => this,
+                List { IsEmpty: true } => this,
                 _ => List.Cons(l.Car, l.Rest.Append(x)),
             };
         }
         return x;
 
     }
-
-    public IList Append(IList l)
-    {
-        if (this is INonEmptyList xs) {
-            return l switch {
-                IEmptyList => this,
-                _ => (IList)Pair.Cons(xs.Car, xs.Rest.Append(l)),
-            };
-        }
-        return l;
-    }
 }
 
 public static partial class IEnumerableExtensions {
-    public static List ToJigList(this IEnumerable<ISchemeValue> elements) {
+    public static List ToJigList(this IEnumerable<SchemeValue> elements) {
         List result = List.Null;
-        var enumerable = elements as ISchemeValue[] ?? elements.ToArray();
+        var enumerable = elements as SchemeValue[] ?? elements.ToArray();
         for (int index = enumerable.Length - 1; index >= 0; index--) {
             result = new List.NonEmpty(enumerable.ElementAt(index), result);
         }
         return result;
-    } 
+    }
 }

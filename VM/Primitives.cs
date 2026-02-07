@@ -127,7 +127,7 @@ public static class Primitives {
     private static void datumToSyntax(Machine vm) {
 
         Syntax source = vm.Pop() as Syntax ?? throw new Exception();
-        ISchemeValue f = vm.Pop();
+        SchemeValue f = vm.Pop();
         vm.Push(vm.VAL = Syntax.FromDatum(source.SrcLoc, f));
         
     }
@@ -183,7 +183,7 @@ public static class Primitives {
     public static Primitive Append {get;} = new("append", append, 0, true);
 
     private static void append(Machine vm) {
-        ISchemeValue result = List.Null;
+        SchemeValue result = List.Null;
         while (vm.SP > vm.FP) {
             SchemeValue arg =  (SchemeValue)vm.Pop();
             if (result is List xs) {
@@ -210,7 +210,7 @@ public static class Primitives {
 
     private static void list_p(Machine vm) {
         SchemeValue arg = vm.Pop();
-        vm.VAL = arg is IList ? Bool.True : Bool.False;
+        vm.VAL = arg is List ? Bool.True : Bool.False;
         vm.Push(vm.VAL);
         return;
     }
@@ -249,7 +249,7 @@ public static class Primitives {
         if (arg1 is not Jig.List args) {
             throw new Exception($"apply: expected argument to be list, got {arg1.Print()}, a {arg1.GetType()}");
         }
-        foreach (var arg in args.Reverse<ISchemeValue>()) {
+        foreach (var arg in args.Reverse<SchemeValue>()) {
             vm.Push((SchemeValue)arg);
         }
         vm.Call();
@@ -376,9 +376,8 @@ public static class Primitives {
     public static void vectorRef(Machine vm) {
         Vector vector = vm.Pop() as Vector ?? throw new Exception("vector-ref: expected first argument to be a vector.");
         Integer index = vm.Pop() as Integer ?? throw new Exception("vector-ref: expected second argument to be an integer.");
-        if (vector.TryGetAtIndex(index, out ISchemeValue? x)) {
-            // TODO: gar! stop having to cast to SchemeValue (get rid of ISchemeValue or make VM fields ISchemeValue???)
-            vm.Push(vm.VAL = (SchemeValue)x);
+        if (vector.TryGetAtIndex(index, out SchemeValue? x)) {
+            vm.Push(vm.VAL = x);
             return;
         }
         throw new Exception("vector-ref: index out of range.");

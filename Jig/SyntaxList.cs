@@ -12,8 +12,9 @@ public abstract class SyntaxList : List<Syntax> {
 
     // public override Bool NullP => this is Empty ? Bool.True : Bool.False;
 
-    public new class Empty : SyntaxList, IEmptyList<Syntax> {
-        public override bool Equals(object? o) =>  o is IEmptyList;
+    public new class Empty : SyntaxList {
+        public override bool IsEmpty => true;
+        public override bool Equals(object? o) =>  o is List { IsEmpty: true };
 
 
         public override int GetHashCode()
@@ -22,24 +23,20 @@ public abstract class SyntaxList : List<Syntax> {
         }
     }
 
-    public new class NonEmpty(Syntax first, SyntaxList rest) : SyntaxList, INonEmptyList<Syntax>
+    public new class NonEmpty(Syntax first, SyntaxList rest) : SyntaxList, IPair
     {
-        public Syntax First { get; } = first;
-        public SyntaxList Rest { get; } = rest;
+        public override bool IsEmpty => false;
 
-        IList<Syntax> INonEmptyList<Syntax>.Rest => Rest;
+        public new Syntax First { get; } = first;
+        public new SyntaxList Rest { get; } = rest;
 
-        IList INonEmptyList.Rest => Rest;
+        // Base class virtual overrides (for polymorphic access via List)
+        internal override SchemeValue GetFirst() => First;
+        internal override List GetRest() => Rest;
 
-        Syntax IPair<Syntax, IList<Syntax>>.Car => First;
+        SchemeValue IPair.Car => First;
 
-        ISchemeValue IPair.Car => First;
-
-        IList<Syntax> IPair<Syntax, IList<Syntax>>.Cdr => Rest;
-
-        ISchemeValue IPair.Cdr => Rest;
-
-        ISchemeValue INonEmptyList.First => First;
+        SchemeValue IPair.Cdr => Rest;
 
         public override bool Equals(object? obj) => obj switch {
             null => false,
@@ -94,5 +91,5 @@ public static partial class IEnumerableExtensions {
             result = new SyntaxList.NonEmpty(arr[index], result);
         }
         return result;
-    } 
+    }
 }

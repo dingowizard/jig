@@ -92,7 +92,7 @@ internal static partial class Builtins {
 
                 switch (Syntax.E(pattern))
                 {
-                    case IEmptyList: return [];
+                    case List { IsEmpty: true }: return [];
                     case SyntaxList stxList:
                         return EnvFromPattern(
                             NewList(NewSym("syntax-e"), arg),
@@ -193,7 +193,7 @@ internal static partial class Builtins {
                         return lit;
                 }
 
-                if (Syntax.E(stx) is IEmptyList) {
+                if (Syntax.E(stx) is List { IsEmpty: true }) {
                     return NewList(NewSym("quote"), List.Null);
                 }
 
@@ -358,7 +358,7 @@ internal static partial class Builtins {
                 switch (Syntax.E(pattern))
                 {
                     
-                    case IEmptyList: return NewList(NewSym("null?"), NewList(NewSym("syntax-e"), toMatch));
+                    case List { IsEmpty: true }: return NewList(NewSym("null?"), NewList(NewSym("syntax-e"), toMatch));
                     case Symbol sym:
                         Identifier? lit = (Identifier?)Literals.FirstOrDefault<Syntax>(stx => stx is Identifier id && id.Symbol.Name == sym.Name);
                         if (lit is not null) {

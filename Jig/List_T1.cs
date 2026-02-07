@@ -1,18 +1,15 @@
 namespace Jig;
 
-public abstract class List<T> : List, IList<T> where T : SchemeValue
+public abstract class List<T> : List, IEnumerable<T> where T : SchemeValue
 {
     IEnumerator<T> IEnumerable<T>.GetEnumerator() {
-        IList<T> theList = this;
-        while (theList is INonEmptyList<T> nonEmptyList)
+        List theList = this;
+        while (!theList.IsEmpty)
         {
-            yield return nonEmptyList.Car;
-            theList = nonEmptyList.Cdr;
+            yield return (T)theList.GetFirst();
+            theList = theList.GetRest();
         }
     }
-
-    public IList<T> Append(IList<T> l) => (IList<T>)((IList)this).Append(l);
-
 
     public abstract override bool Equals(object? obj);
 
