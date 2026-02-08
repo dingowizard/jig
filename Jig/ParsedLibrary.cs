@@ -158,7 +158,7 @@ public class ParsedImportSpec : ParsedForm {
             if (!ParsedImportSet.TryParse(forMore.First, out var importSet)) {
                 throw new  Exception($"malformed library name {stx.Print()}");
             }
-            SyntaxList.NonEmpty importLevels = forMore.Rest as  SyntaxList.NonEmpty ?? throw new Exception("malformed import list");
+            SyntaxList.NonEmpty importLevels = forMore.Rest as  SyntaxList.NonEmpty ?? throw new Exception($"malformed import list in {stx.SrcLoc.Value.Source} @ line {stx.SrcLoc.Value.Line}");
             
             // for now we'll just support one import-level and it will either be 'run or 'expand
             int level = 0;

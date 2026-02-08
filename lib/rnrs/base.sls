@@ -22,7 +22,8 @@
           ; 11.6 Procedure predicate NOTE: already exported under 11.1
           ; 11.7.4 Numerical operations
           ; number? NOTE: already exported 11.1
-          ; complex? real? rational? integer? real-valued? rational-valued? integer-valued?
+          ; complex? real? rational?
+          integer? ; real-valued? rational-valued? integer-valued?
           ; exact? inexact? exact inexact
           ; Arithmetic operations
           = < > ; <= >=

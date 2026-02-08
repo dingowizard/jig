@@ -392,6 +392,9 @@ public static class Primitives {
         vm.Push(vm.VAL = vm.Pop() is Number ? Bool.True : Bool.False);
     }
 
+    public static void integerP(Machine vm) {
+        vm.Push(vm.VAL = vm.Pop() is Integer ? Bool.True : Bool.False);
+    }
     public static void charP(Machine vm) {
         vm.Push(vm.VAL = vm.Pop() is Char ? Bool.True : Bool.False);
     }
@@ -606,6 +609,11 @@ public static class Primitives {
          vm.DynamicEnvironment.Set((uint)slotID.Value, val); // TODO: get rid of cast
          vm.VAL = SchemeValue.Void;
          
+     }
+
+     public static void exit(Machine vm) {
+         Integer status = (Integer)vm.Pop();
+         System.Environment.Exit(status.Value);
      }
 }
 
