@@ -101,14 +101,14 @@ public class PartialContinuation : Continuation {
 }
 public class PartialContinuationForCallWithValues : PartialContinuation {
     public PartialContinuationForCallWithValues(Template continuationProcTemplate,
-        ulong i,
+        ulong returnAddress,
         Environment envt,
         Location[] vars,
         uint fp,
         Continuation cont,
         int continuationProcRequired,
         bool continuationProcHasRest)
-        : base(continuationProcTemplate, i, envt, vars, fp, cont, continuationProcRequired, continuationProcHasRest) {
+        : base(continuationProcTemplate, returnAddress, envt, vars, fp, cont, continuationProcRequired, continuationProcHasRest) {
         
     }
 

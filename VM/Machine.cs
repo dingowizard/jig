@@ -494,11 +494,182 @@ public class Machine : IRuntime {
                     }
                     TopLevelSavedContinuation.Apply(this);
                     return;
+                case OpCode.IsCallable:
+                    // This is used inside the template for apply
+                    // we're expected not to remove anything from the stack. Just add one bool
+                    Debug.Assert(Stack.Length >= 1);
+                    Push(Stack[SP - 1] is ICallable ? Bool.True : Bool.False);
+                    continue;
+                case OpCode.Swap:
+                    Debug.Assert(Stack.Length >= 2);
+                    (Stack[SP - 2], Stack[SP - 1]) = (Stack[SP - 1], Stack[SP - 2]);
+                    continue;
+                case OpCode.CheckArity:
+                    // at this point we should have swapped args to apply so stack should be:
+                    //
+                    // ---STACK---
+                    // 0 rator
+                    // 1 rands
+                    // -------<-- SP
+                    // the point of this is that if the rands are bad, we're going to make a continuation
+                    // where they have been popped off and a new value can be pushed on
+                    ICallable op = (ICallable)Stack[SP - 2];
+                    List xs = (List)Stack[SP - 1];
+                    if (ArgsAreBad(op, xs)) {
+                        Push(Bool.False);
+                    } else {
+                        Push(Bool.True);
+                    }
+                    continue;
+                case OpCode.IsSavedContinuation:
+                    Debug.Assert(Stack.Length >= 1);
+                    Push(Stack[SP - 1] is SavedContinuation ? Bool.True : Bool.False);
+                    continue;
+                case OpCode.IsPrimitive:
+                    Debug.Assert(Stack.Length >= 1);
+                    Push(Stack[SP - 1] is Primitive ? Bool.True : Bool.False);
+                    continue;
+                case OpCode.ApplySavedContinuation: {
+                    // args are on top because they've been popped
+                    List gs = (List)Pop();
+                    SavedContinuation kont = (SavedContinuation)Pop();
+                    // I think saved continuation expects args to be separately on stack
+                    // TODO: rethink having args as list. this is only convenient for procedures
+                    foreach (var x in gs.Reverse()) {
+                        Push(x);
+                    }
+                    if (!kont.SavedWinders.Equals(Winders)) { // TODO: ReferenceEquals?
+                        CONT = kont.SavedWinders.DoWinders(this, kont);
+                        if (CONT is not WinderThunkCont.ThunkCont wThunk)
+                            throw new Exception( "if winders aren't equal, we SHOULD have a WinderThunk (or BaseCont?)");
+                        Push(new Integer((int)FP));
+                        FP = SP;
+                        CONT = wThunk.Continuation;
+                        VAL = wThunk.Thunk;
+                        // TODO: hm ... This will be circular?
+                        Call(true); // NOTE: we're calling the first winder
+                        continue;
+
+                    }
+                    kont.Apply(this);
+                    continue;
+                }
+                case OpCode.CallPrimitive:
+                    List ss = (List)Pop();
+                    Primitive pv = (Primitive)Pop();
+                    // I think saved continuation expects args to be separately on stack
+                    // TODO: rethink having args as list. this is only convenient for procedures
+                    foreach (var x in ss.Reverse()) {
+                        Push(x);
+                    }
+                    ActivationStack.Push(pv, CONT);
+                    pv.Apply(this);
+                    CONT.Pop(this);
+                    ActivationStack.PopTo(this);
+                    continue;
+                case OpCode.ExtendEnvironment:
+                    // ---STACK---
+                    // 0 rator
+                    // 1 rands
+                    // -------<-- SP
+                    Debug.Assert(Stack.Length >= 2);
+                    List arguments = (List)Pop();
+                    // now we've consumed the args, but we're going to leave the procedure on the stack
+                    Procedure procedure = (Procedure)Stack[SP - 1];
+                    ENVT = procedure.Environment.ExtendForProcCall(procedure, arguments);
+                    continue;
+                case OpCode.Transfer:
+                    // ---STACK---
+                    // 0 rator
+                    // -------<-- SP
+                    Procedure fn = (Procedure)Pop();
+                    ActivationStack.Push(fn, CONT);
+                    VARS = fn.Locations;
+                    Template = fn.Template;
+                    PC = 0ul;
+                    continue;
+                case OpCode.ArgsToList:
+                    System.Collections.Generic.List<SchemeValue> list = [];
+                    while (SP != FP) {
+                        list.Add(Pop());
+                    }
+                    list.Reverse();
+                    Push(list.ToJigList());
+                    continue;
+                case OpCode.BadArgs:
+                    // ---STACK---
+                    // 0 rator
+                    // 1 rands
+                    // -------<-- SP
+                    
+                    // addr represents the return address for the continuation
+                    // that we'll make to resume apply with a given value for args
+                    var addr = IR & 0x00FFFFFFFFFFFFFF;
+                    List argus =  (List)Pop();
+                    ICallable calla = (ICallable)Stack[SP - 1]; // we want this still on the stack
+                    (bool atleast, int expected, int actual) = BadArgsInfo(calla, argus);
+                    var ass = new AssertionViolation();
+                    var msg = new Message(new String($"wrong number of arguments in call. expected {(atleast ? "at least " : "")}{expected} but got {actual}"));
+                    var continuationCondition = new ContinuationCondition(CONT, ActivationStack.Copy());
+                    var compoundCondition = CompoundCondition.Make(ass, msg, continuationCondition);
+                    SP = FP;
+                    Push(compoundCondition);
+                    var p = ENVT.TopLevels.Keys.FirstOrDefault(p => p.Symbol.Name.Equals("raise-continuable"));
+                    Debug.Assert(p is  not null, "for wrong num args: no raise-continuable found in top levels");
+                    var binding = ENVT.TopLevels[p];
+                    var v = binding.Location.Value;
+                    var raiseProc = v as Procedure;
+                    Debug.Assert(raiseProc is not null, "for wrong num args: raise-continuable was not a procedure");
+                    Debug.Assert(raiseProc.Required == 1, "for wrong num args: raise-continuable should be a procedure that takes one and only one argument");
+                    Debug.Assert(!raiseProc.HasRest, "for wrong num args: raise-continuable should be a procedure that takes one and only one argument");
+                    VAL = raiseProc;
+                    // ActivationStack.Push(raiseProc.Template.Name.Symbol.Name, CONT);
+                    Call(true);
+                    continue;
+                case OpCode.BadCall:
+                    
+                    // ---STACK---
+                    // 0 rands
+                    // 1 rator
+                    // -------<-- SP
+                    
+                    // address represents the return address for the continuation
+                    // that we'll make to resume apply with a given value for args
+                    var address = IR & 0x00FFFFFFFFFFFFFF;
+                    SchemeValue notCallableThing = Pop();
+                    var asst = new AssertionViolation();
+                    var mssg = new Message(new String($"tried to call non-callable value {notCallableThing}"));
+                    var contCondition = new ContinuationCondition(CONT, ActivationStack.Copy());
+                    var compoundC = CompoundCondition.Make(asst, mssg, contCondition);
+                    SP = FP;
+                    Push(compoundC);
+                    var pt = ENVT.TopLevels.Keys.FirstOrDefault(p => p.Symbol.Name.Equals("raise-continuable"));
+                    Debug.Assert(pt is  not null, "for operator not callable: no raise-continuable found in top levels");
+                    var bindg = ENVT.TopLevels[pt];
+                    var vl = bindg.Location.Value;
+                    var rProc = vl as Procedure;
+                    Debug.Assert(rProc is not null, "for operator not callable: raise-continuable was not a procedure");
+                    Debug.Assert(rProc.Required == 1, "for operator not callable: raise-continuable should be a procedure that takes one and only one argument");
+                    Debug.Assert(!rProc.HasRest, "for operator not callable: raise-continuable should be a procedure that takes one and only one argument");
+                    VAL = rProc;
+                    // ActivationStack.Push(raiseProc.Template.Name.Symbol.Name, CONT);
+                    Call(true);
+                    continue;
+                    
                 default: throw new Exception($"unhandled case {opCode} in Execute");
             }
         }
 
     }
+    private static (bool atleast, int expected, int actual) BadArgsInfo(ICallable calla, List argus) {
+        int len = argus.Length.Value;
+            if (calla.HasRest) {
+                return (true, calla.Required, len);
+            }
+    
+            return (false, calla.Required, len);
+    }
+    
     private void SetUpRaiseBadArgs((bool atleast, int expected, int actual) badArgsInfo) {
             // If the arg count is wrong, we create a compound condition
             // that contains a
@@ -553,6 +724,13 @@ public class Machine : IRuntime {
             // by doing everything we normally do for a call
 
     }
+    private static bool ArgsAreBad(ICallable op, List xs) {
+        if (op.HasRest) {
+            return (xs.Length.Value < op.Required);
+        }
+        return (xs.Length.Value != op.Required);
+    }
+    
     private bool ArgsAreBad(ICallable callable, out (bool atleast, int expected, int actual) valueTuple) {
             if (callable.HasRest) {
                 if (SP - FP < callable.Required) {

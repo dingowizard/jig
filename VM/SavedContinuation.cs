@@ -33,11 +33,9 @@ public class SavedContinuation : Continuation, ICallable {
         vm.DynamicEnvironment = DynamicEnvironment;
 
         var results = vm.SaveStackFrameToArray();
+        
         // restore stack
         int i = 0;
-        
-        
-        
         // Console.WriteLine($"\tat this point we ought to have done all the winders if there were any");
         foreach (var form in SavedStack) {
             vm.Stack[i] = form;

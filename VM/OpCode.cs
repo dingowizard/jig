@@ -29,4 +29,18 @@ public enum OpCode : byte {
     PopFP,
     ArgToArgs, // takes list arg from stack and pushes each element onto stack. TODO: yuck
     Halt,
+    // these following are op-codes used in apply:
+    IsCallable,
+    Swap,
+    CheckArity,
+    IsSavedContinuation,
+    IsPrimitive,
+    ApplySavedContinuation,
+    CallPrimitive,
+    ExtendEnvironment,
+    Transfer,
+    BadCall,
+    BadArgs,
+    ArgsToList,
+    
 }
