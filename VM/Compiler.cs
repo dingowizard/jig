@@ -426,7 +426,7 @@ public class Compiler {
         instructions.AddRange(codeForProc);
         lineNo += codeForProc.Length;
         
-        instructions.Add((ulong)OpCode.CallDB << 56);
+        instructions.Add((ulong)OpCode.NewCall << 56);
         lineNo++;
         
         if (context != Context.Tail) {

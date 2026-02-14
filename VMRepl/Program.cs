@@ -60,6 +60,13 @@ public static class Program {
         evaluator.Import(jigLib);
         evaluator.Import(jigLib, 1);
         
+        // if full library is broken, uncomment:
+        // var prelude = Library.FromFile("lib/jig/prelude.sls", Reader.ReadSyntax, new VMFactory());
+        // evaluator.Import(prelude);
+        // evaluator.Import(prelude, 1);
+        // end if full library broken block
+        
+        
         if (expr != "") {
             using (InputPort port = InputPort.FromString(expr)) {
                 Syntax? stx = Reader.ReadSyntax(port);

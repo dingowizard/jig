@@ -26,8 +26,37 @@ public class Machine : IRuntime {
         // maybe hold off until we figure out debug table and stack tracing
         Template = Template.Empty;
         DynamicEnvironment = new DynamicEnvironment.TopLevel();
+        // ApplyProcedure = new Procedure(ENVT, ApplyTemplate);
     }
     
+    // internal Procedure ApplyProcedure {get;}
+    internal static Template ApplyTemplate => new (
+        
+        2, // This is code that pops and pushes from the stack and doesn't use environment
+                          // so this value and parameter values below shouldn't do matter
+                          // TODO: Maybe don't use this type of class for this
+        code: [
+            ((ulong)OpCode.IsCallable) << 56,
+            ((ulong)OpCode.JumpIfFalse << 56) + 13ul,
+            ((ulong)OpCode.Swap) << 56,
+            ((ulong)OpCode.CheckArity) << 56,
+            ((ulong)OpCode.JumpIfFalse << 56) + 14ul,
+            ((ulong)OpCode.IsSavedContinuation << 56),
+            ((ulong)OpCode.JumpIfFalse << 56) + 8ul,
+            ((ulong)OpCode.ApplySavedContinuation << 56),
+            ((ulong)OpCode.IsPrimitive) << 56,
+            ((ulong)OpCode.JumpIfFalse << 56) + 11ul,
+            ((ulong)OpCode.CallPrimitive) << 56,
+            ((ulong)OpCode.ExtendEnvironment) << 56,
+            ((ulong)OpCode.Transfer) << 56,
+            ((ulong)OpCode.BadCall << 56) + 0ul,
+            ((ulong)OpCode.BadArgs << 56) + 3ul,
+        ],
+        vars: [],
+        lits: [],
+        2,
+        false
+        );
     internal Winders Winders = new Winders();
     
 
@@ -522,12 +551,17 @@ public class Machine : IRuntime {
                     }
                     continue;
                 case OpCode.IsSavedContinuation:
-                    Debug.Assert(Stack.Length >= 1);
-                    Push(Stack[SP - 1] is SavedContinuation ? Bool.True : Bool.False);
+                    Debug.Assert(Stack.Length >= 2);
+                    Push(Stack[SP - 2] is SavedContinuation ? Bool.True : Bool.False);
                     continue;
                 case OpCode.IsPrimitive:
-                    Debug.Assert(Stack.Length >= 1);
-                    Push(Stack[SP - 1] is Primitive ? Bool.True : Bool.False);
+                    // stack:
+                    // rator
+                    // rands
+                    // <------- SP
+                    Debug.Assert(Stack.Length >= 2);
+                    // Console.WriteLine($"In OpCode.IsPrimitive: Stack[SP - 2] = {Stack[SP - 2].Print()}, a {Stack[SP - 2].GetType()}");
+                    Push(Stack[SP - 2] is Primitive ? Bool.True : Bool.False);
                     continue;
                 case OpCode.ApplySavedContinuation: {
                     // args are on top because they've been popped
@@ -655,6 +689,67 @@ public class Machine : IRuntime {
                     // ActivationStack.Push(raiseProc.Template.Name.Symbol.Name, CONT);
                     Call(true);
                     continue;
+                case OpCode.NewCall:
+                // this transfers control to the apply template, which will 
+                // check the operator and make sure it's callable,
+                // check the argument count against the procedure's expectations
+                // make a call to raise with the appropriate conditions if these checks fail,
+                // will figure out what kind of callable the operator is
+                // and transfer control to the right place
+                
+                // TODO: we should think about when exactly the args on the stack should be turned into a list
+                // The apply logic expects to start with stack like:
+                // STACK
+                // rands -----<- FP
+                // rator -----
+                // ---------<- SP
+                
+                // but we have:
+                // STACK
+                // randn -----<- FP
+                // ...
+                // rand2
+                // rand1
+                // rand0
+                // rator -----
+                // ---------<- SP
+                
+                // SO:
+                var rtor = Pop();
+                System.Collections.Generic.List<SchemeValue> argsList = [];
+                while (SP != FP) {
+                    argsList.Add(Pop());
+                }
+                // the last added to the list is randn, which is correct
+                Push(argsList.ToJigList());
+                Push(rtor);
+                
+                
+                // Something to think about here: we've messed up the stack, so a continuation that was saved with the 
+                // stack with all the args separate will be wrong. So shouldn't we create a new frame for the apply logic?
+                // Maybe not. The saved-continuation has a copy of the stack that it restores. And when we return from apply, we should
+                // have cleared down to the FP
+                
+                
+                // The args only really needs to be turned into a list once we know that we have a procedure though.
+                // continuations and primitives expect their args to be separate on the stack.
+                // Maybe extend env should turn args into list?
+                // But I think the restart for bad args needs to be able to take a list and push it onto the stack of apply's arguments
+
+                // could we branch on type of operator just after
+                // maybe there could be different restarts for primitive v saved continuation v procedure
+                // and the ones for primitive and saved continuation could push the replacement args onto the stack
+                // or maybe we should make primitive and saved-continuation have the same calling convention as procedure
+                // This would require re-writing all the primitives.
+                
+                
+                // Scheme itself doesn't know about the difference between primitives and procedures. That's an implementation
+                // detail that should be hidden. Likewise saved-continuations work just like procedures. (_are_ procedures?)
+
+                Template = ApplyTemplate;
+                
+                PC = 0ul;
+                continue;
                     
                 default: throw new Exception($"unhandled case {opCode} in Execute");
             }

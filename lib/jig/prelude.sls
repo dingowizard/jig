@@ -1,7 +1,20 @@
 (library (jig prelude)
   (export append apply length not error car cdr caar cadr cdar cddr caddr cdddr
           fold-left fold-right map all any void error list list? zero? max min + * - / = > <
-          raise raise-continuable with-exception-handler)
+          raise raise-continuable with-exception-handler
+        begin
+        define
+        define-syntax
+        if
+        lambda
+        import
+        quote
+        quote-syntax
+        set!
+        and
+        quasiquote
+        syntax-rules)
+
   (import (core-primitives))
 
   (define car

@@ -42,5 +42,6 @@ public enum OpCode : byte {
     BadCall,
     BadArgs,
     ArgsToList,
+    NewCall, // Maybe this should be called Apply ?!
     
 }
