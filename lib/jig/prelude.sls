@@ -1,7 +1,6 @@
 (library (jig prelude)
   (export append apply length not error car cdr caar cadr cdar cddr caddr cdddr
           fold-left fold-right map all any void error list list? zero? max min + * - / = > <
-          raise raise-continuable with-exception-handler
         begin
         define
         define-syntax
@@ -252,9 +251,6 @@
 
   (define list (lambda xs xs))
 
-  (define with-exception-handler #f)
-  (define raise #f)
-  (define raise-continuable #f)
 
   (call/cc
    (lambda (k)
