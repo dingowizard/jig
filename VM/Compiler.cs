@@ -460,8 +460,9 @@ public class Compiler {
 
         int lineNo = 0;
         foreach (var x in parsedFile.Take(parsedFile.Length - 1)) {
-            instructions = instructions.Concat(Compile(x, cte, literals, bindings, Context.NonTailBody, 0, lineNo)).ToList();
-            lineNo += instructions.Count();
+            var ins = Compile(x, cte, literals, bindings, Context.NonTailBody, 0, lineNo);
+            instructions = instructions.Concat(ins).ToList();
+            lineNo += ins.Length;
         }
         // add instruction for expr in tail position
         var last = Compile(parsedFile[^1], cte, literals, bindings, Context.Tail, 0, lineNo);
