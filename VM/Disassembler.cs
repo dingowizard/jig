@@ -60,10 +60,36 @@ public static class Disassembler {
             //     return $"{lineNo:D3}\tBNDR\t{operand:D3}";
             case OpCode.Env:
                 return $"{lineNo:D3}\tENVT";
+            case OpCode.ExtendEnvironment:
+                return $"{lineNo:D3}\tEXTN";
+            case OpCode.Swap:
+                return $"{lineNo:D3}\tSWAP";
+            case OpCode.CheckArity:
+                return $"{lineNo:D3}\tARITY";
+            case OpCode.ArgsToList:
+                return $"{lineNo:D3}\tXs2Ls";
             case OpCode.Lambda:
                 return $"{lineNo:D3}\tLMBD";
             case OpCode.Var:
-                return $"{lineNo:D3}\tVAR\t{operand:D3} ; {bindings[operand].Symbol.Print()} {bindings[operand].GetHashCode()}";
+                return $"{lineNo:D3}\tVAR\t{operand:D3} ; {bindings[operand].Symbol.Print()}";
+            case OpCode.SetVar:
+                return $"{lineNo:D3}\tVAR!\t{operand:D3} ; {bindings[operand].Symbol.Print()}";
+            case OpCode.IsCallable:
+                return $"{lineNo:D3}\tCALLP";
+            case OpCode.IsPrimitive:
+                return $"{lineNo:D3}\tPRIMP";
+            case OpCode.IsSavedContinuation:
+                return $"{lineNo:D3}\tCONTP";
+            case OpCode.ApplySavedContinuation:
+                return $"{lineNo:D3}\tAPCONT";
+            case OpCode.CallPrimitive:
+                return $"{lineNo:D3}\tPRIM";
+            case OpCode.Transfer:
+                return $"{lineNo:D3}\tTX";
+            case OpCode.BadCall:
+                return $"{lineNo:D3}\tBADOP\t{operand:D3}";
+            case OpCode.BadArgs:
+                return $"{lineNo:D3}\tBADXs\t{operand:D3}";
             case OpCode.Jump:
                 return $"{lineNo:D3}\tJMP\t{operand:D3}";
             case OpCode.JumpIfFalse:
