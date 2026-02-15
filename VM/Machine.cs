@@ -31,24 +31,27 @@ public class Machine : IRuntime {
     
     // internal Procedure ApplyProcedure {get;}
     internal static Template ApplyTemplate => new (
+        // TODO: the compiler could probably just attach this to the bottom of every compiled application
+        // but it is currently not sophisticated enough to easily compute the addresses of the labels correctly
+        // this will be something to look into when the new CompilerContext is up and running
         
         2, // This is code that pops and pushes from the stack and doesn't use environment
                           // so this value and parameter values below shouldn't do matter
                           // TODO: Maybe don't use this type of class for this
         code: [
-            ((ulong)OpCode.IsCallable) << 56,
+            (ulong)OpCode.IsCallable << 56,
             ((ulong)OpCode.JumpIfFalse << 56) + 13ul,
-            ((ulong)OpCode.Swap) << 56,
-            ((ulong)OpCode.CheckArity) << 56,
+            (ulong)OpCode.Swap << 56,
+            (ulong)OpCode.CheckArity << 56,
             ((ulong)OpCode.JumpIfFalse << 56) + 14ul,
-            ((ulong)OpCode.IsSavedContinuation << 56),
+            (ulong)OpCode.IsSavedContinuation << 56,
             ((ulong)OpCode.JumpIfFalse << 56) + 8ul,
-            ((ulong)OpCode.ApplySavedContinuation << 56),
-            ((ulong)OpCode.IsPrimitive) << 56,
+            (ulong)OpCode.ApplySavedContinuation << 56,
+            (ulong)OpCode.IsPrimitive << 56,
             ((ulong)OpCode.JumpIfFalse << 56) + 11ul,
-            ((ulong)OpCode.CallPrimitive) << 56,
-            ((ulong)OpCode.ExtendEnvironment) << 56,
-            ((ulong)OpCode.Transfer) << 56,
+            (ulong)OpCode.CallPrimitive << 56,
+            (ulong)OpCode.ExtendEnvironment << 56,
+            (ulong)OpCode.Transfer << 56,
             ((ulong)OpCode.BadCall << 56) + 0ul,
             ((ulong)OpCode.BadArgs << 56) + 3ul,
         ],
