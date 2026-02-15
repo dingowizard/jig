@@ -55,16 +55,15 @@ public static class Program {
                 new ValueTuple<Symbol[], ILibrary>([new Symbol("core-primitives")], Library.Core),
             });
         IEvaluator evaluator = new Evaluator();
-        var jigLib = Library.FromFile("lib/jig.sls", Reader.ReadSyntax, new VMFactory());
+        
         // var jigLib = Library.FromFile("lib/rnrs/base.sls", Reader.ReadSyntax, new VMFactory());
+        
+        // var jigLib = Library.FromFile("lib/jig/prelude.sls", Reader.ReadSyntax, new VMFactory());
+        
+        var jigLib = Library.FromFile("lib/jig.sls", Reader.ReadSyntax, new VMFactory());
         evaluator.Import(jigLib);
         evaluator.Import(jigLib, 1);
         
-        // if full library is broken, uncomment:
-        // var prelude = Library.FromFile("lib/jig/prelude.sls", Reader.ReadSyntax, new VMFactory());
-        // evaluator.Import(prelude);
-        // evaluator.Import(prelude, 1);
-        // end if full library broken block
         
         
         if (expr != "") {
