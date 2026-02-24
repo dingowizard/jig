@@ -219,7 +219,7 @@ public class Library : ILibrary {
     public static Library Core {get;}
 
 
-    private Library(IEnumerable<Binding> vars, IEnumerable<(Symbol, IExpansionRule)> keywords) {
+    public Library(IEnumerable<Binding> vars, IEnumerable<(Symbol, IExpansionRule)> keywords) {
         VariableExports = vars;
         KeywordExports = keywords;
     }

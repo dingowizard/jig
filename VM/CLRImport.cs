@@ -6,6 +6,56 @@ using String = Jig.String;
 namespace VM;
 
 public static class ClrImport {
+    
+    
+    static IEnumerable<Type> ResolveClrName(string name) {
+        // try as a type first
+        var t = Type.GetType(name);
+        if (t != null)
+            return new[] { t };
+
+        // otherwise treat as namespace
+        return AppDomain.CurrentDomain
+            .GetAssemblies()
+            .SelectMany(a => a.GetTypes())
+            .Where(t => t.Namespace == name
+                        || t.Namespace?.StartsWith(name + ".") == true);
+    }
+
+    public static Library ImportClrNameSpace(string name) {
+        var ts = ResolveClrName(name);
+        // for now, we're going to select only those static methods that receive double arguments and return double results
+        var methodInfos =
+            ts.SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Static))
+                .Where(mi => mi.ReturnType == typeof(double) &&
+                             mi.GetParameters().All(p => p.ParameterType == typeof(double)));
+        // get const double fields (PI and E)
+        var constantFields =
+            ts.SelectMany(t => t.GetFields(BindingFlags.Public | BindingFlags.Static))
+                .Where(fi => fi is {IsLiteral: true, IsInitOnly: false} && fi.FieldType == typeof(double));
+        System.Collections.Generic.List<Binding> bindings = [];
+        int index = 0;
+        foreach (var f in constantFields) {
+            var v = f.GetRawConstantValue();
+            SchemeValue schemeValue = ConvertToSchemeValue(v);
+
+            string fullName = f.DeclaringType.FullName +  "." + f.Name;
+            var bg = new Binding(new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
+                new Location(schemeValue));
+            bindings.Add(bg);
+        }
+        
+        return new Library(bindings, []);
+
+    }
+    private static SchemeValue ConvertToSchemeValue(object? o) {
+        switch  (o) {
+            case null: return SchemeValue.Void; // TODO: this is probably wrong. :(
+            case double d: return new Jig.Float(d);
+            default:
+                throw new NotImplementedException("unhandled type: " + o.GetType());
+        }
+    }
 
     public static int Succ(int n) => n + 1;
     
@@ -38,7 +88,7 @@ public static class ClrImport {
 
 public delegate Jig.SchemeValue ClrPrimitiveUnsafe(Jig.List args);
 
-public class ClrPrimitive : ICallable {
+public class ClrPrimitive : SchemeValue, ICallable {
     public ClrPrimitive(MethodInfo mi) {
         var parameters = mi.GetParameters();                                                                                                        
         int count = parameters.Length;                          
@@ -113,4 +163,5 @@ public class ClrPrimitive : ICallable {
     
     public int Required {get;}
     public bool HasRest {get;}
+    public override string Print() => "#<clr method>";
 }

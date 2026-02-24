@@ -56,7 +56,9 @@
           make-parameter parameterize 
           ; (jig)
           template
-          compose record-constructor-descriptor?)
+          compose record-constructor-descriptor?
+          ;; TODO: doesn't some rnrs library export import?
+          import)
   (import (for (core-primitives) run)
           (for (core-primitives) expand)
           (for (jig prelude) run)

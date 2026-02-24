@@ -53,6 +53,7 @@ public static class Program {
             new System.Collections.Generic.List<(Symbol[], ILibrary)>()
             {
                 new ValueTuple<Symbol[], ILibrary>([new Symbol("core-primitives")], Library.Core),
+                new ValueTuple<Symbol[], ILibrary>([new Symbol("system"), new Symbol("math")], ClrImport.ImportClrNameSpace("System.Math")),
             });
         IEvaluator evaluator = new Evaluator();
         
