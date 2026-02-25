@@ -30,15 +30,18 @@
           zero? positive? negative? odd? even? ; finite? infinite? nan?
           max min
           + * - /
-          ; abs div-and-mod div mod div0 mod0 div0-and-mod0
+          abs
+          div-and-mod div ; mod
+          div0 ; mod0
+          div0-and-mod0
           ; gcd lcm
           ; numerator denominator
-          ; truncate floor ceiling round
+          truncate floor ceiling round
           ;  rationalize
           ;  exp log sin cos tan asin acos atan
-          ;  sqrt
+          sqrt
           ;  exact-integer-sqrt
-          ;  expt
+          expt
           ;  real-part imag-part make-rectangular make-polar magnitude angle
           ;  number->string
           ;  string->number
@@ -82,7 +85,8 @@
   (import (for (core-primitives) run)
           (for (core-primitives) expand)
           (for (jig prelude) run)
-          (for (jig prelude) expand))
+          (for (jig prelude) expand)
+          (clr System Math))
 
   (define boolean? ; TODO: is eqv? the right test?
     (lambda (x)
@@ -154,7 +158,76 @@
           #t
           (odd? (- n 1)))))
 
-  (define abs (lambda (n) (if (< n 0) (- n) n)))
+  ; TODO: actually, we should be able to automatically generate code for checking arg types
+  ; and then we could just do, E.g., (define sqrt Sqrt/Double->Double)
+  ; Maybe
+  
+  ; TODO: tests for abs, sqrt, expt, floor, ceiling, truncate, round, div, div0
+  (define abs
+    (lambda (n)
+      (if (number? n)
+          (if (integer? n) ; TODO: is there any point to this, since the double version can handle ints?
+              (Abs/Int32->Int32 n)
+              (Abs/Double->Double n))
+          (error 'abs "expected number argument." n))))
+
+  (define sqrt
+    (lambda (n)
+      (if (number? n)
+          (Sqrt/Double->Double n)
+          (error 'sqrt "expected number argument." n))))
+
+  
+  (define expt
+    (lambda (z1 z2)
+      (if (number? z1)
+          (if (number? z2)
+              (Pow/Double->Double->Double z1 z2)
+              (error 'expt "expected both arguments to be numbers." z2))
+          (error 'expt "expected both arguments to be numbers." z1))))
+
+  (define floor
+    (lambda (n)
+      (if (number? n)
+          (Floor/Double->Double n)
+          (error 'floor "expected number argument." n))))
+
+  (define ceiling
+    (lambda (n)
+      (if (number? n)
+          (Ceiling/Double->Double n)
+          (error 'ceiling "expected number argument." n))))
+
+  (define truncate
+    (lambda (n)
+      (if (number? n)
+          (Truncate/Double->Double n)
+          (error 'truncate "expected number argument." n))))
+
+  (define round
+    (lambda (n)
+      (if (number? n)
+          (Round/Double->Double n)
+          (error 'truncate "expected number argument." n))))
+
+  (define div
+    (lambda (z1 z2)
+      (floor (/ z1 z2))))
+
+  (define div-and-mod
+    (lambda (z1 z2)
+      (let ((q (div z1 z2)))
+        (values q (- z1 (* q z2))))))
+
+
+  (define div0-and-mod0
+    (lambda (z1 z2)
+      (let ((q (div0 z1 z2)))
+        (values q (- z1 (* q z2))))))
+
+  (define div0
+    (lambda (z1 z2)
+      (truncate (/ z1 z2))))
 
   (define reverse
     (lambda (xs)

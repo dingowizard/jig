@@ -40,16 +40,19 @@ public class Machine : IRuntime {
                           // TODO: Maybe don't use this type of class for this
         code: [
             (ulong)OpCode.IsCallable << 56,
-            ((ulong)OpCode.JumpIfFalse << 56) + 13ul,
+            ((ulong)OpCode.JumpIfFalse << 56) + 16ul,
             (ulong)OpCode.Swap << 56,
             (ulong)OpCode.CheckArity << 56,
-            ((ulong)OpCode.JumpIfFalse << 56) + 14ul,
+            ((ulong)OpCode.JumpIfFalse << 56) + 17ul,
             (ulong)OpCode.IsSavedContinuation << 56,
             ((ulong)OpCode.JumpIfFalse << 56) + 8ul,
             (ulong)OpCode.ApplySavedContinuation << 56,
             (ulong)OpCode.IsPrimitive << 56,
             ((ulong)OpCode.JumpIfFalse << 56) + 11ul,
             (ulong)OpCode.CallPrimitive << 56,
+            (ulong)OpCode.IsClrCall << 56,
+            ((ulong)OpCode.JumpIfFalse << 56) + 14ul,
+            (ulong)OpCode.ClrCall << 56,
             (ulong)OpCode.ExtendEnvironment << 56,
             (ulong)OpCode.Transfer << 56,
             ((ulong)OpCode.BadCall << 56) + 0ul,
@@ -566,6 +569,16 @@ public class Machine : IRuntime {
                     // Console.WriteLine($"In OpCode.IsPrimitive: Stack[SP - 2] = {Stack[SP - 2].Print()}, a {Stack[SP - 2].GetType()}");
                     Push(Stack[SP - 2] is Primitive ? Bool.True : Bool.False);
                     continue;
+                case OpCode.IsClrCall:
+                    // stack:
+                    // rator
+                    // rands
+                    // <------- SP
+                    Debug.Assert(Stack.Length >= 2);
+                    // Console.WriteLine($"In OpCode.IsPrimitive: Stack[SP - 2] = {Stack[SP - 2].Print()}, a {Stack[SP - 2].GetType()}");
+                    Push(Stack[SP - 2] is ClrPrimitive ? Bool.True : Bool.False);
+                    continue;
+                    
                 case OpCode.ApplySavedContinuation: {
                     // args are on top because they've been popped
                     List gs = (List)Pop();
@@ -601,6 +614,20 @@ public class Machine : IRuntime {
                     }
                     ActivationStack.Push(pv, CONT);
                     pv.Apply(this);
+                    CONT.Pop(this);
+                    ActivationStack.PopTo(this);
+                    continue;
+                case OpCode.ClrCall:
+                    List argumnts =  (List)Pop();
+                    ClrPrimitive clrPrimitive = (ClrPrimitive)Pop();
+                    ActivationStack.Push(clrPrimitive, CONT);
+                    try {
+                        var r = clrPrimitive.Delegate(argumnts);
+                        Push(VAL = r);
+
+                    } catch (Exception x) {
+                        throw;
+                    }
                     CONT.Pop(this);
                     ActivationStack.PopTo(this);
                     continue;
@@ -969,6 +996,9 @@ internal class ActivationRecord(ICallable callable, Continuation cont) {
             if (callable is SavedContinuation sc) {
                 // TODO: we shouldn't really be here.
                 return "#<continuation>";
+            }
+            if (callable is ClrPrimitive clrPrimitive) {
+                return clrPrimitive.Delegate.Method.Name; // TODO : fully qualified name?
             }
             throw new Exception("Unknown callable type");
             

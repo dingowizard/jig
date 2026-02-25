@@ -21,6 +21,9 @@ public class Integer(int i) : Number<int>(i) {
     public override int GetHashCode() {
         return Value.GetHashCode();
     }
+    
+    
+    public static implicit operator Float(Integer i) => new Float(i.Value);
 
 
     public static Bool operator ==(Integer i1, Number n) {

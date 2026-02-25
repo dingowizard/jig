@@ -24,11 +24,11 @@ public static class ClrImport {
 
     public static Library ImportClrNameSpace(string name) {
         var ts = ResolveClrName(name);
-        // for now, we're going to select only those static methods that receive double arguments and return double results
+        // for now, we're going to select only those static methods that receive double or int arguments and return double results
         var methodInfos =
             ts.SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Static))
-                .Where(mi => mi.ReturnType == typeof(double) &&
-                             mi.GetParameters().All(p => p.ParameterType == typeof(double)));
+                .Where(mi => (mi.ReturnType == typeof(double) || mi.ReturnType == typeof(int)) &&
+                             mi.GetParameters().All(p => p.ParameterType == typeof(double) || p.ParameterType == typeof(int)));
         // get const double fields (PI and E)
         var constantFields =
             ts.SelectMany(t => t.GetFields(BindingFlags.Public | BindingFlags.Static))
@@ -39,10 +39,26 @@ public static class ClrImport {
             var v = f.GetRawConstantValue();
             SchemeValue schemeValue = ConvertToSchemeValue(v);
 
-            string fullName = f.DeclaringType.FullName +  "." + f.Name;
+            string fullName = /* f.DeclaringType.FullName +  "." + */  f.Name;
             var bg = new Binding(new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
                 new Location(schemeValue));
             bindings.Add(bg);
+        }
+        foreach (var mi in methodInfos) {
+            var clrPrimitive = new ClrPrimitive(mi);
+            System.Collections.Generic.List<string> paramNameAndTypes = [];
+            // TODO: stringbuilder for name
+            foreach (var p in mi.GetParameters()) {
+                paramNameAndTypes.Add(p.ParameterType.Name);
+            }
+            string ps = string.Join("->", paramNameAndTypes);
+            string returnType = mi.ReturnType.Name;
+            string fullName = /* mi.DeclaringType.FullName +  "."  + */ mi.Name + "/" + ps + (ps != "" ? "->" + returnType : returnType);
+            var bg = new Binding(new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
+                new Location(clrPrimitive));
+            bindings.Add(bg);
+
+
         }
         
         return new Library(bindings, []);
@@ -133,15 +149,41 @@ public class ClrPrimitive : SchemeValue, ICallable {
         System.Collections.Generic.List<Expression> argsList = [];
         int i = 0;
         foreach (var p in parameters) {
-            argsList.Add(Expression.Property(
-                Expression.Convert(
-                    Expression.ArrayIndex(args, Expression.Constant(i)),
-                    MappedType(p.ParameterType)),
-                "Value"));
+            argsList.Add(WrapParameter(args, i, p));
             i++;
 
         }
         return argsList.ToArray();
+    }
+
+    private static Expression WrapParameter(ParameterExpression argsArrayParam, int argIndex, ParameterInfo p) {
+        // TODO: for the moment, this is an unnecessary level of indirection, but may need more complicated logic
+        // for things that don't have a Value property.
+
+        // NOTE: if the parameter type is a double, we also should be able to take ints
+
+        if (p.ParameterType == typeof(double)) {
+            var isInt = Expression.TypeIs(Expression.ArrayIndex(argsArrayParam, Expression.Constant(argIndex)), typeof(Jig.Integer));
+            var asInt = Expression.Convert(Expression.ArrayIndex(argsArrayParam, Expression.Constant(argIndex)), typeof(Jig.Integer));
+            var convertMethod = typeof(Jig.Integer).GetMethod("op_Implicit", new[]
+            {
+                typeof(Jig.Integer),
+            });
+            var convertToDouble = Expression.Call(convertMethod, asInt);
+            var conditionalExpr = Expression.Condition(isInt, convertToDouble, Expression.Convert(Expression.ArrayIndex(argsArrayParam, Expression.Constant(argIndex)), typeof(Jig.Float)));
+            return Expression.Property(
+                Expression.Convert(
+                    conditionalExpr,
+                    MappedType(p.ParameterType)),
+                "Value");
+        }
+        return Expression.Property(
+            Expression.Convert(
+                Expression.ArrayIndex(argsArrayParam, Expression.Constant(argIndex)),
+                MappedType(p.ParameterType)),
+            "Value");
+
+
     }
 
     private static Expression WrapReturn(MethodInfo mi, Expression expr) {
@@ -153,7 +195,8 @@ public class ClrPrimitive : SchemeValue, ICallable {
     }
 
     private static Type MappedType(Type t) {
-          if (t == typeof(int)) return typeof(Jig.Integer);                                                                                               
+          if (t == typeof(int)) return typeof(Jig.Integer);
+          if (t == typeof(double)) return typeof(Jig.Float);
           if (t == typeof(string)) return typeof(Jig.String);                                                                                           
           throw new Exception($"unhandled type: {t}");
       }

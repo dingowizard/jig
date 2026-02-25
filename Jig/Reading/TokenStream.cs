@@ -439,7 +439,7 @@ public class TokenStream {
                 sb.Append((char)Port.Read());
                 return Subsequent(sb, startLoc);
             default:
-                throw new Exception($"TokenStream.Subsequent: unhandled character '{peeked}'");
+                throw new Exception($"TokenStream.Subsequent: unhandled character '{peeked}' @ {startLoc.Source} {startLoc.Line}");
 
         }
 
