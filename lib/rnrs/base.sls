@@ -144,18 +144,13 @@
 
   (define negative? (lambda (n) (< n 0)))
 
-  ; TODO: cute. but make efficient versions of odd and even
   (define odd?
     (lambda (n)
-      (if (= n 0)
-          #f
-          (even? (- n 1)))))
+      (not (even? n))))
 
   (define even?
     (lambda (n)
-      (if (= n 0)
-          #t
-          (odd? (- n 1)))))
+      (zero? (mod0 n 2))))
 
   ; TODO: actually, we should be able to automatically generate code for checking arg types
   ; and then we could just do, E.g., (define sqrt Sqrt/Double->Double)
