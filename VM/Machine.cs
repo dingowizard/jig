@@ -443,6 +443,7 @@ public class Machine : IRuntime {
                     try {
                         VAL = VARS[IR & 0x00FFFFFFFFFFFFFF].Value!;
                     }
+                    // TODO: this should raise-continuable a condition
                     catch (Exception)
                     {
                         Console.WriteLine($"PC = {PC - 1}");

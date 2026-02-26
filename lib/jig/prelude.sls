@@ -1,6 +1,6 @@
 (library (jig prelude)
   (export append apply length not error car cdr caar cadr cdar cddr caddr cdddr
-          fold-left fold-right map all any void error list list? zero? max min + * - / = > <
+          fold-left fold-right map all any void error list list? zero? max min + * - / = > < mod0 mod
         begin
         define
         define-syntax
@@ -142,6 +142,22 @@
                                    rest)
                          #t)))
           (error '> "expected first argument to be a number." x))))
+
+  (define mod0
+    (lambda (z1 z2)
+      (if (integer? z1)
+          (if (integer? z2)
+              (mod0-unsafe z1 z2)
+              (error 'mod0 "expected both arguments to be integers." z2))
+          (error 'mod0 "expected both arguments to be integers" z1))))
+
+  (define mod
+    (lambda (z1 z2)
+      (if (integer? z1)
+          (if (integer? z2)
+              (mod-unsafe z1 z2)
+              (error 'mod "expected both arguments to be integers." z2))
+          (error 'mod "expected both arguments to be integers" z1))))
 
   (define max
     (lambda (x . rest)

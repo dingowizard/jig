@@ -615,6 +615,17 @@ public static class Primitives {
          Integer status = (Integer)vm.Pop();
          System.Environment.Exit(status.Value);
      }
+
+     public static void modulo0(Machine vm) {
+         Integer n1 = (Integer)vm.Pop();
+         Integer n2 = (Integer)vm.Pop();
+         vm.Push(vm.VAL = n1 % n2);
+     }
+     public static void modulo(Machine vm) {
+         Integer n1 = (Integer)vm.Pop();
+         Integer n2 = (Integer)vm.Pop();
+         vm.Push(vm.VAL = Integer.Mod(n1, n2));
+     }
 }
 
 public delegate void PrimitiveProcedure(Machine vm);

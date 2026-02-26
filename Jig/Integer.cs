@@ -43,6 +43,14 @@ public class Integer(int i) : Number<int>(i) {
             _ => throw new NotImplementedException(),
         };
     }
+    
+    public static Integer operator %(Integer z1, Integer z2) => new (z1.Value % z2.Value); // This corresponds to mod0
+
+    public static Integer Mod(Integer z1, Integer z2) {
+        int r = z1.Value % z2.Value;
+        if (r == 0) return Integer.Zero;
+        return (r > 0) != (z2.Value > 0) ? new Integer(r + z2.Value) : new Integer(r);
+    }
 
     public static Integer operator +(Integer i1, Integer i2) => new (i1.Value + i2.Value);
     public static Float operator +(Integer i1, Float f) => new (i1.Value + f.Value);

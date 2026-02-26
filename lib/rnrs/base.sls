@@ -30,10 +30,9 @@
           zero? positive? negative? odd? even? ; finite? infinite? nan?
           max min
           + * - /
-          abs
-          div-and-mod div ; mod
-          div0 ; mod0
-          div0-and-mod0
+          abs ; div-and-mod
+          div mod
+          div0 mod0 ; div0-and-mod0
           ; gcd lcm
           ; numerator denominator
           truncate floor ceiling round
@@ -213,17 +212,6 @@
   (define div
     (lambda (z1 z2)
       (floor (/ z1 z2))))
-
-  (define div-and-mod
-    (lambda (z1 z2)
-      (let ((q (div z1 z2)))
-        (values q (- z1 (* q z2))))))
-
-
-  (define div0-and-mod0
-    (lambda (z1 z2)
-      (let ((q (div0 z1 z2)))
-        (values q (- z1 (* q z2))))))
 
   (define div0
     (lambda (z1 z2)
