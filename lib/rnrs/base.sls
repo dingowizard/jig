@@ -30,9 +30,7 @@
    zero? positive? negative? odd? even? ; finite? infinite? nan?
    max min
    + * - /
-   abs ; div-and-mod
-   div mod
-   div0 mod0 ; div0-and-mod0
+   abs div-and-mod div mod div0 mod0  div0-and-mod0 ;
                                         ; gcd lcm
                                         ; numerator denominator
    truncate floor ceiling round
@@ -212,11 +210,37 @@
 
   (define div
     (lambda (z1 z2)
-      (floor (/ z1 z2))))
+      (if (integer? z1)
+          (if (integer? z2)
+              (floor (/ z1 z2))
+              (error 'div "expected both arguments to be integers." z2))
+          (error 'div "expected both arguments to be integers" z1))))
+
+  (define div-and-mod
+    (lambda (z1 z2)
+      (if (integer? z1)
+          (if (integer? z2)
+              (let ((rem (mod z1 z2)))
+                (values (/ (- z1 rem) z2) rem))
+              (error 'div-and-mod "expected both arguments to be integers." z2))
+          (error 'div-and-mod "expected both arguments to be integers" z1))))
 
   (define div0
     (lambda (z1 z2)
-      (truncate (/ z1 z2))))
+      (if (integer? z1)
+          (if (integer? z2)
+              (truncate (/ z1 z2))
+              (error 'div0 "expected both arguments to be integers." z2))
+          (error 'div0 "expected both arguments to be integers" z1))))
+
+  (define div0-and-mod0
+    (lambda (z1 z2)
+      (if (integer? z1)
+          (if (integer? z2)
+              (let ((rem (mod0 z1 z2)))
+                (values (/ (- z1 rem) z2) rem))
+              (error 'div0-and-mod0 "expected both arguments to be integers." z2))
+          (error 'div0-and-mod0 "expected both arguments to be integers" z1))))
 
   (define reverse
     (lambda (xs)
