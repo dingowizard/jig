@@ -120,7 +120,7 @@ public static class Builtins {
             ((ulong)OpCode.Arg << 56) + 1, // + 0 + 1 omitted.
             ((ulong)OpCode.Push << 56),
             ((ulong)OpCode.CallDB << 56),
-            (ulong)OpCode.PopWinder << 56,
+            /* 13 */ (ulong)OpCode.PopWinder << 56,
             (ulong)OpCode.PushFP << 56, // save the frame pointer on the stack
             (ulong)OpCode.SPToFP << 56, // set current fp to sp
             ((ulong)OpCode.PushContinuationForNonTailBody << 56) + 20,

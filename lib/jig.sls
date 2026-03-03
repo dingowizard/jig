@@ -9,9 +9,7 @@
    integer? ; real-valued? rational-valued? integer-valued? exact? inexact? exact inexact
    = < > ; <= >=
    zero? positive? negative? odd? even? ; finite? infinite? nan?
-   max min + * - /
-   abs
-   div-and-mod div mod div0 mod0 div0-and-mod0 ; gcd lcm numerator denominator
+   max min + * - / abs div-and-mod div mod div0 mod0 div0-and-mod0 ; gcd lcm numerator denominator
    truncate floor ceiling round ; rationalize exp log sin cos tan asin acos atan
    sqrt ; exact-integer-sqrt
    expt ; real-part imag-part make-rectangular make-polar magnitude angle

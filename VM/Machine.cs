@@ -610,11 +610,16 @@ public class Machine : IRuntime {
                     Primitive pv = (Primitive)Pop();
                     // I think saved continuation expects args to be separately on stack
                     // TODO: rethink having args as list. this is only convenient for procedures
+                    // UGH: after collecting all the args on the stack into a list we are not pushing them back
+                    // onto the stack!?!
                     foreach (var x in ss.Reverse()) {
                         Push(x);
                     }
                     ActivationStack.Push(pv, CONT);
                     pv.Apply(this);
+                    // if (pv.Name == "integer?") {
+                    //     Console.WriteLine($"about to pop continuation of call to integer?. {CONT.Required} {((PartialContinuation)CONT).ReturnAddress}");
+                    // }
                     CONT.Pop(this);
                     ActivationStack.PopTo(this);
                     continue;

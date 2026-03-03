@@ -36,20 +36,20 @@ public class PartialContinuation : Continuation {
     public override void Pop(Machine vm) {
         
         // check that continuation we are returning to expects the number of values
-        if (this.Continuation.HasRest) {
+        if (this.HasRest) {
             if (vm.SP - vm.FP < this.Continuation.Required) {
                 throw new Exception(
                     $"continuation expected at least {this.Continuation.Required} values, but received {vm.SP - vm.FP}");
             }
         } else {
-            if (vm.SP - vm.FP != this.Continuation.Required) {
+            if (vm.SP - vm.FP != this.Required) {
                 
-                Console.WriteLine($"Error popping PartCont: popping to this template: {this.ReturnAddress}");
+                Console.WriteLine($"Error popping PartCont: popping to {this.ReturnAddress} in this template: ");
                 Array.ForEach(Disassembler.Disassemble(this.Template), Console.WriteLine);
                 Console.WriteLine($"but checking stack against expected values for {this.Continuation.GetType()}");
                 
                 throw new Exception(
-                    $"continuation expected {this.Continuation.Required} values, but received {vm.SP - vm.FP}. stack = {vm.StackToList().Print()} SP = {vm.SP} FP = {vm.FP}");
+                    $"continuation expected {this.Required} values, but received {vm.SP - vm.FP}. stack = {vm.StackToList().Print()} SP = {vm.SP} FP = {vm.FP}");
             
             }
         }
