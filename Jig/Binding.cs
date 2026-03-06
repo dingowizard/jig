@@ -1,6 +1,7 @@
 using Jig.Expansion;
 namespace Jig;
 
+// TODO: this seems like a runtime concept
 public class Binding {
     
     public Binding(Parameter parameter, Location location) {

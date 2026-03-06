@@ -123,20 +123,18 @@ public class ClrPrimitive : SchemeValue, ICallable {
         return Expression.Lambda<ClrPrimitiveUnsafe>(
             Expression.Block(
                 [arrayVar],
-                ArgListToArray(arrayVar, listParam),
+                Expression.Assign(arrayVar, ArgListToArray(arrayVar, listParam)),
                 MakeCallExpression(mi, arrayVar)),
             listParam).Compile();
                                                           
     }
 
-    private static BinaryExpression ArgListToArray(ParameterExpression arrayParam, ParameterExpression listParam) {
-        return Expression.Assign(
-            arrayParam,
-            Expression.Call(
+    private static Expression ArgListToArray(ParameterExpression arrayParam, ParameterExpression listParam) {
+            return Expression.Call(
                 typeof(Enumerable)
                     .GetMethod("ToArray")!
                     .MakeGenericMethod(typeof(Jig.SchemeValue)),
-                listParam));
+                listParam);
     }
 
     private static Expression MakeCallExpression(MethodInfo mi, ParameterExpression arrayArgsParam) {
