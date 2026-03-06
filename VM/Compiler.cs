@@ -171,7 +171,6 @@ public class Compiler {
                 index = bindings.Count - 1;
             }
             code = (ulong)OpCode.SetVar << 56;
-            // TODO: SetTop is a confusing misnomer here
             code += (ulong)index;
             result.Add(code);
         }

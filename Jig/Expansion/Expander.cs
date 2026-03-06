@@ -188,11 +188,11 @@ internal class SemiParsedVar : SemiParsedExpression {
             // TODO: the context should be able to tell us whether we are in fact in a REPL
             // the problem is that the binding we need doesn't exist yet, so whenever we define the variable
             // we shouldn't make a new one
-            binding = new Parameter(
+            binding = new Parameter.Maybe(
                 Identifier.Symbol,
                 Identifier.ScopeSet,
-                context.ScopeLevel,
-                context.VarIndex++,
+                0, // this is a top level var that will need to be defined later
+                0, // TODO: mmmmm. not sure if the var index is used for toplevels, but if it is, that's going to be a problem
                 Identifier.SrcLoc);
             context.AddBinding(binding);
             // now we need the var

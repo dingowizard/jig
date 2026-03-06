@@ -1,6 +1,12 @@
 namespace Jig.Expansion;
 public class Parameter : Identifier {
 
+    public class Maybe : Jig.Expansion.Parameter {
+        
+        public Maybe(Symbol sym, HashSet<Scope> scopeSet, int scopeLevel, int varIndex, SrcLoc? srcLoc) : base(sym, scopeSet, scopeLevel, varIndex, srcLoc) {}
+        
+    }
+
     public Parameter(Symbol sym, HashSet<Scope> scopeSet, int scopeLevel, int varIndex, SrcLoc? srcLoc)
         : base(sym, scopeSet, srcLoc) {
         // TODO: remove Index?

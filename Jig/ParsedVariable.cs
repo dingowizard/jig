@@ -25,7 +25,7 @@ public class ParsedVariable : Expression {
     public Identifier Identifier { get; }
     public Expansion.Parameter Parameter { get; }
 
-    internal class MaybeTopLevel : TopLevel {
+    public class MaybeTopLevel : TopLevel {
         public MaybeTopLevel(Identifier identifier, Parameter binding, SrcLoc? identifierSrcLoc) : base(identifier, binding, identifierSrcLoc) {
         }
     }

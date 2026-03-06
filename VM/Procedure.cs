@@ -1,4 +1,5 @@
 using Jig;
+using Jig.Expansion;
 namespace VM;
 
 public class Procedure : SchemeValue, ICallable {
@@ -16,14 +17,20 @@ public class Procedure : SchemeValue, ICallable {
     private Location[] SaveVarLocations(Environment env, Template template) {
         var result = new System.Collections.Generic.List<Location>();
         foreach (var parameter in template.Vars) {
-            try {
-                var loc = env.LookUpLocation(parameter);
+            Location loc;
+            if (parameter is Parameter.Maybe maybe) {
+                loc = new Location.Later(maybe, env);
                 result.Add(loc);
-            } catch {
-                Console.WriteLine($"Error while looking up variable {parameter.Symbol}");
-                throw;
+            } else {
+                try {
+                    loc = env.LookUpLocation(parameter);
+                    result.Add(loc);
+                }
+                catch {
+                    Console.WriteLine($"Error while looking up variable {parameter.Symbol}");
+                    throw;
+                }
             }
-
         }
         return result.ToArray();
             
