@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Jig.Expansion;
 
 namespace Jig;
 
@@ -23,4 +24,9 @@ public class ParsedVariable : Expression {
 
     public Identifier Identifier { get; }
     public Expansion.Parameter Parameter { get; }
+
+    internal class MaybeTopLevel : TopLevel {
+        public MaybeTopLevel(Identifier identifier, Parameter binding, SrcLoc? identifierSrcLoc) : base(identifier, binding, identifierSrcLoc) {
+        }
+    }
 }

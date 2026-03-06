@@ -22,6 +22,8 @@ public partial class CoreParseRules {
             // if we're in the repl and re-defining a top-level at top-level, that's fine
             // otherwise we should make a new binding
             // or raise an error
+            // NOTE: we might be here after the variable has already been referenced (in a mutually recursive toplevel definition
+            // in a REPL)
             binding = parameter;
         } else {
             // TODO: this represents registering the new var

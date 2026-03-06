@@ -183,6 +183,20 @@ internal class SemiParsedVar : SemiParsedExpression {
                 }
                 return new ParsedVariable.Lexical(Identifier, binding, Identifier.SrcLoc);
             }
+            // If we couldn't resolve the identifier to a binding, then possibly we are in the REPL
+            // and this is part of a mutually recursive definition
+            // TODO: the context should be able to tell us whether we are in fact in a REPL
+            // the problem is that the binding we need doesn't exist yet, so whenever we define the variable
+            // we shouldn't make a new one
+            binding = new Parameter(
+                Identifier.Symbol,
+                Identifier.ScopeSet,
+                context.ScopeLevel,
+                context.VarIndex++,
+                Identifier.SrcLoc);
+            context.AddBinding(binding);
+            // now we need the var
+            return new ParsedVariable.MaybeTopLevel(Identifier, binding, Identifier.SrcLoc);
             throw new Exception($"could not resolve Identifier {Identifier.Symbol.Print()} @ {Identifier.SrcLoc}");
     }
 }
