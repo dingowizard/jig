@@ -1,11 +1,16 @@
 using System.Linq.Expressions;
 using System.Reflection;
 using Jig;
+using Jig.Types;
 using Expression = System.Linq.Expressions.Expression;
 using String = Jig.String;
 namespace VM;
 
-public static class ClrImport {
+public class InterOp {
+    
+    public TypeResolver TypeResolver {get;}
+    
+    public InterOp(TypeResolver resolver) => TypeResolver = resolver;
     
     
     static IEnumerable<Type> ResolveClrName(string name) {
@@ -22,7 +27,7 @@ public static class ClrImport {
                         || t.Namespace?.StartsWith(name + ".") == true);
     }
 
-    public static Library ImportClrNameSpace(string name) {
+    public Library ImportClrNameSpace(string name) {
         var ts = ResolveClrName(name);
         // for now, we're going to select only those static methods that receive double or int arguments and return double results
         var methodInfos =
@@ -73,32 +78,6 @@ public static class ClrImport {
         }
     }
 
-    public static int Succ(int n) => n + 1;
-    
-    public static string Shout(string s) => s.ToUpper();
-    
-    public static string StringCat(string s1, string s2) => s1 + s2;
-
-    public static void Test() {
-        
-        var succs = typeof(ClrImport)
-            .GetMethods(BindingFlags.Public | BindingFlags.Static)
-            .Where(m => m.Name == "Succ");
-        System.Collections.Generic.List<ClrPrimitive> succPrimitives = [];
-        foreach (var mi in succs) {
-            succPrimitives.Add(new ClrPrimitive(mi));
-
-        }
-        Jig.SchemeValue result = succPrimitives.ElementAt(0).Delegate(List.ListFromEnumerable([Integer.One]));
-        Console.WriteLine($"We compiled a ClrPrimitive for Succ and passed it 1. The result is {result.Print()}");
-        var shout = typeof(ClrImport).GetMethod(nameof(Shout), BindingFlags.Static | BindingFlags.Public);
-
-        result = new ClrPrimitive(shout!).Delegate(List.ListFromEnumerable([new Jig.String("i don't want to shout")]));
-        Console.WriteLine($"called shout with 'i don't want to shout': {result}");
-        var stringCat  = typeof(ClrImport).GetMethod(nameof(StringCat), BindingFlags.Static | BindingFlags.Public);
-        result = new ClrPrimitive(stringCat!).Delegate(List.ListFromEnumerable([new String("beep"), new String("boop")]));
-        Console.WriteLine($"called stringcat with 'beep' and 'boop': {result}");
-    }
     
 }
 

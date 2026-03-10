@@ -1,5 +1,6 @@
 ﻿using Jig;
 using Jig.IO;
+using Jig.Types;
 using VM;
 using Mono.Options;
 using System.Diagnostics;
@@ -43,6 +44,8 @@ public static class Program {
             System.Environment.Exit(0);
         }
 
+        TypeResolver tr = new TypeResolver();
+        InterOp interop = new InterOp(tr);
         ILibrary FromFileFn(string path) => Library.FromFile(path, Reader.ReadSyntax, new VMFactory());
         ILibrary FromFormFn(ParsedLibrary lib) => Library.FromForm(lib, new VMFactory());
 
@@ -53,7 +56,7 @@ public static class Program {
             new System.Collections.Generic.List<(Symbol[], ILibrary)>()
             {
                 new ValueTuple<Symbol[], ILibrary>([new Symbol("core-primitives")], Library.Core),
-                new ValueTuple<Symbol[], ILibrary>([new Symbol("clr"), new Symbol("System"), new Symbol("Math")], ClrImport.ImportClrNameSpace("System.Math")),
+                new ValueTuple<Symbol[], ILibrary>([new Symbol("clr"), new Symbol("System"), new Symbol("Math")], interop.ImportClrNameSpace("System.Math")),
             });
         IEvaluator evaluator = new Evaluator();
         
