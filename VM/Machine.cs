@@ -646,6 +646,8 @@ public class Machine : IRuntime {
                     List arguments = (List)Pop();
                     // now we've consumed the args, but we're going to leave the procedure on the stack
                     Procedure procedure = (Procedure)Stack[SP - 1];
+                    if (procedure is null) throw new Exception();
+                    if (procedure.Environment is null) throw new Exception($"procedure {procedure.Template.Name} has no environment!?");
                     ENVT = procedure.Environment.ExtendForProcCall(procedure, arguments);
                     continue;
                 case OpCode.Transfer:

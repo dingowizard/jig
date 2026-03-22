@@ -2,6 +2,7 @@ using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Intrinsics.X86;
 using Jig;
 using Jig.Expansion;
+using Jig.Types;
 using Char = Jig.Char;
 using String = Jig.String;
 
@@ -626,6 +627,12 @@ public static class Primitives {
          Integer n2 = (Integer)vm.Pop();
          vm.Push(vm.VAL = Integer.Mod(n1, n2));
      }
+
+     public static void canBeDouble(Machine vm) {
+         // NOTE: this is just here to try hooking up TypeDescriptor...Predicate
+         SchemeValue arg = vm.Pop();
+         vm.Push(vm.VAL = Jig.Types.TypeDescriptor.Double.Predicate(arg));
+     }
 }
 
 public delegate void PrimitiveProcedure(Machine vm);
@@ -663,5 +670,15 @@ public class Primitive : SchemeValue, ICallable {
         Delegate(vm);
     }
     public override string Print() => $"#<procedure {Name}>";
+
+    public static Primitive TypePredicate(TypeDescriptor desc) {
+        
+        return new Primitive($"can-be-{desc.ClrType.Name}?", PrimitiveProcedure, 1, true);
+
+        void PrimitiveProcedure(Machine vm) {
+            SchemeValue arg = vm.Pop();
+            vm.Push(vm.VAL = desc.Predicate(arg));
+        }
+    }
     
 }

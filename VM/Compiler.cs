@@ -370,7 +370,7 @@ public class Compiler {
         
     }
 
-    private Template CompileLambdaTemplate(
+    public Template CompileLambdaTemplate(
         ParsedLambda lambdaExpr,
         Environment ctEnv,
         int scopeLevel)

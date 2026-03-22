@@ -208,7 +208,7 @@ public class Environment : SchemeValue, IRuntimeEnvironment {
     public static Environment Minimal()
     {
         // TODO: Minimal and Default are the same
-        return new Environment([]);
+        return new Environment(Library.Core.VariableExports);
     }
     static Environment() {
         Default = new Environment([]);

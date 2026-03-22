@@ -3,7 +3,7 @@ namespace Jig;
 
 public class ParsedLambda : Expression {
 
-    internal ParsedLambda(Syntax keyword,
+    public ParsedLambda(Syntax keyword,
         LambdaParameters parameters,
         int scopeVarsCount,
         ParsedForm[] bodies,
@@ -27,7 +27,7 @@ public class ParsedLambda : Expression {
 
 
     public class LambdaParameters : Syntax {
-        private LambdaParameters(Syntax stx, Parameter[] required, Parameter? rest)
+        public LambdaParameters(Syntax stx, Parameter[] required, Parameter? rest)
             : base(Syntax.E(stx), stx.SrcLoc)
         {
             Required = required;

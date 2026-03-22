@@ -44,7 +44,7 @@ public class ParsedBegin(Syntax keyword, ParsedForm[] forms, SrcLoc? srcLoc = nu
 }
 
 public class ParsedLiteral : Expression {
-    internal ParsedLiteral(Syntax keyword, Syntax lit, SrcLoc? srcLoc = null)
+    public ParsedLiteral(Syntax keyword, Syntax lit, SrcLoc? srcLoc = null)
     : base (SyntaxList.FromParams(keyword, lit), srcLoc) {
         Quoted = lit;
     }
@@ -113,7 +113,7 @@ public class ParsedIf : Expression {
     public ParsedForm? Else {get; private set;}
 
 
-    internal ParsedIf(Syntax kywd, ParsedForm cond, ParsedForm then, ParsedForm @else, SrcLoc? srcLoc = null) :
+    public ParsedIf(Syntax kywd, ParsedForm cond, ParsedForm then, ParsedForm @else, SrcLoc? srcLoc = null) :
         base(SyntaxList.FromParams(kywd, cond, then, @else), srcLoc)
     {
         Condition = cond;
