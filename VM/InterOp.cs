@@ -117,8 +117,7 @@ public class InterOp {
     private ParsedForm[] LambdaBodyFromMethodInfo(MethodInfo methodInfo, ParsedLambda.LambdaParameters lambdaParameters) {
         // we need to build a big call something like:
         // (clr-method (if (can-be-clr-type0? arg0) arg0 (error ...)) (if (can-be-clr-type1? arg1) arg1 (error ...)) ... (if (can-be-clr-typen? argn) argn (error ...)))
-        // Very unusualy, the operator, clr-method, is going to be a literal
-        // which means we probably have to alter the compiler so that it can treat ClrPrimitive like a literal/constant
+        // Very unusually, the operator, clr-method, is going to be a literal
         System.Collections.Generic.List<ParsedVariable.Lexical> args = [];
         System.Collections.Generic.List<ParsedForm> ifs = [];
         foreach (var (pInfo, p) in methodInfo.GetParameters().Take(lambdaParameters.Required.Length).Zip(lambdaParameters.Required)) {
@@ -126,6 +125,8 @@ public class InterOp {
             ifs.Add(IfExprFromPropertyInfo(methodInfo, pInfo, arg));
         }
         if (lambdaParameters.HasRest) {
+            // we need to do the equivalent of (all can-be-clr-type? rest)
+            // and error should be something like: expected all elements of rest arg "r" to be convertible to clr type {tgpe}
             throw new NotImplementedException("we don't know how to import clr methods with params array yet.");
         }
         
