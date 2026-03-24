@@ -40,6 +40,8 @@ public static class Disassembler {
                 return $"{lineNo:D3}\tPUSHFP";
             case OpCode.CallDB:
                 return $"{lineNo:D3}\tCALL";
+            case OpCode.NewCall:
+                return $"{lineNo:D3}\tCALL";
             case OpCode.Lit:
                 return $"{lineNo:D3}\tLIT\t{operand:D3} ; {literals[operand].Print()}";
             case OpCode.PushContinuationForArg:
