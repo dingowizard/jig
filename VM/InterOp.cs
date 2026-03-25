@@ -36,8 +36,8 @@ public class InterOp {
         // for now, we're going to select only those static methods that receive double or int arguments and return double results
         var methodInfos =
             ts.SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Static))
-                .Where(mi => (mi.ReturnType == typeof(double) || mi.ReturnType == typeof(int)) &&
-                             mi.GetParameters().All(p => p.ParameterType == typeof(double) || p.ParameterType == typeof(int)));
+                .Where(mi => (mi.ReturnType == typeof(double) || mi.ReturnType == typeof(int) || mi.ReturnType == typeof(string)) &&
+                             mi.GetParameters().All(p => p.ParameterType == typeof(double) || p.ParameterType == typeof(int) || p.ParameterType == typeof(string)));
         // get const double fields (PI and E)
         var constantFields =
             ts.SelectMany(t => t.GetFields(BindingFlags.Public | BindingFlags.Static))
@@ -54,8 +54,9 @@ public class InterOp {
         }
         foreach (var mi in methodInfos) {
             // var clrPrimitive = new ClrPrimitive(mi, TypeResolver);
-            var clrProcedure = ProcedureFromMethodInfo(mi);
             string fullName = MethodName(mi);
+            Console.WriteLine($"trying to import {fullName}");
+            var clrProcedure = ProcedureFromMethodInfo(mi);
             var bg = new Binding(new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
                 new Location(clrProcedure));
             bindings.Add(bg);

@@ -13,6 +13,37 @@ public class TypeDescriptor {
     public static TypeDescriptor Double => new DoubleTypeDescriptor();
     public static TypeDescriptor Int32 => new Int32TypeDescriptor();
 
+    public static TypeDescriptor String => new StringTypeDescriptor();
+
+}
+
+// TODO: seems like a lot of these could inherit from the same base class that handles simple types that map to Literal<T>
+internal class StringTypeDescriptor :  TypeDescriptor {
+    
+    public override Type ClrType => typeof(string);
+
+    public override Func<SchemeValue, Bool> Predicate {get;} = sv => {
+        return sv switch
+        {
+            Jig.String => Bool.True,
+            _ => Bool.False,
+        };
+    };
+    
+    public override Func<SchemeValue, object> ConvertArg {get;} = sv => {
+        switch (sv) {
+            case String str: return str.Value; 
+            default: throw new Exception($"Can't convert from {sv.GetType()} to clr string");
+        }
+    };
+
+    public override Func<object?, SchemeValue> WrapReturn {get;} = obj => {
+        switch (obj) {
+            case System.String z: return new Jig.String(z);
+            case null: return Bool.False;
+            default: throw new Exception($"expected a string, but got {obj.GetType()}");
+        }
+    };
 }
 
 internal class Int32TypeDescriptor :  TypeDescriptor {

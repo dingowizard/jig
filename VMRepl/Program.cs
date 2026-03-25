@@ -58,6 +58,7 @@ public static class Program {
             {
                 new ValueTuple<Symbol[], ILibrary>([new Symbol("core-primitives")], Library.Core),
                 new ValueTuple<Symbol[], ILibrary>([new Symbol("clr"), new Symbol("System"), new Symbol("Math")], interop.ImportClrNameSpace("System.Math")),
+                new ValueTuple<Symbol[], ILibrary>([new Symbol("clr"), new Symbol("System"), new Symbol("String")], interop.ImportClrNameSpace("System.String")),
             });
         
         // var jigLib = Library.FromFile("lib/rnrs/base.sls", Reader.ReadSyntax, new VMFactory());
