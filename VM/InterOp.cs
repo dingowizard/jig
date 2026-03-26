@@ -38,6 +38,11 @@ public class InterOp {
             ts.SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Static))
                 .Where(mi => (mi.ReturnType == typeof(double) || mi.ReturnType == typeof(int) || mi.ReturnType == typeof(string)) &&
                              mi.GetParameters().All(p => p.ParameterType == typeof(double) || p.ParameterType == typeof(int) || p.ParameterType == typeof(string)));
+        var instanceMethodInfos =
+            ts.SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance))
+                .Where(mi => (mi.DeclaringType == typeof(double) || mi.DeclaringType == typeof(int) || mi.DeclaringType == typeof(string)) && 
+                             (mi.ReturnType == typeof(double) || mi.ReturnType == typeof(int) || mi.ReturnType == typeof(string)) &&
+                             mi.GetParameters().All(p => p.ParameterType == typeof(double) || p.ParameterType == typeof(int) || p.ParameterType == typeof(string)));
         // get const double fields (PI and E)
         var constantFields =
             ts.SelectMany(t => t.GetFields(BindingFlags.Public | BindingFlags.Static))
@@ -53,10 +58,9 @@ public class InterOp {
             bindings.Add(bg);
         }
         foreach (var mi in methodInfos) {
-            // var clrPrimitive = new ClrPrimitive(mi, TypeResolver);
             string fullName = MethodName(mi);
-            Console.WriteLine($"trying to import {fullName}");
-            var clrProcedure = ProcedureFromMethodInfo(mi);
+            // Console.WriteLine($"trying to import {fullName}");
+            var clrProcedure = ProcedureFromStaticMethodInfo(mi);
             var bg = new Binding(new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
                 new Location(clrProcedure));
             bindings.Add(bg);
@@ -64,6 +68,13 @@ public class InterOp {
 
         }
         
+        foreach (var mi in instanceMethodInfos) {
+            string fullName = MethodName(mi);
+            var clrProcedure = ProcedureFromInstanceMethodInfo(mi);
+            var bg = new Binding(new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
+                new Location(clrProcedure));
+            bindings.Add(bg);
+        }
         return new Library(bindings, []);
 
     }
@@ -79,7 +90,20 @@ public class InterOp {
         return /* mi.DeclaringType.FullName +  "."  + */ mi.Name + "/" + ps + (ps != "" ? "->" + returnType : returnType);
     }
 
-    private Procedure ProcedureFromMethodInfo(MethodInfo methodInfo) {
+    private SchemeValue ProcedureFromInstanceMethodInfo(MethodInfo methodInfo) {
+        var lambdaParameters = LambdaParametersForInstanceMethod(methodInfo);
+        var parsedLambda = new ParsedLambda(
+            new Identifier(new Symbol("lambda")),
+            lambdaParameters,
+            ParameterCountFromParameterInfos(methodInfo.GetParameters()) + 1,
+            LambdaBodyForInstanceMethod(methodInfo, lambdaParameters));
+        var compiler = new Compiler();
+        var template = compiler.CompileLambdaTemplate(parsedLambda, Environment.Default, 0);
+        template.Name = new Identifier(new Symbol(MethodName(methodInfo)));
+        return new Procedure(Evaluator.Environment, template);
+    }
+
+    private Procedure ProcedureFromStaticMethodInfo(MethodInfo methodInfo) {
         // Let's build a ParsedLambda
         // and then compile it.
         var lambdaParameters = LambdaParametersFromParameterInfos(methodInfo.GetParameters());
@@ -92,6 +116,24 @@ public class InterOp {
         var template = compiler.CompileLambdaTemplate(parsedLambda, Environment.Default, 0);
         template.Name = new Identifier(new Symbol(MethodName(methodInfo)));
         return new Procedure(Evaluator.Environment, template);
+    }
+    private ParsedForm IfExprForObjectArg(MethodInfo methodInfo, ParsedVariable.Lexical objectArg) {
+        ParsedApplication predApp = PredicateApplicationFromType(methodInfo.DeclaringType, objectArg);
+        ParsedApplication errorCall = WrongArgTypeErrorCall(methodInfo, methodInfo.DeclaringType, objectArg);
+        return new ParsedIf(new Identifier(new Symbol("if")), predApp, objectArg, errorCall);
+    }
+    
+    private ParsedApplication WrongArgTypeErrorCall(MethodInfo methodInfo, Type methodInfoDeclaringType, ParsedVariable.Lexical parsedVariable) {
+        Jig.Expansion.Parameter errorParameter = Library.Core.FindParameter("error");
+        var errorVar = new ParsedVariable.TopLevel(new Identifier(errorParameter.Symbol), errorParameter, null);
+        var errorMsg = new String($"expected argument for parameter {methodInfoDeclaringType.Name.ToLower()} to be convertible to clr type {methodInfoDeclaringType.Name}.");
+        return new ParsedApplication(
+        [
+            errorVar,
+            new ParsedLiteral(new Identifier(new Symbol("quote")), new Identifier(new Symbol(methodInfo.Name))),
+            new ParsedLiteral(new Identifier(new Symbol("quote")), new Syntax.Literal(errorMsg)),
+            parsedVariable, ],
+            null);
     }
     private ParsedIf IfExprFromPropertyInfo(MethodInfo methodInfo, ParameterInfo propertyInfo, ParsedVariable.Lexical arg) {
 
@@ -114,6 +156,34 @@ public class InterOp {
     private ParsedApplication PredicateApplicationFromParameterInfo(ParameterInfo parameterInfo, ParsedVariable.Lexical arg) {
         Primitive pred = Primitive.TypePredicate(TypeResolver.Resolve(parameterInfo.ParameterType));
         return new ParsedApplication([new ParsedLiteral(new Identifier(new Symbol("quote")), new Syntax.Literal(pred), null), arg], null);
+    }
+    
+    private ParsedApplication PredicateApplicationFromType(Type type, ParsedVariable.Lexical arg) {
+        Primitive pred = Primitive.TypePredicate(TypeResolver.Resolve(type));
+        return new ParsedApplication([new ParsedLiteral(new Identifier(new Symbol("quote")), new Syntax.Literal(pred), null), arg], null);
+    }
+    private ParsedForm[] LambdaBodyForInstanceMethod(MethodInfo methodInfo, ParsedLambda.LambdaParameters lambdaParameters) {
+        var firstParam = lambdaParameters.Required[0];
+        ParsedVariable.Lexical objectArg = new ParsedVariable.Lexical(new Identifier(firstParam.Symbol), firstParam, null);
+        System.Collections.Generic.List<ParsedVariable.Lexical> args = [objectArg];
+        System.Collections.Generic.List<ParsedForm> ifs = [IfExprForObjectArg(methodInfo, objectArg)];
+        foreach (var (pInfo, p) in methodInfo.GetParameters().Zip(lambdaParameters.Required.Skip(1))) {
+            var arg = new ParsedVariable.Lexical(new Identifier(p.Symbol), p, null);
+            var @if = IfExprFromPropertyInfo(methodInfo, pInfo, arg);
+            // Console.WriteLine($"for {methodInfo.Name} made if: {Syntax.ToDatum(@if).Print()}");
+            ifs.Add(IfExprFromPropertyInfo(methodInfo, pInfo, arg));
+        }
+        if (lambdaParameters.HasRest) {
+            // we need to do the equivalent of (all can-be-clr-type? rest)
+            // and error should be something like: expected all elements of rest arg "r" to be convertible to clr type {tgpe}
+            throw new NotImplementedException("we don't know how to import clr methods with params array yet.");
+        }
+        
+        var clrMethod = new ClrPrimitive(methodInfo, TypeResolver);
+        ParsedForm[] forms = [new ParsedLiteral(new Identifier(new Symbol("quote")), new Syntax.Literal(clrMethod), null)];
+        var call = new ParsedApplication(forms.Concat(ifs), null);
+        // Console.WriteLine($"{Syntax.ToDatum(call).Print()}");
+        return [call];
     }
     private ParsedForm[] LambdaBodyFromMethodInfo(MethodInfo methodInfo, ParsedLambda.LambdaParameters lambdaParameters) {
         // we need to build a big call something like:
@@ -140,7 +210,19 @@ public class InterOp {
         return getParameters.Length;
     }
     
-    private ParsedLambda.LambdaParameters LambdaParametersFromParameterInfos(ParameterInfo[] parameters) {
+    private ParsedLambda.LambdaParameters LambdaParametersForInstanceMethod(MethodInfo methodInfo) {
+        var ps = LambdaParametersFromParameterInfos(methodInfo.GetParameters(), 1);
+        Identifier objParam = new Identifier(new Symbol(methodInfo.DeclaringType.Name.ToLower()));
+        var parameter = new Jig.Expansion.Parameter(objParam.Symbol, [], 1, 0, null);
+        return new ParsedLambda.LambdaParameters(
+            new Syntax((SchemeValue)Pair.Cons(objParam, (SyntaxList)Syntax.E(ps)), null),
+            new[]
+            {
+                parameter
+            }.Concat(ps.Required).ToArray(),
+            ps.Rest);
+    }
+    private ParsedLambda.LambdaParameters LambdaParametersFromParameterInfos(ParameterInfo[] parameters, int offset = 0) {
         if (parameters.Length != 0) {
 
             ParameterInfo last = parameters[^1];
@@ -154,14 +236,14 @@ public class InterOp {
                 // the compiler is going to need to figure out that these are args
                 // I think the scope level should always be 1, because the method is being imported as a top-level var
                 // potentially this will not ALWAYS hold and we may need more complex logic
-                rest = new Jig.Expansion.Parameter(restID.Symbol, [], 1, parameters.Length - 1, null);
+                rest = new Jig.Expansion.Parameter(restID.Symbol, [], 1, parameters.Length - 1 + offset, null);
                 lastIndex--;
             }
             System.Collections.Generic.List<Jig.Expansion.Parameter> required = [];
             for (; lastIndex >= 0; lastIndex--) {
                 // working from end of parameters[], create Identifiers from parameterinfos and cons them onto the list
                 Identifier p = new Identifier(new Symbol(parameters[lastIndex].Name ?? $"arg{lastIndex}"));
-                var parameter = new Jig.Expansion.Parameter(p.Symbol, [], 1, lastIndex, null);
+                var parameter = new Jig.Expansion.Parameter(p.Symbol, [], 1, lastIndex + offset, null);
                 syntaxes = (SchemeValue)Pair.Cons(parameter, syntaxes);
                 required.Add(parameter);
             }
@@ -185,12 +267,21 @@ public delegate Jig.SchemeValue ClrPrimitiveUnsafe(Jig.List args);
 
 public class ClrPrimitive : SchemeValue, ICallable {
     public ClrPrimitive(MethodInfo mi, TypeResolver tr) {
-        var parameters = mi.GetParameters();                                                                                                        
-        int count = parameters.Length;                          
-        HasRest = parameters.Length > 0 &&                                                                                                           
-                         parameters[^1].IsDefined(typeof(ParamArrayAttribute), false);
-        Required = HasRest ? count - 1 : count;
-        Delegate = MakeDelegate(mi, tr);
+        if (mi.IsStatic) {
+            var parameters = mi.GetParameters();                                                                                                        
+            int count = parameters.Length;                          
+            HasRest = parameters.Length > 0 &&                                                                                                           
+                      parameters[^1].IsDefined(typeof(ParamArrayAttribute), false);
+            Required = HasRest ? count - 1 : count;
+            Delegate = MakeDelegate(mi, tr);
+        } else {
+            var parameters = mi.GetParameters();                                                                                                        
+            int count = parameters.Length + 1;                          
+            HasRest = parameters.Length > 0 &&                                                                                                           
+                      parameters[^1].IsDefined(typeof(ParamArrayAttribute), false);
+            Required = HasRest ? count - 1 : count;
+            Delegate = MakeDelegate(mi, tr);
+        }
     }
     private ClrPrimitiveUnsafe MakeDelegate(MethodInfo mi, TypeResolver tr) {
         
@@ -217,21 +308,53 @@ public class ClrPrimitive : SchemeValue, ICallable {
     }
 
     private static Expression MakeCallExpression(MethodInfo mi, ParameterExpression arrayArgsParam, TypeResolver tr) {
-        
-        return WrapReturn( mi,Expression.Call(mi, MakeArgs(mi, arrayArgsParam, tr)), tr);
+
+        if (mi.IsStatic) {
+            return WrapReturn(
+                mi,
+                Expression.Call(mi, MakeArgs(mi, arrayArgsParam, tr)),
+                tr);
+        }
+        var args = MakeArgs(mi, arrayArgsParam, tr);
+        var call = Expression.Call(args[0], mi, args.Skip(1).ToArray());
+        return WrapReturn(
+            mi,
+            call,
+            tr);
+
     }
 
     private static Expression[] MakeArgs(MethodInfo mi, ParameterExpression args , TypeResolver tr) {
-        var parameters = mi.GetParameters();
-        System.Collections.Generic.List<Expression> argsList = [];
-        int i = 0;
-        foreach (var p in parameters) {
+        if (mi.IsStatic) {
+            var parameters = mi.GetParameters();
+            System.Collections.Generic.List<Expression> argsList = [];
+            int i = 0;
+            foreach (var p in parameters) {
+                // argsList.Add(WrapParameter(args, i, p));
+                argsList.Add(ConvertArgExpr(args, i, p, tr));
+                i++;
+
+            }
+            return argsList.ToArray();
+        }
+        
+        System.Collections.Generic.List<Expression> xs = [ConvertObjectArgExpr(args, mi, tr)];
+        var ps = mi.GetParameters();
+        var n = 1;
+        foreach (var p in ps) {
             // argsList.Add(WrapParameter(args, i, p));
-             argsList.Add(ConvertArgExpr(args, i, p, tr));
-            i++;
+            xs.Add(ConvertArgExpr(args, n, p, tr));
+            n++;
 
         }
-        return argsList.ToArray();
+        return xs.ToArray();
+    }
+
+    private static Expression ConvertObjectArgExpr(ParameterExpression argsArrayParam, MethodInfo mi, TypeResolver tr) {
+        
+        Jig.Types.TypeDescriptor desc = tr.Resolve(mi.DeclaringType);
+        var call = Expression.Invoke(Expression.Constant(desc.ConvertArg), Expression.ArrayIndex(argsArrayParam, Expression.Constant(0)));
+        return Expression.Convert(call, mi.DeclaringType);
     }
 
     private static Expression ConvertArgExpr(ParameterExpression argsArrayParam, int argIndex, ParameterInfo p, TypeResolver tr) {

@@ -17,6 +17,34 @@ public class TypeDescriptor {
 
 }
 
+public class TypeDescriptor<T, TU> : TypeDescriptor where TU : LiteralExpr<T>, new() where T : notnull {
+    public override Type ClrType => typeof(T);
+    
+    public override Func<SchemeValue, Bool> Predicate {get;} = sv => {
+        return sv switch
+        {
+            TU => Bool.True,
+            _ => Bool.False,
+        };
+    };
+    
+    public override Func<SchemeValue, object> ConvertArg {get;} = sv => {
+        switch (sv) {
+            case TU lit: return lit.Value; 
+            default: throw new Exception($"Can't convert from {sv.GetType()} to {typeof(T)}");
+        }
+    };
+    
+    public override Func<object?, SchemeValue> WrapReturn {get;} = obj => {
+        switch (obj) {
+            // case T z: return new TU(z);
+            case null: return Bool.False;
+            default: throw new Exception($"expected a string, but got {obj.GetType()}");
+        }
+    };
+    
+}
+
 // TODO: seems like a lot of these could inherit from the same base class that handles simple types that map to Literal<T>
 internal class StringTypeDescriptor :  TypeDescriptor {
     

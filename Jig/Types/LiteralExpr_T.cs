@@ -1,6 +1,6 @@
 namespace Jig;
 
-public abstract class LiteralExpr<T> : LiteralExpr where T : notnull {
+public class LiteralExpr<T> : LiteralExpr where T : notnull {
     public LiteralExpr(T val) {
         Value = val;
     }
