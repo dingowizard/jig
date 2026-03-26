@@ -163,50 +163,21 @@
                                         ; TODO: tests for abs, sqrt, expt, floor, ceiling, truncate, round, div, div0
   (define abs
     (lambda (n)
-      (if (number? n)
-          (if (integer? n) ; TODO: is there any point to this, since the double version can handle ints?
-              (Abs/Int32->Int32 n)
-              (Abs/Double->Double n))
-          (error 'abs "expected number argument." n))))
+      (if (integer? n) ; TODO: is there any point to this, since the double version can handle ints?
+          (Math.Abs/Int32->Int32 n)
+          (Math.Abs/Double->Double n))))
 
-  (define sqrt
-    (lambda (n)
-      (if (number? n)
-          (Sqrt/Double->Double n)
-          (error 'sqrt "expected number argument." n))))
+  (define sqrt Math.Sqrt/Double->Double)
 
-  
-  (define expt
-    (lambda (z1 z2)
-      (if (number? z1)
-          (if (number? z2)
-              (Pow/Double->Double->Double z1 z2)
-              (error 'expt "expected both arguments to be numbers." z2))
-          (error 'expt "expected both arguments to be numbers." z1))))
+  (define expt Math.Pow/Double->Double->Double)
 
-  (define floor
-    (lambda (n)
-      (if (number? n)
-          (Floor/Double->Double n)
-          (error 'floor "expected number argument." n))))
+  (define floor Math.Floor/Double->Double)
 
-  (define ceiling
-    (lambda (n)
-      (if (number? n)
-          (Ceiling/Double->Double n)
-          (error 'ceiling "expected number argument." n))))
+  (define ceiling Math.Ceiling/Double->Double)
 
-  (define truncate
-    (lambda (n)
-      (if (number? n)
-          (Truncate/Double->Double n)
-          (error 'truncate "expected number argument." n))))
+  (define truncate Math.Truncate/Double->Double)
 
-  (define round
-    (lambda (n)
-      (if (number? n)
-          (Round/Double->Double n)
-          (error 'truncate "expected number argument." n))))
+  (define round Math.Round/Double->Double)
 
   (define div
     (lambda (z1 z2)
@@ -275,7 +246,6 @@
       ((let* ((name1 expr1) (name2 expr2) ...) body1 body2 ...)
        (let ((name1 expr1))
          (let* ((name2 expr2) ...) body1 body2 ...)))))
-
 
   (define-syntax letrec
     (syntax-rules ()

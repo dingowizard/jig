@@ -64,8 +64,6 @@ public class InterOp {
             var bg = new Binding(new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
                 new Location(clrProcedure));
             bindings.Add(bg);
-
-
         }
         
         foreach (var mi in instanceMethodInfos) {
@@ -87,7 +85,7 @@ public class InterOp {
         }
         string ps = string.Join("->", paramNameAndTypes);
         string returnType = mi.ReturnType.Name;
-        return /* mi.DeclaringType.FullName +  "."  + */ mi.Name + "/" + ps + (ps != "" ? "->" + returnType : returnType);
+        return mi.DeclaringType.Name +  "."  + mi.Name + "/" + ps + (ps != "" ? "->" + returnType : returnType);
     }
 
     private SchemeValue ProcedureFromInstanceMethodInfo(MethodInfo methodInfo) {
