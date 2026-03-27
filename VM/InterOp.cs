@@ -32,46 +32,68 @@ public class InterOp {
     }
 
     public Library ImportClrNameSpace(string name) {
+        Type[] typesWeKnow = [typeof(int), typeof(double), typeof(string)];
         var ts = ResolveClrName(name);
         // for now, we're going to select only those static methods that receive double or int arguments and return double results
-        var methodInfos =
-            ts.SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Static))
-                .Where(mi => (mi.ReturnType == typeof(double) || mi.ReturnType == typeof(int) || mi.ReturnType == typeof(string)) &&
-                             mi.GetParameters().All(p => p.ParameterType == typeof(double) || p.ParameterType == typeof(int) || p.ParameterType == typeof(string)));
-        var instanceMethodInfos =
-            ts.SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance))
-                .Where(mi => (mi.DeclaringType == typeof(double) || mi.DeclaringType == typeof(int) || mi.DeclaringType == typeof(string)) && 
-                             (mi.ReturnType == typeof(double) || mi.ReturnType == typeof(int) || mi.ReturnType == typeof(string)) &&
-                             mi.GetParameters().All(p => p.ParameterType == typeof(double) || p.ParameterType == typeof(int) || p.ParameterType == typeof(string)));
         // get const double fields (PI and E)
         var constantFields =
             ts.SelectMany(t => t.GetFields(BindingFlags.Public | BindingFlags.Static))
-                .Where(fi => fi is {IsLiteral: true, IsInitOnly: false} && fi.FieldType == typeof(double));
+                .Where(fi => (fi.IsLiteral || fi.IsInitOnly) && typesWeKnow.Contains(fi.FieldType));
         System.Collections.Generic.List<Binding> bindings = [];
         int index = 0;
         foreach (var f in constantFields) {
-            SchemeValue schemeValue = TypeResolver.Resolve(f.FieldType).WrapReturn(f.GetRawConstantValue());
+            SchemeValue schemeValue = TypeResolver.Resolve(f.FieldType).WrapReturn(f.IsLiteral ? f.GetRawConstantValue() : f.GetValue(null));
 
-            string fullName = /* f.DeclaringType.FullName +  "." + */  f.Name;
+            string fullName =  f.DeclaringType.Name +  "." +   f.Name;
+            // Console.WriteLine($"field = {fullName}");
             var bg = new Binding(new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
                 new Location(schemeValue));
             bindings.Add(bg);
         }
-        foreach (var mi in methodInfos) {
+        
+        var staticMethodInfos =
+            ts.SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Static))
+                .Where(mi => typesWeKnow.Contains(mi.ReturnType) && mi.GetParameters().All(p => typesWeKnow.Contains(p.ParameterType)));
+        foreach (var mi in staticMethodInfos) {
             string fullName = MethodName(mi);
             // Console.WriteLine($"trying to import {fullName}");
             var clrProcedure = ProcedureFromStaticMethodInfo(mi);
-            var bg = new Binding(new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
+            var bg = new Binding(
+                new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
                 new Location(clrProcedure));
             bindings.Add(bg);
         }
         
+        var instanceMethodInfos =
+            ts.SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance))
+                .Where(mi => typesWeKnow.Contains(mi.DeclaringType) && 
+                             typesWeKnow.Contains(mi.ReturnType) &&
+                             mi.GetParameters().All(p => typesWeKnow.Contains(p.ParameterType)))
+                .Where(mi => !mi.IsSpecialName);
         foreach (var mi in instanceMethodInfos) {
             string fullName = MethodName(mi);
             var clrProcedure = ProcedureFromInstanceMethodInfo(mi);
-            var bg = new Binding(new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
+            var bg = new Binding(
+                new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
                 new Location(clrProcedure));
             bindings.Add(bg);
+        }
+        var instanceProperties =
+            ts.SelectMany(t => t.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                .Where(p => typesWeKnow.Contains(p.PropertyType));
+        foreach (var prop in instanceProperties) {
+            var propertyName = prop.DeclaringType.Name + "." + prop.Name;
+            var procedure = ProcedureFromInstanceProperty(prop);
+            var bg = new Binding(
+                new Jig.Expansion.Parameter(new Symbol(propertyName), [], 0, index++, null),
+                new Location(procedure));
+            bindings.Add(bg);
+        }
+        var staticProperties =
+            ts.SelectMany(t => t.GetProperties(BindingFlags.Public | BindingFlags.Static))
+                .Where(p => typesWeKnow.Contains(p.PropertyType));
+        foreach (var prop in staticProperties) {
+            
         }
         return new Library(bindings, []);
 
@@ -88,52 +110,55 @@ public class InterOp {
         return mi.DeclaringType.Name +  "."  + mi.Name + "/" + ps + (ps != "" ? "->" + returnType : returnType);
     }
 
-    private SchemeValue ProcedureFromInstanceMethodInfo(MethodInfo methodInfo) {
-        var lambdaParameters = LambdaParametersForInstanceMethod(methodInfo);
+    private Procedure MakeProcedure(ParsedLambda.LambdaParameters lambdaParams, ParsedForm[] body, string name) {
         var parsedLambda = new ParsedLambda(
             new Identifier(new Symbol("lambda")),
-            lambdaParameters,
-            ParameterCountFromParameterInfos(methodInfo.GetParameters()) + 1,
-            LambdaBodyForInstanceMethod(methodInfo, lambdaParameters));
+            lambdaParams,
+            lambdaParams.Required.Length + (lambdaParams.HasRest ? 1 : 0),
+            body);
         var compiler = new Compiler();
         var template = compiler.CompileLambdaTemplate(parsedLambda, Environment.Default, 0);
-        template.Name = new Identifier(new Symbol(MethodName(methodInfo)));
+        template.Name = new Identifier(new Symbol(name));
         return new Procedure(Evaluator.Environment, template);
+        
+    }
+
+    private Procedure ProcedureFromInstanceProperty(PropertyInfo prop) {
+        var lambdaParameters = LambdaParametersFromInstanceProperty(prop);
+        return MakeProcedure(lambdaParameters, LambdaBodyForInstanceProperty(prop, lambdaParameters), prop.DeclaringType.Name + "." + prop.Name);
+    }
+
+    private Procedure ProcedureFromInstanceMethodInfo(MethodInfo methodInfo) {
+        var lambdaParameters = LambdaParametersForInstanceMethod(methodInfo);
+        return MakeProcedure(lambdaParameters, LambdaBodyForInstanceMethod(methodInfo, lambdaParameters), MethodName(methodInfo));
     }
 
     private Procedure ProcedureFromStaticMethodInfo(MethodInfo methodInfo) {
         // Let's build a ParsedLambda
         // and then compile it.
         var lambdaParameters = LambdaParametersFromParameterInfos(methodInfo.GetParameters());
-        var parsedLambda = new ParsedLambda(
-            new Identifier(new Symbol("lambda")),
-            lambdaParameters,
-            ParameterCountFromParameterInfos(methodInfo.GetParameters()),
-            LambdaBodyFromMethodInfo(methodInfo, lambdaParameters));
-        var compiler = new Compiler();
-        var template = compiler.CompileLambdaTemplate(parsedLambda, Environment.Default, 0);
-        template.Name = new Identifier(new Symbol(MethodName(methodInfo)));
-        return new Procedure(Evaluator.Environment, template);
+        return MakeProcedure(lambdaParameters, LambdaBodyFromMethodInfo(methodInfo, lambdaParameters), MethodName(methodInfo));
     }
-    private ParsedForm IfExprForObjectArg(MethodInfo methodInfo, ParsedVariable.Lexical objectArg) {
-        ParsedApplication predApp = PredicateApplicationFromType(methodInfo.DeclaringType, objectArg);
-        ParsedApplication errorCall = WrongArgTypeErrorCall(methodInfo, methodInfo.DeclaringType, objectArg);
+    
+    private ParsedForm IfExprForObjectArg(string name, Type declaringType, ParsedVariable.Lexical objectArg) {
+        ParsedApplication predApp = PredicateApplicationFromType(declaringType, objectArg);
+        ParsedApplication errorCall = WrongArgTypeErrorCall(name, declaringType, objectArg);
         return new ParsedIf(new Identifier(new Symbol("if")), predApp, objectArg, errorCall);
     }
     
-    private ParsedApplication WrongArgTypeErrorCall(MethodInfo methodInfo, Type methodInfoDeclaringType, ParsedVariable.Lexical parsedVariable) {
+    private ParsedApplication WrongArgTypeErrorCall(string name, Type declaringType, ParsedVariable.Lexical parsedVariable) {
         Jig.Expansion.Parameter errorParameter = Library.Core.FindParameter("error");
         var errorVar = new ParsedVariable.TopLevel(new Identifier(errorParameter.Symbol), errorParameter, null);
-        var errorMsg = new String($"expected argument for parameter {methodInfoDeclaringType.Name.ToLower()} to be convertible to clr type {methodInfoDeclaringType.Name}.");
+        var errorMsg = new String($"expected argument for parameter {declaringType.Name.ToLower()} to be convertible to clr type {declaringType.Name}.");
         return new ParsedApplication(
         [
             errorVar,
-            new ParsedLiteral(new Identifier(new Symbol("quote")), new Identifier(new Symbol(methodInfo.Name))),
+            new ParsedLiteral(new Identifier(new Symbol("quote")), new Identifier(new Symbol(name))),
             new ParsedLiteral(new Identifier(new Symbol("quote")), new Syntax.Literal(errorMsg)),
             parsedVariable, ],
             null);
     }
-    private ParsedIf IfExprFromPropertyInfo(MethodInfo methodInfo, ParameterInfo propertyInfo, ParsedVariable.Lexical arg) {
+    private ParsedIf IfExprFromParameterInfo(MethodInfo methodInfo, ParameterInfo propertyInfo, ParsedVariable.Lexical arg) {
 
         ParsedApplication predApp = PredicateApplicationFromParameterInfo(propertyInfo, arg);
         ParsedApplication errorCall = WrongArgTypeErrorCall(methodInfo, propertyInfo, arg);
@@ -160,16 +185,27 @@ public class InterOp {
         Primitive pred = Primitive.TypePredicate(TypeResolver.Resolve(type));
         return new ParsedApplication([new ParsedLiteral(new Identifier(new Symbol("quote")), new Syntax.Literal(pred), null), arg], null);
     }
+    
+    private ParsedForm[] LambdaBodyForInstanceProperty(PropertyInfo prop, ParsedLambda.LambdaParameters lambdaParameters) {
+        var firstParam = lambdaParameters.Required[0];
+        ParsedVariable.Lexical objectArg = new ParsedVariable.Lexical(new Identifier(firstParam.Symbol), firstParam, null);
+        System.Collections.Generic.List<ParsedForm> ifs = [IfExprForObjectArg(prop.Name, prop.DeclaringType, objectArg)];
+        var clrMethod = new ClrPrimitive(prop.GetMethod, TypeResolver);
+        ParsedForm[] forms = [new ParsedLiteral(new Identifier(new Symbol("quote")), new Syntax.Literal(clrMethod), null)];
+        var call = new ParsedApplication(forms.Concat(ifs), null);
+        // Console.WriteLine($"{Syntax.ToDatum(call).Print()}");
+        return [call];
+    }
+    
     private ParsedForm[] LambdaBodyForInstanceMethod(MethodInfo methodInfo, ParsedLambda.LambdaParameters lambdaParameters) {
         var firstParam = lambdaParameters.Required[0];
         ParsedVariable.Lexical objectArg = new ParsedVariable.Lexical(new Identifier(firstParam.Symbol), firstParam, null);
-        System.Collections.Generic.List<ParsedVariable.Lexical> args = [objectArg];
-        System.Collections.Generic.List<ParsedForm> ifs = [IfExprForObjectArg(methodInfo, objectArg)];
+        System.Collections.Generic.List<ParsedForm> ifs = [IfExprForObjectArg(methodInfo.Name, methodInfo.DeclaringType, objectArg)];
         foreach (var (pInfo, p) in methodInfo.GetParameters().Zip(lambdaParameters.Required.Skip(1))) {
             var arg = new ParsedVariable.Lexical(new Identifier(p.Symbol), p, null);
-            var @if = IfExprFromPropertyInfo(methodInfo, pInfo, arg);
+            var @if = IfExprFromParameterInfo(methodInfo, pInfo, arg);
             // Console.WriteLine($"for {methodInfo.Name} made if: {Syntax.ToDatum(@if).Print()}");
-            ifs.Add(IfExprFromPropertyInfo(methodInfo, pInfo, arg));
+            ifs.Add(IfExprFromParameterInfo(methodInfo, pInfo, arg));
         }
         if (lambdaParameters.HasRest) {
             // we need to do the equivalent of (all can-be-clr-type? rest)
@@ -191,7 +227,7 @@ public class InterOp {
         System.Collections.Generic.List<ParsedForm> ifs = [];
         foreach (var (pInfo, p) in methodInfo.GetParameters().Take(lambdaParameters.Required.Length).Zip(lambdaParameters.Required)) {
             var arg = new ParsedVariable.Lexical(new Identifier(p.Symbol), p, null);
-            ifs.Add(IfExprFromPropertyInfo(methodInfo, pInfo, arg));
+            ifs.Add(IfExprFromParameterInfo(methodInfo, pInfo, arg));
         }
         if (lambdaParameters.HasRest) {
             // we need to do the equivalent of (all can-be-clr-type? rest)
@@ -206,6 +242,15 @@ public class InterOp {
     
     private int ParameterCountFromParameterInfos(ParameterInfo[] getParameters) {
         return getParameters.Length;
+    }
+    
+    private ParsedLambda.LambdaParameters LambdaParametersFromInstanceProperty(PropertyInfo prop) {
+        Identifier objParam = new Identifier(new Symbol(prop.DeclaringType.Name.ToLower()));
+        var parameter = new Jig.Expansion.Parameter(objParam.Symbol, [], 1, 0, null);
+        return new ParsedLambda.LambdaParameters(
+            new Syntax((SchemeValue)Pair.Cons(objParam, SyntaxList.Null), null),
+            [ parameter ],
+            null);
     }
     
     private ParsedLambda.LambdaParameters LambdaParametersForInstanceMethod(MethodInfo methodInfo) {
