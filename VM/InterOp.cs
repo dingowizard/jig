@@ -32,7 +32,7 @@ public class InterOp {
     }
 
     public Library ImportClrNameSpace(string name) {
-        Type[] typesWeKnow = [typeof(int), typeof(double), typeof(string)];
+        Type[] typesWeKnow = [typeof(int), typeof(double), typeof(string), typeof(bool)];
         var ts = ResolveClrName(name);
         // for now, we're going to select only those static methods that receive double or int arguments and return double results
         // get const double fields (PI and E)
