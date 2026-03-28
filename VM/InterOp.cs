@@ -7,6 +7,8 @@ using String = Jig.String;
 namespace VM;
 
 public class InterOp {
+
+    public static InterOp GlobalInterOp; //TODO: UGH!!!!
     
     public TypeResolver TypeResolver {get;}
     
@@ -32,7 +34,7 @@ public class InterOp {
     }
 
     public Library ImportClrNameSpace(string name) {
-        Type[] typesWeKnow = [typeof(int), typeof(double), typeof(string), typeof(bool)];
+        Type[] typesWeKnow = [typeof(int), typeof(double), typeof(string), typeof(bool), typeof(char)];
         var ts = ResolveClrName(name);
         // for now, we're going to select only those static methods that receive double or int arguments and return double results
         // get const double fields (PI and E)
@@ -128,12 +130,12 @@ public class InterOp {
         return MakeProcedure(lambdaParameters, LambdaBodyForInstanceProperty(prop, lambdaParameters), prop.DeclaringType.Name + "." + prop.Name);
     }
 
-    private Procedure ProcedureFromInstanceMethodInfo(MethodInfo methodInfo) {
+    public Procedure ProcedureFromInstanceMethodInfo(MethodInfo methodInfo) {
         var lambdaParameters = LambdaParametersForInstanceMethod(methodInfo);
         return MakeProcedure(lambdaParameters, LambdaBodyForInstanceMethod(methodInfo, lambdaParameters), MethodName(methodInfo));
     }
 
-    private Procedure ProcedureFromStaticMethodInfo(MethodInfo methodInfo) {
+    public Procedure ProcedureFromStaticMethodInfo(MethodInfo methodInfo) {
         // Let's build a ParsedLambda
         // and then compile it.
         var lambdaParameters = LambdaParametersFromParameterInfos(methodInfo.GetParameters());

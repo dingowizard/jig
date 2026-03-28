@@ -47,6 +47,7 @@ public static class Program {
         Evaluator evaluator = new Evaluator();
         TypeResolver tr = new TypeResolver();
         InterOp interop = new InterOp(tr, evaluator);
+        InterOp.GlobalInterOp = interop; // TODO: ARGH!!!
         ILibrary FromFileFn(string path) => Library.FromFile(path, Reader.ReadSyntax, new VMFactory());
         ILibrary FromFormFn(ParsedLibrary lib) => Library.FromForm(lib, new VMFactory());
 
@@ -59,6 +60,7 @@ public static class Program {
                 new ValueTuple<Symbol[], ILibrary>([new Symbol("core-primitives")], Library.Core),
                 new ValueTuple<Symbol[], ILibrary>([new Symbol("clr"), new Symbol("System"), new Symbol("Math")], interop.ImportClrNameSpace("System.Math")),
                 new ValueTuple<Symbol[], ILibrary>([new Symbol("clr"), new Symbol("System"), new Symbol("String")], interop.ImportClrNameSpace("System.String")),
+                new ValueTuple<Symbol[], ILibrary>([new Symbol("jig"), new Symbol("clr"), new Symbol("reflection")], new ReflectionLibrary(interop)),
             });
         
         // var jigLib = Library.FromFile("lib/rnrs/base.sls", Reader.ReadSyntax, new VMFactory());
