@@ -1,3 +1,6 @@
+using System.Collections;
+using System.Diagnostics;
+using System.Reflection;
 namespace Jig.Types;
 
 public class TypeDescriptor {
@@ -22,7 +25,6 @@ public class TypeDescriptor {
 
     public static TypeDescriptor SchemeValue => new SchemeValueTypeDescriptor();
     
-    public static TypeDescriptor ArrayString => new ArrayStringTypeDescriptor();
 
 
 
@@ -215,18 +217,34 @@ public class SchemeValueTypeDescriptor : TypeDescriptor {
     }
 }
 
-
-public class ArrayStringTypeDescriptor : TypeDescriptor {
+public class ArrayTypeDescriptor : TypeDescriptor {
     
     // TODO: this should be built out of the Generic Type Descriptor and the TypeDescriptor for string. We'll get there
+
+    public ArrayTypeDescriptor(TypeDescriptor elementType) {
+        ElementTypeDescriptor = elementType;
+        
+        // this represents ToArray<TElement>()
+        ArrayMethod = typeof(Enumerable)
+            .GetMethod(nameof(Enumerable.ToArray))!
+            .MakeGenericMethod(ElementTypeDescriptor.ClrType);
+
+        // this represents Cast<TElement>()
+        CastMethod = typeof(Enumerable)
+            .GetMethod(nameof(Enumerable.Cast))!
+            .MakeGenericMethod(ElementTypeDescriptor.ClrType);
+    }
     
-    
-    public override Type ClrType => typeof(string[]);
+    public MethodInfo CastMethod {get;}
+    public MethodInfo ArrayMethod {get;}
+    public TypeDescriptor ElementTypeDescriptor {get; set;}
+
+    public override Type ClrType => ElementTypeDescriptor.ClrType.MakeArrayType();
 
     private Bool _predicate(SchemeValue sv) {
-        if (sv is Vector vector) {
-            foreach (var v in vector.Elements) {
-                if (!(v is String)) {
+        if (sv is IEnumerable<SchemeValue> arr) {
+            foreach (var v in arr) {
+                if (ElementTypeDescriptor.Predicate(v).Equals(Bool.False)) {
                     return Bool.False;
                 }
             }
@@ -236,16 +254,33 @@ public class ArrayStringTypeDescriptor : TypeDescriptor {
     }
 
     private object _convertArg(SchemeValue sv) {
-        return ((Vector)sv).Elements.Select(x => ((String)x).Value).ToArray();
+
+        IEnumerable<SchemeValue> schemeEnumerable = sv as IEnumerable<SchemeValue> ?? throw new Exception();
+
+        var typedEnumerable = CastMethod.Invoke(null, new object[] { schemeEnumerable.Select(x => ElementTypeDescriptor.ConvertArg(x)) });
+        Debug.Assert(typedEnumerable != null);
+        var result = ArrayMethod.Invoke(null, new object[] { typedEnumerable });
+        Debug.Assert(result != null);
+        return result;
+
     }
 
     private SchemeValue _wrapReturn(object obj) {
-        switch (obj) {
-            case string[] arr: return new Vector(arr.Select(str => new String(str)));
-            case null: throw new Exception($"expected a string[], but got null");
-            default: throw new Exception($"expected a string[], but got {obj.GetType()}");
-        }
+            if (obj is null) throw new Exception($"expected an array of {ElementTypeDescriptor.ClrType.Name}, but got null");
+            if (obj is Array array) {
+                if (array.GetType().GetElementType() == ElementTypeDescriptor.ClrType) {
+                    System.Collections.Generic.List<SchemeValue> elements = [];
+                    foreach (var x in array) {
+                        elements.Add(ElementTypeDescriptor.WrapReturn(x));
+                    }
+                    return new Vector(elements);
+                }
+                throw new Exception($"expected an array of type {ElementTypeDescriptor.ClrType}, but got {array.GetType().GetElementType()}");
+            }
+
+            throw new Exception($"expected an array.");
     }
+    
     public override Func<SchemeValue, Bool> Predicate => _predicate;
     
     public override Func<SchemeValue, object> ConvertArg => _convertArg;

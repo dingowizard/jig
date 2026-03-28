@@ -20,6 +20,6 @@ public class LiteralExpr<T> : LiteralExpr where T : notnull {
 
     public override string ToString() => Value.ToString() ?? "null";
 
-    public override string Print() => Value.ToString() ?? "null";
+    public override string Print() => $"#<{Value.GetType().Name} {Value.ToString()}>" ?? "null";
 
 }

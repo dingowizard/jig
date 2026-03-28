@@ -125,7 +125,7 @@ public class InterOp {
         
     }
 
-    private Procedure ProcedureFromInstanceProperty(PropertyInfo prop) {
+    public Procedure ProcedureFromInstanceProperty(PropertyInfo prop) {
         var lambdaParameters = LambdaParametersFromInstanceProperty(prop);
         return MakeProcedure(lambdaParameters, LambdaBodyForInstanceProperty(prop, lambdaParameters), prop.DeclaringType.Name + "." + prop.Name);
     }
