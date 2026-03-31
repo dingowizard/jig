@@ -38,9 +38,24 @@ public class LibraryLibrary {
         }
         // Console.WriteLine($"didnt find {key} in LibraryLibrary. looking in paths");
         foreach (var basePath in LibraryPaths) {
+            string[] names = importSpec.Name.Select(sym => sym.Name).ToArray();
+            if (names[0] == "srfi") {
+                // we have to handle this as a special case.
+                // Import specs for srfis look like this: (srfi :13)
+                // but the file names are like this: srfi/srfi-13.sls
+                // or srfi/srfi-13/string-internals.sls
+                // so we need to find a string that looks like ":{integer}" and replace the : with "srfi-"
+                int i = 1;
+                for (; i < names.Length; i++) {
+                    if (names[i].StartsWith(":")) {
+                        names[i] = names[i].Replace(":", "srfi-");
+                        break;
+                    }
+                }
+            }
             var fileStem = Path.Combine(new string[] {
                 basePath
-            }.Concat(importSpec.Name.Select(sym => sym.Name)).ToArray());
+            }.Concat(names).ToArray());
             var filePath = Path.ChangeExtension(fileStem, ".sls");
             // TODO: look for compiled first, make it if it doesn't exist
             // Console.WriteLine($"looking for {filePath}");
@@ -53,7 +68,6 @@ public class LibraryLibrary {
         }
         library = null;
         return false;
-
     }
 
     public static LibraryLibrary Instance {

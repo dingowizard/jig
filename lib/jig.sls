@@ -57,6 +57,7 @@
                                         ; (jig)
    template
    compose record-constructor-descriptor?
+   get-type get-method procedure<-method
    ;; TODO: doesn't some rnrs library export import?
    import)
   (import (for (core-primitives) run)
@@ -79,7 +80,8 @@
           (for (rnrs conditions) expand)
           (for (rnrs exceptions) run)
           (for (rnrs exceptions) expand)
-          (for (rnrs programs) run))
+          (for (rnrs programs) run)
+          (for (jig clr reflection) run))
 
   (define compose2
     (lambda (f1 f2)

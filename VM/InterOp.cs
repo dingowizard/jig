@@ -66,6 +66,7 @@ public class InterOp {
             bindings.Add(bg);
         }
         
+        // TODO: we can get rid of these type filters when the type resolver knows what to do with generics and interfaces
         var instanceMethodInfos =
             ts.SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance))
                 .Where(mi => typesWeKnow.Contains(mi.DeclaringType) && 
@@ -123,6 +124,51 @@ public class InterOp {
         template.Name = new Identifier(new Symbol(name));
         return new Procedure(Evaluator.Environment, template);
         
+    }
+
+    public Procedure ProcedureFromMethodGroup(MethodInfo[] methodInfos) {
+        
+        ParsedLambda.LambdaParameters lambdaParameters = LambdaParametersForMethodGroup(methodInfos);
+        if (HaveSameNumberParameters(methodInfos)) {
+            System.Collections.Generic.List<(ParsedIf @if, ParsedApplication call)> stmts = [];
+            foreach (var m in methodInfos) {
+                stmts.Add( ConditionAndCallForOverride(m));
+            }
+            return MakeProcedure(lambdaParameters, BodyForMethodGroup(stmts), methodInfos[0].Name);
+        }
+        throw new NotImplementedException("we can't handle overrides with different numbers of parameters yet :(");
+    }
+    private ParsedForm[] BodyForMethodGroup(System.Collections.Generic.List<(ParsedIf @if, ParsedApplication call)> stmts) {
+        throw new NotImplementedException();
+    }
+    private (ParsedIf test, ParsedApplication call) ConditionAndCallForOverride(MethodInfo methodInfo) {
+        throw new NotImplementedException();
+    }
+    private ParsedLambda.LambdaParameters LambdaParametersForMethodGroup(MethodInfo[] methodInfos) {
+        if (HaveSameNumberParameters(methodInfos)) {
+            return LambdaParametersForMethod(methodInfos[0]);
+            
+        }
+        throw new NotImplementedException("we can't handle overrides with different numbers of parameters yet :(");
+    }
+    private ParsedLambda.LambdaParameters LambdaParametersForMethod(MethodInfo methodInfo) {
+        if (methodInfo.IsStatic) {
+            return LambdaParametersFromParameterInfos(methodInfo.GetParameters(), 0);
+        } else {
+            var ps = LambdaParametersFromParameterInfos(methodInfo.GetParameters(), 1);
+            Identifier objParam = new Identifier(new Symbol("arg0"));
+            var parameter = new Jig.Expansion.Parameter(objParam.Symbol, [], 1, 0, null);
+            return new ParsedLambda.LambdaParameters(
+                new Syntax((SchemeValue)Pair.Cons(objParam, (SyntaxList)Syntax.E(ps)), null),
+                new[]
+                {
+                    parameter
+                }.Concat(ps.Required).ToArray(),
+                ps.Rest);
+        }
+    }
+    private bool HaveSameNumberParameters(MethodInfo[] methodInfos) {
+        throw new NotImplementedException();
     }
 
     public Procedure ProcedureFromInstanceProperty(PropertyInfo prop) {
@@ -242,9 +288,6 @@ public class InterOp {
         return [new ParsedApplication(forms.Concat(ifs), null)];
     }
     
-    private int ParameterCountFromParameterInfos(ParameterInfo[] getParameters) {
-        return getParameters.Length;
-    }
     
     private ParsedLambda.LambdaParameters LambdaParametersFromInstanceProperty(PropertyInfo prop) {
         Identifier objParam = new Identifier(new Symbol(prop.DeclaringType.Name.ToLower()));
@@ -301,11 +344,6 @@ public class InterOp {
         return new ParsedLambda.LambdaParameters(new Syntax(SyntaxList.Null), [], null);
     }
 
-    private Primitive PrimitiveCanBeTypePredicate(Type clrType) {
-        var desc = TypeResolver.Resolve(clrType);
-        return Primitive.TypePredicate(desc);
-    }
-    
 }
 
 public delegate Jig.SchemeValue ClrPrimitiveUnsafe(Jig.List args);
