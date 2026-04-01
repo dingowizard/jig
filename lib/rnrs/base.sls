@@ -167,17 +167,17 @@
           (Math.Abs/Int32->Int32 n)
           (Math.Abs/Double->Double n))))
 
-  (define sqrt Math.Sqrt/Double->Double)
+  (define sqrt Math.Sqrt)
 
-  (define expt Math.Pow/Double->Double->Double)
+  (define expt Math.Pow)
 
-  (define floor Math.Floor/Double->Double)
+  (define floor Math.Floor)
 
-  (define ceiling Math.Ceiling/Double->Double)
+  (define ceiling Math.Ceiling)
 
-  (define truncate Math.Truncate/Double->Double)
+  (define truncate Math.Truncate)
 
-  (define round Math.Round/Double->Double)
+  ;; (define round Math.Round)
 
   (define div
     (lambda (z1 z2)

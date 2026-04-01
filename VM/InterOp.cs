@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Reflection;
 using Jig;
+using Jig.Expansion;
 using Jig.Types;
 using Expression = System.Linq.Expressions.Expression;
 using String = Jig.String;
@@ -55,31 +57,58 @@ public class InterOp {
         
         var staticMethodInfos =
             ts.SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Static))
-                .Where(mi => typesWeKnow.Contains(mi.ReturnType) && mi.GetParameters().All(p => typesWeKnow.Contains(p.ParameterType)));
-        foreach (var mi in staticMethodInfos) {
-            string fullName = MethodName(mi);
+                .Where(mi => typesWeKnow.Contains(mi.ReturnType) && mi.GetParameters().All(p => typesWeKnow.Contains(p.ParameterType)))
+                .GroupBy(mi => mi.Name);
+        foreach (var methodGroup in staticMethodInfos) {
+            var arr = methodGroup.ToArray();
+            string fullName = arr[0].DeclaringType.Name + "."  +  arr[0].Name; 
             // Console.WriteLine($"trying to import {fullName}");
-            var clrProcedure = ProcedureFromStaticMethodInfo(mi);
+            Procedure clrProcedure;
+            try {
+                clrProcedure = ProcedureFromMethodGroup(arr);
+            } catch (NotImplementedException x) {
+                Console.WriteLine($"skipping {fullName} because of variable parameter counts");
+                continue;
+            }
             var bg = new Binding(
                 new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
                 new Location(clrProcedure));
+            Console.WriteLine($"adding {fullName}");
             bindings.Add(bg);
         }
         
         // TODO: we can get rid of these type filters when the type resolver knows what to do with generics and interfaces
-        var instanceMethodInfos =
+        var instanceMethodGroups =
             ts.SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance))
-                .Where(mi => typesWeKnow.Contains(mi.DeclaringType) && 
+                .Where(mi => typesWeKnow.Contains(mi.DeclaringType) &&
                              typesWeKnow.Contains(mi.ReturnType) &&
                              mi.GetParameters().All(p => typesWeKnow.Contains(p.ParameterType)))
-                .Where(mi => !mi.IsSpecialName);
-        foreach (var mi in instanceMethodInfos) {
-            string fullName = MethodName(mi);
-            var clrProcedure = ProcedureFromInstanceMethodInfo(mi);
+                .Where(mi => !mi.IsSpecialName)
+                .GroupBy(mi => mi.Name);
+        // foreach (var mi in instanceMethodInfos) {
+        //     string fullName = MethodName(mi);
+        //     var clrProcedure = ProcedureFromInstanceMethodInfo(mi);
+        //     var bg = new Binding(
+        //         new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
+        //         new Location(clrProcedure));
+        //     bindings.Add(bg);
+        // }
+        foreach (var methodGroup in instanceMethodGroups) {
+            var arr = methodGroup.ToArray();
+            string fullName = arr[0].DeclaringType.Name + "."  +  arr[0].Name; 
+            Procedure clrProcedure;
+            try {
+                clrProcedure = ProcedureFromMethodGroup(arr);
+            } catch (NotImplementedException x) {
+                Console.WriteLine($"skipping {fullName} because of variable parameter counts");
+                continue;
+            }
             var bg = new Binding(
                 new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
                 new Location(clrProcedure));
+            Console.WriteLine($"adding {fullName}");
             bindings.Add(bg);
+            
         }
         var instanceProperties =
             ts.SelectMany(t => t.GetProperties(BindingFlags.Public | BindingFlags.Instance))
@@ -130,24 +159,68 @@ public class InterOp {
         
         ParsedLambda.LambdaParameters lambdaParameters = LambdaParametersForMethodGroup(methodInfos);
         if (HaveSameNumberParameters(methodInfos)) {
-            System.Collections.Generic.List<(ParsedIf @if, ParsedApplication call)> stmts = [];
+            System.Collections.Generic.List<(ParsedForm @if, ParsedApplication call)> stmts = [];
             foreach (var m in methodInfos) {
-                stmts.Add( ConditionAndCallForOverride(m));
+                stmts.Add( ConditionAndCallForOverride(m, lambdaParameters));
             }
-            return MakeProcedure(lambdaParameters, BodyForMethodGroup(stmts), methodInfos[0].Name);
+            return MakeProcedure(lambdaParameters, BodyForMethodGroup(methodInfos, stmts), methodInfos[0].Name);
         }
         throw new NotImplementedException("we can't handle overrides with different numbers of parameters yet :(");
     }
-    private ParsedForm[] BodyForMethodGroup(System.Collections.Generic.List<(ParsedIf @if, ParsedApplication call)> stmts) {
-        throw new NotImplementedException();
+    private ParsedForm[] BodyForMethodGroup(MethodInfo[] methodInfos, System.Collections.Generic.List<(ParsedForm @if, ParsedApplication call)> stmts) {
+        return [NestedIfsForMethodGroup(methodInfos, stmts)];
     }
-    private (ParsedIf test, ParsedApplication call) ConditionAndCallForOverride(MethodInfo methodInfo) {
-        throw new NotImplementedException();
+    private ParsedForm NestedIfsForMethodGroup(MethodInfo[] methodInfos, IEnumerable<(ParsedForm @if, ParsedApplication call)> stmts) {
+        if (stmts.Count() == 1) {
+            return new ParsedIf(
+                new Identifier(new Symbol("if")),
+                stmts.ElementAt(0).@if,
+                stmts.ElementAt(0).call,
+                CouldNotResolveErrorCall(methodInfos[0].Name, methodInfos[0].DeclaringType));
+        }
+        return new ParsedIf(
+            new Identifier(new Symbol("if")),
+            stmts.ElementAt(0).@if,
+            stmts.ElementAt(0).call,
+            NestedIfsForMethodGroup(methodInfos, stmts.Skip(1)));
+    }
+    private (ParsedForm test, ParsedApplication call) ConditionAndCallForOverride(MethodInfo methodInfo, ParsedLambda.LambdaParameters lambdaParameters) {
+        ParsedForm condition = ConditionForOverride(methodInfo, methodInfo.GetParameters().ToList(), lambdaParameters.Required.ToList());
+        ParsedApplication app = CallForOverride(methodInfo, lambdaParameters);
+        return (condition, app);
+
+    }
+    private ParsedForm ConditionForOverride(MethodInfo methodInfo, System.Collections.Generic.List<ParameterInfo> toList, System.Collections.Generic.List<Parameter> parameters) {
+        if (methodInfo.IsStatic) {
+            return ConditionForOverrideAux(toList, parameters);
+        } else {
+            return new ParsedIf(
+                new Syntax(new Symbol("if")),
+                PredicateApplicationFromType(methodInfo.DeclaringType, new ParsedVariable.Lexical(new Identifier(parameters.ElementAt(0).Symbol), parameters.ElementAt(0), null)),
+                ConditionForOverrideAux(toList, parameters.Skip(1)),
+                new ParsedLiteral(new Syntax(new Symbol("quote")), new Syntax.Literal(Bool.False)));
+        }
+    }
+    private ParsedForm ConditionForOverrideAux(IEnumerable<ParameterInfo> parameterInfos, IEnumerable<Parameter> parameters) {
+        
+        Debug.Assert(parameterInfos.Count() == parameters.Count());
+        if (parameters.Count() == 0) return new ParsedLiteral(new Syntax(new Symbol("quote")), new Syntax.Literal(Bool.True));
+        return new ParsedIf(
+            new Syntax(new Symbol("if")),
+            PredicateApplicationFromParameterInfo(parameterInfos.ElementAt(0), new ParsedVariable.Lexical(new Identifier(parameters.ElementAt(0).Symbol), parameters.ElementAt(0), null)),
+            ConditionForOverrideAux(parameterInfos.Skip(1), parameters.Skip(1)),
+            new ParsedLiteral(new Syntax(new Symbol("quote")), new Syntax.Literal(Bool.False)));
+    }
+    
+    private ParsedApplication CallForOverride(MethodInfo methodInfo, ParsedLambda.LambdaParameters lambdaParameters) {
+        var clrMethod = new ClrPrimitive(methodInfo, TypeResolver);
+        ParsedForm[] forms = [new ParsedLiteral(new Identifier(new Symbol("quote")), new Syntax.Literal(clrMethod), null)];
+        var args = lambdaParameters.Required.Select(p => new ParsedVariable.Lexical(new Identifier(p.Symbol), p, null));
+        return new ParsedApplication(forms.Concat(args), null);
     }
     private ParsedLambda.LambdaParameters LambdaParametersForMethodGroup(MethodInfo[] methodInfos) {
         if (HaveSameNumberParameters(methodInfos)) {
             return LambdaParametersForMethod(methodInfos[0]);
-            
         }
         throw new NotImplementedException("we can't handle overrides with different numbers of parameters yet :(");
     }
@@ -167,8 +240,15 @@ public class InterOp {
                 ps.Rest);
         }
     }
+    
     private bool HaveSameNumberParameters(MethodInfo[] methodInfos) {
-        throw new NotImplementedException();
+        int n = methodInfos[0].GetParameters().Length;
+        foreach (var m in methodInfos.Skip(1)) {
+            if (n != m.GetParameters().Length) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public Procedure ProcedureFromInstanceProperty(PropertyInfo prop) {
@@ -194,6 +274,18 @@ public class InterOp {
         return new ParsedIf(new Identifier(new Symbol("if")), predApp, objectArg, errorCall);
     }
     
+    private ParsedApplication CouldNotResolveErrorCall(string name, Type declaringType) {
+        Jig.Expansion.Parameter errorParameter = Library.Core.FindParameter("error");
+        var errorVar = new ParsedVariable.TopLevel(new Identifier(errorParameter.Symbol), errorParameter, null);
+        var errorMsg = new String($"could not resolve override for method {declaringType.Name}.{name}");
+        return new ParsedApplication(
+            [
+                errorVar,
+                new ParsedLiteral(new Identifier(new Symbol("quote")), new Identifier(new Symbol(name))),
+                new ParsedLiteral(new Identifier(new Symbol("quote")), new Syntax.Literal(errorMsg)),
+                ],
+            null);
+    }
     private ParsedApplication WrongArgTypeErrorCall(string name, Type declaringType, ParsedVariable.Lexical parsedVariable) {
         Jig.Expansion.Parameter errorParameter = Library.Core.FindParameter("error");
         var errorVar = new ParsedVariable.TopLevel(new Identifier(errorParameter.Symbol), errorParameter, null);
