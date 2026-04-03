@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Security.Principal;
 using Jig;
 using Jig.Expansion;
 using Jig.Types;
@@ -63,13 +64,7 @@ public class InterOp {
             var arr = methodGroup.ToArray();
             string fullName = arr[0].DeclaringType.Name + "."  +  arr[0].Name; 
             // Console.WriteLine($"trying to import {fullName}");
-            Procedure clrProcedure;
-            try {
-                clrProcedure = ProcedureFromMethodGroup(arr);
-            } catch (NotImplementedException x) {
-                Console.WriteLine($"skipping {fullName} because of variable parameter counts");
-                continue;
-            }
+            Procedure clrProcedure = ProcedureFromMethodGroup(arr);
             var bg = new Binding(
                 new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
                 new Location(clrProcedure));
@@ -85,24 +80,10 @@ public class InterOp {
                              mi.GetParameters().All(p => typesWeKnow.Contains(p.ParameterType)))
                 .Where(mi => !mi.IsSpecialName)
                 .GroupBy(mi => mi.Name);
-        // foreach (var mi in instanceMethodInfos) {
-        //     string fullName = MethodName(mi);
-        //     var clrProcedure = ProcedureFromInstanceMethodInfo(mi);
-        //     var bg = new Binding(
-        //         new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
-        //         new Location(clrProcedure));
-        //     bindings.Add(bg);
-        // }
         foreach (var methodGroup in instanceMethodGroups) {
             var arr = methodGroup.ToArray();
             string fullName = arr[0].DeclaringType.Name + "."  +  arr[0].Name; 
-            Procedure clrProcedure;
-            try {
-                clrProcedure = ProcedureFromMethodGroup(arr);
-            } catch (NotImplementedException x) {
-                Console.WriteLine($"skipping {fullName} because of variable parameter counts");
-                continue;
-            }
+            Procedure clrProcedure = ProcedureFromMethodGroup(arr);
             var bg = new Binding(
                 new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
                 new Location(clrProcedure));
@@ -157,16 +138,122 @@ public class InterOp {
 
     public Procedure ProcedureFromMethodGroup(MethodInfo[] methodInfos) {
         
-        ParsedLambda.LambdaParameters lambdaParameters = LambdaParametersForMethodGroup(methodInfos);
         if (HaveSameNumberParameters(methodInfos)) {
+            
+            ParsedLambda.LambdaParameters lambdaParameters = LambdaParametersForMethodGroup(methodInfos);
             System.Collections.Generic.List<(ParsedForm @if, ParsedApplication call)> stmts = [];
             foreach (var m in methodInfos) {
                 stmts.Add( ConditionAndCallForOverride(m, lambdaParameters));
             }
             return MakeProcedure(lambdaParameters, BodyForMethodGroup(methodInfos, stmts), methodInfos[0].Name);
         }
-        throw new NotImplementedException("we can't handle overrides with different numbers of parameters yet :(");
+        return ProcedureFromMethodsVariousParamLengths(methodInfos);
     }
+    private Procedure ProcedureFromMethodsVariousParamLengths(MethodInfo[] methodInfos) {
+        // TODO: need to deal with methods that have a params parameter at end
+        var sorted = methodInfos.OrderBy(mi => mi.GetParameters().Length);
+        var numRequired = sorted.ElementAt(0).GetParameters().Length;
+        System.Collections.Generic.List<Parameter> parameters = [];
+        int i = 0;
+        for (; i < numRequired; i++) {
+            parameters.Add(new Parameter(new Symbol($"x{i}"),  [], 1, i, null));
+            // TODO: when we build the lambda expressions that handle each smae-parameter-length group of methods, we'll need to increment the scope level
+        }
+        // add the rest parameter
+        var rest = new Parameter(new Symbol("xs"), [], 1, i, null);
+        SchemeValue expr = rest;
+        for (int n = parameters.Count - 1; n >= 0; n--) {
+            expr = (SchemeValue)Pair.Cons(parameters[n], expr);
+        }
+        var lambdaParams = new ParsedLambda.LambdaParameters(new Syntax(expr), parameters.ToArray(), rest);
+        return MakeProcedure(lambdaParams, BodyForMethodGroupVariousParamLengths(numRequired, lambdaParams, sorted), methodInfos[0].Name);
+    }
+    private ParsedForm[] BodyForMethodGroupVariousParamLengths(int shortest, ParsedLambda.LambdaParameters lambdaParams, IOrderedEnumerable<MethodInfo> methodInfos) {
+        var mi = methodInfos.ElementAt(0);
+
+        Console.WriteLine($"Makind procedure for {mi.Name}. The override with the least parameters has {shortest} parameters.");
+        Console.WriteLine($"the lambda parameters for the function are: {Syntax.E(lambdaParams).Print()}. required = {lambdaParams.Required.Length}");
+        return [BodyExprMethodGroupVariousLengths(shortest, lambdaParams, methodInfos, mi.Name, mi.DeclaringType)];
+    }
+    private ParsedForm BodyExprMethodGroupVariousLengths(int shortest, ParsedLambda.LambdaParameters lambdaParams, IOrderedEnumerable<MethodInfo> methodInfos, string name, Type? miDeclaringType) {
+        if (methodInfos.Count() == 0) {
+            return CouldNotResolveErrorCall(name, miDeclaringType);
+        }
+        int n = methodInfos.ElementAt(0).GetParameters().Length;
+        System.Collections.Generic.List<MethodInfo> shortestMethods = [];
+        System.Collections.Generic.List<MethodInfo> rest = [];
+        foreach (var mi in methodInfos) {
+            if (mi.GetParameters().Length == n) {
+                shortestMethods.Add(mi);
+            } else {
+                rest.Add(mi);
+            }
+        }
+        return new ParsedIf(
+            new Identifier(new Symbol("if")),
+            ConditionForMethodGroupParamLength(shortest, shortestMethods[0].GetParameters().Length, lambdaParams.Rest),
+            ThenBranchForMethodGroupVariousLengths(lambdaParams, shortestMethods, lambdaParams),
+            BodyExprMethodGroupVariousLengths(shortest, lambdaParams, rest.OrderBy(mi => mi.GetParameters().Length), name, miDeclaringType));
+    }
+    private ParsedForm ThenBranchForMethodGroupVariousLengths(ParsedLambda.LambdaParameters lambdaParams, System.Collections.Generic.List<MethodInfo> shortestMethods, ParsedLambda.LambdaParameters lambdaParameters) {
+        // this has to make something like:
+        // ((lambda (x0 x1 x2 x3) ...)
+        //  x0 x1 (car xs) (car (cdr xs)))
+        // assuming there were two required args and a rest parameter
+        // we should be able to reuse some code from where we made a procedure for method groups of same parameter length
+        int numRestArgs = shortestMethods[0].GetParameters().Count() - lambdaParameters.Required.Length;
+        var proc = ProcedureFromMethodGroup(shortestMethods.ToArray());
+        var requiredArgs = lambdaParams.Required.Select(p => new ParsedVariable.Lexical(new Identifier(p.Symbol), p, null));
+        var restArgs = RestArgs(numRestArgs, lambdaParams.Rest);
+        Console.WriteLine($"Making proc for then branch. proc has {proc.Required} params");
+        Console.WriteLine($"requiredArgs = {requiredArgs.Count()}, numRestArgs = {numRestArgs} and restArgs = {restArgs.Count()}");
+        return new ParsedApplication(
+            ((ParsedForm[])
+            [
+                new ParsedLiteral(
+                    new Identifier(new Symbol("quote")),
+                    new Syntax.Literal(proc)),
+            ]).Concat(requiredArgs)
+            .Concat(restArgs), null);
+    }
+    private IEnumerable<ParsedForm> RestArgs(int numArgs, Parameter? lambdaParamsRest) {
+        if (numArgs == 0) return [];
+        return Enumerable.Range(1, numArgs).Select(i => RestArg(i, lambdaParamsRest));
+    }
+    private ParsedForm RestArg(int i, Parameter? lambdaParamsRest) {
+        return new ParsedApplication(new []
+        {
+            new ParsedVariable.TopLevel(new Identifier(new Symbol("car")), Library.Core.FindParameter("car"), null),
+            RestArgsCdr(i - 1, lambdaParamsRest),
+            
+        }, null);
+    }
+    private ParsedForm RestArgsCdr(int i, Parameter? lambdaParamsRest) {
+        if (i == 0) return new ParsedVariable.Lexical(new Identifier(lambdaParamsRest.Symbol), lambdaParamsRest, null);
+        return new ParsedApplication(new []
+        {
+            new ParsedVariable.TopLevel(new Identifier(new Symbol("cdr")), Library.Core.FindParameter("cdr"), null),
+            RestArgsCdr(i - 1, lambdaParamsRest),
+            
+        }, null);
+    }
+
+    private ParsedForm ConditionForMethodGroupParamLength(int shortest, int length, Parameter? restParameter) {
+        int l = length - shortest;
+        // TODO: overload ParsedApplication with a params ParsedForm[] arg
+        var lengthOfXs = new ParsedApplication(
+        [
+            new ParsedVariable.TopLevel(new Identifier(new Symbol("length")), Library.Core.FindParameter("length"), null),
+            new ParsedVariable.Lexical(new Identifier(restParameter.Symbol),  restParameter, null),
+        ], null);
+        return new ParsedApplication(
+            [
+                new ParsedVariable.TopLevel(new Identifier(new Symbol("=")), Library.Core.FindParameter("="), null),
+                new ParsedLiteral(new Identifier(new Symbol("quote")), new Syntax.Literal(new Integer(l))),
+                lengthOfXs,
+            ], null);
+    }
+
     private ParsedForm[] BodyForMethodGroup(MethodInfo[] methodInfos, System.Collections.Generic.List<(ParsedForm @if, ParsedApplication call)> stmts) {
         return [NestedIfsForMethodGroup(methodInfos, stmts)];
     }
