@@ -161,11 +161,7 @@
                                         ; Maybe
   
                                         ; TODO: tests for abs, sqrt, expt, floor, ceiling, truncate, round, div, div0
-  (define abs
-    (lambda (n)
-      (if (integer? n) ; TODO: is there any point to this, since the double version can handle ints?
-          (Math.Abs/Int32->Int32 n)
-          (Math.Abs/Double->Double n))))
+  (define abs Math.Abs)
 
   (define sqrt Math.Sqrt)
 
@@ -177,7 +173,7 @@
 
   (define truncate Math.Truncate)
 
-  ;; (define round Math.Round)
+  (define round Math.Round)
 
   (define div
     (lambda (z1 z2)

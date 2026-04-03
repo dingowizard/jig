@@ -208,9 +208,6 @@ public class InterOp {
         var proc = ProcedureFromMethodGroup(shortestMethods.ToArray());
         var requiredArgs = lambdaParams.Required.Select(p => new ParsedVariable.Lexical(new Identifier(p.Symbol), p, null));
         var restArgs = RestArgs(numRestArgs, lambdaParams.Rest);
-        // Console.WriteLine($"\tMaking proc for then branch. constructed proc has {proc.Required} params");
-        // Console.WriteLine($"\t - requiredArgs = {requiredArgs.Count()}, numRestArgs = {numRestArgs} and restArgs = {restArgs.Count()}");
-        // Console.WriteLine($"\t - args are : {string.Join(",", requiredArgs.Concat(restArgs).Select(x => Syntax.ToDatum(x).Print()))}");
         return new ParsedApplication(
             ((ParsedForm[])
             [
@@ -225,9 +222,10 @@ public class InterOp {
         return Enumerable.Range(1, numArgs).Select(i => RestArg(i, lambdaParamsRest));
     }
     private ParsedForm RestArg(int i, Parameter? lambdaParamsRest) {
+        var carParam = Library.Core.FindParameter("car");
         return new ParsedApplication(new []
         {
-            new ParsedVariable.TopLevel(new Identifier(new Symbol("car")), Library.Core.FindParameter("car"), null),
+            new ParsedVariable.TopLevel(new Identifier(carParam.Symbol), carParam, null),
             RestArgsCdr(i - 1, lambdaParamsRest),
             
         }, null);
