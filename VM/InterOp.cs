@@ -68,7 +68,7 @@ public class InterOp {
             var bg = new Binding(
                 new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
                 new Location(clrProcedure));
-            Console.WriteLine($"adding {fullName}");
+            // Console.WriteLine($"adding {fullName}");
             bindings.Add(bg);
         }
         
@@ -87,7 +87,6 @@ public class InterOp {
             var bg = new Binding(
                 new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
                 new Location(clrProcedure));
-            Console.WriteLine($"adding {fullName}");
             bindings.Add(bg);
             
         }
@@ -129,6 +128,7 @@ public class InterOp {
             lambdaParams,
             lambdaParams.Required.Length + (lambdaParams.HasRest ? 1 : 0),
             body);
+        // Console.WriteLine($"{Syntax.ToDatum(parsedLambda).Print()}");
         var compiler = new Compiler();
         var template = compiler.CompileLambdaTemplate(parsedLambda, Environment.Default, 0);
         template.Name = new Identifier(new Symbol(name));
@@ -152,7 +152,7 @@ public class InterOp {
     private Procedure ProcedureFromMethodsVariousParamLengths(MethodInfo[] methodInfos) {
         // TODO: need to deal with methods that have a params parameter at end
         var sorted = methodInfos.OrderBy(mi => mi.GetParameters().Length);
-        var numRequired = sorted.ElementAt(0).GetParameters().Length;
+        var numRequired = sorted.ElementAt(0).GetParameters().Length + (methodInfos[0].IsStatic ? 0 : 1);
         System.Collections.Generic.List<Parameter> parameters = [];
         int i = 0;
         for (; i < numRequired; i++) {
@@ -171,29 +171,32 @@ public class InterOp {
     private ParsedForm[] BodyForMethodGroupVariousParamLengths(int shortest, ParsedLambda.LambdaParameters lambdaParams, IOrderedEnumerable<MethodInfo> methodInfos) {
         var mi = methodInfos.ElementAt(0);
 
-        Console.WriteLine($"Makind procedure for {mi.Name}. The override with the least parameters has {shortest} parameters.");
-        Console.WriteLine($"the lambda parameters for the function are: {Syntax.E(lambdaParams).Print()}. required = {lambdaParams.Required.Length}");
+        // Console.WriteLine($"Making procedure for {mi.Name}. The override with the least parameters has {shortest} parameters.");
+        // Console.WriteLine($"\tthe lambda parameters for the function are: {Syntax.E(lambdaParams).Print()}. required = {lambdaParams.Required.Length}");
         return [BodyExprMethodGroupVariousLengths(shortest, lambdaParams, methodInfos, mi.Name, mi.DeclaringType)];
     }
     private ParsedForm BodyExprMethodGroupVariousLengths(int shortest, ParsedLambda.LambdaParameters lambdaParams, IOrderedEnumerable<MethodInfo> methodInfos, string name, Type? miDeclaringType) {
         if (methodInfos.Count() == 0) {
             return CouldNotResolveErrorCall(name, miDeclaringType);
         }
-        int n = methodInfos.ElementAt(0).GetParameters().Length;
+        int n = methodInfos.ElementAt(0).GetParameters().Length + (methodInfos.ElementAt(0).IsStatic ? 0 : 1);
         System.Collections.Generic.List<MethodInfo> shortestMethods = [];
         System.Collections.Generic.List<MethodInfo> rest = [];
         foreach (var mi in methodInfos) {
-            if (mi.GetParameters().Length == n) {
+            if ((mi.GetParameters().Length + (mi.IsStatic ? 0 : 1)) == n) {
                 shortestMethods.Add(mi);
             } else {
                 rest.Add(mi);
             }
         }
+        var cond = ConditionForMethodGroupParamLength(shortest, shortestMethods[0].GetParameters().Length + (shortestMethods[0].IsStatic ? 0 : 1), lambdaParams.Rest);
+        var then = ThenBranchForMethodGroupVariousLengths(lambdaParams, shortestMethods, lambdaParams);
+        var @else = BodyExprMethodGroupVariousLengths(shortest, lambdaParams, rest.OrderBy(mi => mi.GetParameters().Length), name, miDeclaringType); 
         return new ParsedIf(
             new Identifier(new Symbol("if")),
-            ConditionForMethodGroupParamLength(shortest, shortestMethods[0].GetParameters().Length, lambdaParams.Rest),
-            ThenBranchForMethodGroupVariousLengths(lambdaParams, shortestMethods, lambdaParams),
-            BodyExprMethodGroupVariousLengths(shortest, lambdaParams, rest.OrderBy(mi => mi.GetParameters().Length), name, miDeclaringType));
+            cond,
+            then,
+            @else);
     }
     private ParsedForm ThenBranchForMethodGroupVariousLengths(ParsedLambda.LambdaParameters lambdaParams, System.Collections.Generic.List<MethodInfo> shortestMethods, ParsedLambda.LambdaParameters lambdaParameters) {
         // this has to make something like:
@@ -201,12 +204,13 @@ public class InterOp {
         //  x0 x1 (car xs) (car (cdr xs)))
         // assuming there were two required args and a rest parameter
         // we should be able to reuse some code from where we made a procedure for method groups of same parameter length
-        int numRestArgs = shortestMethods[0].GetParameters().Count() - lambdaParameters.Required.Length;
+        int numRestArgs = (shortestMethods[0].GetParameters().Count() + (shortestMethods[0].IsStatic ? 0 : 1)) - lambdaParameters.Required.Length;
         var proc = ProcedureFromMethodGroup(shortestMethods.ToArray());
         var requiredArgs = lambdaParams.Required.Select(p => new ParsedVariable.Lexical(new Identifier(p.Symbol), p, null));
         var restArgs = RestArgs(numRestArgs, lambdaParams.Rest);
-        Console.WriteLine($"Making proc for then branch. proc has {proc.Required} params");
-        Console.WriteLine($"requiredArgs = {requiredArgs.Count()}, numRestArgs = {numRestArgs} and restArgs = {restArgs.Count()}");
+        // Console.WriteLine($"\tMaking proc for then branch. constructed proc has {proc.Required} params");
+        // Console.WriteLine($"\t - requiredArgs = {requiredArgs.Count()}, numRestArgs = {numRestArgs} and restArgs = {restArgs.Count()}");
+        // Console.WriteLine($"\t - args are : {string.Join(",", requiredArgs.Concat(restArgs).Select(x => Syntax.ToDatum(x).Print()))}");
         return new ParsedApplication(
             ((ParsedForm[])
             [

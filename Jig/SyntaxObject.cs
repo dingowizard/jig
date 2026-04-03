@@ -37,6 +37,8 @@ public class Syntax : SchemeValue {
             case Symbol s: return s; // TODO: why wasn't this caught up above by stx is Identifier?
             case List.NonEmpty xs: // TODO: I think there's something wrong with how Syntax.FromDatum made this stx
                 return xs.Select(x => x is Syntax sx ? ToDatum(sx) : x).ToJigList();
+            case Pair pair:
+                return (SchemeValue)Pair.Cons(pair.Car, pair.Cdr);
             // case IPair p:
             //     return ToDatum(p);
             // case List list: {
