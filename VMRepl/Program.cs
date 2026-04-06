@@ -60,6 +60,7 @@ public static class Program {
                 new ValueTuple<Symbol[], ILibrary>([new Symbol("core-primitives")], Library.Core),
                 new ValueTuple<Symbol[], ILibrary>([new Symbol("clr"), new Symbol("System"), new Symbol("Math")], interop.ImportClrNameSpace("System.Math")),
                 new ValueTuple<Symbol[], ILibrary>([new Symbol("clr"), new Symbol("System"), new Symbol("String")], interop.ImportClrNameSpace("System.String")),
+                new ValueTuple<Symbol[], ILibrary>([new Symbol("clr"), new Symbol("System"), new Symbol("Char")], interop.ImportClrNameSpace("System.Char")),
                 new ValueTuple<Symbol[], ILibrary>([new Symbol("jig"), new Symbol("clr"), new Symbol("reflection")], new ReflectionLibrary(interop)),
             });
         

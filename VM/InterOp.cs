@@ -37,10 +37,27 @@ public class InterOp {
     }
 
     public Library ImportClrNameSpace(string name) {
-        Type[] typesWeKnow = [typeof(int), typeof(double), typeof(string), typeof(bool), typeof(char)];
+        Type[] typesWeKnow = [typeof(int), typeof(double), typeof(string), typeof(bool), typeof(char), typeof(char[])];
         var ts = ResolveClrName(name);
         // for now, we're going to select only those static methods that receive double or int arguments and return double results
         // get const double fields (PI and E)
+        // Console.WriteLine($"Importing {name}. {name} has {ts.Count()} types: {string.Join(", ", ts)} ");
+        // foreach (var memberInfos in ts.SelectMany(t => t.GetMembers()).GroupBy(memberInfo => memberInfo.GetType())) {
+        //     foreach (var mi in memberInfos) {
+        //         // Console.WriteLine($"{mi.Name} is a {mi.GetType()}");
+        //         // if (mi is MethodInfo method) {
+        //         //     Console.WriteLine($"\t{method.Name}({string.Join(", ", method.GetParameters().Select(p => p.ParameterType.Name))}) -> {method.ReturnType}");
+        //         // }
+        //         if (mi is PropertyInfo property) {
+        //             var accessors = property.GetAccessors();
+        //             Console.WriteLine($"property has {accessors.Length} accessors");
+        //             foreach (var accessor in accessors) {
+        //                 Console.WriteLine($"\taccessor has {accessor.GetParameters().Length}: {string.Join(", ", accessor.GetParameters().Select(p => p.ParameterType.Name))}");
+        //             }
+        //         }
+        //     }
+            
+        // }
         var constantFields =
             ts.SelectMany(t => t.GetFields(BindingFlags.Public | BindingFlags.Static))
                 .Where(fi => (fi.IsLiteral || fi.IsInitOnly) && typesWeKnow.Contains(fi.FieldType));
@@ -342,7 +359,8 @@ public class InterOp {
 
     public Procedure ProcedureFromInstanceProperty(PropertyInfo prop) {
         var lambdaParameters = LambdaParametersFromInstanceProperty(prop);
-        return MakeProcedure(lambdaParameters, LambdaBodyForInstanceProperty(prop, lambdaParameters), prop.DeclaringType.Name + "." + prop.Name);
+        return MakeProcedure(lambdaParameters, LambdaBodyForInstanceMethod(prop.GetGetMethod(), lambdaParameters), prop.DeclaringType.Name + "." + prop.Name);
+        // return MakeProcedure(lambdaParameters, LambdaBodyForInstanceProperty(prop, lambdaParameters), prop.DeclaringType.Name + "." + prop.Name);
     }
 
     public Procedure ProcedureFromInstanceMethodInfo(MethodInfo methodInfo) {
@@ -471,12 +489,15 @@ public class InterOp {
     
     
     private ParsedLambda.LambdaParameters LambdaParametersFromInstanceProperty(PropertyInfo prop) {
-        Identifier objParam = new Identifier(new Symbol(prop.DeclaringType.Name.ToLower()));
-        var parameter = new Jig.Expansion.Parameter(objParam.Symbol, [], 1, 0, null);
-        return new ParsedLambda.LambdaParameters(
-            new Syntax((SchemeValue)Pair.Cons(objParam, SyntaxList.Null), null),
-            [ parameter ],
-            null);
+        // Identifier objParam = new Identifier(new Symbol(prop.DeclaringType.Name.ToLower()));
+        // var parameter = new Jig.Expansion.Parameter(objParam.Symbol, [], 1, 0, null);
+        // // Properties can in cact take arguments, so this is not right
+        // return new ParsedLambda.LambdaParameters(
+        //     new Syntax((SchemeValue)Pair.Cons(objParam, SyntaxList.Null), null),
+        //     [ parameter ],
+        //     null);
+        var methodInfo = prop.GetGetMethod();
+        return LambdaParametersForInstanceMethod(methodInfo);
     }
     
     private ParsedLambda.LambdaParameters LambdaParametersForInstanceMethod(MethodInfo methodInfo) {
