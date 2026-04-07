@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Security.Principal;
 using Jig;
 using Jig.Expansion;
 using Jig.Types;
@@ -39,6 +38,7 @@ public class InterOp {
     public Library ImportClrNameSpace(string name) {
         Type[] typesWeKnow = [typeof(int), typeof(double), typeof(string), typeof(bool), typeof(char), typeof(char[])];
         var ts = ResolveClrName(name);
+        
         // for now, we're going to select only those static methods that receive double or int arguments and return double results
         // get const double fields (PI and E)
         // Console.WriteLine($"Importing {name}. {name} has {ts.Count()} types: {string.Join(", ", ts)} ");
@@ -56,8 +56,8 @@ public class InterOp {
         //             }
         //         }
         //     }
-            
         // }
+        
         var constantFields =
             ts.SelectMany(t => t.GetFields(BindingFlags.Public | BindingFlags.Static))
                 .Where(fi => (fi.IsLiteral || fi.IsInitOnly) && typesWeKnow.Contains(fi.FieldType));
@@ -124,6 +124,14 @@ public class InterOp {
         foreach (var prop in staticProperties) {
             
         }
+        var ctors =
+            ts.SelectMany(t => t.GetConstructors(BindingFlags.Public | BindingFlags.Instance))
+                .Where(ci => typesWeKnow.Contains(ci.DeclaringType)).ToArray();
+        // var ctorProc = ProcedureFromMethodGroup(ctors);
+        // var bindingForCtor = new Binding(
+        //     new Jig.Expansion.Parameter(new Symbol(ctors[0].DeclaringType.Name + ".new"), [], 0, index++, null),
+        //     new Location(ctorProc));
+        // bindings.Add(bindingForCtor);
         return new Library(bindings, []);
 
     }
@@ -153,11 +161,26 @@ public class InterOp {
         
     }
 
+    public Procedure ProcedureFromMethodGroup(ConstructorInfo[] constructorInfos) {
+        
+        if (HaveSameNumberParameters(constructorInfos)) {
+            ParsedLambda.LambdaParameters lambdaParameters = LambdaParametersForConstructor(constructorInfos[0]);
+            System.Collections.Generic.List<(ParsedForm @if, ParsedApplication call)> stmts = [];
+            foreach (var ci in constructorInfos) {
+                stmts.Add( ConditionAndCallForOverride(ci, lambdaParameters));
+            }
+            return MakeProcedure(lambdaParameters, BodyForMethodGroup(constructorInfos, stmts), constructorInfos[0].DeclaringType + ".new");
+        }
+        throw new NotImplementedException();
+        // return ProcedureFromMethodsVariousParamLengths(constructorInfos);
+        
+    }
+    
     public Procedure ProcedureFromMethodGroup(MethodInfo[] methodInfos) {
         
         if (HaveSameNumberParameters(methodInfos)) {
             
-            ParsedLambda.LambdaParameters lambdaParameters = LambdaParametersForMethodGroup(methodInfos);
+            ParsedLambda.LambdaParameters lambdaParameters = LambdaParametersForMethodGroupSameParamNum(methodInfos);
             System.Collections.Generic.List<(ParsedForm @if, ParsedApplication call)> stmts = [];
             foreach (var m in methodInfos) {
                 stmts.Add( ConditionAndCallForOverride(m, lambdaParameters));
@@ -273,10 +296,10 @@ public class InterOp {
             ], null);
     }
 
-    private ParsedForm[] BodyForMethodGroup(MethodInfo[] methodInfos, System.Collections.Generic.List<(ParsedForm @if, ParsedApplication call)> stmts) {
+    private ParsedForm[] BodyForMethodGroup(MethodBase[] methodInfos, System.Collections.Generic.List<(ParsedForm @if, ParsedApplication call)> stmts) {
         return [NestedIfsForMethodGroup(methodInfos, stmts)];
     }
-    private ParsedForm NestedIfsForMethodGroup(MethodInfo[] methodInfos, IEnumerable<(ParsedForm @if, ParsedApplication call)> stmts) {
+    private ParsedForm NestedIfsForMethodGroup(MethodBase[] methodInfos, IEnumerable<(ParsedForm @if, ParsedApplication call)> stmts) {
         if (stmts.Count() == 1) {
             return new ParsedIf(
                 new Identifier(new Symbol("if")),
@@ -290,6 +313,14 @@ public class InterOp {
             stmts.ElementAt(0).call,
             NestedIfsForMethodGroup(methodInfos, stmts.Skip(1)));
     }
+    
+    private (ParsedForm test, ParsedApplication call) ConditionAndCallForOverride(ConstructorInfo ctorInfo, ParsedLambda.LambdaParameters lambdaParameters) {
+        ParsedForm condition = ConditionForOverrideAux(ctorInfo.GetParameters(), lambdaParameters.Required.ToList());
+        ParsedApplication app = CallForOverride(ctorInfo, lambdaParameters);
+        return (condition, app);
+
+    }
+    
     private (ParsedForm test, ParsedApplication call) ConditionAndCallForOverride(MethodInfo methodInfo, ParsedLambda.LambdaParameters lambdaParameters) {
         ParsedForm condition = ConditionForOverride(methodInfo, methodInfo.GetParameters().ToList(), lambdaParameters.Required.ToList());
         ParsedApplication app = CallForOverride(methodInfo, lambdaParameters);
@@ -318,18 +349,27 @@ public class InterOp {
             new ParsedLiteral(new Syntax(new Symbol("quote")), new Syntax.Literal(Bool.False)));
     }
     
+    private ParsedApplication CallForOverride(ConstructorInfo constructorInfo, ParsedLambda.LambdaParameters lambdaParameters) {
+        var clrMethod = new ClrPrimitive(constructorInfo, TypeResolver);
+        ParsedForm[] forms = [new ParsedLiteral(new Identifier(new Symbol("quote")), new Syntax.Literal(clrMethod), null)];
+        var args = lambdaParameters.Required.Select(p => new ParsedVariable.Lexical(new Identifier(p.Symbol), p, null));
+        return new ParsedApplication(forms.Concat(args), null);
+    }
     private ParsedApplication CallForOverride(MethodInfo methodInfo, ParsedLambda.LambdaParameters lambdaParameters) {
         var clrMethod = new ClrPrimitive(methodInfo, TypeResolver);
         ParsedForm[] forms = [new ParsedLiteral(new Identifier(new Symbol("quote")), new Syntax.Literal(clrMethod), null)];
         var args = lambdaParameters.Required.Select(p => new ParsedVariable.Lexical(new Identifier(p.Symbol), p, null));
         return new ParsedApplication(forms.Concat(args), null);
     }
-    private ParsedLambda.LambdaParameters LambdaParametersForMethodGroup(MethodInfo[] methodInfos) {
-        if (HaveSameNumberParameters(methodInfos)) {
-            return LambdaParametersForMethod(methodInfos[0]);
-        }
-        throw new NotImplementedException("we can't handle overrides with different numbers of parameters yet :(");
+    private ParsedLambda.LambdaParameters LambdaParametersForMethodGroupSameParamNum(MethodInfo[] methodInfos) {
+        Debug.Assert(HaveSameNumberParameters(methodInfos));
+        return LambdaParametersForMethod(methodInfos[0]);
     }
+
+    private ParsedLambda.LambdaParameters LambdaParametersForConstructor(ConstructorInfo constructorInfo) {
+        return LambdaParametersFromParameterInfos(constructorInfo.GetParameters(), 0);
+    }
+    
     private ParsedLambda.LambdaParameters LambdaParametersForMethod(MethodInfo methodInfo) {
         if (methodInfo.IsStatic) {
             return LambdaParametersFromParameterInfos(methodInfo.GetParameters(), 0);
@@ -347,7 +387,7 @@ public class InterOp {
         }
     }
     
-    private bool HaveSameNumberParameters(MethodInfo[] methodInfos) {
+    private bool HaveSameNumberParameters(MethodBase[] methodInfos) {
         int n = methodInfos[0].GetParameters().Length;
         foreach (var m in methodInfos.Skip(1)) {
             if (n != m.GetParameters().Length) {
@@ -568,6 +608,28 @@ public class ClrPrimitive : SchemeValue, ICallable {
             Delegate = MakeDelegate(mi, tr);
         }
     }
+
+    public ClrPrimitive(ConstructorInfo ctor, TypeResolver tr) {
+        Delegate = MakeDelegateForCtor(ctor, tr);
+    }
+    private ClrPrimitiveUnsafe? MakeDelegateForCtor(ConstructorInfo ctor, TypeResolver tr) {
+        var listParam = Expression.Parameter(typeof(Jig.List), "args");                                                                                     
+        var arrayVar = Expression.Variable(typeof(Jig.SchemeValue[]), "argsArray");                                                                            
+        
+        
+        return Expression.Lambda<ClrPrimitiveUnsafe>(
+            Expression.Block(
+                [arrayVar],
+                Expression.Assign(arrayVar, ArgListToArray(arrayVar, listParam)),
+                MakeNewExpression(ctor, arrayVar, tr)),
+            listParam).Compile();
+    }
+    private Expression MakeNewExpression(ConstructorInfo ctor, ParameterExpression arrayVar, TypeResolver tr) {
+            return WrapReturn(
+                ctor,
+                Expression.New(ctor, MakeArgs(ctor, arrayVar, tr)),
+                tr);
+    }
     private ClrPrimitiveUnsafe MakeDelegate(MethodInfo mi, TypeResolver tr) {
         
         
@@ -606,7 +668,6 @@ public class ClrPrimitive : SchemeValue, ICallable {
             mi,
             call,
             tr);
-
     }
 
     private static Expression[] MakeArgs(MethodInfo mi, ParameterExpression args , TypeResolver tr) {
@@ -635,6 +696,18 @@ public class ClrPrimitive : SchemeValue, ICallable {
         return xs.ToArray();
     }
 
+    private static Expression[] MakeArgs(ConstructorInfo ctor, ParameterExpression args , TypeResolver tr) {
+            var parameters = ctor.GetParameters();
+            System.Collections.Generic.List<Expression> argsList = [];
+            int i = 0;
+            foreach (var p in parameters) {
+                // argsList.Add(WrapParameter(args, i, p));
+                argsList.Add(ConvertArgExpr(args, i, p, tr));
+                i++;
+
+            }
+            return argsList.ToArray();
+    }
     private static Expression ConvertObjectArgExpr(ParameterExpression argsArrayParam, MethodInfo mi, TypeResolver tr) {
         
         Jig.Types.TypeDescriptor desc = tr.Resolve(mi.DeclaringType);
@@ -658,6 +731,11 @@ public class ClrPrimitive : SchemeValue, ICallable {
         
     }
 
+    private static Expression WrapReturn(ConstructorInfo ctor, Expression expr, TypeResolver tr) {
+        
+        return Expression.Invoke(Expression.Constant(tr.Resolve(ctor.DeclaringType).WrapReturn), Expression.Convert(expr, typeof(object)));
+        
+    }
     public ClrPrimitiveUnsafe Delegate {get;}
     
     
