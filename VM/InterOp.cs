@@ -39,8 +39,6 @@ public class InterOp {
         Type[] typesWeKnow = [typeof(int), typeof(double), typeof(string), typeof(bool), typeof(char), typeof(char[])];
         var ts = ResolveClrName(name);
         
-        // for now, we're going to select only those static methods that receive double or int arguments and return double results
-        // get const double fields (PI and E)
         // Console.WriteLine($"Importing {name}. {name} has {ts.Count()} types: {string.Join(", ", ts)} ");
         // foreach (var memberInfos in ts.SelectMany(t => t.GetMembers()).GroupBy(memberInfo => memberInfo.GetType())) {
         //     foreach (var mi in memberInfos) {
@@ -126,12 +124,16 @@ public class InterOp {
         }
         var ctors =
             ts.SelectMany(t => t.GetConstructors(BindingFlags.Public | BindingFlags.Instance))
-                .Where(ci => typesWeKnow.Contains(ci.DeclaringType)).ToArray();
-        // var ctorProc = ProcedureFromMethodGroup(ctors);
-        // var bindingForCtor = new Binding(
-        //     new Jig.Expansion.Parameter(new Symbol(ctors[0].DeclaringType.Name + ".new"), [], 0, index++, null),
-        //     new Location(ctorProc));
-        // bindings.Add(bindingForCtor);
+                .Where(ci => typesWeKnow.Contains(ci.DeclaringType))
+                .Where(ci => ci.GetParameters().All(p => typesWeKnow.Contains(p.ParameterType)))
+                .ToArray();
+        if (ctors.Length != 0) {
+            var ctorProc = ProcedureFromMethodGroup(ctors);
+            var bindingForCtor = new Binding(
+                new Jig.Expansion.Parameter(new Symbol(ctors[0].DeclaringType.Name + ".new"), [], 0, index++, null),
+                new Location(ctorProc));
+            bindings.Add(bindingForCtor);
+        }
         return new Library(bindings, []);
 
     }
@@ -160,39 +162,29 @@ public class InterOp {
         return new Procedure(Evaluator.Environment, template);
         
     }
-
-    public Procedure ProcedureFromMethodGroup(ConstructorInfo[] constructorInfos) {
-        
-        if (HaveSameNumberParameters(constructorInfos)) {
-            ParsedLambda.LambdaParameters lambdaParameters = LambdaParametersForConstructor(constructorInfos[0]);
-            System.Collections.Generic.List<(ParsedForm @if, ParsedApplication call)> stmts = [];
-            foreach (var ci in constructorInfos) {
-                stmts.Add( ConditionAndCallForOverride(ci, lambdaParameters));
-            }
-            return MakeProcedure(lambdaParameters, BodyForMethodGroup(constructorInfos, stmts), constructorInfos[0].DeclaringType + ".new");
-        }
-        throw new NotImplementedException();
-        // return ProcedureFromMethodsVariousParamLengths(constructorInfos);
-        
-    }
     
-    public Procedure ProcedureFromMethodGroup(MethodInfo[] methodInfos) {
+    public Procedure ProcedureFromMethodGroup(MethodBase[] methodBases) {
         
-        if (HaveSameNumberParameters(methodInfos)) {
+        if (HaveSameNumberParameters(methodBases)) {
             
-            ParsedLambda.LambdaParameters lambdaParameters = LambdaParametersForMethodGroupSameParamNum(methodInfos);
+            ParsedLambda.LambdaParameters lambdaParameters = LambdaParametersForMethodGroupSameParamNum(methodBases);
             System.Collections.Generic.List<(ParsedForm @if, ParsedApplication call)> stmts = [];
-            foreach (var m in methodInfos) {
+            foreach (var m in methodBases) {
                 stmts.Add( ConditionAndCallForOverride(m, lambdaParameters));
             }
-            return MakeProcedure(lambdaParameters, BodyForMethodGroup(methodInfos, stmts), methodInfos[0].Name);
+            return MakeProcedure(lambdaParameters, BodyForMethodGroup(methodBases, stmts), methodBases[0].Name);
         }
-        return ProcedureFromMethodsVariousParamLengths(methodInfos);
+        return ProcedureFromMethodsVariousParamLengths(methodBases);
     }
-    private Procedure ProcedureFromMethodsVariousParamLengths(MethodInfo[] methodInfos) {
+    
+    private Procedure ProcedureFromMethodsVariousParamLengths(MethodBase[] methodBases) {
         // TODO: need to deal with methods that have a params parameter at end
-        var sorted = methodInfos.OrderBy(mi => mi.GetParameters().Length);
-        var numRequired = sorted.ElementAt(0).GetParameters().Length + (methodInfos[0].IsStatic ? 0 : 1);
+        var sorted = methodBases.OrderBy(mi => mi.GetParameters().Length);
+        var firstMethodBase = sorted.ElementAt(0);
+        var numRequired = firstMethodBase.GetParameters().Length;
+        if (firstMethodBase is MethodInfo mi && !mi.IsStatic) {
+            numRequired += 1;
+        }
         System.Collections.Generic.List<Parameter> parameters = [];
         int i = 0;
         for (; i < numRequired; i++) {
@@ -206,30 +198,35 @@ public class InterOp {
             expr = (SchemeValue)Pair.Cons(parameters[n], expr);
         }
         var lambdaParams = new ParsedLambda.LambdaParameters(new Syntax(expr), parameters.ToArray(), rest);
-        return MakeProcedure(lambdaParams, BodyForMethodGroupVariousParamLengths(numRequired, lambdaParams, sorted), methodInfos[0].Name);
+        return MakeProcedure(lambdaParams, BodyForMethodGroupVariousParamLengths(numRequired, lambdaParams, sorted), methodBases[0].Name);
     }
-    private ParsedForm[] BodyForMethodGroupVariousParamLengths(int shortest, ParsedLambda.LambdaParameters lambdaParams, IOrderedEnumerable<MethodInfo> methodInfos) {
-        var mi = methodInfos.ElementAt(0);
+    
+    private ParsedForm[] BodyForMethodGroupVariousParamLengths(int shortest, ParsedLambda.LambdaParameters lambdaParams, IOrderedEnumerable<MethodBase> methodBases) {
+        var mi = methodBases.ElementAt(0);
 
         // Console.WriteLine($"Making procedure for {mi.Name}. The override with the least parameters has {shortest} parameters.");
         // Console.WriteLine($"\tthe lambda parameters for the function are: {Syntax.E(lambdaParams).Print()}. required = {lambdaParams.Required.Length}");
-        return [BodyExprMethodGroupVariousLengths(shortest, lambdaParams, methodInfos, mi.Name, mi.DeclaringType)];
+        return [BodyExprMethodGroupVariousLengths(shortest, lambdaParams, methodBases, mi.Name, mi.DeclaringType)];
     }
-    private ParsedForm BodyExprMethodGroupVariousLengths(int shortest, ParsedLambda.LambdaParameters lambdaParams, IOrderedEnumerable<MethodInfo> methodInfos, string name, Type? miDeclaringType) {
-        if (methodInfos.Count() == 0) {
+    
+    private ParsedForm BodyExprMethodGroupVariousLengths(int shortest, ParsedLambda.LambdaParameters lambdaParams, IOrderedEnumerable<MethodBase> methodBases, string name, Type? miDeclaringType) {
+        if (methodBases.Count() == 0) {
             return CouldNotResolveErrorCall(name, miDeclaringType);
         }
-        int n = methodInfos.ElementAt(0).GetParameters().Length + (methodInfos.ElementAt(0).IsStatic ? 0 : 1);
-        System.Collections.Generic.List<MethodInfo> shortestMethods = [];
-        System.Collections.Generic.List<MethodInfo> rest = [];
-        foreach (var mi in methodInfos) {
-            if ((mi.GetParameters().Length + (mi.IsStatic ? 0 : 1)) == n) {
-                shortestMethods.Add(mi);
+        int n = methodBases.ElementAt(0).GetParameters().Length;
+        System.Collections.Generic.List<MethodBase> shortestMethods = [];
+        System.Collections.Generic.List<MethodBase> rest = [];
+        foreach (var mb in methodBases) {
+            if (mb.GetParameters().Length  == n) {
+                shortestMethods.Add(mb);
             } else {
-                rest.Add(mi);
+                rest.Add(mb);
             }
         }
-        var cond = ConditionForMethodGroupParamLength(shortest, shortestMethods[0].GetParameters().Length + (shortestMethods[0].IsStatic ? 0 : 1), lambdaParams.Rest);
+        if (methodBases.ElementAt(0) is MethodInfo met && !met.IsStatic) {
+            n += 1;
+        }
+        var cond = ConditionForMethodGroupParamLength(shortest, n, lambdaParams.Rest);
         var then = ThenBranchForMethodGroupVariousLengths(lambdaParams, shortestMethods, lambdaParams);
         var @else = BodyExprMethodGroupVariousLengths(shortest, lambdaParams, rest.OrderBy(mi => mi.GetParameters().Length), name, miDeclaringType); 
         return new ParsedIf(
@@ -238,13 +235,22 @@ public class InterOp {
             then,
             @else);
     }
-    private ParsedForm ThenBranchForMethodGroupVariousLengths(ParsedLambda.LambdaParameters lambdaParams, System.Collections.Generic.List<MethodInfo> shortestMethods, ParsedLambda.LambdaParameters lambdaParameters) {
+    
+    private ParsedForm ThenBranchForMethodGroupVariousLengths(
+        ParsedLambda.LambdaParameters lambdaParams,
+        System.Collections.Generic.List<MethodBase> shortestMethods,
+        ParsedLambda.LambdaParameters lambdaParameters) {
         // this has to make something like:
         // ((lambda (x0 x1 x2 x3) ...)
         //  x0 x1 (car xs) (car (cdr xs)))
         // assuming there were two required args and a rest parameter
         // we should be able to reuse some code from where we made a procedure for method groups of same parameter length
-        int numRestArgs = (shortestMethods[0].GetParameters().Count() + (shortestMethods[0].IsStatic ? 0 : 1)) - lambdaParameters.Required.Length;
+
+        int n = 0;
+        if (shortestMethods[0] is MethodInfo mi && !mi.IsStatic) {
+            n = 1;
+        }
+        int numRestArgs = (shortestMethods[0].GetParameters().Count() + n) - lambdaParameters.Required.Length;
         var proc = ProcedureFromMethodGroup(shortestMethods.ToArray());
         var requiredArgs = lambdaParams.Required.Select(p => new ParsedVariable.Lexical(new Identifier(p.Symbol), p, null));
         var restArgs = RestArgs(numRestArgs, lambdaParams.Rest);
@@ -257,10 +263,12 @@ public class InterOp {
             ]).Concat(requiredArgs)
             .Concat(restArgs), null);
     }
+    
     private IEnumerable<ParsedForm> RestArgs(int numArgs, Parameter? lambdaParamsRest) {
         if (numArgs == 0) return [];
         return Enumerable.Range(1, numArgs).Select(i => RestArg(i, lambdaParamsRest));
     }
+    
     private ParsedForm RestArg(int i, Parameter? lambdaParamsRest) {
         var carParam = Library.Core.FindParameter("car");
         return new ParsedApplication(new []
@@ -270,6 +278,7 @@ public class InterOp {
             
         }, null);
     }
+    
     private ParsedForm RestArgsCdr(int i, Parameter? lambdaParamsRest) {
         if (i == 0) return new ParsedVariable.Lexical(new Identifier(lambdaParamsRest.Symbol), lambdaParamsRest, null);
         return new ParsedApplication(new []
@@ -296,48 +305,43 @@ public class InterOp {
             ], null);
     }
 
-    private ParsedForm[] BodyForMethodGroup(MethodBase[] methodInfos, System.Collections.Generic.List<(ParsedForm @if, ParsedApplication call)> stmts) {
-        return [NestedIfsForMethodGroup(methodInfos, stmts)];
+    private ParsedForm[] BodyForMethodGroup(MethodBase[] methodBases, System.Collections.Generic.List<(ParsedForm @if, ParsedApplication call)> stmts) {
+        return [NestedIfsForMethodGroup(methodBases, stmts)];
     }
-    private ParsedForm NestedIfsForMethodGroup(MethodBase[] methodInfos, IEnumerable<(ParsedForm @if, ParsedApplication call)> stmts) {
+    
+    private ParsedForm NestedIfsForMethodGroup(MethodBase[] methodBases, IEnumerable<(ParsedForm @if, ParsedApplication call)> stmts) {
         if (stmts.Count() == 1) {
             return new ParsedIf(
                 new Identifier(new Symbol("if")),
                 stmts.ElementAt(0).@if,
                 stmts.ElementAt(0).call,
-                CouldNotResolveErrorCall(methodInfos[0].Name, methodInfos[0].DeclaringType));
+                CouldNotResolveErrorCall(methodBases[0].Name, methodBases[0].DeclaringType));
         }
         return new ParsedIf(
             new Identifier(new Symbol("if")),
             stmts.ElementAt(0).@if,
             stmts.ElementAt(0).call,
-            NestedIfsForMethodGroup(methodInfos, stmts.Skip(1)));
+            NestedIfsForMethodGroup(methodBases, stmts.Skip(1)));
     }
     
-    private (ParsedForm test, ParsedApplication call) ConditionAndCallForOverride(ConstructorInfo ctorInfo, ParsedLambda.LambdaParameters lambdaParameters) {
-        ParsedForm condition = ConditionForOverrideAux(ctorInfo.GetParameters(), lambdaParameters.Required.ToList());
-        ParsedApplication app = CallForOverride(ctorInfo, lambdaParameters);
+    private (ParsedForm test, ParsedApplication call) ConditionAndCallForOverride(MethodBase methodBase, ParsedLambda.LambdaParameters lambdaParameters) {
+        ParsedForm condition = ConditionForOverride(methodBase, methodBase.GetParameters().ToList(), lambdaParameters.Required.ToList());
+        ParsedApplication app = CallForOverride(methodBase, lambdaParameters);
         return (condition, app);
 
     }
     
-    private (ParsedForm test, ParsedApplication call) ConditionAndCallForOverride(MethodInfo methodInfo, ParsedLambda.LambdaParameters lambdaParameters) {
-        ParsedForm condition = ConditionForOverride(methodInfo, methodInfo.GetParameters().ToList(), lambdaParameters.Required.ToList());
-        ParsedApplication app = CallForOverride(methodInfo, lambdaParameters);
-        return (condition, app);
-
-    }
-    private ParsedForm ConditionForOverride(MethodInfo methodInfo, System.Collections.Generic.List<ParameterInfo> toList, System.Collections.Generic.List<Parameter> parameters) {
-        if (methodInfo.IsStatic) {
-            return ConditionForOverrideAux(toList, parameters);
-        } else {
+    private ParsedForm ConditionForOverride(MethodBase methodBase, System.Collections.Generic.List<ParameterInfo> toList, System.Collections.Generic.List<Parameter> parameters) {
+        if (methodBase is MethodInfo mi && !mi.IsStatic) {
             return new ParsedIf(
                 new Syntax(new Symbol("if")),
-                PredicateApplicationFromType(methodInfo.DeclaringType, new ParsedVariable.Lexical(new Identifier(parameters.ElementAt(0).Symbol), parameters.ElementAt(0), null)),
+                PredicateApplicationFromType(methodBase.DeclaringType, new ParsedVariable.Lexical(new Identifier(parameters.ElementAt(0).Symbol), parameters.ElementAt(0), null)),
                 ConditionForOverrideAux(toList, parameters.Skip(1)),
                 new ParsedLiteral(new Syntax(new Symbol("quote")), new Syntax.Literal(Bool.False)));
         }
+        return ConditionForOverrideAux(toList, parameters);
     }
+    
     private ParsedForm ConditionForOverrideAux(IEnumerable<ParameterInfo> parameterInfos, IEnumerable<Parameter> parameters) {
         
         Debug.Assert(parameterInfos.Count() == parameters.Count());
@@ -349,32 +353,23 @@ public class InterOp {
             new ParsedLiteral(new Syntax(new Symbol("quote")), new Syntax.Literal(Bool.False)));
     }
     
-    private ParsedApplication CallForOverride(ConstructorInfo constructorInfo, ParsedLambda.LambdaParameters lambdaParameters) {
-        var clrMethod = new ClrPrimitive(constructorInfo, TypeResolver);
+    
+    private ParsedApplication CallForOverride(MethodBase methodBase, ParsedLambda.LambdaParameters lambdaParameters) {
+        var clrMethod = new ClrPrimitive(methodBase, TypeResolver);
         ParsedForm[] forms = [new ParsedLiteral(new Identifier(new Symbol("quote")), new Syntax.Literal(clrMethod), null)];
         var args = lambdaParameters.Required.Select(p => new ParsedVariable.Lexical(new Identifier(p.Symbol), p, null));
         return new ParsedApplication(forms.Concat(args), null);
-    }
-    private ParsedApplication CallForOverride(MethodInfo methodInfo, ParsedLambda.LambdaParameters lambdaParameters) {
-        var clrMethod = new ClrPrimitive(methodInfo, TypeResolver);
-        ParsedForm[] forms = [new ParsedLiteral(new Identifier(new Symbol("quote")), new Syntax.Literal(clrMethod), null)];
-        var args = lambdaParameters.Required.Select(p => new ParsedVariable.Lexical(new Identifier(p.Symbol), p, null));
-        return new ParsedApplication(forms.Concat(args), null);
-    }
-    private ParsedLambda.LambdaParameters LambdaParametersForMethodGroupSameParamNum(MethodInfo[] methodInfos) {
-        Debug.Assert(HaveSameNumberParameters(methodInfos));
-        return LambdaParametersForMethod(methodInfos[0]);
-    }
-
-    private ParsedLambda.LambdaParameters LambdaParametersForConstructor(ConstructorInfo constructorInfo) {
-        return LambdaParametersFromParameterInfos(constructorInfo.GetParameters(), 0);
     }
     
-    private ParsedLambda.LambdaParameters LambdaParametersForMethod(MethodInfo methodInfo) {
-        if (methodInfo.IsStatic) {
-            return LambdaParametersFromParameterInfos(methodInfo.GetParameters(), 0);
-        } else {
-            var ps = LambdaParametersFromParameterInfos(methodInfo.GetParameters(), 1);
+    private ParsedLambda.LambdaParameters LambdaParametersForMethodGroupSameParamNum(MethodBase[] methodBasses) {
+        Debug.Assert(HaveSameNumberParameters(methodBasses));
+        return LambdaParametersForMethod(methodBasses[0]);
+    }
+    
+    
+    private ParsedLambda.LambdaParameters LambdaParametersForMethod(MethodBase methodBase) {
+        if (methodBase is MethodInfo mi && !mi.IsStatic) {
+            var ps = LambdaParametersFromParameterInfos(methodBase.GetParameters(), 1);
             Identifier objParam = new Identifier(new Symbol("arg0"));
             var parameter = new Jig.Expansion.Parameter(objParam.Symbol, [], 1, 0, null);
             return new ParsedLambda.LambdaParameters(
@@ -384,12 +379,15 @@ public class InterOp {
                     parameter
                 }.Concat(ps.Required).ToArray(),
                 ps.Rest);
+        } else {
+            // ConstructorInfo or static method
+            return LambdaParametersFromParameterInfos(methodBase.GetParameters(), 0);
         }
     }
     
-    private bool HaveSameNumberParameters(MethodBase[] methodInfos) {
-        int n = methodInfos[0].GetParameters().Length;
-        foreach (var m in methodInfos.Skip(1)) {
+    private bool HaveSameNumberParameters(MethodBase[] methodBases) {
+        int n = methodBases[0].GetParameters().Length;
+        foreach (var m in methodBases.Skip(1)) {
             if (n != m.GetParameters().Length) {
                 return false;
             }
@@ -473,17 +471,6 @@ public class InterOp {
         return new ParsedApplication([new ParsedLiteral(new Identifier(new Symbol("quote")), new Syntax.Literal(pred), null), arg], null);
     }
     
-    private ParsedForm[] LambdaBodyForInstanceProperty(PropertyInfo prop, ParsedLambda.LambdaParameters lambdaParameters) {
-        var firstParam = lambdaParameters.Required[0];
-        ParsedVariable.Lexical objectArg = new ParsedVariable.Lexical(new Identifier(firstParam.Symbol), firstParam, null);
-        System.Collections.Generic.List<ParsedForm> ifs = [IfExprForObjectArg(prop.Name, prop.DeclaringType, objectArg)];
-        var clrMethod = new ClrPrimitive(prop.GetMethod, TypeResolver);
-        ParsedForm[] forms = [new ParsedLiteral(new Identifier(new Symbol("quote")), new Syntax.Literal(clrMethod), null)];
-        var call = new ParsedApplication(forms.Concat(ifs), null);
-        // Console.WriteLine($"{Syntax.ToDatum(call).Print()}");
-        return [call];
-    }
-    
     private ParsedForm[] LambdaBodyForInstanceMethod(MethodInfo methodInfo, ParsedLambda.LambdaParameters lambdaParameters) {
         var firstParam = lambdaParameters.Required[0];
         ParsedVariable.Lexical objectArg = new ParsedVariable.Lexical(new Identifier(firstParam.Symbol), firstParam, null);
@@ -506,6 +493,7 @@ public class InterOp {
         // Console.WriteLine($"{Syntax.ToDatum(call).Print()}");
         return [call];
     }
+    
     private ParsedForm[] LambdaBodyFromMethodInfo(MethodInfo methodInfo, ParsedLambda.LambdaParameters lambdaParameters) {
         // we need to build a big call something like:
         // (clr-method (if (can-be-clr-type0? arg0) arg0 (error ...)) (if (can-be-clr-type1? arg1) arg1 (error ...)) ... (if (can-be-clr-typen? argn) argn (error ...)))
@@ -591,28 +579,37 @@ public class InterOp {
 public delegate Jig.SchemeValue ClrPrimitiveUnsafe(Jig.List args);
 
 public class ClrPrimitive : SchemeValue, ICallable {
-    public ClrPrimitive(MethodInfo mi, TypeResolver tr) {
-        if (mi.IsStatic) {
-            var parameters = mi.GetParameters();                                                                                                        
+
+    public ClrPrimitive(MethodBase mb, TypeResolver tr) {
+        if (mb is MethodInfo mi) {
+            if (mi.IsStatic) {
+                var parameters = mi.GetParameters();                                                                                                        
+                int count = parameters.Length;                          
+                HasRest = parameters.Length > 0 &&                                                                                                           
+                          parameters[^1].IsDefined(typeof(ParamArrayAttribute), false);
+                Required = HasRest ? count - 1 : count;
+                Delegate = MakeDelegate(mi, tr);
+            } else {
+                var parameters = mi.GetParameters();                                                                                                        
+                int count = parameters.Length + 1;                          
+                HasRest = parameters.Length > 0 &&                                                                                                           
+                          parameters[^1].IsDefined(typeof(ParamArrayAttribute), false);
+                Required = HasRest ? count - 1 : count;
+                Delegate = MakeDelegate(mi, tr);
+            }
+        } else if (mb is ConstructorInfo ctor) {
+            var parameters = mb.GetParameters();                                                                                                        
             int count = parameters.Length;                          
             HasRest = parameters.Length > 0 &&                                                                                                           
                       parameters[^1].IsDefined(typeof(ParamArrayAttribute), false);
             Required = HasRest ? count - 1 : count;
-            Delegate = MakeDelegate(mi, tr);
+            Delegate = MakeDelegateForCtor(ctor, tr);
         } else {
-            var parameters = mi.GetParameters();                                                                                                        
-            int count = parameters.Length + 1;                          
-            HasRest = parameters.Length > 0 &&                                                                                                           
-                      parameters[^1].IsDefined(typeof(ParamArrayAttribute), false);
-            Required = HasRest ? count - 1 : count;
-            Delegate = MakeDelegate(mi, tr);
+            throw new NotImplementedException($"Unhandled MethodBase type {mb.GetType()}");
         }
     }
-
-    public ClrPrimitive(ConstructorInfo ctor, TypeResolver tr) {
-        Delegate = MakeDelegateForCtor(ctor, tr);
-    }
-    private ClrPrimitiveUnsafe? MakeDelegateForCtor(ConstructorInfo ctor, TypeResolver tr) {
+    
+    private ClrPrimitiveUnsafe MakeDelegateForCtor(ConstructorInfo ctor, TypeResolver tr) {
         var listParam = Expression.Parameter(typeof(Jig.List), "args");                                                                                     
         var arrayVar = Expression.Variable(typeof(Jig.SchemeValue[]), "argsArray");                                                                            
         
