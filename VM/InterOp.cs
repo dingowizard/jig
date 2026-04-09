@@ -36,7 +36,7 @@ public class InterOp {
     }
 
     public Library ImportClrNameSpace(string name) {
-        Type[] typesWeKnow = [typeof(int), typeof(double), typeof(string), typeof(bool), typeof(char), typeof(char[])];
+        Type[] typesWeKnow = [typeof(int), typeof(double), typeof(string), typeof(string[]), typeof(bool), typeof(char), typeof(char[])];
         var ts = ResolveClrName(name);
         
         // Console.WriteLine($"Importing {name}. {name} has {ts.Count()} types: {string.Join(", ", ts)} ");
@@ -74,12 +74,19 @@ public class InterOp {
         var staticMethodInfos =
             ts.SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Static))
                 .Where(mi => typesWeKnow.Contains(mi.ReturnType) && mi.GetParameters().All(p => typesWeKnow.Contains(p.ParameterType)))
+                .Where(mi => !mi.GetParameters().Any(p => p.IsDefined(typeof(ParamArrayAttribute), inherit: false)))
                 .GroupBy(mi => mi.Name);
         foreach (var methodGroup in staticMethodInfos) {
             var arr = methodGroup.ToArray();
             string fullName = arr[0].DeclaringType.Name + "."  +  arr[0].Name; 
             // Console.WriteLine($"trying to import {fullName}");
-            Procedure clrProcedure = ProcedureFromMethodGroup(arr);
+            SchemeValue clrProcedure = Bool.False;
+            try {
+                clrProcedure = ProcedureFromMethodGroup(arr);
+            } catch (Exception x) {
+                Console.WriteLine($"couldn't import {methodGroup.ElementAt(0).Name}. {x.Message}");
+                continue;
+            }
             var bg = new Binding(
                 new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
                 new Location(clrProcedure));
@@ -93,6 +100,7 @@ public class InterOp {
                 .Where(mi => typesWeKnow.Contains(mi.DeclaringType) &&
                              typesWeKnow.Contains(mi.ReturnType) &&
                              mi.GetParameters().All(p => typesWeKnow.Contains(p.ParameterType)))
+                .Where(mi => !mi.GetParameters().Any(p => p.IsDefined(typeof(ParamArrayAttribute), inherit: false)))
                 .Where(mi => !mi.IsSpecialName)
                 .GroupBy(mi => mi.Name);
         foreach (var methodGroup in instanceMethodGroups) {
@@ -197,7 +205,7 @@ public class InterOp {
         for (int n = parameters.Count - 1; n >= 0; n--) {
             expr = (SchemeValue)Pair.Cons(parameters[n], expr);
         }
-        var lambdaParams = new ParsedLambda.LambdaParameters(new Syntax(expr), parameters.ToArray(), rest);
+        var lambdaParams = new ParsedLambda.LambdaParameters(parameters.ToArray(), rest);
         return MakeProcedure(lambdaParams, BodyForMethodGroupVariousParamLengths(numRequired, lambdaParams, sorted), methodBases[0].Name);
     }
     
@@ -344,7 +352,7 @@ public class InterOp {
     
     private ParsedForm ConditionForOverrideAux(IEnumerable<ParameterInfo> parameterInfos, IEnumerable<Parameter> parameters) {
         
-        Debug.Assert(parameterInfos.Count() == parameters.Count());
+        if(parameterInfos.Count() != parameters.Count()) throw new Exception("parameter counts don't match");
         if (parameters.Count() == 0) return new ParsedLiteral(new Syntax(new Symbol("quote")), new Syntax.Literal(Bool.True));
         return new ParsedIf(
             new Syntax(new Symbol("if")),
@@ -373,7 +381,6 @@ public class InterOp {
             Identifier objParam = new Identifier(new Symbol("arg0"));
             var parameter = new Jig.Expansion.Parameter(objParam.Symbol, [], 1, 0, null);
             return new ParsedLambda.LambdaParameters(
-                new Syntax((SchemeValue)Pair.Cons(objParam, (SyntaxList)Syntax.E(ps)), null),
                 new[]
                 {
                     parameter
@@ -533,7 +540,6 @@ public class InterOp {
         Identifier objParam = new Identifier(new Symbol(methodInfo.DeclaringType.Name.ToLower()));
         var parameter = new Jig.Expansion.Parameter(objParam.Symbol, [], 1, 0, null);
         return new ParsedLambda.LambdaParameters(
-            new Syntax((SchemeValue)Pair.Cons(objParam, (SyntaxList)Syntax.E(ps)), null),
             new[]
             {
                 parameter
@@ -544,12 +550,10 @@ public class InterOp {
         if (parameters.Length != 0) {
 
             ParameterInfo last = parameters[^1];
-            SchemeValue syntaxes = SyntaxList.Null;
             int lastIndex = parameters.Length - 1;
             Jig.Expansion.Parameter? rest  = null;
             if (last.IsDefined(typeof(ParamArrayAttribute), false)) {
                 Identifier restID = new Identifier(new Symbol(last.Name ?? $"arg{parameters.Length - 1}"));
-                syntaxes = restID;
                 // TODO: hm. Are we going to have to do something more with scopeSet and scope level to make this work?
                 // the compiler is going to need to figure out that these are args
                 // I think the scope level should always be 1, because the method is being imported as a top-level var
@@ -562,16 +566,14 @@ public class InterOp {
                 // working from end of parameters[], create Identifiers from parameterinfos and cons them onto the list
                 Identifier p = new Identifier(new Symbol(parameters[lastIndex].Name ?? $"arg{lastIndex}"));
                 var parameter = new Jig.Expansion.Parameter(p.Symbol, [], 1, lastIndex + offset, null);
-                syntaxes = (SchemeValue)Pair.Cons(parameter, syntaxes);
                 required.Add(parameter);
             }
-            Syntax stx = new Syntax(syntaxes);
             required.Reverse();
             // TODO: should this method be a static method on LambdaParameters?
-            return new ParsedLambda.LambdaParameters(stx, required.ToArray(), rest);
+            return new ParsedLambda.LambdaParameters(required.ToArray(), rest);
 
         }
-        return new ParsedLambda.LambdaParameters(new Syntax(SyntaxList.Null), [], null);
+        return new ParsedLambda.LambdaParameters([], null);
     }
 
 }

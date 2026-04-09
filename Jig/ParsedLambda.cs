@@ -34,6 +34,21 @@ public class ParsedLambda : Expression {
             Rest = rest;
         }
 
+        private static SchemeValue MakeSyntaxList(IEnumerable<Parameter> required, Parameter? rest) {
+            SchemeValue result = rest == null ? List.Null : rest;
+            foreach (var p in required.Reverse()) {
+                result = (SchemeValue)Pair.Cons(p, result);
+            }
+            return result;
+        }
+
+        public LambdaParameters(Parameter[] required, Parameter? rest, SrcLoc? srcLoc = null)
+            : base(MakeSyntaxList(required, rest), srcLoc) {
+            
+            Required = required;
+            Rest = rest;
+        }
+
 
         public static LambdaParameters Parse(Syntax stx, ExpansionContext context) {
             var namesSeen = new System.Collections.Generic.List<string>();
