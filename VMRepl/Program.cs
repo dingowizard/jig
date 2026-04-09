@@ -86,11 +86,22 @@ public static class Program {
             System.Environment.Exit(0);
         
         }
+
+        Syntax? input;
+        if (scriptPath != "") {
+            using (InputPort port = new InputPort(scriptPath)) {
+                while ((input = Reader.ReadSyntax(port)) != null) {
+                    evaluator.REPLEval(TopLevelContinuation, input);
+                }
+                
+                System.Environment.Exit(0);
+                
+            }
+        }
         // REPL
         if (!quiet) {
             Console.Write("> ");
         }
-        Syntax? input;
         // try {
         using (InputPort port = new InputPort(Console.In)) {
             while (true) {
