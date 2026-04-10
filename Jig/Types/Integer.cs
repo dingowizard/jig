@@ -56,12 +56,15 @@ public class Integer(int i) : Number<int>(i) {
     public static Float operator +(Integer i1, Float f) => new (i1.Value + f.Value);
 
     public static Number operator +(Integer i1, Number n) {
-        return n switch
-        {
-            Integer i2 => new Integer(i1.Value + i2.Value),
-            Float d2 => new Float(i1.Value + d2.Value),
-            _ => throw new NotImplementedException($"n was a {(n is null ? "null" : n.GetType().Name)}"),
-        };
+        // Console.WriteLine($"int + n ({i1.Print()} + {n.Print()}). n is {n.GetType()}");
+        switch (n) {
+            case Integer i2:
+                return new Integer(i1.Value + i2.Value);
+            case Float d2:
+                return new Float(i1.Value + d2.Value);
+            default:
+                throw new NotImplementedException($"n was a {(n is null ? "null" : n.GetType().Name)}");
+        }
     }
 
     public static Number operator -(Integer i1, Number n) {
