@@ -33,29 +33,52 @@ public class TypeDescriptor {
 
 public class TypeDescriptor<T, TU> : TypeDescriptor where TU : LiteralExpr<T> where T : notnull {
     public override Type ClrType => typeof(T);
+    bool IsInstanceOfGenericType(object obj, Type genericType)
+    {
+        var type = obj.GetType();
 
+        while (type != null)
+        {
+            if (type.IsGenericType &&
+                type.GetGenericTypeDefinition() == genericType)
+            {
+                return true;
+            }
+
+            type = type.BaseType;
+        }
+
+        return false;
+    }
     public TypeDescriptor(Func<T, TU> func) {
         _cstor = func;
         WrapReturn = _wrap;
+        Predicate = (sv) => {
+            Console.Write($"Is {sv.GetType()} convertible to {ClrType}: ");
+            if (IsInstanceOfGenericType(sv, typeof(LiteralExpr<>))) {
+                dynamic d = sv;
+                var result = ClrType.IsAssignableFrom(d.Value.GetType()) ? Bool.True : Bool.False;
+                Console.WriteLine(result);
+                return result;
+            }
+            Console.WriteLine(Bool.False);
+            return Bool.False;
+        };
+        ConvertArg = sv => {
+            if (IsInstanceOfGenericType(sv, typeof(LiteralExpr<>))) {
+                dynamic d = sv;
+                return d.Value;
+            }
+            throw new Exception($"Can't convert from {sv.GetType()} to {ClrType}");
+        };
     }
-    
+
     private Func<T, TU> _cstor;
     
     
-    public override Func<SchemeValue, Bool> Predicate {get;} = sv => {
-        return sv switch
-        {
-            TU => Bool.True,
-            _ => Bool.False,
-        };
-    };
+    public override Func<SchemeValue, Bool> Predicate {get;}
     
-    public override Func<SchemeValue, object> ConvertArg {get;} = sv => {
-        switch (sv) {
-            case TU lit: return lit.Value; 
-            default: throw new Exception($"Can't convert from {sv.GetType()} to {typeof(T)}");
-        }
-    };
+    public override Func<SchemeValue, object> ConvertArg {get;}
 
     public override Func<object?, SchemeValue> WrapReturn {get;} 
 

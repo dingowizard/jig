@@ -376,7 +376,8 @@ public static class Primitives {
 
     public static void vectorRef(Machine vm) {
         Vector vector = vm.Pop() as Vector ?? throw new Exception("vector-ref: expected first argument to be a vector.");
-        Integer index = vm.Pop() as Integer ?? throw new Exception("vector-ref: expected second argument to be an integer.");
+        var second = vm.Pop();
+        Integer index = second as Integer ?? throw new Exception($"vector-ref: expected second argument to be an integer. Got {second.Print()}, a {second.GetType()}");
         if (vector.TryGetAtIndex(index, out SchemeValue? x)) {
             vm.Push(vm.VAL = x);
             return;
