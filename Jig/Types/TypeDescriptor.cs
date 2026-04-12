@@ -54,14 +54,10 @@ public class TypeDescriptor<T, TU> : TypeDescriptor where TU : LiteralExpr<T> wh
         _cstor = func;
         WrapReturn = _wrap;
         Predicate = (sv) => {
-            Console.Write($"Is {sv.GetType()} convertible to {ClrType}: ");
             if (IsInstanceOfGenericType(sv, typeof(LiteralExpr<>))) {
-                dynamic d = sv;
-                var result = ClrType.IsAssignableFrom(d.Value.GetType()) ? Bool.True : Bool.False;
-                Console.WriteLine(result);
-                return result;
+                dynamic d = sv; // TODO: is there a better way? Maybe a non-generic interface implemented by LiteralExpr or even SchemeValue
+                return ClrType.IsAssignableFrom(d.Value.GetType()) ? Bool.True : Bool.False;
             }
-            Console.WriteLine(Bool.False);
             return Bool.False;
         };
         ConvertArg = sv => {
@@ -214,6 +210,33 @@ internal class DoubleTypeDescriptor :  TypeDescriptor {
     }
 }
 
+public class SchemeValueTypeDescriptor<T> : TypeDescriptor where T : SchemeValue {
+    
+    public SchemeValueTypeDescriptor() {
+        Predicate = (sv) => {
+            if (sv is T) return Bool.True;
+            else return Bool.False;
+        };
+        ConvertArg = (sv) => sv;
+        WrapReturn = (obj) => {
+            switch (obj) {
+                case T sv: return sv;
+                case null: throw new Exception($"expected a SchemeValue, but got null");
+                default: throw new Exception($"expected a SchemeValue, but got {obj.GetType()}");
+            }
+            ;
+        };
+
+    }
+    public override Type ClrType => typeof(T);
+
+    public override Func<SchemeValue, Bool> Predicate {get;}
+    
+    public override Func<SchemeValue, object> ConvertArg {get;}
+
+    public override Func<object, SchemeValue> WrapReturn {get;}
+
+}
 public class SchemeValueTypeDescriptor : TypeDescriptor {
     
     

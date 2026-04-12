@@ -11,6 +11,8 @@ public class TypeResolver {
         if (clrType == typeof(bool)) return TypeDescriptor.Boolean;
         if (clrType == typeof(char)) return TypeDescriptor.Char;
         if (clrType == typeof(SchemeValue)) return TypeDescriptor.SchemeValue;
+        if (clrType == typeof(String)) return Jig.String.TypeDescriptor;
+        if (clrType == typeof(Symbol)) return Jig.Symbol.TypeDescriptor;
         // if (clrType == typeof(string[])) return TypeDescriptor.ArrayString;
         
         if (_typeCache.TryGetValue(clrType, out var type)) return type;

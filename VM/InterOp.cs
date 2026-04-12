@@ -1,10 +1,8 @@
 using System.Diagnostics;
-using System.Linq.Expressions;
 using System.Reflection;
 using Jig;
 using Jig.Expansion;
 using Jig.Types;
-using Expression = System.Linq.Expressions.Expression;
 using String = Jig.String;
 namespace VM;
 
@@ -35,45 +33,46 @@ public class InterOp {
                         || t.Namespace?.StartsWith(name + ".") == true);
     }
 
-    public Library ImportClrNameSpace(string name) {
-        Type[] typesWeKnow = [typeof(int), typeof(double), typeof(string), typeof(string[]), typeof(bool), typeof(char), typeof(char[])];
-        var ts = ResolveClrName(name);
+    public Binding[] BindingsFromType(Type type) {
         
-        // Console.WriteLine($"Importing {name}. {name} has {ts.Count()} types: {string.Join(", ", ts)} ");
-        // foreach (var memberInfos in ts.SelectMany(t => t.GetMembers()).GroupBy(memberInfo => memberInfo.GetType())) {
-        //     foreach (var mi in memberInfos) {
-        //         // Console.WriteLine($"{mi.Name} is a {mi.GetType()}");
-        //         // if (mi is MethodInfo method) {
-        //         //     Console.WriteLine($"\t{method.Name}({string.Join(", ", method.GetParameters().Select(p => p.ParameterType.Name))}) -> {method.ReturnType}");
-        //         // }
-        //         if (mi is PropertyInfo property) {
-        //             var accessors = property.GetAccessors();
-        //             Console.WriteLine($"property has {accessors.Length} accessors");
-        //             foreach (var accessor in accessors) {
-        //                 Console.WriteLine($"\taccessor has {accessor.GetParameters().Length}: {string.Join(", ", accessor.GetParameters().Select(p => p.ParameterType.Name))}");
-        //             }
-        //         }
-        //     }
-        // }
+        System.Collections.Generic.List<Binding> bindings = [];
+        int indexForBinding = 0;
+        
+        
+        if (type.IsEnum) {
+            var enumBinding = new Binding(new Jig.Expansion.Parameter(new Symbol(type.Name), [], 0, indexForBinding++, null),
+                new Location(new LiteralExpr<Type>(type)));
+            bindings.Add(enumBinding);
+            foreach (var enumVal in Enum.GetValues(type)) {
+                string name = type.Name + "." + Enum.GetName(type, enumVal);
+                int enumInt = (int)enumVal;
+                var bg = new Binding(new Jig.Expansion.Parameter(new Symbol(name), [], 0, indexForBinding++, null),
+                    new Location(new Integer(enumInt)));
+                bindings.Add(bg);
+            }
+            return bindings.ToArray(); // TODO: we're sure enum type can't have any of the below?
+        }
+        
+        var typeBinding = new Binding(new Jig.Expansion.Parameter(new Symbol(type.FullName), [], 0, indexForBinding++, null),
+            new Location(new LiteralExpr<Type>(type)));
+        bindings.Add(typeBinding);
         
         var constantFields =
-            ts.SelectMany(t => t.GetFields(BindingFlags.Public | BindingFlags.Static))
-                .Where(fi => (fi.IsLiteral || fi.IsInitOnly) && typesWeKnow.Contains(fi.FieldType));
-        System.Collections.Generic.List<Binding> bindings = [];
-        int index = 0;
+            type.GetFields(BindingFlags.Public | BindingFlags.Static)
+                .Where(fi => (fi.IsLiteral || fi.IsInitOnly) && _typesWeKnow.Contains(fi.FieldType));
         foreach (var f in constantFields) {
             SchemeValue schemeValue = TypeResolver.Resolve(f.FieldType).WrapReturn(f.IsLiteral ? f.GetRawConstantValue() : f.GetValue(null));
 
             string fullName =  f.DeclaringType.Name +  "." +   f.Name;
             // Console.WriteLine($"field = {fullName}");
-            var bg = new Binding(new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
+            var bg = new Binding(new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, indexForBinding++, null),
                 new Location(schemeValue));
             bindings.Add(bg);
         }
         
         var staticMethodInfos =
-            ts.SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Static))
-                .Where(mi => typesWeKnow.Contains(mi.ReturnType) && mi.GetParameters().All(p => typesWeKnow.Contains(p.ParameterType)))
+            type.GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Where(mi => _typesWeKnow.Contains(mi.ReturnType) && mi.GetParameters().All(p => _typesWeKnow.Contains(p.ParameterType)))
                 .Where(mi => !mi.GetParameters().Any(p => p.IsDefined(typeof(ParamArrayAttribute), inherit: false)))
                 .GroupBy(mi => mi.Name);
         foreach (var methodGroup in staticMethodInfos) {
@@ -88,7 +87,7 @@ public class InterOp {
                 continue;
             }
             var bg = new Binding(
-                new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
+                new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, indexForBinding++, null),
                 new Location(clrProcedure));
             // Console.WriteLine($"adding {fullName}");
             bindings.Add(bg);
@@ -96,10 +95,10 @@ public class InterOp {
         
         // TODO: we can get rid of these type filters when the type resolver knows what to do with generics and interfaces
         var instanceMethodGroups =
-            ts.SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance))
-                .Where(mi => typesWeKnow.Contains(mi.DeclaringType) &&
-                             typesWeKnow.Contains(mi.ReturnType) &&
-                             mi.GetParameters().All(p => typesWeKnow.Contains(p.ParameterType)))
+            type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .Where(mi => _typesWeKnow.Contains(mi.DeclaringType) &&
+                             _typesWeKnow.Contains(mi.ReturnType) &&
+                             mi.GetParameters().All(p => _typesWeKnow.Contains(p.ParameterType)))
                 .Where(mi => !mi.GetParameters().Any(p => p.IsDefined(typeof(ParamArrayAttribute), inherit: false)))
                 .Where(mi => !mi.IsSpecialName)
                 .GroupBy(mi => mi.Name);
@@ -108,41 +107,80 @@ public class InterOp {
             string fullName = arr[0].DeclaringType.Name + "."  +  arr[0].Name; 
             Procedure clrProcedure = ProcedureFromMethodGroup(arr);
             var bg = new Binding(
-                new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, index++, null),
+                new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, indexForBinding++, null),
                 new Location(clrProcedure));
             bindings.Add(bg);
             
         }
         var instanceProperties =
-            ts.SelectMany(t => t.GetProperties(BindingFlags.Public | BindingFlags.Instance))
-                .Where(p => typesWeKnow.Contains(p.PropertyType));
+            type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => _typesWeKnow.Contains(p.PropertyType));
         foreach (var prop in instanceProperties) {
             var propertyName = prop.DeclaringType.Name + "." + prop.Name;
             var procedure = ProcedureFromInstanceProperty(prop);
             var bg = new Binding(
-                new Jig.Expansion.Parameter(new Symbol(propertyName), [], 0, index++, null),
+                new Jig.Expansion.Parameter(new Symbol(propertyName), [], 0, indexForBinding++, null),
                 new Location(procedure));
             bindings.Add(bg);
         }
         var staticProperties =
-            ts.SelectMany(t => t.GetProperties(BindingFlags.Public | BindingFlags.Static))
-                .Where(p => typesWeKnow.Contains(p.PropertyType));
+            type.GetProperties(BindingFlags.Public | BindingFlags.Static)
+                .Where(p => _typesWeKnow.Contains(p.PropertyType));
         foreach (var prop in staticProperties) {
+            if (prop.GetGetMethod() != null) {
+                var propertyName = prop.DeclaringType.Name + "." + prop.Name;
+                var procedure = ProcedureForGetter(prop);
+                var bg = new Binding(
+                    new Jig.Expansion.Parameter(new Symbol(propertyName), [], 0, indexForBinding++, null),
+                    new Location(procedure));
+                bindings.Add(bg);
+                
+            }
             
         }
         var ctors =
-            ts.SelectMany(t => t.GetConstructors(BindingFlags.Public | BindingFlags.Instance))
-                .Where(ci => typesWeKnow.Contains(ci.DeclaringType))
-                .Where(ci => ci.GetParameters().All(p => typesWeKnow.Contains(p.ParameterType)))
+            type.GetConstructors(BindingFlags.Public | BindingFlags.Instance)
+                .Where(ci => _typesWeKnow.Contains(ci.DeclaringType))
+                .Where(ci => ci.GetParameters().All(p => _typesWeKnow.Contains(p.ParameterType)))
                 .ToArray();
         if (ctors.Length != 0) {
             var ctorProc = ProcedureFromMethodGroup(ctors);
             var bindingForCtor = new Binding(
-                new Jig.Expansion.Parameter(new Symbol(ctors[0].DeclaringType.Name + ".new"), [], 0, index++, null),
+                new Jig.Expansion.Parameter(new Symbol(ctors[0].DeclaringType.Name + ".new"), [], 0, indexForBinding++, null),
                 new Location(ctorProc));
             bindings.Add(bindingForCtor);
         }
+        return bindings.ToArray();
+    }
+
+    private static readonly Type[] _typesWeKnow = [
+        typeof(SchemeValue),
+        typeof(String),
+        typeof(Symbol),
+        typeof(int),
+        typeof(double),
+        typeof(string),
+        typeof(string[]),
+        typeof(bool),
+        typeof(char),
+        typeof(char[])];
+    public Library LibraryFromTypes(IEnumerable<Type> ts) {
+
+
+        System.Collections.Generic.List<Binding> bindings = [];
+        foreach (var t in ts) {
+            bindings.AddRange(BindingsFromType(t));
+        }
         return new Library(bindings, []);
+    }
+
+    public Library LibraryFromType(Type type) {
+        return new Library(BindingsFromType(type), []);
+    }
+
+    public Library ImportClrNameSpace(string name) {
+        var ts = ResolveClrName(name);
+        return LibraryFromTypes(ts);
 
     }
 
@@ -158,6 +196,13 @@ public class InterOp {
     }
 
     private Procedure MakeProcedure(ParsedLambda.LambdaParameters lambdaParams, ParsedForm[] body, string name) {
+        // TODO: we create a ParsedLambda and then send it to the compiler.
+        // but would it make more sense to build a Datum and send that to the Expander?
+        // One thing to consider is that we create literal ClrPrimitives
+        // and out of those ParsedLiterals as operators for the applications
+        // But I suppose we could just as well make datum literals like integers
+        // It's just that these are not readable things so it would be odd for them to be datums
+        
         var parsedLambda = new ParsedLambda(
             new Identifier(new Symbol("lambda")),
             lambdaParams,
@@ -165,6 +210,7 @@ public class InterOp {
             body);
         // Console.WriteLine($"{Syntax.ToDatum(parsedLambda).Print()}");
         var compiler = new Compiler();
+        
         var template = compiler.CompileLambdaTemplate(parsedLambda, Environment.Default, 0);
         template.Name = new Identifier(new Symbol(name));
         return new Procedure(Evaluator.Environment, template);
@@ -401,6 +447,15 @@ public class InterOp {
         }
         return true;
     }
+    
+    // TODO: would it make more sense to put all of these on the ProcedureFrom methods on the Procedure class?
+    public Procedure ProcedureForGetter(PropertyInfo propertyInfo) {
+        
+        MethodInfo? getMethod = propertyInfo.GetGetMethod();
+        if (getMethod == null) throw new Exception();
+        var lambdaParams = LambdaParametersForMethod(getMethod);// NOTE: I think this will handle static and instance
+        return MakeProcedure(lambdaParams,  [CallForOverride(getMethod, lambdaParams)], propertyInfo.DeclaringType.Name + "." + propertyInfo.Name);
+    }
 
     public Procedure ProcedureFromInstanceProperty(PropertyInfo prop) {
         var lambdaParameters = LambdaParametersFromInstanceProperty(prop);
@@ -576,169 +631,4 @@ public class InterOp {
         return new ParsedLambda.LambdaParameters([], null);
     }
 
-}
-
-public delegate Jig.SchemeValue ClrPrimitiveUnsafe(Jig.List args);
-
-public class ClrPrimitive : SchemeValue, ICallable {
-
-    public ClrPrimitive(MethodBase mb, TypeResolver tr) {
-        if (mb is MethodInfo mi) {
-            if (mi.IsStatic) {
-                var parameters = mi.GetParameters();                                                                                                        
-                int count = parameters.Length;                          
-                HasRest = parameters.Length > 0 &&                                                                                                           
-                          parameters[^1].IsDefined(typeof(ParamArrayAttribute), false);
-                Required = HasRest ? count - 1 : count;
-                Delegate = MakeDelegate(mi, tr);
-            } else {
-                var parameters = mi.GetParameters();                                                                                                        
-                int count = parameters.Length + 1;                          
-                HasRest = parameters.Length > 0 &&                                                                                                           
-                          parameters[^1].IsDefined(typeof(ParamArrayAttribute), false);
-                Required = HasRest ? count - 1 : count;
-                Delegate = MakeDelegate(mi, tr);
-            }
-        } else if (mb is ConstructorInfo ctor) {
-            var parameters = mb.GetParameters();                                                                                                        
-            int count = parameters.Length;                          
-            HasRest = parameters.Length > 0 &&                                                                                                           
-                      parameters[^1].IsDefined(typeof(ParamArrayAttribute), false);
-            Required = HasRest ? count - 1 : count;
-            Delegate = MakeDelegateForCtor(ctor, tr);
-        } else {
-            throw new NotImplementedException($"Unhandled MethodBase type {mb.GetType()}");
-        }
-    }
-    
-    private ClrPrimitiveUnsafe MakeDelegateForCtor(ConstructorInfo ctor, TypeResolver tr) {
-        var listParam = Expression.Parameter(typeof(Jig.List), "args");                                                                                     
-        var arrayVar = Expression.Variable(typeof(Jig.SchemeValue[]), "argsArray");                                                                            
-        
-        
-        return Expression.Lambda<ClrPrimitiveUnsafe>(
-            Expression.Block(
-                [arrayVar],
-                Expression.Assign(arrayVar, ArgListToArray(arrayVar, listParam)),
-                MakeNewExpression(ctor, arrayVar, tr)),
-            listParam).Compile();
-    }
-    private Expression MakeNewExpression(ConstructorInfo ctor, ParameterExpression arrayVar, TypeResolver tr) {
-            return WrapReturn(
-                ctor,
-                Expression.New(ctor, MakeArgs(ctor, arrayVar, tr)),
-                tr);
-    }
-    private ClrPrimitiveUnsafe MakeDelegate(MethodInfo mi, TypeResolver tr) {
-        
-        
-        var listParam = Expression.Parameter(typeof(Jig.List), "args");                                                                                     
-        var arrayVar = Expression.Variable(typeof(Jig.SchemeValue[]), "argsArray");                                                                            
-        
-        
-        return Expression.Lambda<ClrPrimitiveUnsafe>(
-            Expression.Block(
-                [arrayVar],
-                Expression.Assign(arrayVar, ArgListToArray(arrayVar, listParam)),
-                MakeCallExpression(mi, arrayVar, tr)),
-            listParam).Compile();
-                                                          
-    }
-
-    private static Expression ArgListToArray(ParameterExpression arrayParam, ParameterExpression listParam) {
-            return Expression.Call(
-                typeof(Enumerable)
-                    .GetMethod("ToArray")!
-                    .MakeGenericMethod(typeof(Jig.SchemeValue)),
-                listParam);
-    }
-
-    private static Expression MakeCallExpression(MethodInfo mi, ParameterExpression arrayArgsParam, TypeResolver tr) {
-
-        if (mi.IsStatic) {
-            return WrapReturn(
-                mi,
-                Expression.Call(mi, MakeArgs(mi, arrayArgsParam, tr)),
-                tr);
-        }
-        var args = MakeArgs(mi, arrayArgsParam, tr);
-        var call = Expression.Call(args[0], mi, args.Skip(1).ToArray());
-        return WrapReturn(
-            mi,
-            call,
-            tr);
-    }
-
-    private static Expression[] MakeArgs(MethodInfo mi, ParameterExpression args , TypeResolver tr) {
-        if (mi.IsStatic) {
-            var parameters = mi.GetParameters();
-            System.Collections.Generic.List<Expression> argsList = [];
-            int i = 0;
-            foreach (var p in parameters) {
-                // argsList.Add(WrapParameter(args, i, p));
-                argsList.Add(ConvertArgExpr(args, i, p, tr));
-                i++;
-
-            }
-            return argsList.ToArray();
-        }
-        
-        System.Collections.Generic.List<Expression> xs = [ConvertObjectArgExpr(args, mi, tr)];
-        var ps = mi.GetParameters();
-        var n = 1;
-        foreach (var p in ps) {
-            // argsList.Add(WrapParameter(args, i, p));
-            xs.Add(ConvertArgExpr(args, n, p, tr));
-            n++;
-
-        }
-        return xs.ToArray();
-    }
-
-    private static Expression[] MakeArgs(ConstructorInfo ctor, ParameterExpression args , TypeResolver tr) {
-            var parameters = ctor.GetParameters();
-            System.Collections.Generic.List<Expression> argsList = [];
-            int i = 0;
-            foreach (var p in parameters) {
-                // argsList.Add(WrapParameter(args, i, p));
-                argsList.Add(ConvertArgExpr(args, i, p, tr));
-                i++;
-
-            }
-            return argsList.ToArray();
-    }
-    private static Expression ConvertObjectArgExpr(ParameterExpression argsArrayParam, MethodInfo mi, TypeResolver tr) {
-        
-        Jig.Types.TypeDescriptor desc = tr.Resolve(mi.DeclaringType);
-        var call = Expression.Invoke(Expression.Constant(desc.ConvertArg), Expression.ArrayIndex(argsArrayParam, Expression.Constant(0)));
-        return Expression.Convert(call, mi.DeclaringType);
-    }
-
-    private static Expression ConvertArgExpr(ParameterExpression argsArrayParam, int argIndex, ParameterInfo p, TypeResolver tr) {
-
-        Jig.Types.TypeDescriptor desc = tr.Resolve(p.ParameterType);
-        var call = Expression.Invoke(Expression.Constant(desc.ConvertArg), Expression.ArrayIndex(argsArrayParam, Expression.Constant(argIndex)));
-        return Expression.Convert(call, p.ParameterType);
-
-
-    }
-
-
-    private static Expression WrapReturn(MethodInfo mi, Expression expr, TypeResolver tr) {
-        
-        return Expression.Invoke(Expression.Constant(tr.Resolve(mi.ReturnType).WrapReturn), Expression.Convert(expr, typeof(object)));
-        
-    }
-
-    private static Expression WrapReturn(ConstructorInfo ctor, Expression expr, TypeResolver tr) {
-        
-        return Expression.Invoke(Expression.Constant(tr.Resolve(ctor.DeclaringType).WrapReturn), Expression.Convert(expr, typeof(object)));
-        
-    }
-    public ClrPrimitiveUnsafe Delegate {get;}
-    
-    
-    public int Required {get;}
-    public bool HasRest {get;}
-    public override string Print() => "#<clr method>";
 }

@@ -19,7 +19,7 @@
    caddr ; cdadr cddar
    cdddr ; caaaar caaadr caadar cadaar cdaaar cddaar cdadar cdaadr cadadr caaddr caddar cadddr cdaddr cddadr cdddar cddddr
    list? list length append reverse list-tail list-ref map for-each
-                                        ; symbol->string string->symbol symbol=?
+   symbol->string ; string->symbol symbol=?
                                         ;  integer->char char->integer char=? char<? char>? char<=? char>=?
                                         ;  string make-string string-length string-ref string=? string<? string>? string<=? string>=?
                                         ;  substring string-append list->string string->list string-copy string-for-each

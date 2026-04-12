@@ -4,6 +4,7 @@ using Jig.Types;
 using VM;
 using Mono.Options;
 using System.Diagnostics;
+using System.Reflection;
 using Jig.Reader;
 
 public static class Program {
@@ -11,7 +12,7 @@ public static class Program {
     public static VM.Environment TopLevel = VM.Environment.Default;
 
     static void Main(string[] args) {
-
+        System.Diagnostics.Debugger.Break();
         string debugLogPath = "debug.log";
         if (File.Exists(debugLogPath)) {
             File.Delete(debugLogPath);
@@ -61,7 +62,10 @@ public static class Program {
                 new ValueTuple<Symbol[], ILibrary>([new Symbol("clr"), new Symbol("System"), new Symbol("Math")], interop.ImportClrNameSpace("System.Math")),
                 new ValueTuple<Symbol[], ILibrary>([new Symbol("clr"), new Symbol("System"), new Symbol("String")], interop.ImportClrNameSpace("System.String")),
                 new ValueTuple<Symbol[], ILibrary>([new Symbol("clr"), new Symbol("System"), new Symbol("Char")], interop.ImportClrNameSpace("System.Char")),
+                new ValueTuple<Symbol[], ILibrary>([new Symbol("clr"), new Symbol("Jig"), new Symbol("Primitives")], interop.ImportClrNameSpace("Jig.Primitives")),
+                new ValueTuple<Symbol[], ILibrary>([new Symbol("clr"), new Symbol("Jig"), new Symbol("Symbol")], interop.LibraryFromTypes([typeof(Jig.Symbol)])),
                 new ValueTuple<Symbol[], ILibrary>([new Symbol("jig"), new Symbol("clr"), new Symbol("reflection")], new ReflectionLibrary(interop)),
+                new ValueTuple<Symbol[], ILibrary>([new Symbol("clr"), new Symbol("System"), new Symbol("Reflection"), new Symbol("BindingFlags")], interop.LibraryFromType(typeof(BindingFlags))),
             });
         
         // var jigLib = Library.FromFile("lib/rnrs/base.sls", Reader.ReadSyntax, new VMFactory());

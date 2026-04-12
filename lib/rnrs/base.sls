@@ -53,7 +53,7 @@
    list? list length append reverse list-tail list-ref map for-each
                                         ; 11.10 Symbols
                                         ; NOTE: symbol? already exported
-                                        ; symbol->string string->symbol symbol=?
+   symbol->string ; string->symbol symbol=?
                                         ; 11.11 Characters NOTE: char? already exported
                                         ;  integer->char char->integer char=? char<? char>? char<=? char>=?
                                         ; 11.12 Strings NOTE: string? already exported

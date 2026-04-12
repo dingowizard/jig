@@ -1,3 +1,4 @@
+using Jig.Types;
 namespace Jig;
 
 public class String(string s) : LiteralExpr<string>(s) {
@@ -5,5 +6,7 @@ public class String(string s) : LiteralExpr<string>(s) {
         // TODO: handle special chars like \n
         return "\"" + Value + "\"";
     }
+
+    public static TypeDescriptor TypeDescriptor = new SchemeValueTypeDescriptor<String>();
 }
 

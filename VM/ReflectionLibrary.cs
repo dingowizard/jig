@@ -42,11 +42,11 @@ public class ReflectionLibrary : ILibrary {
             new (new Symbol("procedure<-clr-method"), [], 0, index++, null),
             new Location(procedureFromMethodInfo)));
         
-        MethodInfo? propertyMI = typeof(ReflectionLibrary).GetMethod(nameof(ProcedureFromPropertyInfo), BindingFlags.NonPublic | BindingFlags.Static, [typeof(string), typeof(string)]);
+        MethodInfo? propertyMI = typeof(ReflectionLibrary).GetMethod(nameof(GetProcedureFromPropertyInfo), BindingFlags.NonPublic | BindingFlags.Static, [typeof(PropertyInfo)]);
         Debug.Assert(propertyMI != null);
         Procedure procedureFromPropertyInfo = interOp.ProcedureFromStaticMethodInfo(propertyMI);
         varBindings.Add(new Binding(
-            new (new Symbol("procedure<-clr-property"), [], 0, index++, null),
+            new (new Symbol("getter<-property"), [], 0, index++, null),
             new Location(procedureFromPropertyInfo)));
         
         VariableExports = varBindings.ToArray();
@@ -60,6 +60,11 @@ public class ReflectionLibrary : ILibrary {
             return InterOp.GlobalInterOp.ProcedureFromStaticMethodInfo(methodInfo);
         }
         return InterOp.GlobalInterOp.ProcedureFromInstanceMethodInfo(methodInfo);
+    }
+
+    private static SchemeValue GetProcedureFromPropertyInfo(PropertyInfo propertyInfo) {
+        return InterOp.GlobalInterOp.ProcedureForGetter(propertyInfo);
+
     }
 
     private static SchemeValue ProcedureFromMethodInfo(string typeName, string methodName, string[] parameterTypes) {

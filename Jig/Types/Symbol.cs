@@ -1,3 +1,4 @@
+using Jig.Types;
 namespace Jig;
 
 public class Symbol : SchemeValue {
@@ -28,6 +29,7 @@ public class Symbol : SchemeValue {
         };
     }
 
+    public static TypeDescriptor TypeDescriptor = new SchemeValueTypeDescriptor<Symbol>();
     public override int GetHashCode() {
         return Name.GetHashCode();
     }

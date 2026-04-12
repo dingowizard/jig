@@ -1,6 +1,8 @@
+using System.Reflection;
 using Jig;
 using Jig.Expansion;
 using Jig.IO;
+using String = Jig.String;
 
 namespace VM;
 
@@ -67,6 +69,10 @@ public class Library : ILibrary {
 
         return new Library(parsedLibrary, evaluator);
 
+    }
+
+    private static Jig.String StringFromSymbol(Symbol symbol) {
+        return new Jig.String(symbol.Name);
     }
 
     static Library() {
