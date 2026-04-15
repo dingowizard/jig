@@ -1,9 +1,10 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using Jig.Types;
 
 namespace Jig;
 
-public class Vector : SchemeValue, IEnumerable<SchemeValue> {
+public class Vector : SchemeValue, IEnumerable<SchemeValue>, IHasTypeDescriptor {
 
     public Vector() {
         Elements = [];
@@ -31,7 +32,7 @@ public class Vector : SchemeValue, IEnumerable<SchemeValue> {
         }
     }
 
-    protected internal SchemeValue[] Elements {get;}
+    public SchemeValue[] Elements {get;}
 
     public override string Print() => $"#({string.Join(' ', this.Select(x => x.Print()))})";
 
@@ -46,5 +47,6 @@ public class Vector : SchemeValue, IEnumerable<SchemeValue> {
         return this.GetEnumerator();
     }
 
+    public static TypeDescriptor TypeDescriptor {get;} = new SchemeValueTypeDescriptor<Vector>();
 } // class Vector
 

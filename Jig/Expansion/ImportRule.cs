@@ -34,6 +34,11 @@ public partial class CoreParseRules {
         foreach (var importSpec in importSpecs) {
             if (LibraryLibrary.Instance.TryFindLibrary(importSpec, out ILibrary? library)) {
                 importedLibraries.Add(library);
+            } else if (importSpec.Name[0].Name.Equals("clr")) {
+                ILibrary clrLib = context.Expander.Owner.InterOp.ImportClrNameSpace(string.Join(".", importSpec.Name.Skip(1).Select(s => s.Name)));
+                Console.WriteLine($"it has the following vars: {string.Join(", ", clrLib.VariableExports.Select(b => b.Parameter.Symbol.Name))}");
+                importedLibraries.Add(clrLib);
+                LibraryLibrary.Instance.RegisterLibrary(importSpec.Name, clrLib);
             } else {
                 throw new Exception($"could not find library from spec: {importSpec.Print()}");
             }

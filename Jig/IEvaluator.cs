@@ -7,6 +7,8 @@ public interface IEvaluator {
     public IRuntime Runtime { get; }
     public Expander Expander { get; }
     
+    public IInterOp InterOp { get; }
+    
     public uint Phase { get; }
     
     public IEvaluatorFactory Factory { get; }

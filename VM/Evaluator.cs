@@ -1,12 +1,17 @@
 using Jig;
 using Jig.Expansion;
 using Jig.IO;
+using Jig.Types;
 
 namespace VM;
 
 public class Evaluator : IEvaluator<Machine> {
 
     public Evaluator(uint phase = 0) {
+        TypeResolver tr = new TypeResolver();
+        var interop = new InterOp(tr, this);
+        VM.InterOp.GlobalInterOp = interop; // TODO: ARGH!!!
+        InterOp = interop;
         Phase =  phase;
         Expander = new Expander(this, new VMFactory(Phase + 1));
         Variables = Environment = Environment.Minimal();
@@ -14,6 +19,7 @@ public class Evaluator : IEvaluator<Machine> {
         Keywords = Runtime.FreshCoreSyntax();
 
     }
+    public IInterOp InterOp {get;}
 
     public uint Phase { get;  }
 

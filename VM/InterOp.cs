@@ -6,7 +6,13 @@ using Jig.Types;
 using String = Jig.String;
 namespace VM;
 
-public class InterOp {
+public class InterOp : IInterOp {
+    
+    
+    // TODO: error messages for argument type errors are not very good.
+    // for example, will give failed to find overload when there is only one overload
+    // names of constructors should be "Type.new" in errors rather than ".ctor"
+    // probably other issues
 
     public static InterOp GlobalInterOp; //TODO: UGH!!!!
     
@@ -22,9 +28,21 @@ public class InterOp {
     static IEnumerable<Type> ResolveClrName(string name) {
         // try as a type first
         var t = Type.GetType(name);
-        if (t != null)
-            return new[] { t };
+        if (t != null) {
+            return [t];
+        }
 
+        // Search all loaded assemblies for type with name
+        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies()) {
+            Type? st = asm.GetType(name);
+            if (st != null) {
+                t = st;
+                break;
+            }
+        }
+        if (t != null) {
+            return [t];
+        }
         // otherwise treat as namespace
         return AppDomain.CurrentDomain
             .GetAssemblies()
@@ -59,11 +77,11 @@ public class InterOp {
         
         var constantFields =
             type.GetFields(BindingFlags.Public | BindingFlags.Static)
-                .Where(fi => (fi.IsLiteral || fi.IsInitOnly) && _typesWeKnow.Contains(fi.FieldType));
+                .Where(fi => (fi.IsLiteral || fi.IsInitOnly) && CanHandleType(fi.FieldType));
         foreach (var f in constantFields) {
             SchemeValue schemeValue = TypeResolver.Resolve(f.FieldType).WrapReturn(f.IsLiteral ? f.GetRawConstantValue() : f.GetValue(null));
 
-            string fullName =  f.DeclaringType.Name +  "." +   f.Name;
+            string fullName =  f.ReflectedType.Name +  "." +   f.Name;
             // Console.WriteLine($"field = {fullName}");
             var bg = new Binding(new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, indexForBinding++, null),
                 new Location(schemeValue));
@@ -72,12 +90,13 @@ public class InterOp {
         
         var staticMethodInfos =
             type.GetMethods(BindingFlags.Public | BindingFlags.Static)
-                .Where(mi => _typesWeKnow.Contains(mi.ReturnType) && mi.GetParameters().All(p => _typesWeKnow.Contains(p.ParameterType)))
+                .Where(mi => CanHandleType(mi.ReturnType) && mi.GetParameters().All(p => CanHandleType(p.ParameterType)))
                 .Where(mi => !mi.GetParameters().Any(p => p.IsDefined(typeof(ParamArrayAttribute), inherit: false)))
+                .Where(mi => !mi.IsSpecialName)
                 .GroupBy(mi => mi.Name);
         foreach (var methodGroup in staticMethodInfos) {
             var arr = methodGroup.ToArray();
-            string fullName = arr[0].DeclaringType.Name + "."  +  arr[0].Name; 
+            string fullName = arr[0].ReflectedType.Name + "."  +  arr[0].Name; 
             // Console.WriteLine($"trying to import {fullName}");
             SchemeValue clrProcedure = Bool.False;
             try {
@@ -96,15 +115,15 @@ public class InterOp {
         // TODO: we can get rid of these type filters when the type resolver knows what to do with generics and interfaces
         var instanceMethodGroups =
             type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                .Where(mi => _typesWeKnow.Contains(mi.DeclaringType) &&
-                             _typesWeKnow.Contains(mi.ReturnType) &&
-                             mi.GetParameters().All(p => _typesWeKnow.Contains(p.ParameterType)))
+                .Where(mi => CanHandleType(mi.ReflectedType) &&
+                             CanHandleType(mi.ReturnType) &&
+                             mi.GetParameters().All(p => CanHandleType(p.ParameterType)))
                 .Where(mi => !mi.GetParameters().Any(p => p.IsDefined(typeof(ParamArrayAttribute), inherit: false)))
                 .Where(mi => !mi.IsSpecialName)
                 .GroupBy(mi => mi.Name);
         foreach (var methodGroup in instanceMethodGroups) {
             var arr = methodGroup.ToArray();
-            string fullName = arr[0].DeclaringType.Name + "."  +  arr[0].Name; 
+            string fullName = arr[0].ReflectedType.Name + "."  +  arr[0].Name; 
             Procedure clrProcedure = ProcedureFromMethodGroup(arr);
             var bg = new Binding(
                 new Jig.Expansion.Parameter(new Symbol(fullName), [], 0, indexForBinding++, null),
@@ -114,9 +133,9 @@ public class InterOp {
         }
         var instanceProperties =
             type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(p => _typesWeKnow.Contains(p.PropertyType));
+                .Where(p => CanHandleType(p.PropertyType));
         foreach (var prop in instanceProperties) {
-            var propertyName = prop.DeclaringType.Name + "." + prop.Name;
+            var propertyName = prop.ReflectedType.Name + "." + prop.Name;
             var procedure = ProcedureFromInstanceProperty(prop);
             var bg = new Binding(
                 new Jig.Expansion.Parameter(new Symbol(propertyName), [], 0, indexForBinding++, null),
@@ -125,10 +144,10 @@ public class InterOp {
         }
         var staticProperties =
             type.GetProperties(BindingFlags.Public | BindingFlags.Static)
-                .Where(p => _typesWeKnow.Contains(p.PropertyType));
+                .Where(p => CanHandleType(p.PropertyType));
         foreach (var prop in staticProperties) {
             if (prop.GetGetMethod() != null) {
-                var propertyName = prop.DeclaringType.Name + "." + prop.Name;
+                var propertyName = prop.ReflectedType.Name + "." + prop.Name;
                 var procedure = ProcedureForGetter(prop);
                 var bg = new Binding(
                     new Jig.Expansion.Parameter(new Symbol(propertyName), [], 0, indexForBinding++, null),
@@ -140,23 +159,45 @@ public class InterOp {
         }
         var ctors =
             type.GetConstructors(BindingFlags.Public | BindingFlags.Instance)
-                .Where(ci => _typesWeKnow.Contains(ci.DeclaringType))
-                .Where(ci => ci.GetParameters().All(p => _typesWeKnow.Contains(p.ParameterType)))
+                .Where(ci => CanHandleType(ci.ReflectedType))
+                .Where(ci => ci.GetParameters().All(p => CanHandleType(p.ParameterType)))
                 .ToArray();
         if (ctors.Length != 0) {
             var ctorProc = ProcedureFromMethodGroup(ctors);
             var bindingForCtor = new Binding(
-                new Jig.Expansion.Parameter(new Symbol(ctors[0].DeclaringType.Name + ".new"), [], 0, indexForBinding++, null),
+                new Jig.Expansion.Parameter(new Symbol(ctors[0].ReflectedType.Name + ".new"), [], 0, indexForBinding++, null),
                 new Location(ctorProc));
             bindings.Add(bindingForCtor);
         }
         return bindings.ToArray();
     }
 
+    private bool CanHandleType(Type type, bool allowOthers = false) {
+
+        if (type.IsConstructedGenericType) {
+            return false;
+        }
+        if (_bannedTypes.Contains(type)) {
+            return false;
+        } 
+        if (_typesWeKnow.Contains(type)) {
+            return true;
+        }
+        return allowOthers;
+
+    }
+
+    private static readonly Type[] _bannedTypes = [];
+
     private static readonly Type[] _typesWeKnow = [
         typeof(SchemeValue),
+        typeof(SchemeValue[]),
         typeof(String),
+        typeof(Integer),
         typeof(Symbol),
+        typeof(Vector),
+        typeof(Bool),
+        typeof(Jig.Char),
         typeof(int),
         typeof(double),
         typeof(string),
@@ -174,11 +215,11 @@ public class InterOp {
         return new Library(bindings, []);
     }
 
-    public Library LibraryFromType(Type type) {
+    public ILibrary LibraryFromType(Type type) {
         return new Library(BindingsFromType(type), []);
     }
 
-    public Library ImportClrNameSpace(string name) {
+    public ILibrary ImportClrNameSpace(string name) {
         var ts = ResolveClrName(name);
         return LibraryFromTypes(ts);
 
@@ -192,7 +233,7 @@ public class InterOp {
         }
         string ps = string.Join("->", paramNameAndTypes);
         string returnType = mi.ReturnType.Name;
-        return mi.DeclaringType.Name +  "."  + mi.Name + "/" + ps + (ps != "" ? "->" + returnType : returnType);
+        return mi.ReflectedType.Name +  "."  + mi.Name + "/" + ps + (ps != "" ? "->" + returnType : returnType);
     }
 
     private Procedure MakeProcedure(ParsedLambda.LambdaParameters lambdaParams, ParsedForm[] body, string name) {
@@ -211,7 +252,7 @@ public class InterOp {
         // Console.WriteLine($"{Syntax.ToDatum(parsedLambda).Print()}");
         var compiler = new Compiler();
         
-        var template = compiler.CompileLambdaTemplate(parsedLambda, Environment.Default, 0);
+        var template = compiler.CompileLambdaTemplate(parsedLambda, Evaluator.Environment, 0);
         template.Name = new Identifier(new Symbol(name));
         return new Procedure(Evaluator.Environment, template);
         
@@ -260,7 +301,7 @@ public class InterOp {
 
         // Console.WriteLine($"Making procedure for {mi.Name}. The override with the least parameters has {shortest} parameters.");
         // Console.WriteLine($"\tthe lambda parameters for the function are: {Syntax.E(lambdaParams).Print()}. required = {lambdaParams.Required.Length}");
-        return [BodyExprMethodGroupVariousLengths(shortest, lambdaParams, methodBases, mi.Name, mi.DeclaringType)];
+        return [BodyExprMethodGroupVariousLengths(shortest, lambdaParams, methodBases, mi.Name, mi.ReflectedType)];
     }
     
     private ParsedForm BodyExprMethodGroupVariousLengths(int shortest, ParsedLambda.LambdaParameters lambdaParams, IOrderedEnumerable<MethodBase> methodBases, string name, Type? miDeclaringType) {
@@ -369,7 +410,7 @@ public class InterOp {
                 new Identifier(new Symbol("if")),
                 stmts.ElementAt(0).@if,
                 stmts.ElementAt(0).call,
-                CouldNotResolveErrorCall(methodBases[0].Name, methodBases[0].DeclaringType));
+                CouldNotResolveErrorCall(methodBases[0].Name, methodBases[0].ReflectedType));
         }
         return new ParsedIf(
             new Identifier(new Symbol("if")),
@@ -389,7 +430,7 @@ public class InterOp {
         if (methodBase is MethodInfo mi && !mi.IsStatic) {
             return new ParsedIf(
                 new Syntax(new Symbol("if")),
-                PredicateApplicationFromType(methodBase.DeclaringType, new ParsedVariable.Lexical(new Identifier(parameters.ElementAt(0).Symbol), parameters.ElementAt(0), null)),
+                PredicateApplicationFromType(methodBase.ReflectedType, new ParsedVariable.Lexical(new Identifier(parameters.ElementAt(0).Symbol), parameters.ElementAt(0), null)),
                 ConditionForOverrideAux(toList, parameters.Skip(1)),
                 new ParsedLiteral(new Syntax(new Symbol("quote")), new Syntax.Literal(Bool.False)));
         }
@@ -454,12 +495,12 @@ public class InterOp {
         MethodInfo? getMethod = propertyInfo.GetGetMethod();
         if (getMethod == null) throw new Exception();
         var lambdaParams = LambdaParametersForMethod(getMethod);// NOTE: I think this will handle static and instance
-        return MakeProcedure(lambdaParams,  [CallForOverride(getMethod, lambdaParams)], propertyInfo.DeclaringType.Name + "." + propertyInfo.Name);
+        return MakeProcedure(lambdaParams,  [CallForOverride(getMethod, lambdaParams)], propertyInfo.ReflectedType.Name + "." + propertyInfo.Name);
     }
 
     public Procedure ProcedureFromInstanceProperty(PropertyInfo prop) {
         var lambdaParameters = LambdaParametersFromInstanceProperty(prop);
-        return MakeProcedure(lambdaParameters, LambdaBodyForInstanceMethod(prop.GetGetMethod(), lambdaParameters), prop.DeclaringType.Name + "." + prop.Name);
+        return MakeProcedure(lambdaParameters, LambdaBodyForInstanceMethod(prop.GetGetMethod(), lambdaParameters), prop.ReflectedType.Name + "." + prop.Name);
         // return MakeProcedure(lambdaParameters, LambdaBodyForInstanceProperty(prop, lambdaParameters), prop.DeclaringType.Name + "." + prop.Name);
     }
 
@@ -536,7 +577,7 @@ public class InterOp {
     private ParsedForm[] LambdaBodyForInstanceMethod(MethodInfo methodInfo, ParsedLambda.LambdaParameters lambdaParameters) {
         var firstParam = lambdaParameters.Required[0];
         ParsedVariable.Lexical objectArg = new ParsedVariable.Lexical(new Identifier(firstParam.Symbol), firstParam, null);
-        System.Collections.Generic.List<ParsedForm> ifs = [IfExprForObjectArg(methodInfo.Name, methodInfo.DeclaringType, objectArg)];
+        System.Collections.Generic.List<ParsedForm> ifs = [IfExprForObjectArg(methodInfo.Name, methodInfo.ReflectedType, objectArg)];
         foreach (var (pInfo, p) in methodInfo.GetParameters().Zip(lambdaParameters.Required.Skip(1))) {
             var arg = new ParsedVariable.Lexical(new Identifier(p.Symbol), p, null);
             var @if = IfExprFromParameterInfo(methodInfo, pInfo, arg);
@@ -592,7 +633,7 @@ public class InterOp {
     
     private ParsedLambda.LambdaParameters LambdaParametersForInstanceMethod(MethodInfo methodInfo) {
         var ps = LambdaParametersFromParameterInfos(methodInfo.GetParameters(), 1);
-        Identifier objParam = new Identifier(new Symbol(methodInfo.DeclaringType.Name.ToLower()));
+        Identifier objParam = new Identifier(new Symbol(methodInfo.ReflectedType.Name.ToLower()));
         var parameter = new Jig.Expansion.Parameter(objParam.Symbol, [], 1, 0, null);
         return new ParsedLambda.LambdaParameters(
             new[]

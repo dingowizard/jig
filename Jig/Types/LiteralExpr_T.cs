@@ -1,6 +1,7 @@
+using Jig.Types;
 namespace Jig;
 
-public class LiteralExpr<T> : LiteralExpr where T : notnull {
+public class LiteralExpr<T> : LiteralExpr, IHasTypeDescriptor where T : notnull {
     public LiteralExpr(T val) {
         Value = val;
     }
@@ -22,4 +23,9 @@ public class LiteralExpr<T> : LiteralExpr where T : notnull {
 
     public override string Print() => $"#<{Value.GetType().Name} {Value.ToString()}>" ?? "null";
 
+    public static  TypeDescriptor TypeDescriptor {get;} = new SchemeValueTypeDescriptor<LiteralExpr<T>>();
+}
+
+public interface IHasTypeDescriptor {
+    abstract static TypeDescriptor TypeDescriptor { get; }
 }

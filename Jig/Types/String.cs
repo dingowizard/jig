@@ -7,6 +7,5 @@ public class String(string s) : LiteralExpr<string>(s) {
         return "\"" + Value + "\"";
     }
 
-    public static TypeDescriptor TypeDescriptor = new SchemeValueTypeDescriptor<String>();
 }
 

@@ -1,7 +1,9 @@
 
+using Jig.Types;
 namespace Jig;
-public class Integer(int i) : Number<int>(i) {
+public class Integer(int i) : Number<int>(i), IHasTypeDescriptor {
 
+    public static TypeDescriptor TypeDescriptor {get;} = new SchemeValueTypeDescriptor<Integer>();
     public static Integer Zero {get;} = new Integer(0);
     public static Integer One {get;} = new Integer(1);
     public static Integer Two {get;} = new Integer(2);

@@ -26,6 +26,7 @@ public class LibraryLibrary {
     public string[] LibraryPaths {get; private set;}
 
     public bool TryFindLibrary(ParsedImportSpec importSpec, [NotNullWhen(true)]  out ILibrary? library) {
+        
         LibraryKey key = new LibraryKey(importSpec.Name.Select(sym => sym.Name));
         if (_dict.TryGetValue(key, out var tmp) && tmp is {} candidates) {
             // Console.WriteLine($"found lib {key}");
@@ -36,6 +37,7 @@ public class LibraryLibrary {
             library = enumerable.First();
             return true;
         }
+        // TODO: shouldn't this logic be in the caller rather than here?
         // Console.WriteLine($"didnt find {key} in LibraryLibrary. looking in paths");
         foreach (var basePath in LibraryPaths) {
             string[] names = importSpec.Name.Select(sym => sym.Name).ToArray();
