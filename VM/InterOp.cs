@@ -51,6 +51,7 @@ public class InterOp : IInterOp {
                         || t.Namespace?.StartsWith(name + ".") == true);
     }
 
+
     public Binding[] BindingsFromType(Type type) {
         
         System.Collections.Generic.List<Binding> bindings = [];
@@ -70,10 +71,17 @@ public class InterOp : IInterOp {
             }
             return bindings.ToArray(); // TODO: we're sure enum type can't have any of the below?
         }
-        
+
+        var jigValueForClrType = new LiteralExpr<Type>(type);
         var typeBinding = new Binding(new Jig.Expansion.Parameter(new Symbol(type.FullName), [], 0, indexForBinding++, null),
-            new Location(new LiteralExpr<Type>(type)));
+            new Location(jigValueForClrType));
         bindings.Add(typeBinding);
+
+        Type litExprType = typeof(LiteralExpr<>).MakeGenericType(type);
+        var typePredProc = Primitive.TypePredicate((sv) => litExprType.IsInstanceOfType(sv) ? Bool.True : Bool.False, type.FullName + "?");
+        var typePredBinding = new Binding(new Jig.Expansion.Parameter(new Symbol(type.FullName + "?"), [], 0, indexForBinding++, null),
+            new Location(typePredProc));
+        bindings.Add(typePredBinding);
         
         var constantFields =
             type.GetFields(BindingFlags.Public | BindingFlags.Static)
@@ -204,6 +212,7 @@ public class InterOp : IInterOp {
         typeof(string[]),
         typeof(bool),
         typeof(char),
+        typeof(System.DateTime),
         typeof(char[])];
     public Library LibraryFromTypes(IEnumerable<Type> ts) {
 

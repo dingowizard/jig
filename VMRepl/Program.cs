@@ -56,13 +56,7 @@ public static class Program {
             new System.Collections.Generic.List<(Symbol[], ILibrary)>()
             {
                 new ValueTuple<Symbol[], ILibrary>([new Symbol("core-primitives")], Library.Core),
-                new ValueTuple<Symbol[], ILibrary>([new Symbol("clr"), new Symbol("System"), new Symbol("Math")], evaluator.InterOp.ImportClrNameSpace("System.Math")),
-                new ValueTuple<Symbol[], ILibrary>([new Symbol("clr"), new Symbol("System"), new Symbol("String")], evaluator.InterOp.ImportClrNameSpace("System.String")),
-                new ValueTuple<Symbol[], ILibrary>([new Symbol("clr"), new Symbol("System"), new Symbol("Char")], evaluator.InterOp.ImportClrNameSpace("System.Char")),
-                new ValueTuple<Symbol[], ILibrary>([new Symbol("clr"), new Symbol("Jig"), new Symbol("Primitives")], evaluator.InterOp.LibraryFromType(typeof(Jig.Primitives.TestProcedures))),
-                new ValueTuple<Symbol[], ILibrary>([new Symbol("clr"), new Symbol("Jig"), new Symbol("Symbol")], evaluator.InterOp.ImportClrNameSpace("Jig.Symbol")),
                 new ValueTuple<Symbol[], ILibrary>([new Symbol("jig"), new Symbol("clr"), new Symbol("reflection")], new ReflectionLibrary((InterOp)evaluator.InterOp)), //TODO: get rid of cast
-                new ValueTuple<Symbol[], ILibrary>([new Symbol("clr"), new Symbol("System"), new Symbol("Reflection"), new Symbol("BindingFlags")], evaluator.InterOp.LibraryFromType(typeof(BindingFlags))),
             });
         
         // var jigLib = Library.FromFile("lib/rnrs/base.sls", Reader.ReadSyntax, new VMFactory());

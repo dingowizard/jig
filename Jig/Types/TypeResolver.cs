@@ -10,7 +10,7 @@ public class TypeResolver {
         if (clrType == typeof(string)) return TypeDescriptor.String;
         if (clrType == typeof(bool)) return TypeDescriptor.Boolean;
         if (clrType == typeof(char)) return TypeDescriptor.Char;
-        if (clrType == typeof(SchemeValue)) return TypeDescriptor.SchemeValue;
+        if (clrType == typeof(SchemeValue)) return TypeDescriptor.SchemeValue; // TODO: make this a static property on SchemeValue
         if (clrType == typeof(String)) return String.TypeDescriptor;
         if (clrType == typeof(Symbol)) return Symbol.TypeDescriptor;
         if (clrType == typeof(Char)) return Char.TypeDescriptor;

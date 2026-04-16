@@ -134,6 +134,12 @@ public class Evaluator : IEvaluator<Machine> {
             if (LibraryLibrary.Instance.TryFindLibrary(importSpec, out ILibrary? library)) {
                 ImportKeywords(library, importSpec.Level);
                 ImportVariables(library, importSpec.Level);
+            } else if (importSpec.Name[0].Name.Equals("clr")) {
+                ILibrary clrLib = InterOp.ImportClrNameSpace(string.Join(".", importSpec.Name.Skip(1).Select(s => s.Name)));
+                // Console.WriteLine($"it has the following vars: {string.Join(", ", clrLib.VariableExports.Select(b => b.Parameter.Symbol.Name))}");
+                ImportKeywords(clrLib, importSpec.Level);
+                ImportVariables(clrLib, importSpec.Level);
+                LibraryLibrary.Instance.RegisterLibrary(importSpec.Name, clrLib);
             } else {
                 throw new  Exception($"failed to find library: {importSpec}");
             }

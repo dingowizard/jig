@@ -672,6 +672,15 @@ public class Primitive : SchemeValue, ICallable {
     }
     public override string Print() => $"#<procedure {Name}>";
 
+    public static Primitive TypePredicate(Func<SchemeValue, Bool> func, string name) {
+        
+        return new Primitive(name, PrimitiveProcedure, 1, true);
+
+        void PrimitiveProcedure(Machine vm) {
+            SchemeValue arg = vm.Pop();
+            vm.Push(vm.VAL = func(arg));
+        }
+    }
     public static Primitive TypePredicate(TypeDescriptor desc) {
         
         return new Primitive($"can-be-{desc.ClrType.Name}?", PrimitiveProcedure, 1, true);
