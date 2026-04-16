@@ -140,7 +140,7 @@ public class ClrPrimitive : SchemeValue, ICallable {
         
         Jig.Types.TypeDescriptor desc = tr.Resolve(mi.ReflectedType);
         var call = Expression.Invoke(Expression.Constant(desc.ConvertArg), Expression.ArrayIndex(argsArrayParam, Expression.Constant(0)));
-        return Expression.Convert(call, mi.DeclaringType);
+        return Expression.Convert(call, mi.ReflectedType);
     }
 
     private static Expression ConvertArgExpr(ParameterExpression argsArrayParam, int argIndex, ParameterInfo p, TypeResolver tr) {
@@ -154,6 +154,10 @@ public class ClrPrimitive : SchemeValue, ICallable {
 
 
     private static Expression WrapReturn(MethodInfo mi, Expression expr, TypeResolver tr) {
+
+        if (mi.ReturnType == typeof(void)) {
+            return Expression.Block(expr, Expression.Constant(SchemeValue.Void));
+        }
         
         return Expression.Invoke(Expression.Constant(tr.Resolve(mi.ReturnType).WrapReturn), Expression.Convert(expr, typeof(object)));
         

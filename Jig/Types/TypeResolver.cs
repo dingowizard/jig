@@ -29,10 +29,9 @@ public class TypeResolver {
             
         }
 
-        if (clrType.IsConstructedGenericType) {
-            // this will include generic interfaces like IList<int>
-            var genTypeDef = clrType.GetGenericTypeDefinition();
-            throw new NotImplementedException($"clrType = {clrType.Name}");
+        if (clrType.IsConstructedGenericType && !clrType.IsInterface) {
+            // Type genTypeDef = clrType.GetGenericTypeDefinition();
+            // TypeDescriptor[] typeArgs = genTypeDef.GetGenericArguments().Select(Resolve).ToArray();
 
         }
         if (clrType.IsInterface) {
@@ -42,26 +41,30 @@ public class TypeResolver {
         
         // the argument to the constructor 
         // public TypeDescriptor(Func<T, TU> func) where T is clrType and TU is LiteralExpr<T> (obj) => new LiteralExpr<T>(obj) 
-        var param = System.Linq.Expressions.Expression.Parameter(clrType, "obj");
-
-        // var cast = System.Linq.Expressions.Expression.Convert(param, clrType);
-
-        var litExprT = typeof(LiteralExpr<>).MakeGenericType(clrType);
-        var ctor = litExprT.GetConstructor(new[] { clrType });
-        Debug.Assert(ctor != null);
-
-        var body = System.Linq.Expressions.Expression.New(ctor, param);
-        
-        Type funcType = typeof(Func<,>).MakeGenericType(clrType, litExprT);
-
-        var lambda = System.Linq.Expressions.Expression.Lambda(funcType, body, param);
-
-        var compiled = lambda.Compile();
-        // now we have this: (o) => new LiteralExpr<ClrType>((CrType) o). We can use this in LiteralDescriptor<T, TU>() once we build it
-        var closedType = typeof(TypeDescriptor<,>)
-            .MakeGenericType(clrType, litExprT);
-
-        TypeDescriptor literalTypeDescriptor = Activator.CreateInstance( closedType, new object[] {compiled}) as TypeDescriptor ?? throw new Exception();
+        // var param = System.Linq.Expressions.Expression.Parameter(clrType, "obj");
+        //
+        // // var cast = System.Linq.Expressions.Expression.Convert(param, clrType);
+        //
+        // var litExprT = typeof(LiteralExpr<>).MakeGenericType(clrType);
+        // var ctor = litExprT.GetConstructor(new[] { clrType });
+        // Debug.Assert(ctor != null);
+        //
+        // var body = System.Linq.Expressions.Expression.New(ctor, param);
+        //
+        // Type funcType = typeof(Func<,>).MakeGenericType(clrType, litExprT);
+        //
+        // var lambda = System.Linq.Expressions.Expression.Lambda(funcType, body, param);
+        //
+        // var compiled = lambda.Compile();
+        // // now we have this: (o) => new LiteralExpr<ClrType>((CrType) o). We can use this in LiteralDescriptor<T, TU>() once we build it
+        // var closedType = typeof(TypeDescriptor<,>)
+        //     .MakeGenericType(clrType, litExprT);
+        //
+        // TypeDescriptor literalTypeDescriptor = Activator.CreateInstance( closedType, new object[] {compiled}) as TypeDescriptor ?? throw new Exception();
+        // _typeCache.Add(clrType, literalTypeDescriptor);
+        // return literalTypeDescriptor;
+        var closedType = typeof(LiteralExprTypeDescriptor<>).MakeGenericType(clrType);
+        TypeDescriptor literalTypeDescriptor = Activator.CreateInstance( closedType, []) as TypeDescriptor ?? throw new Exception();
         _typeCache.Add(clrType, literalTypeDescriptor);
         return literalTypeDescriptor;
     }

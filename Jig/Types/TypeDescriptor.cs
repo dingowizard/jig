@@ -5,14 +5,14 @@ namespace Jig.Types;
 
 public class TypeDescriptor {
     
-    public virtual Type ClrType {get;}
+    public virtual Type ClrType {get; protected set;}
     
-    public virtual Func<SchemeValue, Bool> Predicate {get;}
+    public virtual Func<SchemeValue, Bool> Predicate {get; protected set;}
     
-    public virtual Func<SchemeValue, object> ConvertArg {get;}
+    public virtual Func<SchemeValue, object> ConvertArg {get; protected set;}
     
     // TODO: why are these properties rather than methods?
-    public virtual Func<object, SchemeValue> WrapReturn {get;}
+    public virtual Func<object, SchemeValue> WrapReturn {get; protected set;}
 
     public static TypeDescriptor Double => new DoubleTypeDescriptor();
     public static TypeDescriptor Int32 => new Int32TypeDescriptor();
@@ -72,11 +72,11 @@ public class TypeDescriptor<T, TU> : TypeDescriptor where TU : LiteralExpr<T> wh
     private Func<T, TU> _cstor;
     
     
-    public override Func<SchemeValue, Bool> Predicate {get;}
+    public override Func<SchemeValue, Bool> Predicate {get; protected set;}
     
-    public override Func<SchemeValue, object> ConvertArg {get;}
+    public override Func<SchemeValue, object> ConvertArg {get; protected set;}
 
-    public override Func<object?, SchemeValue> WrapReturn {get;} 
+    public override Func<object?, SchemeValue> WrapReturn {get; protected set;} 
 
     private SchemeValue _wrap(object? obj) {
         switch (obj) {
@@ -93,7 +93,7 @@ internal class StringTypeDescriptor :  TypeDescriptor {
     
     public override Type ClrType => typeof(string);
 
-    public override Func<SchemeValue, Bool> Predicate {get;} = sv => {
+    public override Func<SchemeValue, Bool> Predicate {get; protected set;} = sv => {
         return sv switch
         {
             Jig.String => Bool.True,
@@ -101,14 +101,14 @@ internal class StringTypeDescriptor :  TypeDescriptor {
         };
     };
     
-    public override Func<SchemeValue, object> ConvertArg {get;} = sv => {
+    public override Func<SchemeValue, object> ConvertArg {get; protected set;} = sv => {
         switch (sv) {
             case String str: return str.Value; 
             default: throw new Exception($"Can't convert from {sv.GetType()} to clr string");
         }
     };
 
-    public override Func<object?, SchemeValue> WrapReturn {get;} = obj => {
+    public override Func<object?, SchemeValue> WrapReturn {get; protected set;} = obj => {
         switch (obj) {
             case System.String z: return new Jig.String(z);
             case null: return Bool.False;
@@ -121,7 +121,7 @@ internal class BoolTypeDescriptor :  TypeDescriptor {
     
     public override Type ClrType => typeof(bool);
 
-    public override Func<SchemeValue, Bool> Predicate {get;} = sv => {
+    public override Func<SchemeValue, Bool> Predicate {get; protected set;} = sv => {
         return sv switch
         {
             Jig.Bool => Bool.True,
@@ -129,14 +129,14 @@ internal class BoolTypeDescriptor :  TypeDescriptor {
         };
     };
     
-    public override Func<SchemeValue, object> ConvertArg {get;} = sv => {
+    public override Func<SchemeValue, object> ConvertArg {get; protected set;} = sv => {
         switch (sv) {
             case Bool b: return b.Value; 
             default: throw new Exception($"Can't convert from {sv.GetType()} to clr bool");
         }
     };
 
-    public override Func<object?, SchemeValue> WrapReturn {get;} = obj => {
+    public override Func<object?, SchemeValue> WrapReturn {get; protected set;} = obj => {
         switch (obj) {
             case bool b: return b ? Bool.True : Bool.False;
             case null: return Bool.False;
@@ -148,7 +148,7 @@ internal class Int32TypeDescriptor :  TypeDescriptor {
     
     public override Type ClrType => typeof(int);
 
-    public override Func<SchemeValue, Bool> Predicate {get;} = sv => {
+    public override Func<SchemeValue, Bool> Predicate {get; protected set;} = sv => {
         return sv switch
         {
             Integer => Bool.True,
@@ -156,14 +156,14 @@ internal class Int32TypeDescriptor :  TypeDescriptor {
         };
     };
     
-    public override Func<SchemeValue, object> ConvertArg {get;} = sv => {
+    public override Func<SchemeValue, object> ConvertArg {get; protected set;} = sv => {
         switch (sv) {
             case Integer z: return z.Value; 
             default: throw new Exception($"Can't convert from {sv.GetType()} to {typeof(double)}");
         }
     };
 
-    public override Func<object, SchemeValue> WrapReturn {get;} = obj => {
+    public override Func<object, SchemeValue> WrapReturn {get; protected set;} = obj => {
         switch (obj) {
             case Int32 z: return new Integer(z);
             case null: throw new Exception($"expected an int, but got null");
@@ -230,11 +230,11 @@ public class SchemeValueTypeDescriptor<T> : TypeDescriptor where T : SchemeValue
     }
     public override Type ClrType => typeof(T);
 
-    public override Func<SchemeValue, Bool> Predicate {get;}
+    public override Func<SchemeValue, Bool> Predicate {get; protected set;}
     
-    public override Func<SchemeValue, object> ConvertArg {get;}
+    public override Func<SchemeValue, object> ConvertArg {get; protected set;}
 
-    public override Func<object, SchemeValue> WrapReturn {get;}
+    public override Func<object, SchemeValue> WrapReturn {get; protected set;}
 
 }
 public class SchemeValueTypeDescriptor : TypeDescriptor {
@@ -251,6 +251,7 @@ public class SchemeValueTypeDescriptor : TypeDescriptor {
     private Bool _predicate(SchemeValue sv) { return Bool.True; }
 
     private object _convertArg(SchemeValue sv) {
+        Console.WriteLine($"SchemeValueTypeDescriptor: NOT converting {sv.GetType()} to anything");
         return sv;
     }
 
@@ -335,6 +336,12 @@ public class ArrayTypeDescriptor : TypeDescriptor {
 
 }
 public class GenericTypeDescriptor : TypeDescriptor {
+
+    public GenericTypeDescriptor(Type openGeneric, TypeDescriptor[] typeDescriptorsForTypeArgs) {
+        ClrType = openGeneric;
+        ChildDescriptors = typeDescriptorsForTypeArgs;
+        TypeArguments = typeDescriptorsForTypeArgs.Select(td => td.ClrType).ToArray();
+    }
     
     public TypeDescriptor[] ChildDescriptors {get;}
     

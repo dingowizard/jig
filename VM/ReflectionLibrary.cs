@@ -9,6 +9,9 @@ public class ReflectionLibrary : ILibrary {
 
 
     public ReflectionLibrary(InterOp interOp) {
+        
+        // TODO: this could be even simpler if InterOp were exposed as a variable or parameter in scheme
+        
 
         
         System.Collections.Generic.List<Binding> varBindings = [];
@@ -35,6 +38,13 @@ public class ReflectionLibrary : ILibrary {
             new (new Symbol("procedure<-method"), [], 0, index++, null),
             new Location(getProcedureFromMethodProcedure)));
         
+        MethodInfo? procFromCtorMI = typeof(ReflectionLibrary).GetMethod(nameof(ProcedureFromConstructor), BindingFlags.Static | BindingFlags.NonPublic, [typeof(ConstructorInfo)]);
+        Debug.Assert(procFromCtorMI != null);
+        Procedure procedureFromConstructor = interOp.ProcedureFromStaticMethodInfo(procFromCtorMI);
+        varBindings.Add(new Binding(
+            new (new Symbol("procedure<-constructor"), [], 0, index++, null),
+            new Location(procedureFromConstructor)));
+        
         MethodInfo? mi = typeof(ReflectionLibrary).GetMethod(nameof(ProcedureFromMethodInfo), BindingFlags.NonPublic | BindingFlags.Static, [typeof(string), typeof(string), typeof(string[])]);
         Debug.Assert(mi != null);
         Procedure procedureFromMethodInfo = interOp.ProcedureFromStaticMethodInfo(mi);
@@ -49,8 +59,29 @@ public class ReflectionLibrary : ILibrary {
             new (new Symbol("getter<-property"), [], 0, index++, null),
             new Location(procedureFromPropertyInfo)));
         
+        MethodInfo? setPropertyMI = typeof(ReflectionLibrary).GetMethod(nameof(SetProcedureFromPropertyInfo), BindingFlags.NonPublic | BindingFlags.Static, [typeof(PropertyInfo)]);
+        Debug.Assert(setPropertyMI != null);
+        Procedure setProcedureFromPropertyInfo = interOp.ProcedureFromStaticMethodInfo(setPropertyMI);
+        varBindings.Add(new Binding(
+            new (new Symbol("setter<-property"), [], 0, index++, null),
+            new Location(setProcedureFromPropertyInfo)));
         VariableExports = varBindings.ToArray();
         KeywordExports = [];
+    }
+
+
+    private static SchemeValue ProcedureFromConstructor(ConstructorInfo constructor) {
+        // TODO: if the return value is Procedure rather than SchemeValue, the type resolver screws it up and returns a LiteralExpr<Procedure>
+        return InterOp.GlobalInterOp.ProcedureFromMethodBase(constructor);
+    }
+
+    private static Type TypeFromString(string typeName) {
+        Type? t = Type.GetType(typeName);
+        if (t != null) {
+            return t;
+        }
+        t.GetConstructor([]);
+        throw new NotImplementedException();
     }
 
 
@@ -67,6 +98,11 @@ public class ReflectionLibrary : ILibrary {
 
     }
 
+    private static SchemeValue SetProcedureFromPropertyInfo(PropertyInfo propertyInfo) {
+        var result = InterOp.GlobalInterOp.ProcedureForSetter(propertyInfo);
+        return result != null ? result : Bool.False;
+
+    }
     private static SchemeValue ProcedureFromMethodInfo(string typeName, string methodName, string[] parameterTypes) {
         Type? type = Type.GetType(typeName); // TODO: better if scheme did this so that we could raise scheme errors
         if (type == null) throw new Exception($"couldn't find type {typeName}");

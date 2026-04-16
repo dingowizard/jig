@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Reflection;
+using System.Text;
 using Jig;
 using Jig.Expansion;
 using Jig.Types;
@@ -26,6 +27,7 @@ public class InterOp : IInterOp {
 
 
     static IEnumerable<Type> ResolveClrName(string name) {
+        
         // try as a type first
         var t = Type.GetType(name);
         if (t != null) {
@@ -57,7 +59,6 @@ public class InterOp : IInterOp {
         System.Collections.Generic.List<Binding> bindings = [];
         int indexForBinding = 0;
         
-        
         if (type.IsEnum) {
             var enumBinding = new Binding(new Jig.Expansion.Parameter(new Symbol(type.Name), [], 0, indexForBinding++, null),
                 new Location(new LiteralExpr<Type>(type)));
@@ -72,11 +73,14 @@ public class InterOp : IInterOp {
             return bindings.ToArray(); // TODO: we're sure enum type can't have any of the below?
         }
 
+        // import a variable that represents the type itself. good for, say, (Type.GetMethod type name ... etc)
         var jigValueForClrType = new LiteralExpr<Type>(type);
         var typeBinding = new Binding(new Jig.Expansion.Parameter(new Symbol(type.FullName), [], 0, indexForBinding++, null),
             new Location(jigValueForClrType));
         bindings.Add(typeBinding);
 
+        // import type predicate, eg., System.DateTime? 
+        // checks whether a SchemeValue is a LiteralExpr<System.DateTime>
         Type litExprType = typeof(LiteralExpr<>).MakeGenericType(type);
         var typePredProc = Primitive.TypePredicate((sv) => litExprType.IsInstanceOfType(sv) ? Bool.True : Bool.False, type.FullName + "?");
         var typePredBinding = new Binding(new Jig.Expansion.Parameter(new Symbol(type.FullName + "?"), [], 0, indexForBinding++, null),
@@ -149,6 +153,13 @@ public class InterOp : IInterOp {
                 new Jig.Expansion.Parameter(new Symbol(propertyName), [], 0, indexForBinding++, null),
                 new Location(procedure));
             bindings.Add(bg);
+            if (prop.GetSetMethod() != null) {
+                var proc = ProcedureForSetter(prop);
+                var bng = new Binding(
+                    new Jig.Expansion.Parameter(new Symbol("set-"+propertyName+"!"), [], 0, indexForBinding++, null),
+                    new Location(proc));
+                bindings.Add(bng);
+            }
         }
         var staticProperties =
             type.GetProperties(BindingFlags.Public | BindingFlags.Static)
@@ -210,6 +221,7 @@ public class InterOp : IInterOp {
         typeof(double),
         typeof(string),
         typeof(string[]),
+        typeof(StringBuilder),
         typeof(bool),
         typeof(char),
         typeof(System.DateTime),
@@ -507,12 +519,23 @@ public class InterOp : IInterOp {
         return MakeProcedure(lambdaParams,  [CallForOverride(getMethod, lambdaParams)], propertyInfo.ReflectedType.Name + "." + propertyInfo.Name);
     }
 
+    public Procedure? ProcedureForSetter(PropertyInfo propertyInfo) {
+        
+        MethodInfo? setMethod = propertyInfo.GetSetMethod();
+        if (setMethod == null) return null;
+        var lambdaParams = LambdaParametersForMethod(setMethod);// NOTE: I think this will handle static and instance
+        return MakeProcedure(lambdaParams,  [CallForOverride(setMethod, lambdaParams)], "set-" + propertyInfo.ReflectedType.Name + "." + propertyInfo.Name + "!");
+    }
     public Procedure ProcedureFromInstanceProperty(PropertyInfo prop) {
         var lambdaParameters = LambdaParametersFromInstanceProperty(prop);
         return MakeProcedure(lambdaParameters, LambdaBodyForInstanceMethod(prop.GetGetMethod(), lambdaParameters), prop.ReflectedType.Name + "." + prop.Name);
         // return MakeProcedure(lambdaParameters, LambdaBodyForInstanceProperty(prop, lambdaParameters), prop.DeclaringType.Name + "." + prop.Name);
     }
 
+    public Procedure ProcedureFromMethodBase(MethodBase methodBase) {
+        var lambdaParameters = LambdaParametersForMethod(methodBase);
+        return MakeProcedure(lambdaParameters, [CallForOverride(methodBase, lambdaParameters)], methodBase.Name);
+    }
     public Procedure ProcedureFromInstanceMethodInfo(MethodInfo methodInfo) {
         var lambdaParameters = LambdaParametersForInstanceMethod(methodInfo);
         return MakeProcedure(lambdaParameters, LambdaBodyForInstanceMethod(methodInfo, lambdaParameters), MethodName(methodInfo));

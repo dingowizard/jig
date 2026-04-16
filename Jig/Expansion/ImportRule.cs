@@ -36,7 +36,8 @@ public partial class CoreParseRules {
                 importedLibraries.Add(library);
             } else if (importSpec.Name[0].Name.Equals("clr")) {
                 ILibrary clrLib = context.Expander.Owner.InterOp.ImportClrNameSpace(string.Join(".", importSpec.Name.Skip(1).Select(s => s.Name)));
-                Console.WriteLine($"it has the following vars: {string.Join(", ", clrLib.VariableExports.Select(b => b.Parameter.Symbol.Name))}");
+                // TODO: make a convenience macro that takes an import spec and tells you what variables it exports
+                // Console.WriteLine($"it has the following vars: {string.Join(", ", clrLib.VariableExports.Select(b => b.Parameter.Symbol.Name))}");
                 importedLibraries.Add(clrLib);
                 LibraryLibrary.Instance.RegisterLibrary(importSpec.Name, clrLib);
             } else {
