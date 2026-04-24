@@ -437,19 +437,21 @@ public class Machine : IRuntime {
                     }
                     continue;
                 case OpCode.Var:
-                    // TODO: currently, referencing a undefined top level var
-                    // is a syntax error.
-                    // but it should be a runtime error.
-                    try {
-                        VAL = VARS[IR & 0x00FFFFFFFFFFFFFF].Value!;
+                    ulong n = IR & 0x00FFFFFFFFFFFFFF;
+                    if (n > (ulong)VARS.Length  - 1) {
+                        throw new Exception("index out of bounds of VARS array");
                     }
-                    // TODO: this should raise-continuable a condition
-                    catch (Exception)
-                    {
-                        Console.WriteLine($"PC = {PC - 1}");
-                        Console.WriteLine($"VARS count = {VARS.Length}. index was {IR & 0x00FFFFFFFFFFFFFF}");
-                        Array.ForEach(Disassembler.Disassemble(Template), Console.WriteLine);
-                        throw;
+                    try {
+                        VAL = VARS[n].Value!;
+                    }
+                    catch (Exception) {
+                        var assVio = new AssertionViolation();
+                        var m = new Message(new String($"tried to reference an undefined variable: {Template.Vars[n].Symbol.Print()}."));
+                        var contCond = new ContinuationCondition(CONT, ActivationStack.Copy());
+                        var compCondition = CompoundCondition.Make(assVio, m, contCond);
+                        SP = FP; // Why are we destroying this stack frame? would FP = SP be better?
+                        Push(compCondition);
+                        goto Condition;
                     }
                     continue;
                 case OpCode.SetVar:
@@ -791,7 +793,20 @@ public class Machine : IRuntime {
                     
                 default: throw new Exception($"unhandled case {opCode} in Execute");
             }
-            
+            Condition:
+                var prtr = ENVT.TopLevels.Keys.FirstOrDefault(p => p.Symbol.Name.Equals("raise-continuable"));
+                Debug.Assert(prtr is  not null, "for operator not callable: no raise-continuable found in top levels");
+                var bdg = ENVT.TopLevels[prtr];
+                var vlu = bdg.Location.Value;
+                var rPrc = vlu as Procedure;
+                Debug.Assert(rPrc is not null, "raise-continuable was not a procedure");
+                Debug.Assert(rPrc.Required == 1, "raise-continuable should be a procedure that takes one and only one argument");
+                Debug.Assert(!rPrc.HasRest, "raise-continuable should be a procedure that takes one and only one argument");
+                VAL = rPrc;
+                // ActivationStack.Push(raiseProc.Template.Name.Symbol.Name, CONT);
+                Call(true);
+                continue;
+
         }
 
     }
