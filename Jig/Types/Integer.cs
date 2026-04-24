@@ -54,6 +54,30 @@ public class Integer(int i) : Number<int>(i), IHasTypeDescriptor {
         return (r > 0) != (z2.Value > 0) ? new Integer(r + z2.Value) : new Integer(r);
     }
 
+    public static Integer BitwiseNot(Integer z) {
+        return new Integer(~z.Value);
+    }
+
+    public static Integer BitwiseOr(Integer z1, Integer z2) {
+        return new Integer(z1.Value | z2.Value);
+    }
+
+    public static Integer BitwiseXor(Integer z1, Integer z2) {
+        return new Integer(z1.Value ^ z2.Value);
+    }
+
+    public static Integer BitwiseAnd(Integer z1, Integer z2) {
+        return new Integer(z1.Value & z2.Value);
+    }
+
+    public static Integer BitwiseShiftLeft(Integer z1, Integer z2) {
+        return new Integer(z1.Value << z2.Value);
+    }
+
+    public static Integer BitwiseShiftRight(Integer z1, Integer z2) {
+        return new Integer(z1.Value >> z2.Value);
+    }
+    
     public static Integer operator +(Integer i1, Integer i2) => new (i1.Value + i2.Value);
     public static Float operator +(Integer i1, Float f) => new (i1.Value + f.Value);
 

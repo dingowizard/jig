@@ -5,6 +5,8 @@ public class Location {
 
     public class Later : Location {
         public Later(Parameter.Maybe parameter, IRuntimeEnvironment env) : base() {
+            // TODO: could arguments and locals also be like this, so that we don't need
+            // a separate ARG instruction?
             _location = new Lazy<Location>(() => {
                 // TODO: I think a runtime env should have a method for looking up a parameter!
                 if (env.TopLevels.TryGetValue(parameter, out Binding? b)) {

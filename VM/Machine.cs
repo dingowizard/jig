@@ -791,6 +791,7 @@ public class Machine : IRuntime {
                     
                 default: throw new Exception($"unhandled case {opCode} in Execute");
             }
+            
         }
 
     }
